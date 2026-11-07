@@ -60,9 +60,11 @@ subtest 'collect starts afresh on each run' => sub {
 };
 
 subtest 'mistakes' => sub {
-    for my $bad (0, -1, 1.5, 'x', '', undef) {
-        my $shown = $bad // 'undef';
-        my $line  = __LINE__ + 1;
+    for my $bad (0, -1, 1.5, 'x', '', undef, "\x{0663}", "3\n") {
+        # A digit of another script is named by its code point, such as U+0663
+        my $shown
+            = ($bad // 'undef') =~ s( ([^\x00-\x7f]) )( sprintf 'U+%04X', ord $1 )xger;
+        my $line = __LINE__ + 1;
         is dies { batch($bad) },
             "Expected a batch size of 1 or more at ${\ __FILE__ } line $line.\n",
             "batch($shown)";

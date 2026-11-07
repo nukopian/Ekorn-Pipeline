@@ -72,7 +72,7 @@ sub drop_while : prototype(&) ($test) {
 
 sub _check_count ($count) {
     croakf 'Expected a count of 0 or more'
-        unless defined $count && $count =~ m( \A \d+ \z )x;
+        unless defined $count && $count =~ m( \A \d+ \z )xa;
     return;
 }
 
@@ -103,10 +103,10 @@ Ekorn::Pipeline::Stages::Flow - stages taking or dropping values: take, drop, ta
 
 Stages that decide which values go on, by their place or by a test,
 whatever the values are. Each function returns a stage, and checks
-what it's given when it's called, not on each value. Those that count
-are made with L<Ekorn::Pipeline::Gather>, so they start afresh on each
-run: each call of a pipeline with values, and each iterator made from
-it.
+what it's given when it's called, not on each value. Those that keep
+state, C<take>, C<drop> and C<drop_while>, are made with
+L<Ekorn::Pipeline::Gather>, so they start afresh on each run: each call
+of a pipeline with values, and each iterator made from it.
 
 C<take> and C<take_while> end the pipeline with
 L<Ekorn::Pipeline::Stop> once they have passed on all they will, so an

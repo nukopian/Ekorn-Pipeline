@@ -93,8 +93,10 @@ subtest 'drop_while' => sub {
 };
 
 subtest 'counts are checked when the stage is made' => sub {
-    for my $bad (-1, 1.5, 'x', '', undef) {
-        my $shown = $bad // 'undef';
+    for my $bad (-1, 1.5, 'x', '', undef, "\x{0663}", "3\n") {
+        # A digit of another script is named by its code point, such as U+0663
+        my $shown
+            = ($bad // 'undef') =~ s( ([^\x00-\x7f]) )( sprintf 'U+%04X', ord $1 )xger;
         for my $fn (\&take, \&drop) {
             my $line = __LINE__ + 1;
             is dies { $fn->($bad) },

@@ -22,7 +22,7 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # references, the last, shorter batch once the values run out.
 sub batch ($size) {
     croakf 'Expected a batch size of 1 or more'
-        if !defined $size || $size !~ m( \A \d+ \z )x || $size < 1;
+        if !defined $size || $size !~ m( \A \d+ \z )xa || $size < 1;
     return gather {
         my @batch;
         my $stage = sub ($value) {
