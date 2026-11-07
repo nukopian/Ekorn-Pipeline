@@ -52,8 +52,12 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    - a pipeline in scalar context:
      https://claude.ai/artifact/MXr3hATLT9CMSpuRgX4KMF;
    - a pipeline as a stage:
-     https://claude.ai/artifact/MT1zr4gr4FuodrCGGHCiGF (an addition,
-     so it can wait for a v0.1.x);
+     https://claude.ai/artifact/MT1zr4gr4FuodrCGGHCiGF. Decided on
+     2026-11-07: a `stages()` method, returning a pipeline's stages as
+     a flat list, so they can be spliced into another pipeline or
+     given to any function taking stages; a pipeline given to `new`
+     as a stage is still refused. Iain to say whether it goes in
+     v0.1.0, with a second trial, or a later v0.1.x;
    - whether `ending()` is public:
      https://claude.ai/artifact/TKhjcwVsGNu9kmDDD52aoj. Decided on
      2026-11-07: it stays public, under that name, as it tells stage
