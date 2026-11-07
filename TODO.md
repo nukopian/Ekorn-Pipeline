@@ -1,6 +1,6 @@
 # Planned work
 
-## 1. Release v0.1.0 by 2026-11-09, with the names DBIx::Squirrel needs
+## 1. Release v0.1 by 2026-11-09, with the names DBIx::Squirrel needs
 
 **From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel-2
 8447689997ae6b1ec5f3a5c45a4fac0224391ce4, on its branch
@@ -32,11 +32,30 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
      `Expected stage #%d to be a code reference` and
      `Pipeline stage #%d failed at ...`.
 
-   DBIx::Squirrel runs on all of these as they are, unchanged since
-   0b45ac977eac8dba7d59562267e04d4895f1037d, with every test and CI job
-   passing (its message of 2026-11-07, from DBIx-Squirrel-2
-   82f7695f3d20cd0467a5524d52924195c6d3c5b0). Changing one means
-   handing DBIx-Squirrel a task.
+   DBIx::Squirrel runs on all of these as they are, with every test and
+   CI job passing (its message of 2026-11-07, from DBIx-Squirrel-2
+   82f7695f3d20cd0467a5524d52924195c6d3c5b0). Since
+   0b45ac977eac8dba7d59562267e04d4895f1037d no name or message has
+   changed, but two behaviours have: counts and sizes take the digits
+   0-9 only (3323a7f4e4500894e846984b403126d2ad936b58), and a stop that
+   isn't an array carries nothing
+   (f6827617d2c2cc820e56bea07cf6534f9b728a3a). DBIx-Squirrel was told
+   of both, in its tasks 3 and 5. Changing a name, a message or a
+   behaviour means handing DBIx-Squirrel a task.
+
+   Four decisions are with Iain, each in a Claude Doc with options and
+   a recommendation. Record each outcome here, and do what it needs
+   before the release:
+   - an iterator after a stage dies:
+     https://claude.ai/artifact/Tp9XrRuW9vgXZT6HtfR4yS (a change here
+     needs a new trial);
+   - a pipeline in scalar context:
+     https://claude.ai/artifact/MXr3hATLT9CMSpuRgX4KMF;
+   - a pipeline as a stage:
+     https://claude.ai/artifact/MT1zr4gr4FuodrCGGHCiGF (an addition,
+     so it can wait for a v0.1.x);
+   - whether `ending()` is public:
+     https://claude.ai/artifact/TKhjcwVsGNu9kmDDD52aoj.
 2. Upload a trial, as "A trial release" in docs/MAINTAINING.md says,
    and read its reports. Done on 2026-11-07:
    `Ekorn-Pipeline-v0.1.0-TRIAL.tar.gz`, built from
@@ -46,8 +65,13 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    DBIx-Squirrel was told (DBIx-Squirrel-2
    dad0b1d46557620129e7b1e0e33b13e676d7b4e3). Its reports are still to
    read; a failure is fixed and goes out as a trial of v0.1.1.
-3. Release v0.1.0 properly, not as a trial, as "Making a release"
-   says.
+3. Release the version of the last trial, v0.1.0 or the v0.1.1 a
+   failure or a decision makes, properly, not as a trial, as "Making a
+   release" says.
+
+If 2026-11-09 can't be met, because reports are slow, one fails, or a
+decision needs a new trial, tell DBIx-Squirrel at once with a message
+in its `TODO.md`, as its task 2 waits on this release.
 
 **Why:** CPAN Testers install a distribution's dependencies from the
 CPAN index, which doesn't hold trials, so a DBIx::Squirrel trial that
@@ -55,9 +79,42 @@ needed an Ekorn::Pipeline trial would mostly report a missing
 prerequisite, not test anything. A 0.x version already says the
 interface may still change.
 
-**Done when:** the trial's reports are read and Iain decides v0.1.0 is
-ready. The commit that removes this task, and so this file, starts
+**Done when:** the four decisions are made and done, the last trial's
+reports are read, and Iain decides it's ready. The commit that removes this task, and so this file, starts
 release day, as `main` can't take `TODO.md`. "Making a release" then
-ends, at its step 8, by handing DBIx-Squirrel a task saying v0.1.0 is
-on CPAN.
+ends, at its step 8, by handing DBIx-Squirrel a task saying which
+version is on CPAN.
 
+## 2. Find out why a push starts no CI run
+
+**From:** Ekorn-Pipeline's session, 2026-11-07 (Ekorn-Pipeline
+a36da79f6ca387514092bf7d1f0a82a6ab4bcc91)
+**Waiting on:** nothing
+
+**What:** no push to `develop` has started a run of `test.yml`, though
+it has `on: push: branches: [main, develop]`, and Actions is enabled
+for the repository with every action allowed. GitHub has the commits,
+but makes no check suite for them: `gh api
+repos/nukopian/Ekorn-Pipeline/commits/b5e28c4e48c9615366e9b34191c8c4d86ace0865/check-suites`
+lists none from a push. Every run so far was started by hand, with
+`gh workflow run test.yml --ref develop`. Things to look at, reading
+only, as changing a GitHub setting needs Iain's go-ahead:
+
+- the repository's Actions settings and any organisation policy over
+  them (`gh api repos/nukopian/Ekorn-Pipeline/actions/permissions`);
+- whether webhooks for pushes reach GitHub Actions at all, as in the
+  repository's events (`gh api repos/nukopian/Ekorn-Pipeline/events`);
+- what differs from DBIx-Squirrel-2, whose pushes to `develop` and
+  `ekorn-pipeline` do start runs (`gh run list -R
+  nukopian/DBIx-Squirrel-2`): its workflow's `on:`, its Actions
+  settings, and how the repository was created and first pushed;
+- GitHub's status page for Actions incidents on 2026-11-07.
+
+**Why:** "Making a release" step 1 needs CI to have passed on the last
+commit of `develop`, and a push that tests nothing lets a broken
+commit look fine until someone starts a run.
+
+**Done when:** a push to `develop` starts a run by itself, or the cause
+is found and Iain has decided what to do. If it can't be solved before
+the release, start a run by hand on the commit to be released, as so
+far.
