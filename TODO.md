@@ -55,7 +55,9 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
      https://claude.ai/artifact/MT1zr4gr4FuodrCGGHCiGF (an addition,
      so it can wait for a v0.1.x);
    - whether `ending()` is public:
-     https://claude.ai/artifact/TKhjcwVsGNu9kmDDD52aoj.
+     https://claude.ai/artifact/TKhjcwVsGNu9kmDDD52aoj. Decided on
+     2026-11-07: it stays public, under that name, as it tells stage
+     authors where a value came from. Nothing to do.
 2. Upload a trial, as "A trial release" in docs/MAINTAINING.md says,
    and read its reports. Done on 2026-11-07:
    `Ekorn-Pipeline-v0.1.0-TRIAL.tar.gz`, built from
