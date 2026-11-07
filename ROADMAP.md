@@ -55,9 +55,10 @@ today finds the iterator carrying on, with the value that died dropped
 and everything else kept, so an end such as `collect` reports on a run
 that lost values. Nothing is promised either way, and DBIx::Squirrel's
 users will read iterators in loops that catch errors, so it has to be
-settled before v0.1. A change goes out as a new trial.
+settled before v0.1.
 
-Its question is open: see its
+Decided: the iterator ends, as a pushed run does, so the release is
+v0.1.1, after a second trial. See its
 [record](docs/changes/2026-0002-iterator-after-a-stage-dies.md).
 
 **Done when:** what an iterator does after a stage dies is decided,

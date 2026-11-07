@@ -33,7 +33,12 @@ nothing, as the whole call is one run.
 
 ## Decisions
 
-- [ ] **D1.** After a stage dies, what does the iterator do?
+- [x] **D1.** After a stage dies, what does the iterator do? B: it
+  ends, decided on 2026-11-07. Iain: it's safer, and deterministic.
+  Every later call returns an empty list, no end function runs, and the
+  source isn't called again, as a pushed run already ends. The release
+  is then v0.1.1, after a second trial, and DBIx-Squirrel gets a task
+  to check its loops over rows. The options, as weighed:
   - **A.** Promise today's behaviour: it carries on, the dead value
     dropped. No code change, and a loop can catch and go on; but an end
     such as `collect` then gives a result missing values, with no sign

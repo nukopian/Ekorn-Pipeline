@@ -46,8 +46,9 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    What v0.1 promises waits on three roadmap items, whose open
    decisions are in their records in `docs/changes/`. Settle them with
    Iain, and do what they need before the release:
-   - 2026-0002, an iterator after a stage dies: D1 is open, and a
-     change needs a new trial;
+   - 2026-0002, an iterator after a stage dies: D1 is settled, B, so
+     the iterator ends, and the release is v0.1.1, after a second
+     trial;
    - 2026-0003, a pipeline in scalar context: D1 is open;
    - 2026-0001, a `stages()` method: D1 is settled; D2, whether it
      goes in v0.1.0 or a later v0.1.x, is open.
