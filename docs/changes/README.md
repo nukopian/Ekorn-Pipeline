@@ -22,7 +22,9 @@ Small fixes don't need one.
   unchecked while open. Once settled, in the chat with Iain, it's
   checked, with the answer, the date and why. Work starts only once
   each is checked, or moved to another item or task, which the record
-  says.
+  says. A **Decisions:** line under the status sums them up, each
+  settled or open in a few words, so the record's state shows at a
+  glance; it changes in the commit that settles one.
 - **The plan is written when work starts, and isn't edited after.**
   What changed goes under What happened, so the record shows how the
   plan held up.
@@ -38,6 +40,8 @@ Small fixes don't need one.
 # 2026-0001. Title
 
 **Status:** open | in progress | shipped, unreleased | shipped in v0.1.1 | dropped
+
+**Decisions:** D1 settled: the answer, in a few words. D2 open: the question, in a few words. | None.
 
 **Origin:** roadmap, added 2026-11-07 | a TODO task from DBIx-Squirrel's session (DBIx-Squirrel-2 <commit>) | a message from DBIx-Squirrel's session, 2026-11-08 (DBIx-Squirrel-2 <commit>)
 

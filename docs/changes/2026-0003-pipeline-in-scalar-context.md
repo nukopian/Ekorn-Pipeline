@@ -2,6 +2,8 @@
 
 **Status:** open
 
+**Decisions:** D1 open: what a pipeline returns in scalar context.
+
 **Origin:** roadmap, added 2026-11-07, from a review of the docs before
 v0.1.0
 

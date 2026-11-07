@@ -393,7 +393,9 @@ a number.
 - **An item's questions are settled before work on it starts.** They're
   discussed in the chat, and kept in its record's Decisions, numbered,
   D1, D2 and on: unchecked while open, and checked once settled, with
-  the answer, the date and why. An item moves to Now only once every
+  the answer, the date and why. A **Decisions:** line under the
+  record's status sums them up, each settled or open in a few words,
+  so its state shows at a glance. An item moves to Now only once every
   decision is checked, or Iain agrees to move one still open to another
   item or task, which the record says. A decision that needs no work
   of its own is kept in the commit message that records it.

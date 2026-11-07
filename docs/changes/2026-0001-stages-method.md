@@ -2,6 +2,8 @@
 
 **Status:** open
 
+**Decisions:** D1 settled: a stages() method, not composing in place. D2 open: whether it ships in v0.1.1 or a later v0.1.x.
+
 **Origin:** roadmap, added 2026-11-07, from the question whether `new`
 should take a pipeline where a stage goes, raised by a review of the
 docs before v0.1.0

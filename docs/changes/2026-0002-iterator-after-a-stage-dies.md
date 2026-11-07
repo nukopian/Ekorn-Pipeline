@@ -2,6 +2,8 @@
 
 **Status:** open
 
+**Decisions:** D1 settled: B, the iterator ends. None open.
+
 **Origin:** roadmap, added 2026-11-07, from the sweep before v0.1.0's
 trial
 
