@@ -33,29 +33,9 @@ needed an Ekorn::Pipeline trial would mostly report a missing
 prerequisite, not test anything. A 0.x version already says the
 interface may still change.
 
-**Done when:** v0.1.0 is on CPAN, indexed, and MetaCPAN shows it (step
-7 of "Making a release"). Then hand DBIx-Squirrel a task saying so,
-in its `TODO.md` on `develop`, as the next task says.
+**Done when:** the trial's reports are read and Iain decides v0.1.0 is
+ready. The commit that removes this task, and so this file, starts
+release day, as `main` can't take `TODO.md`. "Making a release" then
+ends, at its step 8, by handing DBIx-Squirrel a task saying v0.1.0 is
+on CPAN.
 
-## 2. Hand tasks to DBIx-Squirrel through its TODO.md
-
-**From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel-2
-8068670dc395157a12af93bb447ab4b9671abe11, on `develop`)
-**Waiting on:** nothing
-
-**What:** CLAUDE.md's "Ekorn-Pipeline and DBIx-Squirrel" says a fix to
-code both have is noted in the other's `TODO.md` "from a session opened
-in that repository", and that Claude doesn't edit DBIx-Squirrel from
-here. Iain decided otherwise on 2026-11-07: the two hand each other
-tasks as grammar and scalar do. A session here commits a task straight
-into `~/Git/github.com/nukopian/DBIx-Squirrel-2`'s `TODO.md` on its
-`develop`, as `docs: a task from Ekorn-Pipeline: ...`, with **From:**
-and **Waiting on:** lines above it, committing only that file, by its
-path, so nothing of a session working there goes with it. It's the only
-other repository this one touches. Change the rule to say so, as
-DBIx-Squirrel-2's CLAUDE.md now does under "Planned work".
-
-**Why:** a task written in the other repository is where its session
-will find it at the start, and Iain reviews it like any other change.
-
-**Done when:** CLAUDE.md says so, and the old wording is gone.

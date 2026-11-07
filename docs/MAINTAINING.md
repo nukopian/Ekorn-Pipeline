@@ -350,6 +350,11 @@ unsigned tag, and pushes both. `minil prepare` sets the version and
    curl -sSf https://fastapi.metacpan.org/v1/release/Ekorn-Pipeline | jq -r '"\(.name) \(.date) \(.resources.repository.web)"'
    ```
 
+8. **Tell DBIx-Squirrel.** Hand it a task in its `TODO.md` on `develop`,
+   saying which version is on CPAN, as CLAUDE.md's Planned work says,
+   and read its other tasks for any waiting on this release, to tell
+   Iain which can now be done. Nothing else tells its session.
+
 ## Changing the CI matrix
 
 `main` requires each CI job by its name, as `perl 5.44 (macos-26)`, so a

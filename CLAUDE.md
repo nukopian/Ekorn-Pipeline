@@ -46,9 +46,8 @@ The plan is for DBIx-Squirrel to depend on Ekorn-Pipeline once both are
 stable, in place of its own copy. Until then the pipeline lives in
 both:
 
-- **A fix to code both have** is noted for the other repository, in its
-  `TODO.md`, from a session opened in that repository. Claude doesn't
-  edit DBIx-Squirrel from a session here.
+- **A fix to code both have,** or anything else DBIx-Squirrel needs to
+  do, is handed to it as a task in its `TODO.md`, as Planned work says.
 - **What's new grows here,** not in DBIx-Squirrel.
 - **Stages go where what they need to know is,** as Iain decided on
   2026-11-07. Stages for any values, whatever they are and wherever
@@ -260,6 +259,48 @@ what was Iain's.
   `develop`, with enough to do it cold: what, why, the files involved,
   and how to check it's done. Not only in Claude's memory or the chat,
   which Iain can't review and a fresh session may not have.
+- **Before each commit, `git pull --ff-only` and re-read `TODO.md`.**
+  DBIx-Squirrel's session adds tasks here, mid-session too, and a
+  commit that completes a task must remove it.
+- **Each task opens with where it came from and what it waits on,** so
+  a session can see at a glance which tasks it can do now, and whom to
+  tell when one is done:
+
+  ```markdown
+  ## Release v0.1.0
+
+  **From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel-2
+  8447689997ae6b1ec5f3a5c45a4fac0224391ce4, on its branch `ekorn-pipeline`)
+  **Waiting on:** nothing
+  ```
+
+  `From` names the repository whose session added it, the date, and the
+  commit it came from: the full hash, and the branch if it isn't
+  `develop`. `Waiting on` is "nothing" when the task can be done now.
+- **Tasks for DBIx-Squirrel go in its `TODO.md`,** as grammar and scalar
+  hand tasks to each other, as Iain decided on 2026-11-07. A session
+  here commits the task straight into
+  `~/Git/github.com/nukopian/DBIx-Squirrel-2`'s `TODO.md` on its
+  `develop`, after a `git pull --ff-only` there, as `docs: a task from
+  Ekorn-Pipeline: ...`, and pushes it at once: left uncommitted, it
+  blocks that repository's next pull and never reaches the session that
+  would do it. Commit only that file, by its path, so nothing of a
+  session working there goes with it. When its working copy is on
+  another branch, as on `ekorn-pipeline` now, commit from a worktree of
+  `develop` in a temporary directory, and remove the worktree once it's
+  pushed, so its session's branch and files are left as they are:
+
+  ```
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add "$TMPDIR/dbix-develop" develop
+  ```
+
+  DBIx-Squirrel's tasks for
+  Ekorn-Pipeline come here the same way. It's the only other repository
+  this one touches.
+- **A release ends by telling DBIx-Squirrel,** with a task in its
+  `TODO.md`, and by looking there for tasks waiting on the release, so
+  Iain knows which can now be done. Nothing else tells its session
+  that a release has landed.
 - **`TODO.md` never reaches `main`.** `main` moves only by a
   fast-forward to `develop`, so a release waits until the file is gone:
   each task done, or moved to a GitHub issue, or, for a decision
