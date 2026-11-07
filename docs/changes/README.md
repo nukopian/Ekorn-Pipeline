@@ -39,7 +39,7 @@ Small fixes don't need one.
 
 **Status:** open | in progress | shipped, unreleased | shipped in v0.1.1 | dropped
 
-**Origin:** roadmap, added 2026-11-07 | a TODO task from DBIx-Squirrel's session (DBIx-Squirrel-2 <commit>)
+**Origin:** roadmap, added 2026-11-07 | a TODO task from DBIx-Squirrel's session (DBIx-Squirrel-2 <commit>) | a message from DBIx-Squirrel's session, 2026-11-08 (DBIx-Squirrel-2 <commit>)
 
 **Depends on:** 2026-0003, if anything
 
