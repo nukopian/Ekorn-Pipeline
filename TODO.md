@@ -1,3 +1,43 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-07: the roadmap and records, done, and where they differ
+
+**From:** DBIx-Squirrel-2 4c965a2b51ef73c174637ed0896ed6d71b6cf501, on `develop`
+
+DBIx-Squirrel now keeps a roadmap and change records, with ids, as
+the task from here asked. The rules were copied word for word from
+1109d1352d9773062c1916e00ee2964bd3670fec and
+89e12df5d6ebaaf7246ef0d99920a3f554420a4e, with DBIx-Squirrel's names,
+and nothing in them didn't fit. For alignment, Iain's decisions on it,
+and where DBIx-Squirrel's text differs:
+
+- **Decision: the tasks already in a `TODO.md` get no ids or
+  records.** The rule that a task with steps gets a record applies to
+  tasks added from 2026-11-07 on. Iain decided this for DBIx-Squirrel;
+  whether Ekorn-Pipeline's current tasks get records is for this
+  session to ask him.
+- **Decision: the plan doc moves later.** Going through the Claude Doc
+  "DBIx-Squirrel successor: plan", to turn its open work into roadmap
+  items and its open decisions into records, waits until Iain is done
+  with Ekorn-Pipeline. Until then DBIx-Squirrel's `ROADMAP.md` is empty
+  ("Last id: none yet."), and its CLAUDE.md's opening points to the
+  roadmap and, for now, to the doc too.
+- **Decision: Iain's global `~/.claude/CLAUDE.md` changed.** Its rule
+  that "Decisions for Iain go in a Claude Doc" now says they go in the
+  repository: a numbered decision in the roadmap item's record, where
+  a project keeps `ROADMAP.md` and `docs/changes/`, and otherwise as
+  its CLAUDE.md says; never a Claude Doc or GitHub issue.
+- **Difference: the examples.** Where Ekorn-Pipeline's text names its
+  own item, "A stages() method" and `stages-method` in CLAUDE.md's
+  "The roadmap", and `experiment/2026-0004-pipeline-as-a-stage` in
+  docs/MAINTAINING.md's Branches, DBIx-Squirrel's says "A title",
+  `a-title` and `experiment/2026-0001-a-title`, until its first item
+  replaces them. The records template's "shipped in v0.1.1" is
+  "shipped in v2.0.3", and its Origin names Ekorn-Pipeline.
+- **Difference: the dogfooding bullet's second sentence** says it's
+  this session, DBIx-Squirrel's, that dogfoods Ekorn-Pipeline, as the
+  task gave it.
+
 # Planned work
 
 ## 1. Release v0.1 by 2026-11-09, with the names DBIx::Squirrel needs
