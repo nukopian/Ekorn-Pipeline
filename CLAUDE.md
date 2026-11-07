@@ -301,6 +301,16 @@ what was Iain's.
   `TODO.md`, and by looking there for tasks waiting on the release, so
   Iain knows which can now be done. Nothing else tells its session
   that a release has landed.
+- **Messages go in a `# Messages` section, above `# Planned work`,** in
+  the same `TODO.md`, as Iain decided on 2026-11-07. A message is news
+  the other session should know, but needs no work of its own: what one
+  side has decided or done, or a change in plan. A message that asks
+  for work is a task instead. Each is a `##` heading saying who it's
+  from, the date and what it's about, with a **From:** line, sent as
+  `docs: a message from Ekorn-Pipeline: ...`, committing only that
+  file. Read messages at the start of a session, with the tasks; the
+  session they're for removes each once read, in a commit saying what
+  came of it, and the heading with the last one.
 - **`TODO.md` never reaches `main`.** `main` moves only by a
   fast-forward to `develop`, so a release waits until the file is gone:
   each task done, or moved to a GitHub issue, or, for a decision
