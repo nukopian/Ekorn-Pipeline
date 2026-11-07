@@ -93,6 +93,9 @@ threw it, as that stage's last values.
 As a string, a stop is "Stop used outside a pipeline", with a newline,
 which is what a user sees if one is thrown with nothing to catch it.
 
+A stop that isn't an array, made without C<throw>, as by blessing a
+hash into the class, still stops the pipeline, but carries nothing.
+
 =head2 Catching errors in a stage
 
 A pipeline recognises a stop with C<isa>, so a subclass of

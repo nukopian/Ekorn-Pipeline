@@ -12,7 +12,8 @@ Unreleased
       flatMap). A pipeline is called with values, or pulls them from a
       source with an iterator, calling it only as results are wanted.
     - Ekorn::Pipeline::Stop ends a pipeline early, passing on any
-      values it carries, after which the source isn't called again.
+      values it carries, after which the source isn't called again. A
+      stop not made by throw, and so not an array, carries nothing.
     - Ekorn::Pipeline::Gather makes a stage afresh for each run, with
       an optional end function, called once the values run out.
     - Ekorn::Pipeline::Pipes gives a class pipe and tap methods, which

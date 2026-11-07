@@ -5,7 +5,7 @@ package Ekorn::Pipeline;
 use experimental qw(try);
 
 use Carp      qw(croak);
-use Ref::Util qw(is_coderef is_ref);
+use Ref::Util qw(is_arrayref is_coderef is_ref);
 
 use Ekorn::Pipeline::Errors qw(croakf);
 
@@ -127,7 +127,9 @@ sub _iterator ($stages, $source) {
             }
             catch ($e) {
                 if ($e isa 'Ekorn::Pipeline::Stop') {
-                    my(undef, @values) = @$e;
+                    # A stop made by throw is an array; one made otherwise
+                    # carries nothing.
+                    my(undef, @values) = is_arrayref($e) ? @$e : ();
                     $done     = 1;
                     $next_end = $n + 1 if $next_end < $n + 1;
                     @todo     = map { [$n + 1, $_, $from_end] } reverse @values;

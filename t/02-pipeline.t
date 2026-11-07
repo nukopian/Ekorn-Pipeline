@@ -104,6 +104,10 @@ subtest 'the values a Stop carries go through the rest of the stages' => sub {
         sub { $_ == 99 ? Stop('last') : $_ },
     );
     is [$q->(1 .. 4)], [1, 2, 'last'], 'a later stage can stop them in turn';
+
+    # Not made by throw, so not an array: a stop that carries nothing
+    my $r = $class->new(sub { $_ == 2 ? die(bless {}, 'My::Stop') : $_ });
+    is [$r->(1 .. 4)], [1], 'a stop that is not an array carries nothing';
 };
 
 subtest 'iterator hands out one value per call' => sub {
