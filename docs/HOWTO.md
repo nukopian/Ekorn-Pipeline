@@ -549,7 +549,8 @@ say "$kept of $read";    # 3 of 6
 ### Dump values while debugging
 
 `dump_to` writes each value with Data::Dumper, its keys in order, to a
-filehandle, or to STDERR, and passes it on:
+filehandle, or to STDERR, and passes it on. It's for debugging, and
+writes values in full, so take it out before the code goes live:
 
 ```perl
 use Ekorn::Pipeline::Stages::Taps qw(:DEFAULT dump_to);

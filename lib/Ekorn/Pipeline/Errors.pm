@@ -47,7 +47,7 @@ Ekorn::Pipeline::Errors - report Ekorn::Pipeline's errors at the caller's line
 
     our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
-    croakf 'Expected a count of 0 or more' unless $count =~ m( \A \d+ \z )x;
+    croakf 'Expected a count of 0 or more' unless $count =~ m( \A \d+ \z )xa;
 
 =head1 DESCRIPTION
 
@@ -74,6 +74,11 @@ written, rather than at the module's own line that ran the pipeline.
 
 Croaks with a message made by C<sprintf> from a format and its
 arguments, reporting it at the same line as L<Carp/croak> would.
+
+The format is a literal, written in the code: values go in as
+arguments, through C<%s> and the like, never as the format. A format
+made from data does whatever its C<%> directives say, such as
+C<%999999999s>, which makes a string of a gigabyte.
 
 =head1 VARIABLES
 

@@ -124,6 +124,10 @@ none.
 Writes each value to C<$fh>, or to STDERR, with Data::Dumper, its keys
 in order, and passes it on.
 
+It's for debugging. It writes each value in full, secrets and all, and
+doesn't escape control characters in strings, so a value from outside
+can send escape sequences to a terminal.
+
 =head1 DIAGNOSTICS
 
 =over

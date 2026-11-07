@@ -384,6 +384,9 @@ As a string, a stop is "Stop used outside a pipeline", with a newline,
 which is what a user sees if one is thrown with no pipeline to catch
 it.
 
+A stop that isn't an array, made without `throw`, as by blessing a
+hash into the class, still stops the pipeline, but carries nothing.
+
 ### Subclasses
 
 A pipeline recognises a stop with `isa`, so a stop of a subclass of
@@ -719,6 +722,10 @@ Writes each value to `$fh`, or to STDERR, with Data::Dumper, its keys
 in order and indented by two, and passes it on. It croaks "Expected an
 open filehandle" if `$fh` isn't one.
 
+It's for debugging. It writes each value in full, secrets and all, and
+doesn't escape control characters in strings, so a value from outside
+can send escape sequences to a terminal.
+
 ## Errors: Ekorn::Pipeline::Errors
 
 ### When a stage dies
@@ -759,6 +766,11 @@ function that makes a stage, in a package of its own, it reports a
 mistake at the line that called the function, with no more set up. A
 `%` in the message is written `%%`.
 
+The format is a literal, written in the code: values go in as
+arguments, through `%s` and the like, never as the format. A format
+made from data does whatever its `%` directives say, such as
+`%999999999s`, which makes a string of a gigabyte.
+
 ### @INTERNAL and @CARP_NOT
 
 ```perl
@@ -791,7 +803,8 @@ it works alongside them.
   `take(10)` does. It can take options, and check them once, when it's
   called, not on each value.
 - **Report mistakes at the caller's line,** with `croakf`, from a
-  package of your own, as [croakf](#croakf) says. Put "Expected" first,
+  package of your own, as [croakf](#croakf) says, with a literal
+  format and the values as its arguments. Put "Expected" first,
   and say what was expected, as the canned stages do: "Expected a count
   of 0 or more".
 - **One argument in; a list out.** The stage is given one value, in `$_`
