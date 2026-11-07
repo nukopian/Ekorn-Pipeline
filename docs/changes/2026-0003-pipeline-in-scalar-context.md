@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 open: what a pipeline returns in scalar context.
+**Decisions:** D1 settled: A, the count, as now. None open.
 
 **Origin:** roadmap, added 2026-11-07, from a review of the docs before
 v0.1.0
@@ -28,7 +28,11 @@ module, return how many in scalar context.
 
 ## Decisions
 
-- [ ] **D1.** What does a pipeline return in scalar context?
+- [x] **D1.** What does a pipeline return in scalar context? A: the
+  count of results, as now, decided on 2026-11-07. Iain: the status
+  quo. It's promised in the POD, and tested; nothing changes for
+  DBIx::Squirrel, and no trial is needed for it. The options, as
+  weighed:
   - **A.** Keep the count, and promise it: Perl's own rule for a list,
     documented already, and what DBIx::Squirrel does; it differs from
     `pipe`.

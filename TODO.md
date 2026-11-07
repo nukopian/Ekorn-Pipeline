@@ -49,7 +49,8 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    - 2026-0002, an iterator after a stage dies: D1 is settled, B, so
      the iterator ends, and the release is v0.1.1, after a second
      trial;
-   - 2026-0003, a pipeline in scalar context: D1 is open;
+   - 2026-0003, a pipeline in scalar context: D1 is settled, A, so it
+     keeps the count, to be promised in the POD and tested;
    - 2026-0001, a `stages()` method: D1 is settled; D2, whether it
      goes in v0.1.0 or a later v0.1.x, is open.
 

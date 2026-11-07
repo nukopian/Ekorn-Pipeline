@@ -74,11 +74,10 @@ so, but the POD doesn't promise it, and `pipe` gives the first result
 instead. It has to be settled before v0.1, as changing it after is a
 v0.2.0.
 
-Its question is open: see its
+Decided: it keeps the count, as now. See its
 [record](docs/changes/2026-0003-pipeline-in-scalar-context.md).
 
-**Done when:** what scalar context gives is decided, promised in the
-POD, and tested.
+**Done when:** the count is promised in the POD, and tested.
 
 ### 2026-0001. A stages() method
 
