@@ -74,6 +74,34 @@ The second `users` does everything the first does, and everything it
 doesn't, without a line more. Its author is done with it: whatever a
 caller wants next, the caller can write, as a stage, without asking.
 
+## What everyone gets
+
+- **The caller says it once, beside the call.** No loop, no
+temporary array, no counter, no flag: what the caller wants done with
+the values is written where they asked for them, in the order it
+happens, and reads as a list of steps.
+- **The work stops when the caller has enough.** A stage that
+stops ends the function's work too, so a caller who wants ten results
+reads ten lines, fetches one page, or runs one query's worth of rows,
+not all of them. Nothing is held between stages, so a function over a
+million values needs no more memory than one over ten.
+- **The author keeps an interface that doesn't grow.** One list of
+stages takes the place of every option a caller might ask for next, so
+the function's signature, documentation and tests stay the size of
+what only it can do. A new need is met in the caller's code, and
+breaks nobody else's.
+- **The author keeps what only it should touch.** The file is
+opened and closed, the pages fetched, the connection or transaction
+handled, by the function, as it always was. The caller shapes the
+values without ever seeing the handle they came from.
+- **Order answers the questions options raise.** Does `limit`
+count before or after `active_only`? With stages, the caller wrote
+them in an order, and that's the order they run in.
+- **A stage is written once, for every function.** Stages are
+plain code references, so a stage written for one function works with
+every function that takes stages, whoever wrote it, and the canned
+stages here work with all of them.
+
 ## Stages
 
 A stage is a code reference. It's called with one value, as its
@@ -135,6 +163,24 @@ lines and however many lines lie between them, and leaves the rest of
 the file unread. No option for it was written, and the caller wrote no
 `last`.
 
+It counts for more where each value costs more. A function over a
+paged web API fetches a page only when its caller wants a result from
+it:
+
+    sub search ($query, @stages) {
+        my $page = 0;
+        return Ekorn::Pipeline->new(@stages)->iterator(sub {
+            return @{ fetch_page($query, ++$page) };    # a request; empty after the last page
+        });
+    }
+
+    my $hits = search('squirrels', take(10));
+    while (my($hit) = $hits->()) { say $hit->{title} }    # one request, if a page holds ten
+
+Without stages, that function either fetches every page, or grows
+`max_results`, `max_pages` and `on_result` options, each of which
+its author has to write and keep.
+
 ## Stages with state, and with an end
 
 A stage is a closure, so it can keep state, such as a count. But a
@@ -188,7 +234,13 @@ a time, from a file, a socket, a database or a computation, give
 saves the work of making the rest.
 - **Let the stages do the optional work.** If you're about to add
 an option that filters, reshapes or limits what's returned, a stage
-does it already, and it's one fewer thing for you to maintain.
+does it already, and it's one fewer thing for you to maintain. Keep the
+arguments only the function can act on, such as which file to read, or
+a filter a database can apply with an index.
+- **Report your callers' mistakes at their lines.** A module whose
+`@CARP_NOT` holds `@Ekorn::Pipeline::Errors::INTERNAL` has a stage
+that dies reported at the caller's line, where the stage was written,
+rather than at the module's own line that ran the pipeline.
 
 A class of your own can have `pipe` and `tap` methods, from
 [Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages: `pipe`
@@ -253,6 +305,21 @@ the line of the caller who made it:
         return sub ($word) { length $word > $length ? $word : () };
     }
 
+## When to use something else
+
+- **Code with no other caller.** A loop where the values are made
+and used in one place, by one author, is clearer as a plain `for`,
+`grep` or `map`. Stages pay off where a function and its callers are
+written apart.
+- **Tight loops over cheap values.** Each stage is a call of a
+code reference for each value. That's nothing beside reading a file or
+a socket, but it shows in a loop doing arithmetic on millions of
+numbers in memory.
+- **Work that needs every value at once,** such as sorting. A
+stage sees one value at a time, so a sort waits for them all, as
+`collect { sort @_ }` does, and saves nothing. Where the source can
+sort, as a database can with `ORDER BY`, let it.
+
 ## Where it came from
 
 The pipeline began in [DBIx::Squirrel](https://metacpan.org/dist/DBIx-Squirrel),
@@ -263,8 +330,14 @@ Ekorn::Pipeline in time, once both are stable.
 
 ## Documentation
 
-Each module's POD, starting with [Ekorn::Pipeline](https://metacpan.org/pod/Ekorn%3A%3APipeline), describes it in
-full.
+[The how-to](https://github.com/nukopian/Ekorn-Pipeline/blob/main/docs/HOWTO.md)
+shows how to do common tasks, one recipe at a time, for callers,
+function authors and stage authors.
+[The reference](https://github.com/nukopian/Ekorn-Pipeline/blob/main/docs/REFERENCE.md)
+describes every module, function and method, and how a pipeline
+behaves, in full, with notes for stage authors. Each module's POD,
+starting with [Ekorn::Pipeline](https://metacpan.org/pod/Ekorn%3A%3APipeline), says the same more briefly, and is
+the authority where they differ.
 
 ## Installing
 
