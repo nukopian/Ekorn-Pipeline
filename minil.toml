@@ -14,4 +14,4 @@ manage_changes = false
 
 # Files for the maintainers, not for CPAN.
 [FileGatherer]
-exclude_match = ['^CLAUDE\.md$', '^TODO\.md$', '^docs/', '^scripts/']
+exclude_match = ['^CLAUDE\.md$', '^ROADMAP\.md$', '^TODO\.md$', '^docs/', '^scripts/']

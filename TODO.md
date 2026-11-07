@@ -43,25 +43,17 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    of both, in its tasks 3 and 5. Changing a name, a message or a
    behaviour means handing DBIx-Squirrel a task.
 
-   Four decisions are with Iain, each in a Claude Doc with options and
-   a recommendation. Record each outcome here, and do what it needs
-   before the release:
-   - an iterator after a stage dies:
-     https://claude.ai/artifact/Tp9XrRuW9vgXZT6HtfR4yS (a change here
-     needs a new trial);
-   - a pipeline in scalar context:
-     https://claude.ai/artifact/MXr3hATLT9CMSpuRgX4KMF;
-   - a pipeline as a stage:
-     https://claude.ai/artifact/MT1zr4gr4FuodrCGGHCiGF. Decided on
-     2026-11-07: a `stages()` method, returning a pipeline's stages as
-     a flat list, so they can be spliced into another pipeline or
-     given to any function taking stages; a pipeline given to `new`
-     as a stage is still refused. Iain to say whether it goes in
-     v0.1.0, with a second trial, or a later v0.1.x;
-   - whether `ending()` is public:
-     https://claude.ai/artifact/TKhjcwVsGNu9kmDDD52aoj. Decided on
-     2026-11-07: it stays public, under that name, as it tells stage
-     authors where a value came from. Nothing to do.
+   What v0.1 promises waits on three roadmap items, whose open
+   decisions are in their records in `docs/changes/`. Settle them with
+   Iain, and do what they need before the release:
+   - 2026-0002, an iterator after a stage dies: D1 is open, and a
+     change needs a new trial;
+   - 2026-0003, a pipeline in scalar context: D1 is open;
+   - 2026-0001, a `stages()` method: D1 is settled; D2, whether it
+     goes in v0.1.0 or a later v0.1.x, is open.
+
+   `ending()` stays public, under that name, as Iain decided on
+   2026-11-07 (2260edfb803b18695d7ce470b66abc1b5876d3c0).
 2. Upload a trial, as "A trial release" in docs/MAINTAINING.md says,
    and read its reports. Done on 2026-11-07:
    `Ekorn-Pipeline-v0.1.0-TRIAL.tar.gz`, built from
@@ -85,7 +77,8 @@ needed an Ekorn::Pipeline trial would mostly report a missing
 prerequisite, not test anything. A 0.x version already says the
 interface may still change.
 
-**Done when:** the four decisions are made and done, the last trial's
+**Done when:** the decisions above are settled, and what they need for
+v0.1 is done, the last trial's
 reports are read, and Iain decides it's ready. The commit that removes this task, and so this file, starts
 release day, as `main` can't take `TODO.md`. "Making a release" then
 ends, at its step 8, by handing DBIx-Squirrel a task saying which
