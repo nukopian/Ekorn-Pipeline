@@ -121,9 +121,9 @@ A stage is called with one value, both as its only argument and in
 when the name helps.
 
 ```perl
-my @a = tracks(sub { $_->{title} });
-my @b = tracks(sub ($track) { $track->{title} });
-say "@a" eq "@b" ? 'the same' : 'different';    # the same
+my @with_it   = tracks(sub { $_->{title} });
+my @with_name = tracks(sub ($track) { $track->{title} });
+say "@with_it" eq "@with_name" ? 'the same' : 'different';    # the same
 ```
 
 `$_` is local to each call of a stage, so the caller's `$_` is left as
@@ -747,7 +747,7 @@ package My::Stages::Words {
 
     sub longer_than ($length) {
         croakf 'Expected a length of 0 or more, not %s', $length // 'undef'
-            unless defined $length && $length =~ m( \A \d+ \z )x;
+            unless defined $length && $length =~ m( \A \d+ \z )xa;
         return sub ($word) { length $word > $length ? $word : () };
     }
 }
@@ -757,7 +757,7 @@ say join ', ', tracks(sub { $_->{title} }, My::Stages::Words::longer_than(14));
 ```
 
 A module of stages is a module like any other, which would export
-`longer_than` for its users to import; it.s written inline here only so
+`longer_than` for its users to import; it's written inline here only so
 that the example runs as it stands. A function that makes a stage
 without options is called with empty parentheses, as
 `numbered()`, or without any once it's declared or imported, as
@@ -853,9 +853,15 @@ Where a module of stages goes depends on what its stages need to know:
 Export the stages a module is usually used for by default, and the
 rest on request, with an `:all` tag, as the canned stages do. Choose
 names that don't clash with what common modules export: Flow has
-`drop`, not `skip`, which Test2::V0 and Test::More both export. Have
-the distribution require the version of Ekorn::Pipeline it was tested
-with, or later.
+`drop`, not `skip`, which Test2::V0 and Test::More both export.
+
+Have the distribution require the version of Ekorn::Pipeline it was
+tested with, up to the next change of its middle number, which is where
+the way stages behave can change. In a `cpanfile`:
+
+```
+requires 'Ekorn::Pipeline', '>= v0.1.0, < v0.2.0';
+```
 
 ## Handling errors
 

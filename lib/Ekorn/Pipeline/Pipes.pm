@@ -11,7 +11,7 @@ sub pipe ($self, @stages) {    ## no critic (Subroutines::ProhibitBuiltinHomonym
     return wantarray ? @results : $results[0];
 }
 
-# Run the invocant through a pipeline of stages for their side-effects, and
+# Run the invocant through a pipeline of stages for their side effects, and
 # return the invocant.
 sub tap ($self, @stages) {
     my $pipeline = Ekorn::Pipeline->new(@stages);

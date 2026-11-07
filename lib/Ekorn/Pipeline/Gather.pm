@@ -122,7 +122,8 @@ C<gather> was given something other than a block or code reference.
 =item Expected stage #%d, made with gather, to return one or two code references
 
 A block given to C<gather> returned something other than a stage, or a
-stage and an end function. Reported when its pipeline starts to run.
+stage and an end function. Reported when a run starts: when the
+pipeline is called with values, or an iterator is made from it.
 
 =back
 

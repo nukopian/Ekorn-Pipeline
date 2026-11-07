@@ -44,14 +44,12 @@ sub iterator ($self, $source) {
     return _iterator($self->{stages}, $source);
 }
 
-# What a pipeline is doing while its stages run: ending is true while the
-# values going through them come from an end function, rather than from
-# the source.
+# What a pipeline is doing while its stages run.
 my %running;
 
-
 # For code telling its stages about the value they're given: true while
-# the values going through the stages come from an end function.
+# the values going through the stages come from an end function, rather
+# than from the source.
 sub ending () {
     return $running{ending};
 }

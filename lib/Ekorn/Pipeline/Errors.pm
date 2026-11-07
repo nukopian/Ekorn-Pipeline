@@ -57,8 +57,14 @@ Nothing is exported by default.
 
 C<croakf> is for modules of stages outside Ekorn::Pipeline too, such
 as C<DBIx::Squirrel::Stages::Rows>. Called from a function that makes
-a stage, it reports a mistake at the line that called the function,
-with no more set up.
+a stage, in a package of its own, it reports a mistake at the line that
+called the function, with no more set up. A C<%> in the message is
+written C<%%>.
+
+A module of functions that take stages from their callers can put
+C<@INTERNAL> in its own C<@CARP_NOT>, as in the synopsis, so that a
+stage that dies is reported at its caller's line, where the stage was
+written, rather than at the module's own line that ran the pipeline.
 
 =head1 FUNCTIONS
 

@@ -143,7 +143,7 @@ the results one per call. The source is called only when a result is
 wanted, so a function reading a file, a socket or a database reads only
 as much as its caller asks for.
 
-        my $next = $pipeline->iterator(sub { $queue->shift // () });
+        my $next = $pipeline->iterator(sub { @queue ? shift @queue : () });
         while (my($result) = $next->()) { ... }
 
 ## Stopping early
@@ -210,11 +210,11 @@ Stages are code references, so they can be kept in variables, built by
 functions and passed around. A function that returns a stage is a word
 in a vocabulary, which grows in the caller's code, not the author's:
 
-    sub only_active () { sub { $_->{active} ? $_ : () } }
-    sub field ($name)  { sub { $_->{$name} } }
+    sub only_active ()    { sub { $_->{active} ? $_ : () } }
+    sub value_of ($name)  { sub { $_->{$name} } }
 
-    my @page = (drop(20), take(10));
-    my @names = users(only_active, field('name'), @page);
+    my @page  = (drop(20), take(10));
+    my @names = users(only_active, value_of('name'), @page);
 
 The same stages work with every function that takes them, so one
 written for `users` works for `log_lines`, or for a function on
@@ -301,7 +301,7 @@ the line of the caller who made it:
 
     sub longer_than ($length) {
         croakf 'Expected a length of 0 or more, not %s', $length // 'undef'
-            unless defined $length && $length =~ m( \A \d+ \z )x;
+            unless defined $length && $length =~ m( \A \d+ \z )xa;
         return sub ($word) { length $word > $length ? $word : () };
     }
 
@@ -325,8 +325,8 @@ sort, as a database can with `ORDER BY`, let it.
 The pipeline began in [DBIx::Squirrel](https://metacpan.org/dist/DBIx-Squirrel),
 where stages declared beside a query shape the rows it returns. None of
 it needs a database, so it's here on its own, for any function to use,
-and to grow beyond what rows need. DBIx::Squirrel is to use
-Ekorn::Pipeline in time, once both are stable.
+and to grow beyond what rows need. DBIx::Squirrel is moving onto it, in
+place of its own copy.
 
 ## Documentation
 

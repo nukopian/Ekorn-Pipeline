@@ -16,9 +16,12 @@ authors** are for those writing stages for others, and
 own POD says the same things more briefly, and is the authority where
 the two differ.
 
-Ekorn::Pipeline needs Perl 5.36 or later. Its version is 0.x: the
-interface may still change before 1.0, and [Changes](../Changes) says
-when it does.
+Ekorn::Pipeline needs Perl 5.36 or later. Its version is 0.x, so the
+interface may still change before 1.0, but the version says when it
+can: a release that only fixes or adds moves the last number, as
+v0.1.1, and one that changes how stages behave, or drops or renames a
+name, moves the middle one, as v0.2.0. [Changes](../Changes) says what
+each release changed.
 
 ## Contents
 
@@ -111,8 +114,9 @@ with `gather`.
 
 With no stages, a pipeline returns its values as they are.
 
-A pipeline is not itself a stage: given to `new`, it's refused, as it
-isn't a plain code reference. To use one inside another, call it from
+A pipeline is not itself a stage: given to `new`, it's refused, as it's
+an object that can be called like a code reference, not a code
+reference. To use one inside another, call it from
 a stage, as [Pipelines inside stages](#pipelines-inside-stages) says.
 
 ### Calling a pipeline
@@ -170,9 +174,9 @@ can be read in turn, and each has its own `gather` stages:
 my $numbered = Ekorn::Pipeline->new(gather { my $n = 0; sub { ++$n . $_ } });
 my @a = qw(a b);
 my @b = qw(x y);
-my $a = $numbered->iterator(sub { @a ? shift @a : () });
-my $b = $numbered->iterator(sub { @b ? shift @b : () });
-say join ' ', $a->(), $b->(), $a->(), $b->();    # 1a 1x 2b 2y
+my $first  = $numbered->iterator(sub { @a ? shift @a : () });
+my $second = $numbered->iterator(sub { @b ? shift @b : () });
+say join ' ', $first->(), $second->(), $first->(), $second->();    # 1a 1x 2b 2y
 ```
 
 A source that returns `shift @queue // ()` ends at the first `undef` in
@@ -270,7 +274,8 @@ the test returns, not the value. To drop a value, return an empty list:
 
 Each call of a pipeline with values is a run, and so is each iterator
 made from it. At the start of each run, the block of every `gather`
-stage is called, so what those stages keep starts afresh.
+stage is called, so what those stages keep starts afresh. An iterator's
+run starts when it's made, not when it's first read.
 
 A stage that isn't made with `gather` is the same code reference on
 every run, so whatever it keeps in a closure stays there from one run
@@ -437,9 +442,10 @@ run. The block returns:
 
 `gather` croaks "Expected a code reference" if it's given something
 other than a block or code reference. The block is called when the run
-starts, not when `gather` is: a block that returns something other than
-one or two code references is reported then, as "Expected stage #%d,
-made with gather, to return one or two code references".
+starts, not when `gather` is: when the pipeline is called with values,
+or an iterator is made from it. So a block that returns something
+other than one or two code references is reported then, as "Expected
+stage #%d, made with gather, to return one or two code references".
 
 What `gather` returns is a code reference, blessed into
 Ekorn::Pipeline::Gather, so it can be given wherever a stage can.
@@ -521,7 +527,8 @@ my $first   = $object->pipe(@stages);
 
 Runs the object through a pipeline of `@stages`, and returns what
 comes out of the last one. In scalar context, it returns the first of
-the results, or `undef` if there are none. With no stages, it returns
+the results, or `undef` if there are none, where a pipeline called in
+scalar context returns how many there are. With no stages, it returns
 the object.
 
 ### tap
@@ -551,7 +558,7 @@ say scalar Counter->new->pipe(sub { $_->n + 10 });   # 10
 Stages for any values, whatever they are and wherever they come from,
 in three modules. Each is a function that returns a stage, and checks
 what it's given when it's called, not on each value, croaking at the
-caller's line if it's wrong. Those that keep count or hold values are
+caller's line if it's wrong. Those that keep state or hold values are
 made with `gather`, so they start afresh on each run.
 
 | Stage | Module | Passes on | Exported |
@@ -832,7 +839,7 @@ package My::Stages::Numbers {
     # Pass on values until their sum would pass $limit, then stop.
     sub sum_up_to ($limit) {
         croakf 'Expected a number for the limit, not %s', $limit // 'undef'
-            unless defined $limit && $limit =~ m( \A -? \d+ (?: \.\d+ )? \z )x;
+            unless defined $limit && $limit =~ m( \A -? \d+ (?: \.\d+ )? \z )xa;
         return gather {
             my $sum = 0;    # this run's
             return sub ($n) {
