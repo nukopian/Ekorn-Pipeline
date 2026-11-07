@@ -326,6 +326,18 @@ what was Iain's.
   file. Read messages at the start of a session, with the tasks; the
   session they're for removes each once read, in a commit saying what
   came of it, and the heading with the last one.
+- **`TODO.md`'s tasks and messages are the only way the two sessions
+  talk.** Now that DBIx-Squirrel and Ekorn-Pipeline are separate,
+  DBIx-Squirrel dogfoods Ekorn-Pipeline, as its first user, and what it
+  finds matters most: friction, a gap, a clumsy name, or a stage it had
+  to write that others would want. Either session that finds such a
+  thing in the other's product while working sends it as a message:
+  what was found, where (the file and commit), and what might be done.
+  Nothing enters the other's `ROADMAP.md` or records directly; the
+  session it's for takes the message to Iain, who decides whether it
+  becomes an idea, an item or a task there, and the commit that
+  removes the message says so. An item that comes of one gives the
+  message in its record's Origin, with the repository, date and commit.
 - **`TODO.md` never reaches `main`.** `main` moves only by a
   fast-forward to `develop`, so a release waits until the file is gone:
   each task done, or, to outlast the release, moved to `ROADMAP.md`, a
