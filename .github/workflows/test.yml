@@ -4,6 +4,9 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  # By hand, as GitHub didn't start a run for the first push:
+  # gh workflow run test.yml --ref develop
+  workflow_dispatch:
 
 permissions:
   contents: read

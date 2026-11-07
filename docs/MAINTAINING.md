@@ -414,6 +414,15 @@ can satisfy a check. When the floor moves up, from Perl 5.36 to 5.40 for
 
 - **A push to `main` refused:** the protection did its job. Push to
   `develop` instead, or, at a release, wait for CI to pass on the commit.
+- **No run for a push:** GitHub didn't start CI for this repository's
+  first push. Start one by hand, then watch it:
+
+  ```
+  cd ~/Git/github.com/nukopian/Ekorn-Pipeline
+  gh workflow run test.yml --ref develop
+  gh run list --branch develop --limit 1
+  ```
+
 - **A check stuck "in progress"** after all its steps passed: GitHub never
   marked it complete. Re-run that job alone. This finds every unfinished
   check on `develop`'s commit and re-runs it:
