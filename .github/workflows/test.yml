@@ -1,0 +1,89 @@
+name: test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The tests on Perl 5.36, the floor, to the newest on Linux, and the
+  # newest on macOS. --with-develop brings yath and UUID with the rest.
+  perl:
+    name: perl ${{ matrix.perl }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        perl: ["5.36", "5.38", "5.40", "5.42", "5.44"]
+        include:
+          - os: macos-26
+            perl: "5.44"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+      - name: dependencies
+        run: cpanm --notest --installdeps --with-develop .
+      - name: yath
+        run: yath test
+
+  # Perl::Critic and Perl::Tidy, with the repository's profiles, on the
+  # newest Perl. A file perltidy would change fails, showing the diff.
+  style:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: "5.44"
+      - name: dependencies
+        run: cpanm --notest --installdeps --with-develop .
+      - name: perlcritic
+        run: perlcritic lib
+      - name: perltidy
+        run: |
+          status=0
+          for f in $(git ls-files 'lib/*.pm' 't/*.t' 'xt/*.t'); do
+            perltidy "$f" | diff -u "$f" - || status=1
+          done
+          exit $status
+
+  # The tests under Devel::Cover, on Perl 5.36, the floor, failing if the
+  # coverage of lib/ falls below the floors in scripts/coverage. There's
+  # no MySQL or PostgreSQL here, so the floors are what SQLite reaches.
+  coverage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: "5.36"
+      - name: dependencies
+        run: cpanm --notest --installdeps --with-develop .
+      - name: coverage
+        run: scripts/coverage
+
+  # Secrets in any commit, not only the latest: gitleaks over the whole
+  # history, since all of it is published with the repository. Its release
+  # is checked against its published SHA-256 before it's used.
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the whole history
+      - name: gitleaks
+        env:
+          VERSION: 8.30.1
+          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          tarball="gitleaks_${VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$tarball" "https://github.com/gitleaks/gitleaks/releases/download/v$VERSION/$tarball"
+          echo "$SHA256  $RUNNER_TEMP/$tarball" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --redact --no-banner --exit-code 1 .

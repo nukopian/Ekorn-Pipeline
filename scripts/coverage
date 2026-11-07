@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+# Runs the tests under Devel::Cover, from an empty cover_db, and fails if
+# the coverage of lib/ falls below any of the floors below. CI runs it on
+# every push; run it before committing a change to the code:
+#
+#   perlbrew exec --with perl-5.36.3@ekorn-pipeline scripts/coverage
+#
+# cover_db is emptied first because Devel::Cover adds each run to what's
+# there, so coverage from tests since removed would count.
+#
+# The floors sit a little below what the tests reach. Raise one when
+# coverage rises; lower one only with the reason in the commit message.
+use v5.36;
+
+use File::Path qw(remove_tree);
+use FindBin    qw($Bin);
+use JSON::PP   qw(decode_json);
+
+my %FLOOR = (
+    statement  => 100,
+    branch     => 100,
+    condition  => 95,
+    subroutine => 100,
+    pod        => 100,
+);
+
+chdir "$Bin/.." or die "Can't change to the repository: $!\n";
+remove_tree('cover_db');
+system('yath', 'test', '-L', '--cover') == 0
+    or die "The tests failed, so coverage wasn't checked; to see which:\n"
+    . "  yath failed lastlog.jsonl\n";
+system('cover', '-silent', '-report', 'json', '-select_re', '^lib/') == 0
+    or die "cover couldn't report the coverage\n";
+
+my $total = decode_json(slurp('cover_db/cover.json'))->{summary}{Total};
+
+my @below;
+printf "%-12s %8s %6s\n", qw(criterion coverage floor);
+for my $criterion (sort keys %FLOOR) {
+    my $percentage = $total->{$criterion}{percentage}
+        // die "No $criterion coverage in the report\n";
+    my $low = $percentage < $FLOOR{$criterion};
+    printf "%-12s %7.1f%% %5d%%%s\n", $criterion, $percentage,
+        $FLOOR{$criterion}, $low ? '  below the floor' : '';
+    push @below, $criterion if $low;
+}
+if (@below) {
+    say STDERR 'Coverage is below the floor: ', join ', ', @below;
+    exit 1;
+}
+
+# Return the contents of a file.
+sub slurp ($file) {
+    open my $fh, '<', $file or die "Can't read $file: $!\n";
+    local $/ = undef;
+    my $contents = <$fh>;
+    close $fh;
+    return $contents;
+}

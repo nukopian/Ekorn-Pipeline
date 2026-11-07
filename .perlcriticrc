@@ -1,0 +1,21 @@
+# Perl::Critic's profile, the same as DBIx-Squirrel's, less what only the
+# DBI needed. Severity 3 ("harsh") and up, from the core policies, with
+# the policy name in each message.
+severity = 3
+verbose  = 8
+theme    = core
+
+# Excluded: magic numbers and unused variables are noise more than help
+# here, complexity is judged in review, and every module starts
+# `use v5.36`, which ProhibitVersionStrings would reject. With v5.36,
+# a sub's parameter list is a signature, but PPI 1.291 reads it as a
+# prototype after any `use experimental` line that doesn't name
+# signatures, so ProhibitSubroutinePrototypes goes too. PPI reads v5.36's
+# `isa` operator as a call to UNIVERSAL::isa, the idiom the operator
+# replaces, so ProhibitUniversalIsa goes as well. Perl::Critic keeps
+# only the last `exclude` line, so they all go on one.
+exclude  = ValuesAndExpressions::ProhibitMagicNumbers Variables::ProhibitUnusedVariables Subroutines::ProhibitExcessComplexity ValuesAndExpressions::ProhibitVersionStrings Subroutines::ProhibitSubroutinePrototypes BuiltinFunctions::ProhibitUniversalIsa
+
+# Tests have no shebang line, so without this Perl::Critic takes them for
+# modules, wanting a package and a closing `1;`.
+program-extensions = .pl .t

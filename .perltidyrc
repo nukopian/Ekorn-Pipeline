@@ -1,0 +1,76 @@
+--output-line-ending=unix
+--character-encoding=utf8
+--standard-output
+--standard-error-output
+--warning-output
+
+--variable-maximum-line-length
+--maximum-line-length=80
+--ignore-side-comment-lengths
+
+--indent-columns=4
+--continuation-indentation=4
+--extended-continuation-indentation
+--minimize-continuation-indentation
+--indent-block-comments
+
+--paren-tightness=2
+--square-bracket-tightness=2
+--brace-tightness=2
+--multiple-token-tightness="q* h"
+--extended-block-tightness-list="kt"
+--extended-block-tightness
+--tight-secret-operators
+--brace-follower-vertical-tightness=2
+--block-brace-vertical-tightness=0
+--block-brace-tightness=0
+--space-prototype-paren=2
+--space-signature-paren=2
+--vertical-tightness-closing=3
+
+--valign-code
+--valign-side-comments
+--valign-block-comments
+--valign-if-unless
+--valign-signed-numbers
+--valign-wide-equals
+
+--maximum-fields-per-table=1
+--opening-token-right
+--closing-token-indentation=0
+--comma-arrow-breakpoints=0
+--nospace-after-keyword="my our local state"
+--nospace-for-semicolon
+--add-semicolons
+--qw-as-function
+--trim-qw
+--trim-pod
+--delete-repeated-commas
+--want-trailing-commas=m
+--add-trailing-commas
+--delete-trailing-commas
+--logical-padding
+--ignore-perlcritic-comments
+--cuddled-paren-brace
+--break-after-labels=1
+--break-before-all-operators
+--break-at-old-keyword-breakpoints
+--break-at-old-ternary-breakpoints
+--break-at-old-attribute-breakpoints
+--break-at-old-method-breakpoints
+--break-at-old-logical-breakpoints
+--break-at-old-comma-breakpoints
+--weld-nested-containers
+--weld-fat-comma
+--delete-weld-interfering-commas
+--delete-interbracket-arrows
+--add-missing-else
+--add-missing-else-comment="# added by Perltidy"
+--noblanks-before-comments
+--noblanks-before-blocks
+--blank-lines-before-subs=2
+--maximum-consecutive-blank-lines=2
+
+-nsbl   # Opening brace on same line as named sub
+-nasbl  # Opening brace on same line as anonymous sub
+-nolq   # Do not outdent long quotes

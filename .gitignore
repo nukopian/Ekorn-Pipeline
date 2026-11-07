@@ -1,0 +1,44 @@
+# The build directory and the distributions built from it
+/.build/
+/Ekorn-Pipeline-*/
+/Ekorn-Pipeline-*.tar.gz
+
+# ExtUtils::MakeMaker's build output
+/blib/
+/_eumm/
+/Makefile
+/Makefile.old
+/MYMETA.*
+/pm_to_blib
+/MANIFEST.bak
+
+# Modules installed locally, as by cpanm -L local
+/local/
+
+# The link yath -L makes to its last log
+/lastlog.jsonl
+
+# Coverage (Devel::Cover) and profiling (Devel::NYTProf)
+/cover_db/
+/.last_cover_stats
+nytprof.out
+/nytprof/
+
+# perltidy backups
+*.tdy
+*.bak
+
+# PDFs of the documents, built on demand for reading offline
+*.pdf
+
+# Editors and the OS
+.DS_Store
+.vscode/
+.history/
+*~
+
+# Secrets for local testing: never committed
+.envrc
+.env
+.env.*
+*.code-workspace
