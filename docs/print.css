@@ -73,6 +73,16 @@ th, td {
   vertical-align: top;
 }
 
+/* Notes, such as those for stage authors, set off by a rule at the side,
+   and kept whole. */
+blockquote {
+  margin: 0.8em 0;
+  padding: 0.1em 0.9em;
+  border-left: 3px solid #d0d7de;
+  color: #333;
+  break-inside: avoid;
+}
+
 /* Links print as text: the README's links are mostly to its own sections. */
 a {
   color: inherit;

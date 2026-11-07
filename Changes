@@ -27,3 +27,7 @@ Unreleased
       under Ekorn::Pipeline::Stages, and those for one kind of value or
       source with the module that knows about it, built from Gather,
       Stop and croakf, which reports at the caller's line.
+    - A how-to, docs/HOWTO.md, with recipes for callers, function
+      authors and stage authors, and a reference, docs/REFERENCE.md,
+      describing every module and how a pipeline behaves, with notes
+      for stage authors. Both are on GitHub, linked from the README.

@@ -482,5 +482,5 @@ gh api repos/nukopian/Ekorn-Pipeline/secret-scanning/alerts --jq '.[] | select(.
 The project's perlbrew library, with Minilla and the dependencies in
 `cpanfile` (yath, Perl::Critic, Perl::Tidy and CPAN::Uploader among them),
 `gh`, `gitleaks`, `jq`, and for the PDFs, `pandoc` and Prince.
-`scripts/readme-pdf.sh` builds a PDF of the README and this guide, for
-reading offline; the PDFs are git-ignored.
+`scripts/readme-pdf.sh` builds a PDF of the README, the how-to, the
+reference and this guide, for reading offline; the PDFs are git-ignored.

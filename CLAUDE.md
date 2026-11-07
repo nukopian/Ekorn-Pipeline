@@ -76,8 +76,10 @@ both:
   branches, CI, releases, and the files around the code. Ask before
   changing anything on GitHub.
 - **Tests and documentation,** where Iain asks: the pipeline's spec as
-  tests, and keeping the POD, README and `Changes` up to date with the
-  code.
+  tests, and keeping the POD, README, `docs/HOWTO.md`,
+  `docs/REFERENCE.md` and `Changes` up to date with the code. The
+  how-to and the reference say the same as the POD, at more length; the
+  POD is the authority where they differ.
 - **Commit messages:** Claude drafts them when asked, for Iain's commits
   as well as its own.
 
@@ -194,9 +196,10 @@ what was Iain's.
 
   The second, after the first, shows the lines and branches the tests
   miss.
-- **The README's examples are checked by hand** for now: run each one,
-  and see that it does what the README says, before committing a change
-  to them.
+- **The examples in the README, the how-to and the reference are
+  checked by hand** for now: run each one, and see that it prints what
+  its comments say, before committing a change to them. The how-to's
+  examples follow on from its first, which sets up their data.
 - Users installing from CPAN run the tests with whatever harness their
   installer uses, so they must pass under `prove` too. yath is the
   maintainers' choice, not a requirement.
