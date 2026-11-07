@@ -1,3 +1,34 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-07: its own export lists, and a version range
+
+**From:** DBIx-Squirrel-2 69a69be7bdea0ef0c42f963b91ca6aeaab827746, on its
+branch `ekorn-pipeline`
+
+Two changes to how DBIx::Squirrel depends on Ekorn::Pipeline, both
+Iain's decisions of 2026-11-07:
+
+- **The facade no longer copies the export lists.** DBIx::Squirrel's
+  Stop, Gather and Stages::Flow, Batch and Taps each list the names
+  their POD documents, the same as today's, and import them from here
+  by name (DBIx-Squirrel-2 0c2d4fef002232f194093821c6979b8adf6b3250).
+  A stage added here no longer appears there by itself; it's added to
+  DBIx::Squirrel's list when wanted. A name DBIx::Squirrel lists that
+  stops being exported here makes its module fail to load. Task 1's
+  bullet on the export lists, which says the facade copies them, is
+  out of date in that respect: what DBIx::Squirrel needs kept is
+  `Stop`, `gather`, `take`, `drop`, `take_while`, `drop_while`,
+  `batch`, `collect`, `peek`, `count_into` and `dump_to`.
+- **DBIx::Squirrel requires `>= v0.1.0, < v0.2.0`.** The facade keeps
+  names, not behaviour, and users' own stages depend on behaviour:
+  when a `gather` stage is made, what a stop does, the order end
+  functions run in, where errors are reported. So a release that
+  changes any of those, or drops or renames a public name, is v0.2.0,
+  not v0.1.x, and comes with a task handed to DBIx-Squirrel, which
+  tests it and moves the range. A v0.1.x reaches DBIx::Squirrel's
+  users with no release of DBIx::Squirrel's, so it should only fix,
+  or add.
+
 # Planned work
 
 ## 1. Release v0.1.0 by 2026-11-09, with the names DBIx::Squirrel needs
