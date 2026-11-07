@@ -219,6 +219,12 @@ with a GitHub release for it. Versions are dotted, as `v0.1.0`, in the
 main module's `$VERSION`, the tag and the tarball's name alike. Claude
 asks before tagging.
 
+DBIx::Squirrel requires `>= v0.1.0, < v0.2.0`, so choose the version by
+what changed since the last release, as CLAUDE.md says: a fix or an
+addition moves the last number, as v0.1.1; a change of behaviour, or a
+public name dropped or renamed, moves the middle one, as v0.2.0, and
+comes with a task handed to DBIx-Squirrel to test it and move its range.
+
 Releases don't use `minil release`: it makes its own commit and an
 unsigned tag, and pushes both. `minil prepare` sets the version and
 `minil dist` builds the tarball, and the git steps are ours.
