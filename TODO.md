@@ -38,7 +38,14 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    82f7695f3d20cd0467a5524d52924195c6d3c5b0). Changing one means
    handing DBIx-Squirrel a task.
 2. Upload a trial, as "A trial release" in docs/MAINTAINING.md says,
-   and read its reports.
+   and read its reports. Done on 2026-11-07:
+   `Ekorn-Pipeline-v0.1.0-TRIAL.tar.gz`, built from
+   b5e28c4e48c9615366e9b34191c8c4d86ace0865 after CI passed on it,
+   SHA-256
+   2a67c85f1067fcfaa32693f09427ac4755dab530a9f28586fb02d2636966fdee.
+   DBIx-Squirrel was told (DBIx-Squirrel-2
+   dad0b1d46557620129e7b1e0e33b13e676d7b4e3). Its reports are still to
+   read; a failure is fixed and goes out as a trial of v0.1.1.
 3. Release v0.1.0 properly, not as a trial, as "Making a release"
    says.
 
