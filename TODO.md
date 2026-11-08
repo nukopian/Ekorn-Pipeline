@@ -8,15 +8,22 @@ Iain decided on 2026-11-08 that while an experimental branch carries a
 repository's work, its `TODO.md` is kept on that branch. So, until
 DBIx-Squirrel's branch `ekorn-pipeline` merges into its `develop`,
 commit tasks and messages for DBIx-Squirrel to that branch, not to
-`develop`:
+`develop`. Don't switch DBIx-Squirrel's working copy to it, as a
+session may be working there; use a worktree of its own, from the
+branch as GitHub has it, and push from there:
 
 ```
-git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 switch ekorn-pipeline
+git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 fetch -q origin
+git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add --detach /tmp/dbix-squirrel-todo origin/ekorn-pipeline
 ```
 
-then commit only `TODO.md`, as before, and push the branch. Switch back
-to the branch the session there had checked out, if it was another. A
-task here, at the release of v0.1.1, saying it's on CPAN, goes there
+then edit `/tmp/dbix-squirrel-todo/TODO.md`, commit only it, as
+before, and push with
+`git -C /tmp/dbix-squirrel-todo push origin HEAD:ekorn-pipeline`. A
+push refused as not a fast-forward means the branch moved: remove the
+worktree and start again from the fetch. Then
+`git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree remove /tmp/dbix-squirrel-todo`.
+A task here, at the release of v0.1.1, saying it's on CPAN, goes there
 too. DBIx-Squirrel's CLAUDE.md, on `develop`, now says the same, and
 that a hand-over from it goes to Ekorn-Pipeline's experimental branch,
 if Ekorn-Pipeline ever has one carrying its work. Whether
