@@ -828,8 +828,11 @@ say join '|', tracks(value_of('title'), $clean->stages, take(3));    # Dancing Q
 ```
 
 The stages run as if they'd been listed there: a stop in one ends the
-whole run, and a `gather` stage starts afresh with each run, so stages
-used in two pipelines, or twice in one, share nothing.
+whole run, and a `gather` stage starts afresh with each run, so what it
+keeps isn't shared by two pipelines, or by its uses twice in one. A
+plain closure is the same code wherever it goes, so whatever it keeps
+is shared: keep state in `gather`, as
+[Keep count, starting afresh on each run](#keep-count-starting-afresh-on-each-run) says.
 
 A stage can call a pipeline instead, as `sub { $clean->($_) }`. Then
 each call is a run of its own, so its `gather` stages start afresh on
@@ -876,7 +879,7 @@ tested with, up to the next change of its middle number, which is where
 the way stages behave can change. In a `cpanfile`:
 
 ```
-requires 'Ekorn::Pipeline', '>= v0.1.0, < v0.2.0';
+requires 'Ekorn::Pipeline', '>= v0.1.1, < v0.2.0';
 ```
 
 ## Handling errors

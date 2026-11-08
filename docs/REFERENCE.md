@@ -217,8 +217,10 @@ been listed there, so it behaves just as listing them would:
 - A stop in one of them ends the whole run, and the source is called no
   more.
 - A `gather` stage is made afresh for each run of the pipeline it's
-  in, so stages shared between pipelines, or given twice, share no
-  state.
+  in, so its state isn't shared between pipelines, or between its uses
+  when given twice. A plain closure is the same code reference
+  wherever it goes, so whatever it keeps is shared: keep state in
+  `gather`.
 - A stage that dies is named by its place in the pipeline it was
   spliced into.
 

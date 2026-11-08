@@ -313,9 +313,11 @@ made once can be used wherever stages go:
 
 The stages run in the other pipeline's run, as if listed there: a stop
 in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
-is made afresh for each run, so stages shared between pipelines share
-no state. A stage that dies is named by its place in the pipeline it
-was spliced into.
+is made afresh for each run, so its state isn't shared between the
+pipelines it's spliced into. A plain closure is the same code
+reference wherever it goes, so whatever it keeps is shared; keep state
+in C<gather>. A stage that dies is named by its place in the pipeline
+it was spliced into.
 
 =head1 FUNCTIONS
 

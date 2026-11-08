@@ -65,7 +65,9 @@ both:
   change to them is a change DBIx-Squirrel will take on when it
   switches, so say so in the commit message and in `Changes`.
 - **The version says what DBIx-Squirrel can take.** DBIx::Squirrel
-  requires `>= v0.1.0, < v0.2.0`, as Iain decided on 2026-11-07, so a
+  requires `>= v0.1.1, < v0.2.0`: below v0.2.0, as Iain decided on
+  2026-11-07, and from v0.1.1, as DBIx-Squirrel raised it on
+  2026-11-08, since v0.1.0's trial carries on after a stage dies. So a
   v0.1.x reaches its users with no release of DBIx::Squirrel's. A
   v0.1.x only fixes or adds. A release that changes behaviour users'
   stages depend on (when a `gather` stage is made, what a stop does,
