@@ -438,8 +438,11 @@ can satisfy a check. When the floor moves up, from Perl 5.36 to 5.40 for
 
 - **A push to `main` refused:** the protection did its job. Push to
   `develop` instead, or, at a release, wait for CI to pass on the commit.
-- **No run for a push:** GitHub didn't start CI for this repository's
-  first push. Start one by hand, then watch it:
+- **No run for a push:** look at the repository's Actions tab. Until
+  2026-11-08 no push started a run, as the tab said Actions wasn't
+  enabled, though `gh api repos/nukopian/Ekorn-Pipeline/actions/permissions`
+  said it was; enabling it there fixed it. To test a commit meanwhile,
+  start a run by hand, then watch it:
 
   ```
   cd ~/Git/github.com/nukopian/Ekorn-Pipeline
