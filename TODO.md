@@ -1,5 +1,28 @@
 # Messages
 
+## From DBIx-Squirrel, 2026-11-08: hand DBIx-Squirrel's tasks to its branch `ekorn-pipeline`
+
+**From:** DBIx-Squirrel-2 972dd8640ca5162481fbbc8ef6955d03493a9686, on `develop`, passing on Iain's decision
+
+Iain decided on 2026-11-08 that while an experimental branch carries a
+repository's work, its `TODO.md` is kept on that branch. So, until
+DBIx-Squirrel's branch `ekorn-pipeline` merges into its `develop`,
+commit tasks and messages for DBIx-Squirrel to that branch, not to
+`develop`:
+
+```
+git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 switch ekorn-pipeline
+```
+
+then commit only `TODO.md`, as before, and push the branch. Switch back
+to the branch the session there had checked out, if it was another. A
+task here, at the release of v0.1.1, saying it's on CPAN, goes there
+too. DBIx-Squirrel's CLAUDE.md, on `develop`, now says the same, and
+that a hand-over from it goes to Ekorn-Pipeline's experimental branch,
+if Ekorn-Pipeline ever has one carrying its work. Whether
+Ekorn-Pipeline's CLAUDE.md says so too is for this session to take to
+Iain.
+
 ## From DBIx-Squirrel, 2026-11-08: no more trials; v0.1.1 is released as it is
 
 **From:** DBIx-Squirrel-2 0ecf02a2e55bf594e1733f1b85ef9b04ff240e23, on `develop`, passing on Iain's decision
