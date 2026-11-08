@@ -36,23 +36,23 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    CI job passing (its message of 2026-11-07, from DBIx-Squirrel-2
    82f7695f3d20cd0467a5524d52924195c6d3c5b0). Since
    0b45ac977eac8dba7d59562267e04d4895f1037d no name or message has
-   changed, but two behaviours have: counts and sizes take the digits
-   0-9 only (3323a7f4e4500894e846984b403126d2ad936b58), and a stop that
-   isn't an array carries nothing
-   (f6827617d2c2cc820e56bea07cf6534f9b728a3a). DBIx-Squirrel was told
-   of both, in its tasks 3 and 5. Changing a name, a message or a
+   changed or gone, but three behaviours have: counts and sizes take
+   the digits 0-9 only (3323a7f4e4500894e846984b403126d2ad936b58), a
+   stop that isn't an array carries nothing
+   (f6827617d2c2cc820e56bea07cf6534f9b728a3a), and an iterator ends
+   once a stage dies (66b9b6bc866f25659067a2f4669ef52ecf11a863). One
+   name was added, the `stages` method
+   (753f101a7a20ed8de49f9eda6944cd1dbaf64604). DBIx-Squirrel was told
+   of each, in its tasks 3, 5 and 8. Changing a name, a message or a
    behaviour means handing DBIx-Squirrel a task.
 
-   What v0.1 promises waits on three roadmap items, whose open
-   decisions are in their records in `docs/changes/`. Settle them with
-   Iain, and do what they need before the release:
-   - 2026-0002, an iterator after a stage dies: done, so the release
-     is v0.1.1, after a second trial;
-   - 2026-0003, a pipeline in scalar context: done;
-   - 2026-0001, a `stages()` method: done.
-
-   `ending()` stays public, under that name, as Iain decided on
-   2026-11-07 (2260edfb803b18695d7ce470b66abc1b5876d3c0).
+   Done: what v0.1 promises was settled with Iain, in three roadmap
+   items, each shipped in v0.1.1's trial, with its record in
+   `docs/changes/`: 2026-0001, a `stages()` method; 2026-0002, an
+   iterator ends once a stage dies; and 2026-0003, a pipeline's count
+   in scalar context, promised. `ending()` stays public, under that
+   name, as Iain decided on 2026-11-07
+   (2260edfb803b18695d7ce470b66abc1b5876d3c0).
 2. Upload a trial, as "A trial release" in docs/MAINTAINING.md says,
    and read its reports. Done on 2026-11-07:
    `Ekorn-Pipeline-v0.1.0-TRIAL.tar.gz`, built from
@@ -87,9 +87,8 @@ needed an Ekorn::Pipeline trial would mostly report a missing
 prerequisite, not test anything. A 0.x version already says the
 interface may still change.
 
-**Done when:** the decisions above are settled, and what they need for
-v0.1 is done, the last trial's
-reports are read, and Iain decides it's ready. The commit that removes this task, and so this file, starts
-release day, as `main` can't take `TODO.md`. "Making a release" then
+**Done when:** v0.1.1's reports, or those of a later trial, are read,
+and Iain decides it's ready. The commit that removes this task, and so
+this file, starts release day, as `main` can't take `TODO.md`. "Making a release" then
 ends, at its step 8, by handing DBIx-Squirrel a task saying which
 version is on CPAN.
