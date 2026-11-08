@@ -74,8 +74,10 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    (DBIx-Squirrel-2 f8fea17bcf2aea95caf00289495837066b1debfa). Its
    reports are still to read, and the release waits for the first, as
    Iain decided on 2026-11-08. A failure is fixed, and Iain decides how
-   it goes out. The release differs from the trial in its POD only
-   (f9b44b8f895203cb07c945829f9af7ecc19e33ea), which needs no new
+   it goes out. The release differs from the trial in its documentation
+   only, its POD (f9b44b8f895203cb07c945829f9af7ecc19e33ea) and a
+   SECURITY.md and CONTRIBUTING.md
+   (5028cc3212dcd24469837a24f4b23e74f3a236c6), which needs no new
    trial, as Iain decided on 2026-11-08.
 3. Release v0.1.1 properly, not as a trial, as "Making a release"
    says: Iain decided on 2026-11-08 that there are no more trials.
