@@ -81,8 +81,8 @@ Steps, Done when.
 Newest id first.
 
 - [A pipeline in scalar context](2026-0003-pipeline-in-scalar-context.md),
-  roadmap 2026-0003: shipped, unreleased.
+  roadmap 2026-0003: shipped in v0.1.1.
 - [An iterator after a stage dies](2026-0002-iterator-after-a-stage-dies.md),
-  roadmap 2026-0002: shipped, unreleased.
+  roadmap 2026-0002: shipped in v0.1.1.
 - [A stages() method](2026-0001-stages-method.md), roadmap 2026-0001:
-  shipped, unreleased.
+  shipped in v0.1.1.

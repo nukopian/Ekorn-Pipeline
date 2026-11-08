@@ -1,6 +1,6 @@
 # 2026-0003. A pipeline in scalar context
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.1
 
 **Decisions:** D1 settled: A, the count, as now. None open.
 

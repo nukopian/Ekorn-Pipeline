@@ -1,6 +1,6 @@
 # 2026-0001. A stages() method
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.1
 
 **Decisions:** D1 settled: a stages() method, not composing in place. D2 settled: it ships in v0.1.1, with 2026-0002, as a trial first. None open.
 

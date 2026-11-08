@@ -2,13 +2,15 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.1.1 2026-11-08
+
     The pipeline from DBIx-Squirrel v2.0.2, on its own, so that any
     function can take stages from its caller.
 
-    Since v0.1.0's trial, three roadmap items: a pipeline's stages can
-    be spliced into another, with the stages method (2026-0001); an
-    iterator ends once a stage dies (2026-0002); and a pipeline's
-    count in scalar context is promised (2026-0003).
+    It ships three roadmap items, settled after v0.1.0's trial: a
+    pipeline's stages can be spliced into another, with the stages
+    method (2026-0001); an iterator ends once a stage dies (2026-0002);
+    and a pipeline's count in scalar context is promised (2026-0003).
 
     - Requires Perl 5.36 or later.
     - Ekorn::Pipeline runs values through a list of stages, each a code

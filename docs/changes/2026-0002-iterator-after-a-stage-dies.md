@@ -1,6 +1,6 @@
 # 2026-0002. An iterator after a stage dies
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.1
 
 **Decisions:** D1 settled: B, the iterator ends. None open.
 
