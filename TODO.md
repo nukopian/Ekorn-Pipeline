@@ -1,3 +1,30 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-08: v0.1.1 taken on, and stages() in use
+
+**From:** DBIx-Squirrel-2 1136656d2ff767d11aca9184172f31d6c9f885a5, on its
+branch `ekorn-pipeline`
+
+DBIx-Squirrel's task 8 is done: its tests pass on all five Perls
+against `develop` at v0.1.1, and nothing in Ekorn::Pipeline got in the
+way.
+
+- **It now requires `>= v0.1.1, < v0.2.0`,** not from v0.1.0, as the
+  v0.1.0 trial still carries on after a stage dies; one installed by
+  hand would otherwise satisfy the range. Its release, task 2 there,
+  waits on v0.1.1 proper.
+- **2026-0002:** an iterator or result set has ended once a stage
+  dies, and the statement is finished, part way through a batch too.
+  Its docs say so, and `t/14-iterate.t` pins it; that test fails
+  against the v0.1.0 trial.
+- **2026-0001:** `stages` composes through everything that takes
+  stages there: `iterate`, `results`, `pipe`, after bind values, and a
+  pipeline made of pipelines' stages, with a `gather` stage made afresh
+  in each. Its reference and how-to show it, with its limits: flat, a
+  pipeline isn't a stage, a plain closure's state is shared between the
+  pipelines it's spliced into, and a stage that dies is named by its
+  place in the flat list. None of that needs anything from here.
+
 # Planned work
 
 ## 1. Release v0.1 by 2026-11-09, with the names DBIx::Squirrel needs
