@@ -1,51 +1,5 @@
 # Planned work
 
-## 3. A SECURITY.md and a CONTRIBUTING.md in the distribution
-
-**From:** DBIx-Squirrel-2 aa7b875dca0f6888e76ab2e637433cf5fa9dcb89, on `develop`
-**Waiting on:** nothing
-
-**What:** CPANTS gives the v0.1.1 trial's distribution no core
-Kwalitee issues, but the same three experimental ones as
-DBIx-Squirrel's: `has_security_doc`, `security_doc_contains_contact`
-and `has_contributing_doc`. The `nukopian/.github` repository's shared
-`SECURITY.md` and `CONTRIBUTING.md` cover Ekorn-Pipeline on GitHub,
-but not in the tarball, which CPANTS reads, and they're written for
-the Go projects: `go.mod` retractions, `go list -m`, scalar and
-grammar by name. Iain asked on 2026-11-08 for Perl and CPAN versions in
-each Perl distribution; DBIx-Squirrel's are in the commit above. Do
-likewise, from those, with Ekorn-Pipeline's names:
-
-```
-git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 show aa7b875dca0f6888e76ab2e637433cf5fa9dcb89:SECURITY.md
-git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 show aa7b875dca0f6888e76ab2e637433cf5fa9dcb89:CONTRIBUTING.md
-```
-
-1. **`SECURITY.md`,** at the top level: report privately, through
-   GitHub's **Report a vulnerability** (private reporting is on for
-   Ekorn-Pipeline, checked on 2026-11-08) or to `cpanic@cpan.org`, the
-   distribution's one address, with the CPAN Security Group,
-   `cpan-security@security.metacpan.org`, as the fallback; what a
-   report needs (Ekorn::Pipeline's and Perl's versions, a
-   reproduction); scope (its own modules; DBIx::Squirrel's are its
-   own); only the latest release supported, on Perl 5.36 or later; a
-   fix is a new release, as CPAN never changes one.
-2. **`CONTRIBUTING.md`,** at the top level: issues, not pull requests,
-   and why, from the shared file; a good bug report has
-   `perl -MEkorn::Pipeline -E 'say Ekorn::Pipeline->VERSION'`, Perl's
-   version, the stages and values that show it, and what was expected;
-   a request that needs a database belongs in DBIx-Squirrel. Name no
-   repository URL: point to "the repository MetaCPAN links to".
-3. A line in `Changes` under Unreleased, and check with `minil dist`
-   that `tar tzf` lists both, as `minil.toml` excludes neither, then
-   remove the tarball.
-
-**Why:** CPAN's users get the tarball, not GitHub's shared files, and
-those give Go instructions to Perl users.
-
-**Done when:** both files are in the tarball, in Perl's terms, and the
-PDFs of them are read.
-
 ## 1. Release v0.1 by 2026-11-09, with the names DBIx::Squirrel needs
 
 **From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel-2
@@ -127,8 +81,8 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    says: Iain decided on 2026-11-08 that there are no more trials.
 
 If 2026-11-09 can't be met, because reports are slow or one fails,
-tell DBIx-Squirrel at once with a message
-in its `TODO.md`, as its task 2 waits on this release.
+tell DBIx-Squirrel at once with a message in its `TODO.md`, as its
+task 2 waits on this release.
 
 **Why:** CPAN Testers install a distribution's dependencies from the
 CPAN index, which doesn't hold trials, so a DBIx::Squirrel trial that
@@ -136,8 +90,8 @@ needed an Ekorn::Pipeline trial would mostly report a missing
 prerequisite, not test anything. A 0.x version already says the
 interface may still change.
 
-**Done when:** v0.1.1's reports, or those of a later trial, are read,
-and Iain decides it's ready. The commit that removes this task, and so
-this file, starts release day, as `main` can't take `TODO.md`. "Making a release" then
+**Done when:** v0.1.1's first reports are read, and Iain decides it's
+ready. The commit that removes this task, and so this file, starts
+release day, as `main` can't take `TODO.md`. "Making a release" then
 ends, at its step 8, by handing DBIx-Squirrel a task saying which
 version is on CPAN.

@@ -26,6 +26,9 @@ Unreleased
     - A pipeline's stages method returns its stages, so they can be
       spliced into another pipeline, or given to any function that
       takes stages, running as if listed there. (roadmap 2026-0001)
+    - SECURITY.md says how to report a vulnerability, privately, and
+      CONTRIBUTING.md how to report a bug or ask for a feature; the
+      distribution takes issues, not pull requests.
     - Ekorn::Pipeline::Stop ends a pipeline early, passing on any
       values it carries, after which the source isn't called again. A
       stop not made by throw, and so not an array, carries nothing.
