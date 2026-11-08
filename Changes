@@ -15,6 +15,9 @@ Unreleased
       every call after returns an empty list, and neither the source
       nor any end function is called again. In v0.1.0's trial it
       carried on, without the value that died. (roadmap 2026-0002)
+    - Called in scalar context, a pipeline returns how many results
+      came out, as an array would; the POD now promises it.
+      (roadmap 2026-0003)
     - Ekorn::Pipeline::Stop ends a pipeline early, passing on any
       values it carries, after which the source isn't called again. A
       stop not made by throw, and so not an array, carries nothing.

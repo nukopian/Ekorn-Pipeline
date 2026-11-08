@@ -257,6 +257,11 @@ with values, it returns the list that comes out of the last stage:
 
     my @results = $p->(@values);
 
+In scalar context, it returns how many results came out, as an array
+would:
+
+    my $count = $p->(@values);
+
 =head2 iterator
 
     my $next = $p->iterator($source);

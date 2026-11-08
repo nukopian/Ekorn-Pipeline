@@ -45,21 +45,6 @@ Nothing yet.
 
 ## Next
 
-### 2026-0003. A pipeline in scalar context
-
-**Size:** XS (1)
-
-Called in scalar context, a pipeline returns how many results came
-out, as Perl gives an array's length. The how-to and the reference say
-so, but the POD doesn't promise it, and `pipe` gives the first result
-instead. It has to be settled before v0.1, as changing it after is a
-v0.2.0.
-
-Decided: it keeps the count, as now. See its
-[record](docs/changes/2026-0003-pipeline-in-scalar-context.md).
-
-**Done when:** the count is promised in the POD, and tested.
-
 ### 2026-0001. A stages() method
 
 **Size:** S (2)

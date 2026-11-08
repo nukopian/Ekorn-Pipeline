@@ -1,6 +1,6 @@
 # 2026-0003. A pipeline in scalar context
 
-**Status:** open
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: A, the count, as now. None open.
 
@@ -49,3 +49,20 @@ module, return how many in scalar context.
   the docs say already; the difference from `pipe` is documented beside
   `pipe` in the reference. Nothing changes for DBIx::Squirrel, and no
   new trial is needed.
+
+## The plan
+
+As decided in D1, on 2026-11-07: keep the count. Promise it in the
+POD of `new`, beside the list a pipeline returns, and test it in
+`t/02-pipeline.t`: after a filter and a flatMap, with no results, with
+no stages, and after a stop. The reference and the how-to say so
+already.
+
+**Done when:** the POD promises the count, and a test checks it.
+
+## What happened
+
+- **Outcome:** done, as planned: a paragraph and an example in the POD
+  of `new`, and a subtest of 4 checks. No code changed. All 345
+  assertions pass.
+- **Changes from the plan:** none.

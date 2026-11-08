@@ -57,6 +57,17 @@ subtest 'stages map, filter and flatMap' => sub {
         'undef is a value';
 };
 
+subtest 'in scalar context, a pipeline returns how many results' => sub {
+    my $n = $class->new(sub { $_ % 2 ? () : ($_, $_) })->(1 .. 6);
+    is $n, 6, 'after a filter and a flatMap';
+    $n = $class->new(sub { () })->(1 .. 3);
+    is $n, 0, 'none';
+    $n = $class->new->(1, undef, 3);
+    is $n, 3, 'with no stages';
+    $n = $class->new(sub { $_ == 3 ? Stop($_) : $_ })->(1 .. 9);
+    is $n, 3, 'with a stop';
+};
+
 subtest 'each value goes through every stage before the next starts' => sub {
     my @log;
     my $p = $class->new(
