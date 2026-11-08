@@ -162,7 +162,12 @@ GitHub release, and `main` doesn't move.
 
 PAUSE never takes the same file name twice, so each trial has a version
 of its own, and the release takes the version of its last trial: a
-change after a trial moves the version on for the next. Don't use an
+change after a trial moves the version on for the next. A change that
+touches only POD or documentation needs no new trial, as Iain decided
+on 2026-11-08, since CPAN Testers test code, not prose; check the POD
+with `podchecker`, and say in the release's commit that it differs
+from the trial in its documentation. A change to code or tests needs a
+new trial. Don't use an
 underscore version, such as `v0.1.0_1`, for a trial of v0.1.0:
 `version.pm` reads it as v0.1.1, so it would rank above the release it
 was a trial of. DBIx-Squirrel decided this on 2026-11-06, and the same
