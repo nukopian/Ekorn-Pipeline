@@ -60,11 +60,22 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    SHA-256
    2a67c85f1067fcfaa32693f09427ac4755dab530a9f28586fb02d2636966fdee.
    DBIx-Squirrel was told (DBIx-Squirrel-2
-   dad0b1d46557620129e7b1e0e33b13e676d7b4e3). Its reports are still to
-   read; a failure is fixed and goes out as a trial of v0.1.1.
-3. Release the version of the last trial, v0.1.0 or the v0.1.1 a
-   failure or a decision makes, properly, not as a trial, as "Making a
-   release" says.
+   dad0b1d46557620129e7b1e0e33b13e676d7b4e3). Its reports, read on
+   2026-11-08: 52 pass, on 13 platforms, among them Windows, Cygwin,
+   the BSDs, Solaris, Haiku and Android, from Perl 5.36.0 to 5.44.0,
+   and 8 na, each from a Perl older than 5.36, as expected.
+
+   The decisions above changed behaviour, so a second trial followed on
+   2026-11-08: `Ekorn-Pipeline-v0.1.1-TRIAL.tar.gz`, built from
+   372f94b1a13d129cde42030da6f5658d88b111b4 after CI passed on it,
+   SHA-256
+   a2e32438c9c037e64dd269ed4b1068e9fbf24eff03be61d245d760aea5e8a5b7.
+   DBIx-Squirrel was told, with what changed for it, in its task 8
+   (DBIx-Squirrel-2 f8fea17bcf2aea95caf00289495837066b1debfa). Its
+   reports are still to read; a failure is fixed and goes out as a trial
+   of v0.1.2.
+3. Release v0.1.1, or the version of a later trial, properly, not as a
+   trial, as "Making a release" says.
 
 If 2026-11-09 can't be met, because reports are slow, one fails, or a
 decision needs a new trial, tell DBIx-Squirrel at once with a message
