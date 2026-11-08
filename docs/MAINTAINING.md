@@ -376,8 +376,8 @@ unsigned tag, and pushes both. `minil prepare` sets the version and
 
 8. **Tell DBIx-Squirrel.** Hand it a task in its `TODO.md`, on its
    `develop`, or on its experimental branch while one carries its work,
-   as `ekorn-pipeline` does now, saying which version is on CPAN, as
-   CLAUDE.md's Planned work says,
+   as `ekorn-pipeline` did until 2026-11-08, saying which version is on
+   CPAN, as CLAUDE.md's Planned work says,
    and read its other tasks for any waiting on this release, to tell
    Iain which can now be done. Nothing else tells its session.
 

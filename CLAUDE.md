@@ -304,25 +304,25 @@ what was Iain's.
   nothing of a session working there goes with it.
 - **While an experimental branch carries a repository's work, its
   `TODO.md` is kept on that branch,** as Iain decided on 2026-11-08, so
-  tasks and messages for it go there, not to `develop`. Until
-  DBIx-Squirrel's branch `ekorn-pipeline` merges into its `develop`,
-  that's where they go. Never switch its working copy to the branch, as
-  a session may be working there: use a worktree of the branch as
-  GitHub has it, edit `/tmp/dbix-squirrel-todo/TODO.md`, commit only
-  it, and push from there:
+  tasks and messages for it go there, not to `develop`. DBIx-Squirrel's
+  `ekorn-pipeline` did, until it merged on 2026-11-08; with no such
+  branch now, they go to its `develop`. Never switch DBIx-Squirrel's
+  working copy, or commit in it, as a session may be working there:
+  use a worktree of the branch as GitHub has it, edit
+  `/tmp/dbix-squirrel-todo/TODO.md`, commit only it, and push from
+  there:
 
   ```
   git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 fetch -q origin
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add --detach /tmp/dbix-squirrel-todo origin/ekorn-pipeline
-  git -C /tmp/dbix-squirrel-todo push origin HEAD:ekorn-pipeline
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add --detach /tmp/dbix-squirrel-todo origin/develop
+  git -C /tmp/dbix-squirrel-todo push origin HEAD:develop
   git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree remove /tmp/dbix-squirrel-todo
   ```
 
-  A push refused as not a fast-forward means the branch moved: remove
-  the worktree and start again from the fetch. Once the branch has
-  merged, tasks go to DBIx-Squirrel's `develop` again, after a `git
-  pull --ff-only` there, in its working copy if it's on `develop` with
-  a clean tree, or else from a worktree of `develop` the same way. The
+  While an experimental branch of DBIx-Squirrel's carries its work, use
+  that branch's name in place of `develop` in the second and third
+  commands. A push refused as not a fast-forward means the branch
+  moved: remove the worktree and start again from the fetch. The
   same holds here: if an experimental branch of Ekorn-Pipeline's ever
   carries its work, `TODO.md` is kept on it, and DBIx-Squirrel's
   session hands tasks and messages to that branch. DBIx-Squirrel's
