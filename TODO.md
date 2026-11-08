@@ -12,8 +12,8 @@ DBIx-Squirrel-2's branch `ekorn-pipeline`, which installs it from this
 repository's `develop` on GitHub. From 2026-11-09, DBIx::Squirrel's
 next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
 
-1. Before release, settle which names are public, and keep them, as
-   DBIx::Squirrel will depend on them:
+1. Done: the names DBIx::Squirrel depends on are public, and are kept
+   as they are:
    - `Ekorn::Pipeline::ending()`, which DBIx::Squirrel::Context calls;
    - `croakf` and `@Ekorn::Pipeline::Errors::INTERNAL`, which
      DBIx::Squirrel::Errors and Stages::Rows will use;
@@ -50,9 +50,9 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    items, each shipped in v0.1.1's trial, with its record in
    `docs/changes/`: 2026-0001, a `stages()` method; 2026-0002, an
    iterator ends once a stage dies; and 2026-0003, a pipeline's count
-   in scalar context, promised. `ending()` stays public, under that
-   name, as Iain decided on 2026-11-07
-   (2260edfb803b18695d7ce470b66abc1b5876d3c0).
+   in scalar context, promised. Of the names above, only `ending()`
+   was in question: it stays public, under that name, as Iain decided
+   on 2026-11-07 (2260edfb803b18695d7ce470b66abc1b5876d3c0).
 2. Upload a trial, as "A trial release" in docs/MAINTAINING.md says,
    and read its reports. Done on 2026-11-07:
    `Ekorn-Pipeline-v0.1.0-TRIAL.tar.gz`, built from
@@ -72,15 +72,16 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    a2e32438c9c037e64dd269ed4b1068e9fbf24eff03be61d245d760aea5e8a5b7.
    DBIx-Squirrel was told, with what changed for it, in its task 8
    (DBIx-Squirrel-2 f8fea17bcf2aea95caf00289495837066b1debfa). Its
-   reports are still to read; a failure is fixed and goes out as a trial
-   of v0.1.2. The release differs from the trial in its POD only
+   reports are still to read, and the release waits for the first, as
+   Iain decided on 2026-11-08. A failure is fixed, and Iain decides how
+   it goes out. The release differs from the trial in its POD only
    (f9b44b8f895203cb07c945829f9af7ecc19e33ea), which needs no new
    trial, as Iain decided on 2026-11-08.
-3. Release v0.1.1, or the version of a later trial, properly, not as a
-   trial, as "Making a release" says.
+3. Release v0.1.1 properly, not as a trial, as "Making a release"
+   says: Iain decided on 2026-11-08 that there are no more trials.
 
-If 2026-11-09 can't be met, because reports are slow, one fails, or a
-decision needs a new trial, tell DBIx-Squirrel at once with a message
+If 2026-11-09 can't be met, because reports are slow or one fails,
+tell DBIx-Squirrel at once with a message
 in its `TODO.md`, as its task 2 waits on this release.
 
 **Why:** CPAN Testers install a distribution's dependencies from the
