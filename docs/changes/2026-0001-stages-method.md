@@ -1,6 +1,6 @@
 # 2026-0001. A stages() method
 
-**Status:** open
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: a stages() method, not composing in place. D2 settled: it ships in v0.1.1, with 2026-0002, as a trial first. None open.
 
@@ -127,3 +127,31 @@ checked with today's code: `take(2)` spliced into another pipeline gave
   a later v0.1.x? It's an addition, so either suits DBIx::Squirrel's
   range, `>= v0.1.0, < v0.2.0`. If 2026-0002 makes a second trial
   anyway, it costs little to add it there.
+
+## The plan
+
+As decided in D1 and D2, on 2026-11-07 and 2026-11-08: add `stages`
+to Ekorn::Pipeline, returning a copy of the pipeline's stages, in
+order, as a list, or in scalar context how many. Test that it returns
+them in order and as a copy; that spliced into another pipeline, a
+`take` ends the whole run, fetching no more; that a `gather` stage
+starts afresh each run, and keeps its own state when given twice; and
+that the pipeline still runs on its own. Document it in the POD, the
+reference (a section of its own, and beside `new` and Pipelines inside
+stages), the how-to, whose wrapper example becomes "Use a pipeline's
+stages in another", the README and `Changes`. It goes out in v0.1.1's
+trial.
+
+**Done when:** `stages` is in Ekorn::Pipeline, tested, and documented
+as above, its examples printing what their comments say.
+
+## What happened
+
+- **Outcome:** done, as planned. The method is one line. Its subtest
+  in `t/02-pipeline.t` has 10 checks. The examples in the reference,
+  the how-to and the README were run, and print what
+  their comments say.
+- **Changes from the plan:** the how-to's recipe keeps calling a
+  pipeline from a stage as the other way, saying how it differs, so a
+  reader can choose; and the README gained a short example, as `stages`
+  is what a function's caller would use.

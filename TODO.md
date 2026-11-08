@@ -49,8 +49,7 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
    - 2026-0002, an iterator after a stage dies: done, so the release
      is v0.1.1, after a second trial;
    - 2026-0003, a pipeline in scalar context: done;
-   - 2026-0001, a `stages()` method: D1 and D2 are
-     settled: it goes in v0.1.1.
+   - 2026-0001, a `stages()` method: done.
 
    `ending()` stays public, under that name, as Iain decided on
    2026-11-07 (2260edfb803b18695d7ce470b66abc1b5876d3c0).

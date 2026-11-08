@@ -812,21 +812,29 @@ say scalar @up_to;    # 4
 not tracks. Mind what a stage is given, and say so in its
 documentation.
 
-### Use a pipeline inside a stage
+### Use a pipeline's stages in another
 
-A pipeline isn't a stage itself, but a stage can call one, so stages
-can be built from stages:
+A pipeline isn't a stage itself, but its stages can go wherever stages
+go, with `stages`, so stages made once can be used again, in another
+pipeline or in a call of any function that takes them:
 
 ```perl
 my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 
-my @titles = Ekorn::Pipeline->new(sub { $clean->($_) })->('  Parklife ', '   ', 'Tender');
+my @titles = Ekorn::Pipeline->new($clean->stages, take(2))->('  Parklife ', '   ', 'Tender', 'Waterloo');
 say join '|', @titles;    # Parklife|Tender
+
+say join '|', tracks(value_of('title'), $clean->stages, take(3));    # Dancing Queen|Knowing Me, Knowing You|Girls & Boys
 ```
 
-Each call of the inner pipeline is a run of its own, so its `gather`
-stages start afresh on each value, and a stop in it ends only that
-run.
+The stages run as if they'd been listed there: a stop in one ends the
+whole run, and a `gather` stage starts afresh with each run, so stages
+used in two pipelines, or twice in one, share nothing.
+
+A stage can call a pipeline instead, as `sub { $clean->($_) }`. Then
+each call is a run of its own, so its `gather` stages start afresh on
+each value, and a stop in it ends only that call: a `take(2)` inside
+limits what each call gives, not the whole run.
 
 ### Test a stage
 

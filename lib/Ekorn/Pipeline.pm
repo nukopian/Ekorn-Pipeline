@@ -44,6 +44,13 @@ sub iterator ($self, $source) {
     return _iterator($self->{stages}, $source);
 }
 
+
+# Return the stages, in order, as a list, to splice into another
+# pipeline or give to any function taking stages.
+sub stages ($self) {
+    return @{ $self->{stages} };
+}
+
 # What a pipeline is doing while its stages run.
 my %running;
 
@@ -289,6 +296,26 @@ iterator has ended: every call after returns an empty list, nothing
 waiting goes on through the stages, no end function is called, and the
 source isn't called again, as when a pushed run dies. To skip a bad
 value and carry on, catch the error inside the stage.
+
+=head2 stages
+
+    my @stages = $p->stages;
+
+Returns the pipeline's stages, in order, as given to L</new>. In
+scalar context, it returns how many there are.
+
+A pipeline isn't a stage, but its stages can be spliced into another
+pipeline, or given to any function that takes stages, so a pipeline
+made once can be used wherever stages go:
+
+    my $clean  = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+    my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);
+
+The stages run in the other pipeline's run, as if listed there: a stop
+in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
+is made afresh for each run, so stages shared between pipelines share
+no state. A stage that dies is named by its place in the pipeline it
+was spliced into.
 
 =head1 FUNCTIONS
 

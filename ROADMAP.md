@@ -45,27 +45,7 @@ Nothing yet.
 
 ## Next
 
-### 2026-0001. A stages() method
-
-**Size:** S (2)
-
-A method returning a pipeline's stages as a flat list, so that they can
-be spliced into another pipeline, or given to any function that takes
-stages, DBIx::Squirrel's among them, with no change to them:
-
-```perl
-my $first_active = Ekorn::Pipeline->new(as_hash, sub { $_->{active} ? $_ : () }, take(10));
-my @rows = $sth->iterate($id, $first_active->stages, pluck('name'))->all;
-```
-
-Stages that keep state are made afresh for each run, so sharing them
-shares no state, and the outer pipeline gives what listing the stages
-by hand would. It fills the gap left by refusing a pipeline as a stage,
-with no change to `new`, the runner or any message. It goes in v0.1.1, with 2026-0002, as decided: see its
-[record](docs/changes/2026-0001-stages-method.md).
-
-**Done when:** `stages` is in Ekorn::Pipeline, tested, and documented in
-the POD, the reference and the how-to, whose wrapper example uses it.
+Nothing yet.
 
 ## Later
 

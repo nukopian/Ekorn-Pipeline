@@ -116,8 +116,9 @@ With no stages, a pipeline returns its values as they are.
 
 A pipeline is not itself a stage: given to `new`, it's refused, as it's
 an object that can be called like a code reference, not a code
-reference. To use one inside another, call it from
-a stage, as [Pipelines inside stages](#pipelines-inside-stages) says.
+reference. To use one inside another, splice its stages in, with
+[stages](#stages), or call it from a stage, as
+[Pipelines inside stages](#pipelines-inside-stages) says.
 
 ### Calling a pipeline
 
@@ -190,6 +191,40 @@ A source that returns `shift @queue // ()` ends at the first `undef` in
 the queue; `@queue ? shift @queue : ()` doesn't. A filehandle is read
 in scalar context, `sub { scalar(<$fh>) // () }`, so that each call
 reads one line.
+
+### stages
+
+```perl
+my @stages = $p->stages;
+```
+
+Returns the pipeline's stages, in order, as they were given to `new`:
+a copy of the list, so changing it changes nothing in the pipeline. In
+scalar context, it returns how many there are.
+
+A pipeline isn't a stage, but its stages can be spliced into another
+pipeline, or given to any function that takes stages, so a pipeline
+made once can be used wherever stages go:
+
+```perl
+my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+say join '|', Ekorn::Pipeline->new($clean->stages, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
+```
+
+Spliced in, the stages run in the other pipeline's run, as if they'd
+been listed there, so it behaves just as listing them would:
+
+- A stop in one of them ends the whole run, and the source is called no
+  more.
+- A `gather` stage is made afresh for each run of the pipeline it's
+  in, so stages shared between pipelines, or given twice, share no
+  state.
+- A stage that dies is named by its place in the pipeline it was
+  spliced into.
+
+That differs from calling a pipeline from a stage, where each call is a
+run of its own, as [Pipelines inside stages](#pipelines-inside-stages)
+says.
 
 ### ending
 
@@ -314,7 +349,9 @@ say join '|', Ekorn::Pipeline->new(sub { $trim->($_) })->(' a ', '  ', 'b ');   
 Each call of the inner pipeline is a run of its own: its `gather`
 stages start afresh on each value the outer stage is given, its end
 functions are called at the end of each call, and a stop in it ends
-only that call, not the outer pipeline.
+only that call, not the outer pipeline. To have its stages run in the
+outer pipeline's run instead, as if listed there, splice them in with
+[stages](#stages).
 
 ## Stopping a pipeline: Ekorn::Pipeline::Stop
 
@@ -979,7 +1016,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 
 | Module | What it is |
 |---|---|
-| `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `iterator` and `ending`. |
+| `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `iterator`, `stages` and `ending`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |
 | `Ekorn::Pipeline::Gather` | Makes a stage afresh for each run, with a function called at the end: `gather`. |
 | `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods. |

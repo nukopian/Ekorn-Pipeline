@@ -68,6 +68,32 @@ subtest 'in scalar context, a pipeline returns how many results' => sub {
     is $n, 3, 'with a stop';
 };
 
+subtest 'stages returns the stages, to splice into another pipeline' => sub {
+    my($double, $odd) = (sub { $_ * 2 }, sub { $_ % 2 ? $_ : () });
+    my $p = $class->new($odd, $double);
+    is [$p->stages], [exact_ref($odd), exact_ref($double)], 'in order';
+    my $n = $p->stages;
+    is $n,                    2,  'how many, in scalar context';
+    is [$class->new->stages], [], 'none';
+
+    my @stages = $p->stages;
+    push @stages, sub { die "not this\n" };    ## no critic (ErrorHandling::RequireCarping)
+    is [$p->(1 .. 4)], [2, 6], 'a copy: the pipeline is unchanged';
+
+    my $taken = 0;
+    my $two   = $class->new(gather {
+        my $n = 0;
+        sub { $taken++; ++$n <= 2 ? $_ : Stop() }
+    });
+    my $outer = $class->new($two->stages, sub { $_ * 10 });
+    is [$outer->(1 .. 5)], [10, 20], 'spliced, a stop ends the run';
+    is $taken,             3,        'and nothing more is fetched';
+    is [$outer->(6 .. 9)], [60, 70], 'each run starts the gather afresh';
+    is [$class->new($two->stages, $two->stages)->(1 .. 5)], [1, 2],
+        'given twice, each keeps its own state';
+    is [$two->(7, 8, 9)], [7, 8], 'and the pipeline still runs on its own';
+};
+
 subtest 'each value goes through every stage before the next starts' => sub {
     my @log;
     my $p = $class->new(

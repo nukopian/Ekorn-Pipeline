@@ -247,6 +247,13 @@ A class of your own can have `pipe` and `tap` methods, from
 returns what comes out, and `tap` returns the object, so a chain of
 method calls can carry on after it.
 
+A pipeline's `stages` go wherever stages go, so a set of stages made
+once can be spliced into another pipeline, or given to any function
+that takes stages:
+
+    my $active_names = Ekorn::Pipeline->new(sub { $_->{active} ? $_ : () }, sub { $_->{name} });
+    my @names = users($active_names->stages, take(10));
+
 ## Errors
 
 A stage that dies is named by its place in the pipeline, at the line
