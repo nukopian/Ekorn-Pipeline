@@ -180,7 +180,7 @@ what was Iain's.
   logs, are in the 5.36 library.
 
   Building a Perl, or Net::SSLeay against OpenSSL 4, on Iain's Mac:
-  DBIx-Squirrel-2's CLAUDE.md has what worked.
+  DBIx-Squirrel's CLAUDE.md has what worked.
 
 ## Tests
 
@@ -294,7 +294,7 @@ what was Iain's.
   ```markdown
   ## Release v0.1.0
 
-  **From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel-2
+  **From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel
   8447689997ae6b1ec5f3a5c45a4fac0224391ce4, on its branch `ekorn-pipeline`)
   **Waiting on:** nothing
   ```
@@ -305,7 +305,7 @@ what was Iain's.
 - **Tasks for DBIx-Squirrel go in its `TODO.md`,** as grammar and scalar
   hand tasks to each other, as Iain decided on 2026-11-07. A session
   here commits the task straight into
-  `~/Git/github.com/nukopian/DBIx-Squirrel-2`'s `TODO.md`, as `docs: a
+  `~/Git/github.com/nukopian/DBIx-Squirrel`'s `TODO.md`, as `docs: a
   task from Ekorn-Pipeline: ...`, and pushes it at once: left
   uncommitted, it blocks that repository's next pull and never reaches
   the session that would do it. Commit only that file, by its path, so
@@ -321,10 +321,10 @@ what was Iain's.
   there:
 
   ```
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 fetch -q origin
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add --detach /tmp/dbix-squirrel-todo origin/develop
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel fetch -q origin
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel worktree add --detach /tmp/dbix-squirrel-todo origin/develop
   git -C /tmp/dbix-squirrel-todo push origin HEAD:develop
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree remove /tmp/dbix-squirrel-todo
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel worktree remove /tmp/dbix-squirrel-todo
   ```
 
   While an experimental branch of DBIx-Squirrel's carries its work, use

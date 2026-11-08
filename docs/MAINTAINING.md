@@ -7,7 +7,7 @@ a value say so on the line before, and set it in a variable on their
 first line.
 
 It's kept the same way as
-[DBIx-Squirrel](https://github.com/nukopian/DBIx-Squirrel-2/blob/develop/docs/MAINTAINING.md),
+[DBIx-Squirrel](https://github.com/nukopian/DBIx-Squirrel/blob/develop/docs/MAINTAINING.md),
 where its code began: Minilla builds the distribution, and a release
 goes to CPAN.
 
