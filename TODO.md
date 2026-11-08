@@ -93,37 +93,3 @@ reports are read, and Iain decides it's ready. The commit that removes this task
 release day, as `main` can't take `TODO.md`. "Making a release" then
 ends, at its step 8, by handing DBIx-Squirrel a task saying which
 version is on CPAN.
-
-## 2. Find out why a push starts no CI run
-
-**From:** Ekorn-Pipeline's session, 2026-11-07 (Ekorn-Pipeline
-a36da79f6ca387514092bf7d1f0a82a6ab4bcc91)
-**Waiting on:** nothing
-
-**What:** no push to `develop` has started a run of `test.yml`, though
-it has `on: push: branches: [main, develop]`, and Actions is enabled
-for the repository with every action allowed. GitHub has the commits,
-but makes no check suite for them: `gh api
-repos/nukopian/Ekorn-Pipeline/commits/b5e28c4e48c9615366e9b34191c8c4d86ace0865/check-suites`
-lists none from a push. Every run so far was started by hand, with
-`gh workflow run test.yml --ref develop`. Things to look at, reading
-only, as changing a GitHub setting needs Iain's go-ahead:
-
-- the repository's Actions settings and any organisation policy over
-  them (`gh api repos/nukopian/Ekorn-Pipeline/actions/permissions`);
-- whether webhooks for pushes reach GitHub Actions at all, as in the
-  repository's events (`gh api repos/nukopian/Ekorn-Pipeline/events`);
-- what differs from DBIx-Squirrel-2, whose pushes to `develop` and
-  `ekorn-pipeline` do start runs (`gh run list -R
-  nukopian/DBIx-Squirrel-2`): its workflow's `on:`, its Actions
-  settings, and how the repository was created and first pushed;
-- GitHub's status page for Actions incidents on 2026-11-07.
-
-**Why:** "Making a release" step 1 needs CI to have passed on the last
-commit of `develop`, and a push that tests nothing lets a broken
-commit look fine until someone starts a run.
-
-**Done when:** a push to `develop` starts a run by itself, or the cause
-is found and Iain has decided what to do. If it can't be solved before
-the release, start a run by hand on the commit to be released, as so
-far.
