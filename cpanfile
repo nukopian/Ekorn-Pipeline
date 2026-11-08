@@ -26,4 +26,5 @@ on develop => sub {
     requires 'Test2::Harness';
     requires 'Test2::Plugin::Cover';
     requires 'UUID';
+    requires 'Version::Next';
 };
