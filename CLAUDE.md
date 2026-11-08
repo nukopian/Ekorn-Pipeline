@@ -297,23 +297,37 @@ what was Iain's.
 - **Tasks for DBIx-Squirrel go in its `TODO.md`,** as grammar and scalar
   hand tasks to each other, as Iain decided on 2026-11-07. A session
   here commits the task straight into
-  `~/Git/github.com/nukopian/DBIx-Squirrel-2`'s `TODO.md` on its
-  `develop`, after a `git pull --ff-only` there, as `docs: a task from
-  Ekorn-Pipeline: ...`, and pushes it at once: left uncommitted, it
-  blocks that repository's next pull and never reaches the session that
-  would do it. Commit only that file, by its path, so nothing of a
-  session working there goes with it. When its working copy is on
-  another branch, as on `ekorn-pipeline` now, commit from a worktree of
-  `develop` in a temporary directory, and remove the worktree once it's
-  pushed, so its session's branch and files are left as they are:
+  `~/Git/github.com/nukopian/DBIx-Squirrel-2`'s `TODO.md`, as `docs: a
+  task from Ekorn-Pipeline: ...`, and pushes it at once: left
+  uncommitted, it blocks that repository's next pull and never reaches
+  the session that would do it. Commit only that file, by its path, so
+  nothing of a session working there goes with it.
+- **While an experimental branch carries a repository's work, its
+  `TODO.md` is kept on that branch,** as Iain decided on 2026-11-08, so
+  tasks and messages for it go there, not to `develop`. Until
+  DBIx-Squirrel's branch `ekorn-pipeline` merges into its `develop`,
+  that's where they go. Never switch its working copy to the branch, as
+  a session may be working there: use a worktree of the branch as
+  GitHub has it, edit `/tmp/dbix-squirrel-todo/TODO.md`, commit only
+  it, and push from there:
 
   ```
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add "$TMPDIR/dbix-develop" develop
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 fetch -q origin
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree add --detach /tmp/dbix-squirrel-todo origin/ekorn-pipeline
+  git -C /tmp/dbix-squirrel-todo push origin HEAD:ekorn-pipeline
+  git -C ~/Git/github.com/nukopian/DBIx-Squirrel-2 worktree remove /tmp/dbix-squirrel-todo
   ```
 
-  DBIx-Squirrel's tasks for
-  Ekorn-Pipeline come here the same way. It's the only other repository
-  this one touches.
+  A push refused as not a fast-forward means the branch moved: remove
+  the worktree and start again from the fetch. Once the branch has
+  merged, tasks go to DBIx-Squirrel's `develop` again, after a `git
+  pull --ff-only` there, in its working copy if it's on `develop` with
+  a clean tree, or else from a worktree of `develop` the same way. The
+  same holds here: if an experimental branch of Ekorn-Pipeline's ever
+  carries its work, `TODO.md` is kept on it, and DBIx-Squirrel's
+  session hands tasks and messages to that branch. DBIx-Squirrel's
+  tasks for Ekorn-Pipeline come here the same way. It's the only other
+  repository this one touches.
 - **A release ends by telling DBIx-Squirrel,** with a task in its
   `TODO.md`, and by looking there for tasks waiting on the release, so
   Iain knows which can now be done. Nothing else tells its session
