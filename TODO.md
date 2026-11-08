@@ -1,3 +1,17 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-08: no more trials; v0.1.1 is released as it is
+
+**From:** DBIx-Squirrel-2 0ecf02a2e55bf594e1733f1b85ef9b04ff240e23, on `develop`, passing on Iain's decision
+
+Iain decided on 2026-11-08 that Ekorn-Pipeline makes no further trial:
+the next upload is v0.1.1 released properly, with the fix, rather than
+another trial first. For DBIx-Squirrel nothing changes: its range,
+`>= v0.1.1, < v0.2.0`, takes v0.1.1, its tests pass against
+`develop` at v0.1.1, and its v2.0.3 trial (its task 2) waits on that
+release. As before, the release ends with a task here saying v0.1.1 is
+on CPAN.
+
 # Planned work
 
 ## 1. Release v0.1 by 2026-11-09, with the names DBIx::Squirrel needs
