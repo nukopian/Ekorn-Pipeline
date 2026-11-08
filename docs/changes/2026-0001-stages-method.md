@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: a stages() method, not composing in place. D2 open: whether it ships in v0.1.1 or a later v0.1.x.
+**Decisions:** D1 settled: a stages() method, not composing in place. D2 settled: it ships in v0.1.1, with 2026-0002, as a trial first. None open.
 
 **Origin:** roadmap, added 2026-11-07, from the question whether `new`
 should take a pipeline where a stage goes, raised by a review of the
@@ -121,7 +121,9 @@ checked with today's code: `take(2)` spliced into another pipeline gave
   composing, `stages()` gives up only the shorter call, `$p` rather
   than `$p->stages`, and naming a nested stage in a message; an error
   names its place in the flat list.
-- [ ] **D2.** Does it go in v0.1.0, with a second trial, v0.1.1, or in
+- [x] **D2.** In v0.1.1, decided on 2026-11-08: it goes out in v0.1.1's
+  trial, with 2026-0002 and 2026-0003. The question was: does it go in
+  v0.1.0, with a second trial, v0.1.1, or in
   a later v0.1.x? It's an addition, so either suits DBIx::Squirrel's
   range, `>= v0.1.0, < v0.2.0`. If 2026-0002 makes a second trial
   anyway, it costs little to add it there.

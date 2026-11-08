@@ -51,8 +51,8 @@ next trial, v2.0.3, will require Ekorn::Pipeline from CPAN. So:
      trial;
    - 2026-0003, a pipeline in scalar context: D1 is settled, A, so it
      keeps the count, to be promised in the POD and tested;
-   - 2026-0001, a `stages()` method: D1 is settled; D2, whether it
-     goes in v0.1.0 or a later v0.1.x, is open.
+   - 2026-0001, a `stages()` method: D1 and D2 are
+     settled: it goes in v0.1.1.
 
    `ending()` stays public, under that name, as Iain decided on
    2026-11-07 (2260edfb803b18695d7ce470b66abc1b5876d3c0).

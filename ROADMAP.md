@@ -95,8 +95,7 @@ my @rows = $sth->iterate($id, $first_active->stages, pluck('name'))->all;
 Stages that keep state are made afresh for each run, so sharing them
 shares no state, and the outer pipeline gives what listing the stages
 by hand would. It fills the gap left by refusing a pipeline as a stage,
-with no change to `new`, the runner or any message. Whether it goes in
-v0.1.0 is still open: see its
+with no change to `new`, the runner or any message. It goes in v0.1.1, with 2026-0002, as decided: see its
 [record](docs/changes/2026-0001-stages-method.md).
 
 **Done when:** `stages` is in Ekorn::Pipeline, tested, and documented in
