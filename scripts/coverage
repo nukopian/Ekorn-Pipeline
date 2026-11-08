@@ -32,12 +32,26 @@ system('yath', 'test', '-L', '--cover') == 0
 system('cover', '-silent', '-report', 'json', '-select_re', '^lib/') == 0
     or die "cover couldn't report the coverage\n";
 
-my $total = decode_json(slurp('cover_db/cover.json'))->{summary}{Total};
+# The coverage of lib/, added up from its files. The report's own Total
+# counts every file covered, whatever -select_re says, and xt/manuals.t
+# loads scripts/manuals into its process.
+my $summary = decode_json(slurp('cover_db/cover.json'))->{summary};
+my %total;
+for my $file (grep { m( \A lib/ )x } keys %$summary) {
+    for my $criterion (keys %FLOOR) {
+        my $counts = $summary->{$file}{$criterion} or next;
+        $total{$criterion}{$_} += $counts->{$_} for qw(covered total);
+    }
+}
+for my $counts (values %total) {
+    $counts->{percentage} = 100 * $counts->{covered} / $counts->{total}
+        if $counts->{total};
+}
 
 my @below;
 printf "%-12s %8s %6s\n", qw(criterion coverage floor);
 for my $criterion (sort keys %FLOOR) {
-    my $percentage = $total->{$criterion}{percentage}
+    my $percentage = $total{$criterion}{percentage}
         // die "No $criterion coverage in the report\n";
     my $low = $percentage < $FLOOR{$criterion};
     printf "%-12s %7.1f%% %5d%%%s\n", $criterion, $percentage,

@@ -1,5 +1,7 @@
 # Ekorn::Pipeline how-to
 
+<!-- stopwords: backtrace -->
+
 Recipes for everyday work with Ekorn::Pipeline, one task at a time.
 Each shows the shortest way to do the job; [the reference](REFERENCE.md)
 says what every function and method does, in full.

@@ -151,6 +151,14 @@ what was Iain's.
     use it: `minil prepare VERSION` sets the version, we commit, move
     `main` and sign the tag, `minil dist --skip-prepare` builds the
     tarball, and `cpan-upload` uploads it.
+- **The manuals are made from `docs/`.** `scripts/manuals` makes
+  `lib/Ekorn/Pipeline/Manual/Reference.pod` and `HowTo.pod` from
+  `docs/REFERENCE.md` and `docs/HOWTO.md`, so MetaCPAN lists the
+  reference and the how-to, as DBIx-Squirrel does (change record
+  2026-0005). Edit the Markdown and run the script, as with the README,
+  never the POD; `xt/manuals.t` fails if they differ. A change to the
+  script that would suit DBIx-Squirrel's copy goes to it as a message,
+  so the two stay alike.
 - **No dependency on the DBI,** or on anything that isn't needed to run
   values through stages. The runtime dependencies are in `cpanfile`;
   adding one is a decision for Iain.

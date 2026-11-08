@@ -1,5 +1,7 @@
 # Ekorn::Pipeline reference
 
+<!-- stopwords: 21st -->
+
 Stages for any function: let the caller finish the job.
 
 A function that hands out values takes a list of *stages* from its

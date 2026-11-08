@@ -1,0 +1,354 @@
+#!/usr/bin/env perl
+use v5.36;
+
+# Makes the POD manuals MetaCPAN lists from the Markdown in docs/, which
+# stays the source (change record 2026-0005):
+#
+#   scripts/manuals            # writes lib/Ekorn/Pipeline/Manual/*.pod
+#   scripts/manuals --check    # exits 1 if they're not what docs/ makes
+#
+# It converts the Markdown the docs use: headings, the first as NAME;
+# code blocks, as verbatim paragraphs; inline code, bold, italics and
+# links; lists; quotes, as indented paragraphs; tables, each as a list
+# of its rows; and a comment <!-- stopwords: ... -->, as the words
+# POD's spelling test passes over.
+# Anything else it refuses, so a new construct in the Markdown is
+# noticed, not mangled.
+# It's a modulino: xt/manuals.t loads it to test the conversion.
+
+package Manuals;
+
+# Each manual: the Markdown it's made from, its module, and its file.
+our %MANUAL = (
+    'REFERENCE.md' => [
+        'Ekorn::Pipeline::Manual::Reference',
+        'lib/Ekorn/Pipeline/Manual/Reference.pod',
+    ],
+    'HOWTO.md' =>
+        ['Ekorn::Pipeline::Manual::HowTo', 'lib/Ekorn/Pipeline/Manual/HowTo.pod'],
+);
+
+# Other files the docs link to, which POD can't, and where each is
+# instead.
+our %ELSEWHERE = (
+    '../Changes' => 'https://metacpan.org/dist/Ekorn-Pipeline/changes',
+);
+
+# What ends each manual, as the main module's POD ends.
+our $FOOTER = <<'POD';
+=head1 SEE ALSO
+
+L<Ekorn::Pipeline>, L<Ekorn::Pipeline::Gather>, L<Ekorn::Pipeline::Stop>,
+L<Ekorn::Pipeline::Pipes>
+
+=head1 AUTHOR
+
+Iain Campbell E<lt>cpanic@cpan.orgE<gt>
+
+=head1 LICENSE
+
+Copyright (c) 2024-2026 by Iain Campbell.
+
+This is free software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system itself.
+
+=cut
+POD
+
+# Return a heading's anchor, as GitHub makes it: its text, without
+# formatting, in lower case, keeping letters, digits, spaces, hyphens
+# and underscores, each space a hyphen.
+sub anchor ($heading) {
+    my $text = lc plain($heading);
+    $text =~ s( [^\w\-\ ] )()xg;
+    return $text =~ tr( )(-)r;
+}
+
+
+# Return Markdown's text without its inline formatting.
+sub plain ($text) {
+    $text =~ s( \[ ([^\]]*) \] \( [^\)]* \) )($1)xg;
+    $text =~ s( `+ ([^`]*?) `+ )($1)xg;
+    $text =~ s( \*\* ([^*]+) \*\* )($1)xg;
+    $text =~ s( \* (?=\S) ([^*]+?) (?<=\S) \* )($1)xg;
+    return $text;
+}
+
+
+# Return each heading's section name, the text a POD link names it by,
+# keyed by its anchor. A second heading with the same anchor has -1
+# added, as GitHub adds it; a link to it can't be made in POD, which
+# names a section by its text, so it's refused.
+sub sections ($markdown) {
+    my %section;
+    my $fenced = 0;
+    for my $line (split m( \n )x, $markdown) {
+        $fenced = !$fenced if $line =~ m( \A ``` )x;
+        next               if $fenced;
+        my($heading) = $line =~ m( \A \#{2,4} \  (.+) \z )x or next;
+        my($anchor, $key, $n) = (anchor($heading), anchor($heading), 0);
+        $key = "$anchor-" . ++$n while exists $section{$key};
+        $section{$key} = $n ? '' : plain($heading);
+    }
+    return \%section;
+}
+
+
+# Return inline code as POD's C<>, with more brackets if it holds < or >.
+sub code ($text) {
+    return $text =~ m( [<>] )x ? "C<< $text >>" : "C<$text>";
+}
+
+
+# Return text, without links, as POD: inline code as C<>, bold as B<>,
+# italics as I<>, and < and > escaped.
+sub formatted ($text) {
+    my @parts = split m( (`[^`]*`) )x, $text;
+    for my $part (@parts) {
+        if ($part =~ m( \A ` (.*) ` \z )xs) {
+            $part = code($1);
+            next;
+        }
+        die "A code span isn't closed: $part\n" if $part =~ m( ` )x;
+        $part =~ s( ([<>]) )($1 eq '<' ? 'E<lt>' : 'E<gt>')xge;
+        $part =~ s( \*\* ([^*]+) \*\* )(B<$1>)xg;
+        $part =~ s( \* (?=\S) ([^*]+?) (?<=\S) \* )(I<$1>)xg;
+    }
+    return join '', @parts;
+}
+
+
+# Return a Markdown link as POD's L<>, given its text, its target, the
+# sections of each manual, and the Markdown file it's in.
+sub link_to ($text, $target, $sections, $file) {
+    my $shown = formatted($text);
+    $shown =~ s( \| )(E<verbar>)xg;
+    $shown =~ s( / )(E<sol>)xg;
+    return "L<$shown|$target>" if $target =~ m( \A https?:// )x;
+    return "L<$shown|$ELSEWHERE{$target}>" if $ELSEWHERE{$target};
+    my($doc, $anchor) = $target =~ m( \A ([^\#]*) (?: \# (.*) )? \z )x;
+    $doc = $file if $doc eq '';
+    die "A link to $target, which isn't a manual\n" unless $MANUAL{$doc};
+    my $module = $doc eq $file ? '' : $MANUAL{$doc}[0];
+    return "L<$shown|$module>" unless defined $anchor;
+    my $section = $sections->{$doc}{$anchor}
+        // die "A link to $target, which has no such heading\n";
+    die "A link to $target, a heading POD can't tell from an earlier one\n"
+        if $section eq '';
+    $section =~ s( \| )(E<verbar>)xg;
+    return qq{L<$shown|$module/"$section">};
+}
+
+
+# Return Markdown's inline text as POD.
+sub inline ($text, $sections, $file) {
+    my @links;
+    $text =~ s{ \[ ((?: [^\[\]`] | `[^`]*` )+) \] \( ([^()\s]+) \) }{
+        push @links, link_to($1, $2, $sections, $file);
+        "\0" . $#links . "\0";
+    }xge;
+    $text = formatted($text);
+    $text =~ s( \0 (\d+) \0 )($links[$1])xg;
+    $text =~ s( ^ = )(Z<>=)xmg;                # a line starting = would be a command
+    return $text;
+}
+
+
+# Split a table's row into its cells, leaving a | in inline code alone.
+sub cells ($row) {
+    $row =~ s( \A \s* \| | \| \s* \z )()xg;
+    my @cells = ('');
+    for my $part (split m( (`[^`]*`|\|) )x, $row) {
+        if ($part eq '|') { push @cells, '' }
+        else              { $cells[-1] .= $part }
+    }
+    s( \A \s+ | \s+ \z )()xg for @cells;
+    return @cells;
+}
+
+
+# Return a table as a POD list: an item for each row, named by its first
+# cell; the second cell its text, or, with more, each cell after its
+# column's name, in bold.
+sub table ($rows, $sections, $file) {
+    my @header = cells(shift @$rows);
+    shift @$rows;    # the line under the header
+    my @pod = ("=over 4\n");
+    for my $row (@$rows) {
+        my @cell = cells($row);
+        die "A table row with " . @cell . " cells, not " . @header . ": $row\n"
+            unless @cell == @header;
+        push @pod, '=item ' . inline($cell[0], $sections, $file) . "\n";
+        for my $n (1 .. $#cell) {
+            next if $cell[$n] eq '';
+            my $text = @cell == 2 ? $cell[$n] : "**$header[$n]:** $cell[$n]";
+            push @pod, inline($text, $sections, $file) . "\n";
+        }
+    }
+    push @pod, "=back\n";
+    return @pod;
+}
+
+
+# Return a list as a POD list, given its items' lines.
+sub list ($items, $sections, $file) {
+    my $numbered = $items->[0][0] =~ m( \A \d )x;
+    my @pod      = ("=over 4\n");
+    for my $item (@$items) {
+        my($marker, $text) = @$item;
+        push @pod, '=item ' . ($numbered ? $marker : '*') . "\n";
+        push @pod, inline($text, $sections, $file) . "\n";
+    }
+    push @pod, "=back\n";
+    return @pod;
+}
+
+
+# Return a quote as POD's indented paragraphs, given its lines. It holds
+# paragraphs only: anything else in it is refused.
+sub quote ($lines, $sections, $file) {
+    my @paragraphs = ([]);
+    for my $line (@$lines) {
+        my($text) = $line =~ m( \A > \ ? (.*) \z )x;
+        if    ($text eq '') { push @paragraphs, [] if @{ $paragraphs[-1] } }
+        elsif ($text =~ m( \A (?: ``` | \# | \| | - \  | \d+\. \  | > | \s ) )x) {
+            die "Markdown this doesn't convert in a quote: $line\n";
+        }
+        else { push @{ $paragraphs[-1] }, $text }
+    }
+    return "=over 4\n",
+        (
+        map  { inline(join("\n", @$_), $sections, $file) . "\n" }
+        grep { @$_ } @paragraphs
+        ),
+        "=back\n";
+}
+
+
+# Return the POD made from a manual's Markdown, given each manual's
+# sections and the Markdown file's name.
+sub convert ($markdown, $sections, $file) {
+    my($module) = @{ $MANUAL{$file} // die "$file isn't a manual\n" };
+    my @lines   = split m( \n )x, $markdown;
+    my($title, @stopwords, @pod);
+    while (@lines) {
+        my $line = shift @lines;
+        next if $line =~ m( \A \s* \z )x;
+        if ($line =~ m( \A <!-- \s* stopwords: \s* (.*?) \s* --> \z )x) {
+            push @stopwords, split m( \s+ )x, $1;
+            next;
+        }
+        next if $line =~ m( \A <!-- .* --> \z )x;
+
+        # One branch for each kind of block the docs use.
+        if ($line =~ m( \A ``` \w* \z )x) {    ## no critic (ControlStructures::ProhibitCascadingIfElse)
+            my @code;
+            while (1) {
+                die "A code block isn't closed\n" unless @lines;
+                my $next = shift @lines;
+                last if $next eq '```';
+                push @code, $next eq '' ? '' : "    $next";
+            }
+            push @pod, join("\n", @code) . "\n";
+        }
+        elsif ($line =~ m( \A \# \  (.+) \z )x) {
+            die "A second title: $1\n" if defined $title;
+            $title = plain($1);
+        }
+        elsif ($line =~ m( \A (\#{2,4}) \  (.+) \z )x) {
+            push @pod,
+                '=head' . (length($1) - 1) . ' ' . inline($2, $sections, $file) . "\n";
+        }
+        elsif ($line =~ m( \A \| )x) {
+            my @rows = ($line);
+            push @rows, shift @lines while @lines && $lines[0] =~ m( \A \| )x;
+            push @pod,  table(\@rows, $sections, $file);
+        }
+        elsif ($line =~ m( \A (-|\d+\.) \  (.*) \z )x) {
+            my @items = ([$1, $2]);
+            while (@lines) {
+                if (my($more) = $lines[0] =~ m( \A \ {2,} (\S.*) \z )x) {
+                    die "A code block in a list\n" if $more =~ m( \A ``` )x;
+                    die "A list in a list: $lines[0]\n"
+                        if $more =~ m( \A (?: - | \d+\. ) \  )x;
+                    $items[-1][1] .= "\n$more";
+                    shift @lines;
+                }
+                elsif ($lines[0] =~ m( \A (-|\d+\.) \  (.*) \z )x) {
+                    push @items, [$1, $2];
+                    shift @lines;
+                }
+                elsif ($lines[0] eq ''
+                    && @lines > 1
+                    && $lines[1] =~ m( \A (?: - | \d+\. ) \  )x)
+                {
+                    shift @lines;
+                }
+                else { last }
+            }
+            push @pod, list(\@items, $sections, $file);
+        }
+        elsif ($line =~ m( \A > (?: \  | \z ) )x) {
+            my @quote = ($line);
+            push @quote, shift @lines while @lines && $lines[0] =~ m( \A > )x;
+            push @pod,   quote(\@quote, $sections, $file);
+        }
+        elsif ($line =~ m( \A (?: \s | > | --- | \*\*\* | \#{5} ) )x) {
+            die "Markdown this doesn't convert: $line\n";
+        }
+        else {
+            my @paragraph = ($line);
+            push @paragraph, shift @lines
+                while @lines
+                && $lines[0]
+                !~ m( \A (?: \s* \z | ``` | \# | \| | - \  | \d+\. \  | <!-- | > ) )x;
+            push @pod, inline(join("\n", @paragraph), $sections, $file) . "\n";
+        }
+    }
+    die "$file has no title\n" unless defined $title;
+    my $source = "docs/$file";
+    return join "\n", "=encoding utf8\n",
+        (@stopwords ? "=for stopwords @stopwords\n" : ()),
+        "=for comment Made from $source by scripts/manuals. Edit $source and run\nthe script, rather than editing this.\n",
+        "=head1 NAME\n", "$module - $title\n",
+        "=head1 DESCRIPTION\n", @pod, $FOOTER;
+}
+
+
+# Make each manual, or with --check, say whether each is as its Markdown
+# makes it. Run from the repository's top.
+sub main (@args) {
+    my $check = @args && $args[0] eq '--check';
+    die "usage: scripts/manuals [--check]\n" if @args > ($check ? 1 : 0);
+    my %markdown = map { ($_ => slurp("docs/$_")) } keys %MANUAL;
+    my %sections = map { ($_ => sections($markdown{$_})) } keys %markdown;
+    my $stale    = 0;
+    for my $file (sort keys %MANUAL) {
+        my $path = $MANUAL{$file}[1];
+        my $pod  = convert($markdown{$file}, \%sections, $file);
+        my $old  = -e $path ? slurp($path) : '';
+        next if $pod eq $old;
+        if ($check) {
+            say "$path isn't what docs/$file makes: run scripts/manuals";
+            $stale = 1;
+            next;
+        }
+        open my $out, '>:encoding(UTF-8)', $path or die "Can't write $path: $!\n";
+        print { $out } $pod;
+        close $out or die "Can't write $path: $!\n";
+        say "wrote $path";
+    }
+    return $stale;
+}
+
+
+sub slurp ($path) {
+    open my $in, '<:encoding(UTF-8)', $path or die "Can't read $path: $!\n";
+    my $text = do { local $/ = undef; <$in> };
+    close $in;
+    return $text;
+}
+
+exit main(@ARGV) unless caller;
+
+1;

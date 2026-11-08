@@ -2,6 +2,13 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    The reference and the how-to on MetaCPAN, as POD manuals.
+
+    - The reference and the how-to ship as POD,
+      Ekorn::Pipeline::Manual::Reference and
+      Ekorn::Pipeline::Manual::HowTo, made from their Markdown, so
+      MetaCPAN and perldoc have them with the modules.
+
 v0.1.1 2026-11-08
 
     The pipeline from DBIx-Squirrel v2.0.2, on its own, so that any

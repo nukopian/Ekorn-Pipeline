@@ -360,6 +360,10 @@ L<Ekorn::Pipeline::Gather>, L<Ekorn::Pipeline::Stop>,
 L<Ekorn::Pipeline::Pipes>, and L<DBIx::Squirrel>, where the pipeline
 began
 
+L<Ekorn::Pipeline::Manual::HowTo> shows how to do common tasks, one
+recipe at a time, and L<Ekorn::Pipeline::Manual::Reference> describes
+every module, function and method in full.
+
 =head1 AUTHOR
 
 Iain Campbell E<lt>cpanic@cpan.orgE<gt>

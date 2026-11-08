@@ -137,6 +137,23 @@ If it prints `branch=master`, put `main` back:
 sed -i '' '1s/branch=master/branch=main/' ~/Git/github.com/nukopian/Ekorn-Pipeline/README.md
 ```
 
+The manuals, `lib/Ekorn/Pipeline/Manual/Reference.pod` and
+`HowTo.pod`, are generated too, by `scripts/manuals`, from
+`docs/REFERENCE.md` and `docs/HOWTO.md`, so that MetaCPAN lists the
+reference and the how-to with the modules (change record 2026-0005).
+After a change to either, generate them again, and commit them with
+it; `xt/manuals.t`, which CI runs, fails if they're not what the
+Markdown makes. The script converts only the Markdown the docs use,
+and refuses anything else, naming it. A word Minilla's spelling test
+flags in a manual goes in its Markdown, as
+`<!-- stopwords: word another -->`.
+
+```
+cd ~/Git/github.com/nukopian/Ekorn-Pipeline
+perlbrew exec --with perl-5.36.3@ekorn-pipeline scripts/manuals
+git status --short
+```
+
 Commits are signed, and use conventional prefixes (`feat:`, `fix:`,
 `docs:`, `test:`, `ci:`, `refactor:`, `style:`, `chore:`), saying why as
 well as what. To check the signatures of the last ten (`G` is good, `N`
