@@ -1,6 +1,6 @@
 # 2026-0005. The reference and the how-to on MetaCPAN
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.2
 
 **Decisions:** D1 settled: Markdown stays the source; POD made from it. D2 settled: Ekorn::Pipeline::Manual::Reference and ::HowTo.
 

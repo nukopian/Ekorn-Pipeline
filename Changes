@@ -2,7 +2,12 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.1.2 2026-11-08
+
     The reference and the how-to on MetaCPAN, as POD manuals.
+
+    It adds documentation only: the code is as in v0.1.1, and it ships
+    no roadmap items.
 
     - The reference and the how-to ship as POD,
       Ekorn::Pipeline::Manual::Reference and

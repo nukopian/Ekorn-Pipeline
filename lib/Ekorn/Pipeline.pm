@@ -13,7 +13,7 @@ use namespace::clean;
 
 use overload '&{}' => sub ($self, @) { $self->{call} }, fallback => 1;
 
-our $VERSION = 'v0.1.1';
+our $VERSION = 'v0.1.2';
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;

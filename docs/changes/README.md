@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [The reference and the how-to on MetaCPAN](2026-0005-manuals-on-metacpan.md),
-  a TODO task from DBIx-Squirrel: shipped, unreleased.
+  a TODO task from DBIx-Squirrel: shipped in v0.1.2.
 - [A pipeline in scalar context](2026-0003-pipeline-in-scalar-context.md),
   roadmap 2026-0003: shipped in v0.1.1.
 - [An iterator after a stage dies](2026-0002-iterator-after-a-stage-dies.md),
