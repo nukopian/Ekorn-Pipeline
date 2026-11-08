@@ -255,9 +255,10 @@ of the caller's code that ran it, with its message below:
     Pipeline stage #2 failed at app.pl line 12:
         No name for user 7 at app.pl line 9.
 
-An exception object is passed on as it is. A mistake in how a pipeline
-or a canned stage is made, such as a stage that isn't a code reference
-or `take(-1)`, is reported at the caller's line too.
+An exception object is passed on as it is. Either way the run ends,
+pushed or pulled: an iterator returns nothing more. A mistake in how a
+pipeline or a canned stage is made, such as a stage that isn't a code
+reference or `take(-1)`, is reported at the caller's line too.
 
 ## Canned stages
 

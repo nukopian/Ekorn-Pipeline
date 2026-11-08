@@ -11,6 +11,10 @@ Unreleased
       returning nothing (a filter), one value (a map) or several (a
       flatMap). A pipeline is called with values, or pulls them from a
       source with an iterator, calling it only as results are wanted.
+    - Once a stage dies, an iterator has ended, as a pushed run has:
+      every call after returns an empty list, and neither the source
+      nor any end function is called again. In v0.1.0's trial it
+      carried on, without the value that died. (roadmap 2026-0002)
     - Ekorn::Pipeline::Stop ends a pipeline early, passing on any
       values it carries, after which the source isn't called again. A
       stop not made by throw, and so not an array, carries nothing.

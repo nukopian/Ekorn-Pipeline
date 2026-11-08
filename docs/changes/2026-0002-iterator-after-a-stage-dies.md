@@ -1,6 +1,6 @@
 # 2026-0002. An iterator after a stage dies
 
-**Status:** open
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: B, the iterator ends. None open.
 
@@ -65,3 +65,30 @@ nothing, as the whole call is one run.
   stage's error and carries on, which would stop getting rows. The
   docs to change are the POD of `iterator`, the reference's iterator
   section and its "When a stage dies", and a line in Changes.
+
+## The plan
+
+As decided in D1, on 2026-11-07: when a stage or an end function
+dies, the iterator ends. In `_iterator`'s catch, before the error is
+thrown on, mark the run done, drop the values waiting, and pass over
+every end function, so later calls return an empty list. Test it with a
+message and with an exception object, with values waiting from a
+flatMap and a `gather` stage with an end, counting the source's calls
+and the end's. Say so in the POD of `iterator`, the reference's
+iterator section and its "When a stage dies", the how-to's "Know when
+an iterator is done", the README's Errors, and `Changes`. Tell
+DBIx-Squirrel, whose users' loops over rows that catch a stage's error
+and carry on will stop getting rows.
+
+**Done when:** an iterator returns an empty list on every call after a
+stage dies, without calling its source or any end; the tests show it,
+and fail on the old code; and the docs say so.
+
+## What happened
+
+- **Outcome:** done, as planned. The change is one line in the catch,
+  `($done, $next_end, @todo) = (1, scalar @stages);`, with its comment.
+  The new subtest in `t/02-pipeline.t` has 17 checks; 7 of them failed
+  on the old code, and all pass on the new. All 340 assertions pass,
+  under yath and prove, and coverage stays above its floors.
+- **Changes from the plan:** none.

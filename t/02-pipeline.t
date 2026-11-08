@@ -169,6 +169,39 @@ subtest 'a stage that dies says which it was' => sub {
     ref_is dies { $dies->(1) }, $obj, 'an exception object is passed on';
 };
 
+subtest 'a stage that dies ends the iterator' => sub {
+    my @tests = (
+        ['with a message', sub { die "boom\n" }],                 ## no critic (ErrorHandling::RequireCarping)
+        ['with an object', sub { die bless {}, 'My::Error' }],    ## no critic (ErrorHandling::RequireCarping)
+    );
+    for my $test (@tests) {
+        my($name, $die) = @$test;
+        my($calls, $ends, @queue) = (0, 0, 1 .. 5);
+        my $p = $class->new(
+            sub ($n) { $n == 2 ? $die->() : ($n, $n * 10) },      # 1 gives 1 and 10; 2 dies
+            gather { (sub { $_ }, sub { $ends++; 'end' }) },
+        );
+        my $next = $p->iterator(sub { $calls++; @queue ? shift @queue : () });
+        is [$next->()], [1],  "$name: a value before";
+        is [$next->()], [10], "$name: its sibling";
+        ok dies { $next->() }, "$name: the stage dies";
+        is [$next->()], [], "$name: then the iterator has ended";
+        is [$next->()], [], "$name: and stays ended";
+        is $calls,      2,  "$name: the source isn't called again";
+        is $ends,       0,  "$name: and no end is called";
+    }
+
+    my $p = $class->new(
+        sub ($n) { $n == 1 ? ($n, 'x')  : $n },
+        sub { $_ eq 'x'    ? die("x\n") : $_ },
+    );    ## no critic (ErrorHandling::RequireCarping)
+    my @queue = 1 .. 3;
+    my $next  = $p->iterator(sub { @queue ? shift @queue : () });
+    is [$next->()], [1], 'a flatMap: the first value';
+    ok dies { $next->() }, 'its sibling dies';
+    is [$next->()], [], 'and nothing waiting goes on';
+};
+
 subtest 'iterator over a filehandle' => sub {
     my $text = "From: a\nTo: b\n\nHello,\nthere\n";
     open my $fh, '<', \$text or die "Can't open a string: $!";

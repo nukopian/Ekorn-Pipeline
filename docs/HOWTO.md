@@ -268,6 +268,13 @@ Once an iterator has handed out its last result, it returns an empty
 list on every call after that, and doesn't call its source again. Make
 a new iterator to start again; each is a run of its own.
 
+The same goes once a stage has died: the call that asked for the
+result dies, and the iterator has ended, so catching the error and
+reading on gets nothing more. To skip a bad value, catch the error
+inside the stage, as
+[Catch errors in a stage, but not a stop](#catch-errors-in-a-stage-but-not-a-stop)
+does.
+
 ## Stopping early
 
 ### Take the first few

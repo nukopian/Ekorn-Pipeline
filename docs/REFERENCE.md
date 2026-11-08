@@ -166,6 +166,13 @@ croaks "Expected a code reference" if `$source` isn't one.
   the pipeline, the source isn't called again.
 - The end functions of `gather` stages are called once the source
   runs out, or after a stop, before the closure returns an empty list.
+- If a stage or an end function dies, the call dies with it, and the
+  iterator has ended: every call after returns an empty list, nothing
+  waiting goes on, no end function is called, and the source isn't
+  called again, as when a pushed run dies. So an end such as
+  `collect`'s never reports on a run that lost values. To skip a bad
+  value and carry on, catch the error inside the stage, as the how-to's
+  "Catch errors in a stage, but not a stop" does.
 
 Each iterator is a run of its own, so two iterators from one pipeline
 can be read in turn, and each has its own `gather` stages:
@@ -743,6 +750,10 @@ Pipeline stage #2 failed at app.pl line 12:
 An exception object, such as a stop or an object of a class of your
 own, is thrown on as it is, so code that catches it can tell it by its
 class.
+
+Either way, the run has ended. A pushed run returns nothing, and an
+iterator returns an empty list on every call after, without calling
+its source or any end function again, as [iterator](#iterator) says.
 
 A mistake in making a pipeline, such as a stage that isn't a code
 reference, or in making a canned stage, such as `take(-1)`, is

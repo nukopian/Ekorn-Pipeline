@@ -135,6 +135,9 @@ sub _iterator ($stages, $source) {
                     @todo     = map { [$n + 1, $_, $from_end] } reverse @values;
                     next;
                 }
+                # A stage that dies ends the run: nothing waiting goes on,
+                # no end is called, and the source isn't called again.
+                ($done, $next_end, @todo) = (1, scalar @stages);
                 croak $e if is_ref($e);
                 my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
                 my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
@@ -275,6 +278,12 @@ isn't mistaken as the end:
 The end functions of stages made with L<Ekorn::Pipeline::Gather> are
 called once the source runs out, or after a stop, before the closure
 returns an empty list.
+
+If a stage or an end function dies, the call dies with it, and the
+iterator has ended: every call after returns an empty list, nothing
+waiting goes on through the stages, no end function is called, and the
+source isn't called again, as when a pushed run dies. To skip a bad
+value and carry on, catch the error inside the stage.
 
 =head1 FUNCTIONS
 
