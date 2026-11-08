@@ -458,8 +458,8 @@ found.
   `test: ...` or `ci: ...`. Say why as well as what.
 - Commits are signed. Work is committed and pushed to `develop`. `main`
   is the latest release, and moves only at a release, by a fast-forward
-  to `develop`, with a signed tag on it. Until the first release, `main`
-  stays at the first commit.
+  to `develop`, with a signed tag on it. The first was
+  v0.1.1, on 2026-11-08.
 - Add what changed for users to `Changes`, under Unreleased, in the same
   commit. Each entry opens with a precis, a short paragraph saying what
   the release brings, naming by id the roadmap items it ships, kept

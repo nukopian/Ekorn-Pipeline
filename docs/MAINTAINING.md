@@ -22,7 +22,7 @@ has the libraries.
   on every push to it.
 - `main` is the latest release, and nothing else. It moves only when a
   release is made, by a fast-forward to `develop`, and the release's tag
-  is on it. Until the first release, it stays at the first commit.
+  is on it. The first was v0.1.1, on 2026-11-08.
   Visitors to GitHub see `main`, so its README describes what CPAN
   installs.
 - There are no feature branches, for now: changes are made one at a
