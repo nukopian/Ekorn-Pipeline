@@ -14,7 +14,8 @@ use Ekorn::Pipeline::Stop          ();
 # Imported functions are cleaned out of each package, so they can't be
 # called as methods.
 my %imported = (
-    'Ekorn::Pipeline'                => [qw(croak  croakf is_coderef is_ref)],
+    'Ekorn::Pipeline' =>
+        [qw(croak croakf is_arrayref is_coderef is_ref refaddr)],
     'Ekorn::Pipeline::Gather'        => [qw(croakf is_coderef)],
     'Ekorn::Pipeline::Stages::Batch' => [qw(croakf gather is_coderef)],
     'Ekorn::Pipeline::Stages::Flow'  => [qw(croakf gather is_coderef)],

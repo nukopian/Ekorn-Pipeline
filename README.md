@@ -220,9 +220,9 @@ That's how `batch`, `collect`, `take` and `drop` are made.
 ## Stages are values
 
 Stages are code references or pipelines, so they can be kept in
-variables, built by functions and passed around. A function that returns a stage is a word
-in a vocabulary, and the vocabulary grows in the caller's code, not
-the author's:
+variables, built by functions and passed around. A function that
+returns a stage is a word in a vocabulary, and the vocabulary grows in
+the caller's code, not the author's:
 
     sub only_active ()    { sub { $_->{active} ? $_ : () } }
     sub value_of ($name)  { sub { $_->{$name} } }
@@ -254,6 +254,11 @@ a filter a database can apply with an index.
 Then a stage that dies is reported at the caller's line, where the
 stage was written, not at the line in your module that ran the
 pipeline.
+- **Find the stages with `is_stage`.** If the function takes a
+list of values of its own before the stages, take the stages off the
+end with `is_stage`, from Ekorn::Pipeline. It's the test `new` uses,
+so your callers can pass a pipeline as a stage, too. The values
+mustn't be code references or pipelines themselves.
 
 A class of your own can have `pipe` and `tap` methods, from
 [Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages. `pipe`

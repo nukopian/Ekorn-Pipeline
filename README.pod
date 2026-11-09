@@ -245,9 +245,9 @@ That's how C<batch>, C<collect>, C<take> and C<drop> are made.
 =head2 Stages are values
 
 Stages are code references or pipelines, so they can be kept in
-variables, built by functions and passed around. A function that returns a stage is a word
-in a vocabulary, and the vocabulary grows in the caller's code, not
-the author's:
+variables, built by functions and passed around. A function that
+returns a stage is a word in a vocabulary, and the vocabulary grows in
+the caller's code, not the author's:
 
     sub only_active ()    { sub { $_->{active} ? $_ : () } }
     sub value_of ($name)  { sub { $_->{$name} } }
@@ -284,6 +284,12 @@ C<@Ekorn::Pipeline::Errors::INTERNAL> in your module's C<@CARP_NOT>.
 Then a stage that dies is reported at the caller's line, where the
 stage was written, not at the line in your module that ran the
 pipeline.
+
+=item * B<Find the stages with C<is_stage>.> If the function takes a
+list of values of its own before the stages, take the stages off the
+end with C<is_stage>, from Ekorn::Pipeline. It's the test C<new> uses,
+so your callers can pass a pipeline as a stage, too. The values
+mustn't be code references or pipelines themselves.
 
 =back
 

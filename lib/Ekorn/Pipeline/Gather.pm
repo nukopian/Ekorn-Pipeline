@@ -51,8 +51,8 @@ Ekorn::Pipeline::Gather - a stage made afresh for each run, told when the values
 
 =head1 DESCRIPTION
 
-A stage is a code reference, called with each value in turn. It can't
-tell when the last value has gone by. Whatever it keeps in a closure
+A plain stage, a code reference, is called with each value in turn. It
+can't tell when the last value has gone by. Whatever it keeps in a closure
 stays there from one run of its pipeline to the next. A stage that
 gathers values, to give them in batches or all together, needs both:
 fresh state on each run, and a call at the end.
@@ -64,7 +64,8 @@ returns:
 
 =over
 
-=item * the stage, called with each value as any stage is;
+=item * the stage, a code reference, called with each value as any
+stage is (a pipeline isn't accepted here);
 
 =item * optionally, a function called with no arguments, and C<$_>
 undefined, once the values have run out.

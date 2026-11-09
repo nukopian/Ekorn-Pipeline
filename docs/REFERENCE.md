@@ -545,7 +545,8 @@ Returns a stage that a pipeline makes afresh at the start of each run,
 by calling the block. Whatever the block declares is fresh on each
 run. The block returns:
 
-- the stage, called with each value, like any stage;
+- the stage, a code reference, called with each value, like any stage
+  (a pipeline isn't accepted here);
 - optionally, an end function, called once the values run out.
 
 `gather` croaks "Expected a code reference" if it's given something
@@ -998,9 +999,11 @@ say join ' ', Ekorn::Pipeline->new(My::Stages::Numbers::sum_up_to(10))->(4, 3, 2
   the stages' positions.
 - **Report errors at your callers' lines,** by putting
   `@Ekorn::Pipeline::Errors::INTERNAL` in the module's `@CARP_NOT`.
-- **Find the stages with `is_stage`,** if the arguments before them
-  can be anything, so that callers can pass a pipeline as a stage, as
-  they can to `new`.
+- **Find the stages with `is_stage`,** if the function takes a list
+  of values of its own before them, so that callers can pass a
+  pipeline as a stage, as they can to `new`. The values mustn't be
+  code references or pipelines themselves, or the last of them would
+  be taken for stages.
 
 ```perl
 use Ekorn::Pipeline qw(is_stage);

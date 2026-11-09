@@ -668,7 +668,8 @@ run. The block returns:
 
 =item *
 
-the stage, called with each value, like any stage;
+the stage, a code reference, called with each value, like any stage
+(a pipeline isn't accepted here);
 
 =item *
 
@@ -1245,9 +1246,11 @@ C<@Ekorn::Pipeline::Errors::INTERNAL> in the module's C<@CARP_NOT>.
 
 =item *
 
-**Find the stages with C<is_stage>,** if the arguments before them
-can be anything, so that callers can pass a pipeline as a stage, as
-they can to C<new>.
+**Find the stages with C<is_stage>,** if the function takes a list
+of values of its own before them, so that callers can pass a
+pipeline as a stage, as they can to C<new>. The values mustn't be
+code references or pipelines themselves, or the last of them would
+be taken for stages.
 
 =back
 

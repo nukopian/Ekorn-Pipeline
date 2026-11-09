@@ -43,7 +43,7 @@ Small fixes don't need one.
 
 **Decisions:** D1 settled: the answer, in a few words. D2 open: the question, in a few words. | None.
 
-**Origin:** roadmap, added 2026-11-07 | a TODO task from DBIx-Squirrel's session (DBIx-Squirrel <commit>) | a message from DBIx-Squirrel's session, 2026-11-08 (DBIx-Squirrel-2 <commit>)
+**Origin:** roadmap, added 2026-11-07 | a TODO task from DBIx-Squirrel's session (DBIx-Squirrel <commit>) | a message from DBIx-Squirrel's session, 2026-11-08 (DBIx-Squirrel <commit>)
 
 **Depends on:** 2026-0003, if anything
 

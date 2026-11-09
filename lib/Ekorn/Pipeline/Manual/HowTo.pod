@@ -670,6 +670,27 @@ caller's stages on, after its own:
 
     say join ', ', hits(sub { $_->{artist} });    # Abba, Blur, Cream
 
+=head2 Take stages after values of any kind
+
+A function that takes a list of values of its own can't tell where its
+caller's stages start by counting. Take the stages off the end with
+C<is_stage>, from Ekorn::Pipeline. It's the test C<new> uses, so a
+caller can pass a pipeline as a stage too. The values themselves
+mustn't be code references or pipelines, or the last of them would be
+taken for stages:
+
+    use Ekorn::Pipeline qw(is_stage);
+
+    # The values given, through the stages after them.
+    sub through (@args) {
+        my @stages;
+        unshift @stages, pop @args while @args && is_stage($args[-1]);
+        return Ekorn::Pipeline->new(@stages)->(@args);
+    }
+
+    my $short = Ekorn::Pipeline->new(sub { length $_ < 10 ? $_ : () });
+    say join ', ', through('Parklife', 'Country House', 'Tender', $short, take(1));    # Parklife
+
 =head2 Report your callers' mistakes at their own lines
 
 A stage that dies is reported at the line that ran its pipeline. For a
