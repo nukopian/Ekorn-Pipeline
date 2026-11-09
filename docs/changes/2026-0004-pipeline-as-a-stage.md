@@ -218,3 +218,10 @@ in DBIx-Squirrel's `TODO.md`.
   on DBIx-Squirrel's sign-off, a task in its `TODO.md`, to try
   `develop` with its own use of `is_stage` first; and DBIx-Squirrel's
   move to v0.1.3 after it. Both are in `TODO.md`.
+- **Found in a full check, 2026-11-09:** exporting `is_stage` gave
+  Ekorn::Pipeline an `import` method, from Exporter, which a subclass
+  inherits: `use My::Subclass qw(name)` now croaks unless the subclass
+  exports `name`, where v0.1.2 ignored the list. It's in `Changes`, and
+  DBIx-Squirrel's task 1 notes it for `DBIx::Squirrel::Pipeline`. A
+  `gather` block's stage must still be a code reference; the docs now
+  say a pipeline isn't accepted there.
