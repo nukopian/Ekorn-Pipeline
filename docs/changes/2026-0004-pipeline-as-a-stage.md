@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 open: how messages name a nested stage. D4 open: v0.1.3 or v0.2.0.
+**Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 settled: by its place in each pipeline, "#2.3"; the refusal unchanged. D4 open: v0.1.3 or v0.2.0.
 
 **Origin:** roadmap, added 2026-11-07, as an idea left over from
 2026-0001, whose record has the prototype; opened on 2026-11-09, when
@@ -85,12 +85,22 @@ bb218508ae7a747f8e00906c04a05b063ad8bb8d.
   in `@EXPORT_OK`. Yes, decided on 2026-11-09: Ekorn::Pipeline exports
   `is_stage` on request, and `new` uses it too, so what it accepts and
   what others take for a stage are one definition.
-- [ ] **D3.** How do messages name a stage inside a nested pipeline?
+- [x] **D3.** How do messages name a stage inside a nested pipeline?
   The prototype names it by its place in each pipeline, "#2.3", so the
   two DIAGNOSTICS entries with `#%d` become `#%s`, though a flat
   pipeline's messages read as now. And should the refusal of a bad
   stage say "Expected stage #%d to be a code reference or a pipeline"?
-  Recommended: "#2.3", as prototyped; the refusal is open.
+  Decided on 2026-11-09: "#2.3", as prototyped, and the refusal left as
+  it is. Each pipeline keeps a name for each of its stages beside them:
+  a stage given directly is named by its place, and the stages of a
+  pipeline given as a stage take its place before their own names, so
+  three deep is "#1.2.3", and a flat pipeline's names, and messages,
+  are as now. The runner prints the name where it printed the place.
+  `stages()` returns the stages without their names, so
+  `new($p->stages, ...)` names them flat, as now; only `new($p, ...)`
+  gives the nested names, though the two run the same (D1). Leaving the
+  refusal keeps the messages a flat pipeline can give unchanged, which
+  D4 turns on.
 - [ ] **D4.** v0.1.3 or v0.2.0? A change to the messages makes v0.2.0,
   under CLAUDE.md's rule, which means a task for DBIx-Squirrel to test
   it and move its range. If a flat pipeline's messages are unchanged,
