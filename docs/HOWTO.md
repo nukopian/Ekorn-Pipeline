@@ -829,9 +829,10 @@ say join '|', @titles;    # Parklife|Tender
 say join '|', tracks(value_of('title'), $clean, take(3));    # Dancing Queen|Knowing Me, Knowing You|Girls & Boys
 ```
 
-A function that takes only code references, as one written before
-pipelines could be given as stages may, can be given its stages, with
-`stages`, as `tracks(value_of('title'), $clean->stages, take(3))`.
+A function that checks its stages are code references itself, rather
+than leaving that to `new`, may refuse a pipeline. Give it the
+pipeline's stages instead, as
+`tracks(value_of('title'), $clean->stages, take(3))`.
 
 Either way, the stages run as if they'd been listed there: a stop in one ends the
 whole run, and a `gather` stage starts afresh with each run, so what it

@@ -39,9 +39,7 @@ sub new ($class, @given) {
         croakf 'Expected stage #%d to be a code reference', $n
             unless is_stage($stage);
         if ($stage isa 'Ekorn::Pipeline') {
-            my($inner, $inner_names) = _composed($stage);
-            croakf 'Expected stage #%d to be a code reference', $n
-                if grep { !is_coderef($_) } @$inner;
+            my($inner, $inner_names) = _composed($stage, $n);
             push @stages, @$inner;
             push @names,  map { "$n.$_" } @$inner_names;
             next;
@@ -63,19 +61,23 @@ sub new ($class, @given) {
     }, $class;
 }
 
-# Return the stages of a pipeline given as a stage, from its stages
+# Return the stages of a pipeline given as stage #$n, from its stages
 # method, as giving its stages would, and their names: its own, if the
 # method returns the stages it was made with, as it does unless a
-# subclass overrides it, or else their places in what it returns.
-sub _composed ($pipeline) {
+# subclass overrides it, or else their places in what it returns, which
+# must be code references.
+sub _composed ($pipeline, $n) {
     my @stages = $pipeline->stages;
     my $made   = $pipeline->{stages};
-    return \@stages, [1 .. @stages] unless @stages == @$made;
+    my $same   = @stages == @$made;
     for my $i (0 .. $#stages) {
-        return \@stages, [1 .. @stages]
-            unless (refaddr($stages[$i]) // 0) == refaddr($made->[$i]);
+        last unless $same;
+        $same = (refaddr($stages[$i]) // 0) == refaddr($made->[$i]);
     }
-    return \@stages, $pipeline->{names};
+    return \@stages, $pipeline->{names} if $same;
+    croakf 'Expected stage #%d to be a code reference', $n
+        if grep { !is_coderef($_) } @stages;
+    return \@stages, [1 .. @stages];
 }
 
 
@@ -302,7 +304,7 @@ croaks if a stage isn't a code reference or a pipeline. With no stages,
 a pipeline returns its values as they are.
 
 A pipeline given as a stage has its stages composed in place, as if
-its L</stages> had been given there, so these are the same pipeline:
+its L</stages> had been given there, so these two run the same:
 
     my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 
@@ -363,8 +365,9 @@ value and carry on, catch the error inside the stage.
 
     my @stages = $p->stages;
 
-Returns the pipeline's stages, in order, as given to L</new>. In
-scalar context, it returns how many there are.
+Returns the pipeline's stages, in order, as given to L</new>, with a
+pipeline given as a stage in place of its stages. In scalar context, it
+returns how many there are.
 
 A pipeline's stages can be spliced into another pipeline, or given to
 any function that takes stages, so a pipeline made once can be used
@@ -374,8 +377,8 @@ wherever stages go, even by a function that takes only code references:
     my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);
 
 L</new> takes the pipeline itself as a stage, and composes it the same
-way. The stages run in the other pipeline's run, as if listed there: a stop
-in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
+way. The stages run in the other pipeline's run, as if listed there: a
+stop in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
 is made afresh for each run, so its state isn't shared between the
 pipelines it's spliced into. A plain closure is the same code
 reference wherever it goes, so whatever it keeps is shared; keep state
@@ -419,7 +422,9 @@ which a value an end function gives doesn't have. It isn't exported.
 
 =item Expected stage #%d to be a code reference
 
-A stage given to L</new> wasn't a code reference or a pipeline.
+A stage given to L</new> wasn't a code reference or a pipeline, or was
+a pipeline whose C<stages> method, overridden, returned something that
+isn't a code reference.
 
 =item Expected a code reference
 

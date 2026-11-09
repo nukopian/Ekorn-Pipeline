@@ -11,8 +11,9 @@ Unreleased
 
     - Ekorn::Pipeline->new takes a pipeline as a stage, composing its
       stages in place, as if its stages had been given there, so a take
-      inside it takes from the whole run. A subclass's pipeline is taken
-      too. (roadmap 2026-0004)
+      inside it takes from the whole run. Its stages are what its stages
+      method returns, so a subclass that overrides it is composed as it
+      says. (roadmap 2026-0004)
     - A stage inside a pipeline given as a stage is named in messages by
       its place in each pipeline, as "Pipeline stage #2.3 failed", and
       three deep "#1.2.3"; DIAGNOSTICS now shows "#%s" for these. A

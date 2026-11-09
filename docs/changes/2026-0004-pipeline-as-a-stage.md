@@ -187,7 +187,7 @@ in DBIx-Squirrel's `TODO.md`.
   floors (statement, branch, subroutine and pod 100%, condition 96.9%);
   perlcritic and perltidy are clean; the changed examples in the
   how-to and the reference print what they say. DBIx-Squirrel's task
-  is in its `TODO.md`, waiting on v0.1.3.
+  is in its `TODO.md`.
 - **Changes from the plan:**
   - In review, `new` was changed to take a given pipeline's stages from
     its `stages` method rather than its internals, as the prototype
@@ -204,5 +204,17 @@ in DBIx-Squirrel's `TODO.md`.
 - **Measurements:** none taken; the prototype's (2026-0001) found
   composing as fast as listing the stages, and nothing in the runner's
   loop changed since.
-- **What's left:** DBIx-Squirrel's use of `is_stage`, as its task; and
-  the release, v0.1.3.
+- **Wash-up, 2026-11-09:** a review of everything since v0.1.2 found
+  `stages()` still described as returning the stages "as given to
+  `new`", which a pipeline given as a stage makes untrue; "the same
+  pipeline" for two that differ in their messages; the refusal's
+  DIAGNOSTICS entry missing an overridden `stages` method; and a
+  redundant check in the tests. `_composed` now checks that the stages
+  are code references only when the method's list isn't the one the
+  pipeline was made with, which `new` has checked already. DBIx-Squirrel's
+  tests, 1431 assertions, passed against `develop` on 5.36.3 and
+  5.44.0.
+- **What's left:** the release, v0.1.3, which Iain gated on 2026-11-09
+  on DBIx-Squirrel's sign-off, a task in its `TODO.md`, to try
+  `develop` with its own use of `is_stage` first; and DBIx-Squirrel's
+  move to v0.1.3 after it. Both are in `TODO.md`.

@@ -72,7 +72,6 @@ subtest 'is_stage' => sub {
         for undef, 'x', 42, [], {}, \'x', bless({}, 'My::Other');
     is is_stage(sub { }), T(), 'true';
     is is_stage('x'),     F(), 'false';
-    ok !Ekorn::Pipeline->can('croakf'), 'its import leaves nothing behind';
 };
 
 subtest 'a pipeline given as a stage runs as its stages would' => sub {

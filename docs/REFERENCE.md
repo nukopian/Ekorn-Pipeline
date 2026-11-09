@@ -126,12 +126,11 @@ my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length
 say join '|', Ekorn::Pipeline->new($clean, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
 ```
 
-That's the same pipeline as `Ekorn::Pipeline->new($clean->stages,
-take(2))`, and runs the same way, as [stages](#stages) says: its stages
-run in the new pipeline's run, so a `take` inside it takes from all the
-values, not from each. Pipelines can be given inside pipelines given as
-stages, to any depth. A pipeline of a subclass of Ekorn::Pipeline is
-taken too.
+That runs the same as `Ekorn::Pipeline->new($clean->stages,
+take(2))`, as [stages](#stages) says: its stages run in the new
+pipeline's run, so a `take` inside it takes from all the values, not
+from each. Pipelines can be given inside pipelines given as stages, to
+any depth. A pipeline of a subclass of Ekorn::Pipeline is taken too.
 
 The one difference from giving its stages is in messages. A stage
 inside a pipeline given as a stage is named by its place in each
@@ -226,8 +225,9 @@ reads one line.
 my @stages = $p->stages;
 ```
 
-Returns the pipeline's stages, in order, as they were given to `new`:
-a copy of the list, so changing it changes nothing in the pipeline. In
+Returns the pipeline's stages, in order, as they were given to `new`,
+with a pipeline given as a stage in place of its stages: a copy of the
+list, so changing it changes nothing in the pipeline. In
 scalar context, it returns how many there are.
 
 A pipeline's stages can be spliced into another pipeline, or given to
@@ -1036,7 +1036,9 @@ the line of the caller's code that caused it.
 ### Ekorn::Pipeline
 
 - **Expected stage #%d to be a code reference:** a stage given to
-  `new` wasn't a code reference or a pipeline.
+  `new` wasn't a code reference or a pipeline, or was a pipeline whose
+  `stages` method, overridden, returned something that isn't a code
+  reference.
 - **Expected a code reference:** the source given to `iterator` wasn't
   a code reference.
 - **Expected stage #%s, made with gather, to return one or two code
