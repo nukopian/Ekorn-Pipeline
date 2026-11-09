@@ -722,9 +722,9 @@ print $@;
 #     Not today
 ```
 
-The same goes for a stage that isn't a code reference, and for a stage
-that dies while the caller reads an iterator the function returned:
-the line is the caller's.
+The same goes for a stage that's neither a code reference nor a
+pipeline, and for a stage that dies while the caller reads an iterator
+the function returned: the line is the caller's.
 
 ### Name the stages you use often
 
@@ -962,13 +962,13 @@ say ref $@, ': ', $@->{title};    # Not::Found: Dancing Queen
 
 ### See mistakes in making a pipeline at your own line
 
-A mistake in making a pipeline or a canned stage, such as a stage that
-isn't a code reference, or `take(-1)`, is reported at the line that
+A mistake in making a pipeline or a canned stage, such as a stage
+that's neither a code reference nor a pipeline, or `take(-1)`, is reported at the line that
 made it, before any value goes through:
 
 ```perl
 eval { Ekorn::Pipeline->new(sub { $_ }, 'title') };
-print $@;    # Expected stage #2 to be a code reference at ... line ...
+print $@;    # Expected stage #2 to be a code reference or a pipeline at ... line ...
 
 eval { take(-1) };
 print $@;    # Expected a count of 0 or more at ... line ...

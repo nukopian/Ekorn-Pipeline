@@ -41,15 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0008. Messages that say what's accepted
-
-**Size:** S (2)
-
-Every diagnostic raised because a stage wasn't a code reference or a
-pipeline says so, and so does everything that quotes or explains it,
-in v0.2.0. Iain moved it to Now on 2026-11-09. Its
-[record](docs/changes/2026-0008-messages-say-whats-accepted.md) has
-the plan.
+Nothing yet.
 
 ## Next
 

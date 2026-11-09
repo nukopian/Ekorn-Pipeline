@@ -1,6 +1,6 @@
 # 2026-0008. Messages that say what's accepted
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: "...to be a code reference or a pipeline". D2 settled: the gather message names a code reference or a pipeline, and the end function. None open.
 
@@ -11,7 +11,9 @@ words in DBIx-Squirrel's session (DBIx-Squirrel
 5a9a38d44b2ba52b4c0ac8a2ad9bc15ba15dde62): "We are no longer JUST
 accepting code-references."
 
-**Started:** 2026-11-09
+**Started:** 2026-11-09, in 2e334e84c4b79cc71a8f257602b62850e2693f5c
+
+**Finished:** 2026-11-09
 
 ## Background
 
@@ -73,3 +75,21 @@ on every Perl and under `prove`; coverage holds; the changed examples
 print what they say; and DBIx-Squirrel has its task.
 
 ## What happened
+
+- **Outcome:** done as planned. Both messages read as D1 and D2 say,
+  in the code, both modules' DIAGNOSTICS, the `croakf` example, the
+  reference, the how-to, the README and the tests; the notes explaining
+  the old wording are gone. A sweep after the change finds "isn't a
+  code reference" only where a code reference is what's meant: an
+  iterator's source, and what an overridden `stages` method returns.
+  The tests pass on 5.36.3 to 5.44.0 and under `prove`; coverage holds;
+  the how-to's examples print what they did, but for the new message.
+- **Changes from the plan:** the sweep's 24 places missed two, found
+  by searching across line breaks: the README's Errors section and the
+  reference's When a stage dies. Both now say "neither a code reference
+  nor a pipeline". The reference's Diagnostics, and the POD's, still
+  said an exception object is "thrown on as it is", left from before
+  2026-0006's pass; both say it plainly now.
+- **What's left:** DBIx-Squirrel's task, to test against `develop` and
+  change its copies of the messages, and v0.2.0 itself.
+

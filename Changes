@@ -2,6 +2,21 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    Messages say a stage can be a code reference or a pipeline.
+
+    It ships one roadmap item, 2026-0008. Two messages change, so it's
+    v0.2.0: code that matches them as exact strings needs updating.
+
+    - "Expected stage #%d to be a code reference" is now "Expected
+      stage #%d to be a code reference or a pipeline". (roadmap
+      2026-0008)
+    - "Expected stage #%s, made with gather, to return one or two code
+      references" is now "Expected stage #%s, made with gather, to
+      return a code reference or a pipeline, and optionally an end
+      function". (roadmap 2026-0008)
+    - The DIAGNOSTICS, the reference, the how-to and the README say the
+      same, and no longer explain the old wording. (roadmap 2026-0008)
+
 v0.1.3 2026-11-09
 
     A pipeline can be used as a stage, and the docs are plainer.

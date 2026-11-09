@@ -36,11 +36,11 @@ sub new ($class, @given) {
     my(@stages, @names);
     for my $n (1 .. @given) {
         my $stage = $given[$n - 1];
-        croakf 'Expected stage #%d to be a code reference', $n
+        croakf 'Expected stage #%d to be a code reference or a pipeline', $n
             unless is_stage($stage);
         if ($stage isa 'Ekorn::Pipeline') {
             my($inner, $inner_names) = _composed($stage);
-            croakf 'Expected stage #%d to be a code reference', $n
+            croakf 'Expected stage #%d to be a code reference or a pipeline', $n
                 unless $inner_names;
             push @stages, @$inner;
             push @names,  map { "$n.$_" } @$inner_names;
@@ -124,7 +124,7 @@ sub _make_run ($stages, $names, $run) {
         my($inner, $inner_names)
             = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
         croakf
-            'Expected stage #%s, made with gather, to return one or two code references',
+            'Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function',
             $name
             unless (@made == 1 || @made == 2)
             && ($inner ? $inner_names : is_coderef($made[0]))
@@ -480,7 +480,7 @@ an end function has no such origin. It isn't exported.
 
 =over
 
-=item Expected stage #%d to be a code reference
+=item Expected stage #%d to be a code reference or a pipeline
 
 A stage given to L</new> wasn't a code reference or a pipeline. It's
 also raised for a pipeline whose overridden C<stages> method returned
@@ -490,16 +490,15 @@ something that isn't a code reference.
 
 The source given to L</iterator> wasn't a code reference.
 
-=item Expected stage #%s, made with gather, to return one or two code references
+=item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function
 
 The block given to L<Ekorn::Pipeline::Gather/gather> for that stage
-returned something other than a stage (a code reference or a
-pipeline), or a stage and an end function.
+returned something else.
 
 =item Pipeline stage #%s failed at %s line %d:
 
 A stage, or its end function, died. The message it died with follows,
-indented. An exception object is passed on as it is.
+indented. An exception object is passed on unchanged.
 
 In this message and the one above, a stage is named by its position:
 C<#2> for the second stage, or C<#2.3> for the third stage of a

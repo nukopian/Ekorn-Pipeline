@@ -276,8 +276,9 @@ message below:
 
 An exception object is passed on unchanged. Either way the run ends,
 pushed or pulled, and an iterator returns nothing more. A mistake in
-making a pipeline or a canned stage, such as a stage that isn't a code
-reference or `take(-1)`, is also reported at the caller's line.
+making a pipeline or a canned stage, such as a stage that's neither a
+code reference nor a pipeline, or `take(-1)`, is also reported at the
+caller's line.
 
 ## Canned stages
 

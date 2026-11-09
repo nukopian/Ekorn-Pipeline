@@ -121,7 +121,7 @@ my $p = Ekorn::Pipeline->new(@stages);
 
 Returns a pipeline that runs values through `@stages`, in order. Each
 stage must be a code reference or a pipeline. Anything else croaks,
-naming its position: "Expected stage #2 to be a code reference".
+naming its position: "Expected stage #2 to be a code reference or a pipeline".
 
 Any code reference will do: an anonymous `sub`, a reference to a named
 one such as `\&trim`, a stage made by a function such as `take(10)`, or
@@ -562,8 +562,8 @@ other than a block or code reference. The block is called when a run
 starts, not when `gather` is called: when the pipeline is called with
 values, or an iterator is made from it. A block that returns anything
 else is reported then, as "Expected stage #%s, made with gather, to
-return one or two code references". (The message predates pipelines
-as stages, and is unchanged so as not to break code matching it.)
+return a code reference or a pipeline, and optionally an end
+function".
 
 What `gather` returns is a code reference, blessed into
 Ekorn::Pipeline::Gather, so it can go wherever a stage can.
@@ -888,9 +888,10 @@ Either way, the run has ended. A pushed run returns nothing. An
 iterator returns an empty list on every call after, without calling
 its source or any end function again (see [iterator](#iterator)).
 
-A mistake in making a pipeline, such as a stage that isn't a code
-reference, or in making a canned stage, such as `take(-1)`, is
-reported at the line that made it, before any value goes through.
+A mistake in making a pipeline, such as a stage that's neither a code
+reference nor a pipeline, or in making a canned stage, such as
+`take(-1)`, is reported at the line that made it, before any value goes
+through.
 
 ### croakf
 
@@ -1083,19 +1084,20 @@ the line of the caller's code that caused it.
 
 ### Ekorn::Pipeline
 
-- **Expected stage #%d to be a code reference:** a stage given to
-  `new` wasn't a code reference or a pipeline. It's also raised for a
+- **Expected stage #%d to be a code reference or a pipeline:** a stage
+  given to `new` wasn't a code reference or a pipeline. It's also raised
+  for a
   pipeline whose overridden `stages` method returned something that
   isn't a code reference.
 - **Expected a code reference:** the source given to `iterator` wasn't
   a code reference.
-- **Expected stage #%s, made with gather, to return one or two code
-  references:** the block given to `gather` for that stage returned
-  something other than a stage (a code reference or a pipeline), or a
-  stage and an end function. Reported when the run starts.
+- **Expected stage #%s, made with gather, to return a code reference
+  or a pipeline, and optionally an end function:** the block given to
+  `gather` for that stage returned something else. Reported when the
+  run starts.
 - **Pipeline stage #%s failed at %s line %d:** a stage, or its end
   function, died with a message, which follows, indented. An exception
-  object is thrown on as it is.
+  object is thrown again unchanged.
 
 In these two, a stage is named by its position: `#2` for the second
 stage, or `#2.3` for the third stage of a pipeline given as the second

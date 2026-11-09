@@ -69,7 +69,7 @@ written, not at the line in the module that ran the pipeline.
 
 =head2 croakf
 
-    croakf 'Expected stage #%d to be a code reference', $n;
+    croakf 'Expected stage #%d to be a code reference or a pipeline', $n;
 
 Croaks with a message made by C<sprintf> from a format and its
 arguments, at the same line L<Carp/croak> would report.

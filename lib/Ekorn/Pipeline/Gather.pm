@@ -143,12 +143,10 @@ To keep it out of your namespace:
 
 C<gather> was given something other than a block or code reference.
 
-=item Expected stage #%s, made with gather, to return one or two code references
+=item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function
 
-A block given to C<gather> returned something other than a stage (a
-code reference or a pipeline), or a stage and an end function. The
-message predates pipelines as stages, and is unchanged so as not to
-break code matching it. It's reported when a run starts: when the
+A block given to C<gather> returned something else. It's reported
+when a run starts: when the
 pipeline is called with values, or an iterator is made from it. The
 stage is named by its position, as L<Ekorn::Pipeline/DIAGNOSTICS>
 describes.
