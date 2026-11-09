@@ -71,6 +71,24 @@ perlbrew exec --with perl-5.36.3@ekorn-pipeline cpanm --installdeps --with-devel
 perlbrew exec --with perl-5.36.3@ekorn-pipeline cpanm Minilla
 ```
 
+Last, set up direnv, so that a shell in the working copy uses the
+project's library. Without it, a command run there that doesn't name
+the library gets the default Perl and its modules. The `.envrc` is
+git-ignored, so each clone writes its own. direnv loads it once it's
+allowed:
+
+```
+cat > ~/Git/github.com/nukopian/Ekorn-Pipeline/.envrc <<'EOF'
+unset PERL5LIB
+source /Users/icampbell/perl5/perlbrew/etc/bashrc
+perlbrew use perl-5.36.3@ekorn-pipeline
+EOF
+direnv allow ~/Git/github.com/nukopian/Ekorn-Pipeline
+```
+
+The commands in this guide still name the library, so they work
+whether direnv has loaded it or not.
+
 ## Every commit
 
 Run these first, and check that each one succeeds. Don't pipe them
