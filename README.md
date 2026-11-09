@@ -6,11 +6,11 @@
 Stages for any function: let the caller finish the job.
 
 A function that hands out values can't know everything its callers
-will want done with them. Ekorn::Pipeline lets it take a list of
-_stages_ from its caller, small functions that each see one value at
-a time, and run what it would return through them. The caller says,
-beside the call, what they want; the function does what only it can,
-and no more.
+will want done with them. With Ekorn::Pipeline, it takes a list of
+_stages_ from its caller: small functions that each see one value at
+a time. It runs what it would return through them. The caller says
+what they want, beside the call, and the function does only what it
+alone can.
 
     use Ekorn::Pipeline;
     use Ekorn::Pipeline::Stages::Flow;    # take and drop
@@ -33,26 +33,26 @@ and no more.
 ## The problem it solves
 
 Every function that returns a list meets the same pressure. One caller
-wants only some of the values, another wants them in a different shape,
-a third wants the first ten, a fourth wants them in batches of 500. The
-author has two ways to answer, and both cost something.
+wants only some of the values. Another wants them in a different
+shape, a third wants the first ten, and a fourth wants them in batches
+of 500. The author has two ways to answer, and both cost something.
 
 - **Grow options.** `active_only`, `fields`, `limit`,
 `offset`, `as_hash`, `batch_size`, `callback`. Each is code the
-author writes, tests, documents and keeps, and each interacts with the
-others: does `limit` count before or after `active_only`? The list is
-never finished, because the next caller wants something nobody thought
-of, and every caller pays, in reading the documentation, for the
-options they'll never use.
+author writes, tests, documents and maintains. Each interacts with the
+others: does `limit` count before or after `active_only`? The list
+is never finished, because the next caller wants something nobody
+thought of. And every caller has to read about options they'll never
+use.
 - **Leave it to the caller.** The function returns everything, and
 each caller writes a loop around the call: a temporary array, a
-counter, a flag, a `last`. The calling code fills with noise that has
-nothing to do with what it's for, the same few loops are written over
-and over, and the function can't stop early, because by the time the
-caller has the values, all the work of making them is done.
+counter, a flag, a `last`. The calling code fills with noise, and the
+same few loops are written over and over. Worse, the function can't
+stop early: by the time the caller has the values, all the work of
+making them is done.
 
 Stages are a third way. The function takes a list of them as its last
-arguments, and runs each value it makes through them, so the caller's
+arguments, and runs each value it makes through them. The caller's
 processing happens _inside_ the function, one value at a time, as
 the values are made:
 
@@ -73,36 +73,36 @@ the values are made:
     my @names = users(sub { $_->{active} ? $_ : () }, sub { $_->{name} }, take(10));
 
 The second `users` does everything the first does, and everything it
-doesn't, without a line more. Its author is done with it: whatever a
-caller wants next, the caller can write, as a stage, without asking.
+doesn't, without a line more. Its author is done with it. Whatever a
+caller wants next, they can write as a stage, without asking.
 
 ## What everyone gets
 
 - **The caller says it once, beside the call.** No loop, no
-temporary array, no counter, no flag: what the caller wants done with
-the values is written where they asked for them, in the order it
-happens, and reads as a list of steps.
+temporary array, no counter, no flag. What the caller wants done is
+written where they ask for the values, in the order it happens, and
+reads as a list of steps.
 - **The work stops when the caller has enough.** A stage that
-stops ends the function's work too, so a caller who wants ten results
-reads ten lines, fetches one page, or runs one query's worth of rows,
-not all of them. Nothing is held between stages, so a function over a
-million values needs no more memory than one over ten.
+stops ends the function's work too. A caller who wants ten results
+reads ten lines, or fetches one page, not all of them. Nothing is held
+between stages, so a function over a million values needs no more
+memory than one over ten.
 - **The author keeps an interface that doesn't grow.** One list of
-stages takes the place of every option a caller might ask for next, so
-the function's signature, documentation and tests stay the size of
-what only it can do. A new need is met in the caller's code, and
-breaks nobody else's.
-- **The author keeps what only it should touch.** The file is
-opened and closed, the pages fetched, the connection or transaction
-handled, by the function, as it always was. The caller shapes the
-values without ever seeing the handle they came from.
+stages replaces every option a caller might ask for next. The
+function's signature, documentation and tests stay the size of what
+only it can do. A new need is met in the caller's code, and breaks
+nobody else's.
+- **The author keeps control of what only it should touch.** The
+function still opens and closes the file, fetches the pages, and
+handles the connection or transaction. The caller shapes the values
+without ever seeing the handle they came from.
 - **Order answers the questions options raise.** Does `limit`
-count before or after `active_only`? With stages, the caller wrote
-them in an order, and that's the order they run in.
+count before or after `active_only`? With stages, they run in the
+order the caller wrote them.
 - **A stage is written once, for every function.** Stages are
-plain code references, so a stage written for one function works with
-every function that takes stages, whoever wrote it, and the canned
-stages here work with all of them.
+plain code references. A stage written for one function works with
+every function that takes stages, whoever wrote it. The canned stages
+here work with all of them.
 
 ## Stages
 
@@ -114,23 +114,23 @@ argument and in `$_`, and returns a list:
 - **several,** each of which goes on through the rest of the
 stages by itself: a _flatMap_.
 
-One shape covers all three, so a pipeline is just a list of stages,
-and a stage needs no wrapper to say which kind it is:
+One shape covers all three. A pipeline is just a list of stages, and a
+stage needs no wrapper to say which kind it is:
 
     sub { $_ % 2 ? $_ : () }                # filter: the odd numbers
     sub { $_ * 10 }                         # map: ten times each
     sub ($user) { @{ $user->{roles} } }     # flatMap: each of a user's roles
 
 Returning a list, rather than a value or `undef`, is what makes this
-work. An empty list is plainly "nothing", so `undef`, `0` and the
-empty string are values like any other, and can be passed on.
+work. An empty list plainly means "nothing", so `undef`, `0` and the
+empty string are ordinary values, and can be passed on.
 
 ## One value at a time
 
 Each value goes through every stage before the next one starts, as it
-would in a `for` loop. So the values come out in order, a stage sees
-them in order, and nothing is held between stages: a pipeline over a
-million values needs no more memory than one over ten.
+would in a `for` loop. The values come out in order, and each stage
+sees them in order. Nothing is held between stages, so a pipeline over
+a million values needs no more memory than one over ten.
 
 A pipeline runs two ways:
 
@@ -139,35 +139,33 @@ out of the last stage.
 
         my @results = $pipeline->(@values);
 
-- **Pulled:** given a _source_, a function returning the next
-value each time it's called, `iterator` returns a function handing out
-the results one per call. The source is called only when a result is
-wanted, so a function reading a file, a socket or a database reads only
-as much as its caller asks for.
+- **Pulled:** given a _source_, a function that returns the next
+value each time it's called, `iterator` returns a function that hands
+out the results one per call. The source is called only when a result
+is wanted. A function reading a file, a socket or a database reads
+only as much as its caller asks for.
 
         my $next = $pipeline->iterator(sub { @queue ? shift @queue : () });
         while (my($result) = $next->()) { ... }
 
 ## Stopping early
 
-A stage can end the pipeline with [Ekorn::Pipeline::Stop](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStop). The
-values already out are kept, any values the stop carries go on through
-the rest of the stages, and nothing else is made: once a stage has
-stopped it, a pulled pipeline never calls its source again.
+A stage can end the pipeline with [Ekorn::Pipeline::Stop](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStop). The values
+already out are kept, and any values the stop carries go on through
+the rest of the stages. Nothing else is made: once a stage has stopped
+it, a pulled pipeline never calls its source again.
 
     use Ekorn::Pipeline::Stop;
 
     sub ($user) { $user->{id} == $wanted ? Stop($user) : () }    # find one, then stop
 
-This is what lets a caller's processing save the author's work. With
-`take(10)`, the function in the example at the top reads ten error
-lines and however many lines lie between them, and leaves the rest of
-the file unread. No option for it was written, and the caller wrote no
-`last`.
+This is how a caller's stages save the author's work. With
+`take(10)`, the function in the first example reads up to the tenth
+error line, and leaves the rest of the file unread. Nobody wrote an
+option for it, and the caller wrote no `last`.
 
-It counts for more where each value costs more. A function over a
-paged web API fetches a page only when its caller wants a result from
-it:
+It matters more where each value costs more. A function over a paged
+web API fetches a page only when its caller wants a result from it:
 
     sub search ($query, @stages) {
         my $page = 0;
@@ -180,17 +178,17 @@ it:
     while (my($hit) = $hits->()) { say $hit->{title} }    # one request, if a page holds ten
 
 Without stages, that function either fetches every page, or grows
-`max_results`, `max_pages` and `on_result` options, each of which
-its author has to write and keep.
+`max_results`, `max_pages` and `on_result` options, for its author
+to write and maintain.
 
 ## Stages with state, and with an end
 
 A stage is a closure, so it can keep state, such as a count. But a
-plain closure keeps it from one run to the next, and can't tell when
-the last value has gone by. [Ekorn::Pipeline::Gather](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AGather) makes a stage
-afresh at the start of each run, and lets it have an _end function_,
-called once the values run out, whose values go on through the rest
-of the stages:
+plain closure keeps its state from one run to the next, and can't tell
+when the last value has gone by. [Ekorn::Pipeline::Gather](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AGather) makes a
+stage afresh at the start of each run. The stage can also have an
+_end function_, called once the values run out, whose values go on
+through the rest of the stages:
 
     use Ekorn::Pipeline::Gather;
 
@@ -210,7 +208,8 @@ That's how `batch`, `collect`, `take` and `drop` are made.
 
 Stages are code references, so they can be kept in variables, built by
 functions and passed around. A function that returns a stage is a word
-in a vocabulary, which grows in the caller's code, not the author's:
+in a vocabulary, and the vocabulary grows in the caller's code, not
+the author's:
 
     sub only_active ()    { sub { $_->{active} ? $_ : () } }
     sub value_of ($name)  { sub { $_->{$name} } }
@@ -218,35 +217,34 @@ in a vocabulary, which grows in the caller's code, not the author's:
     my @page  = (drop(20), take(10));
     my @names = users(only_active, value_of('name'), @page);
 
-The same stages work with every function that takes them, so one
-written for `users` works for `log_lines`, or for a function on
-CPAN its author never heard of.
+A stage written for `users` works for `log_lines` too, or for a
+function on CPAN whose author has never heard of it.
 
 ## Writing a function that takes stages
 
-- **Take the stages last.** Whatever arguments the function
-needs come first, and the stages after them, as
-`sub log_lines ($file, @stages)`. A caller who wants nothing done
-passes none, and a pipeline with no stages returns its values as they
-are, so there's nothing to special-case.
+- **Take the stages last.** The function's own arguments come
+first, then the stages: `sub log_lines ($file, @stages)`. A caller
+who wants nothing done passes no stages. A pipeline with no stages
+returns its values unchanged, so there's nothing to special-case.
 - **Push what you have; pull what you make.** If the values are
 already in memory, call the pipeline with them. If they're made one at
 a time, from a file, a socket, a database or a computation, give
-`iterator` a source, and return the iterator, so a stage that stops
+`iterator` a source and return the iterator. Then a stage that stops
 saves the work of making the rest.
 - **Let the stages do the optional work.** If you're about to add
 an option that filters, reshapes or limits what's returned, a stage
-does it already, and it's one fewer thing for you to maintain. Keep the
+does it already, and it's one less thing for you to maintain. Keep the
 arguments only the function can act on, such as which file to read, or
 a filter a database can apply with an index.
-- **Report your callers' mistakes at their lines.** A module whose
-`@CARP_NOT` holds `@Ekorn::Pipeline::Errors::INTERNAL` has a stage
-that dies reported at the caller's line, where the stage was written,
-rather than at the module's own line that ran the pipeline.
+- **Report your callers' mistakes at their lines.** Put
+`@Ekorn::Pipeline::Errors::INTERNAL` in your module's `@CARP_NOT`.
+Then a stage that dies is reported at the caller's line, where the
+stage was written, not at the line in your module that ran the
+pipeline.
 
 A class of your own can have `pipe` and `tap` methods, from
-[Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages: `pipe`
-returns what comes out, and `tap` returns the object, so a chain of
+[Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages. `pipe`
+returns what comes out. `tap` returns the object, so a chain of
 method calls can carry on after it.
 
 A pipeline can be used as a stage, so stages you've put together once
@@ -261,22 +259,23 @@ stages instead: `users($active_names->stages, take(10))`.
 
 ## Errors
 
-A stage that dies is named by its place in the pipeline, at the line
-of the caller's code that ran it, with its message below:
+A stage that dies is named by its position in the pipeline, and
+reported at the line of the caller's code that ran it, with its
+message below:
 
     Pipeline stage #2 failed at app.pl line 12:
         No name for user 7 at app.pl line 9.
 
-An exception object is passed on as it is. Either way the run ends,
-pushed or pulled: an iterator returns nothing more. A mistake in how a
-pipeline or a canned stage is made, such as a stage that isn't a code
-reference or `take(-1)`, is reported at the caller's line too.
+An exception object is passed on unchanged. Either way the run ends,
+pushed or pulled, and an iterator returns nothing more. A mistake in
+making a pipeline or a canned stage, such as a stage that isn't a code
+reference or `take(-1)`, is also reported at the caller's line.
 
 ## Canned stages
 
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
-`take_while` and `drop_while`, which pass on values by their place or
-by a test.
+`take_while` and `drop_while`, which pass values on by their
+position or by a test.
 - [Ekorn::Pipeline::Stages::Batch](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ABatch): `batch` and `collect`,
 which gather values and pass them on together.
 - [Ekorn::Pipeline::Stages::Taps](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ATaps): `peek`, `count_into` and
@@ -286,23 +285,25 @@ counting and debugging.
 ## Stage modules of your own
 
 Stages are plain code references, so anyone can make them, in any
-namespace. Where a module of them goes depends on what its stages need
-to know:
+namespace. Where a module of stages belongs depends on what its stages
+need to know:
 
 - **Stages for any values** go under `Ekorn::Pipeline::Stages`,
-as the canned stages do. They work whatever the values are, and
-wherever they come from.
+like the canned stages. They work whatever the values are and wherever
+they come from.
 - **Stages for one kind of value, or one source,** go with the
-module that knows about it, under its own namespace. DBIx::Squirrel's
-stages for rows, `pluck` and `as_hash`, which need a statement's
-column names, are in `DBIx::Squirrel::Stages::Rows`; stages for a log
+module that knows about it, under its namespace. DBIx::Squirrel's
+stages for rows, `pluck` and `as_hash`, need a statement's column
+names, so they're in `DBIx::Squirrel::Stages::Rows`. Stages for a log
 format of your own might be in `My::Log::Stages`.
 
-A module of stages, wherever it goes, is built from the same parts as
-the canned stages: [Ekorn::Pipeline::Gather](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AGather) for state and end
-functions, [Ekorn::Pipeline::Stop](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStop) to end early, and `croakf`, from
-[Ekorn::Pipeline::Errors](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AErrors), to report a mistake in making a stage at
-the line of the caller who made it:
+Wherever it goes, a module of stages is built from the same parts as
+the canned stages:
+
+- [Ekorn::Pipeline::Gather](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AGather), for state and end functions;
+- [Ekorn::Pipeline::Stop](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStop), to end early;
+- `croakf`, from [Ekorn::Pipeline::Errors](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AErrors), to report a mistake
+in making a stage at the line of the caller who made it.
 
     package My::Stages::Words;
 
@@ -320,40 +321,44 @@ the line of the caller who made it:
 
 ## When to use something else
 
-- **Code with no other caller.** A loop where the values are made
-and used in one place, by one author, is clearer as a plain `for`,
-`grep` or `map`. Stages pay off where a function and its callers are
-written apart.
-- **Tight loops over cheap values.** Each stage is a call of a
-code reference for each value. That's nothing beside reading a file or
-a socket, but it shows in a loop doing arithmetic on millions of
+- **Code with no other caller.** Where the values are made and
+used in one place, by one author, a plain `for`, `grep` or `map` is
+clearer. Stages pay off where a function and its callers are written
+separately.
+- **Tight loops over cheap values.** Each stage costs a
+subroutine call for each value. That's nothing beside reading a file
+or a socket, but it shows in a loop doing arithmetic on millions of
 numbers in memory.
 - **Work that needs every value at once,** such as sorting. A
-stage sees one value at a time, so a sort waits for them all, as
+stage sees one value at a time, so a sort has to wait for them all, as
 `collect { sort @_ }` does, and saves nothing. Where the source can
 sort, as a database can with `ORDER BY`, let it.
 
 ## Where it came from
 
 The pipeline began in [DBIx::Squirrel](https://metacpan.org/dist/DBIx-Squirrel),
-where stages declared beside a query shape the rows it returns. None of
+where stages written beside a query shape the rows it returns. None of
 it needs a database, so it's here on its own, for any function to use,
-and to grow beyond what rows need. DBIx::Squirrel is moving onto it, in
-place of its own copy.
+and to grow beyond what rows need. DBIx::Squirrel now uses it, in
+place of its own copy, from v2.0.5.
 
 ## Documentation
 
 [The how-to](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AHowTo) shows how to do common
 tasks, one recipe at a time, for callers, function authors and stage
-authors. [The reference](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AReference)
-describes every module, function and method, and how a pipeline
-behaves, in full, with notes for stage authors. Each module's POD,
-starting with [Ekorn::Pipeline](https://metacpan.org/pod/Ekorn%3A%3APipeline), says the same more briefly, and is
-the authority where they differ.
+authors. [The reference](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AReference) describes
+every module, function and method in full, and how a pipeline
+behaves, with notes for stage authors. Each module's POD, starting
+with [Ekorn::Pipeline](https://metacpan.org/pod/Ekorn%3A%3APipeline), says the same more briefly, and is the
+authority where they differ.
 
 ## Installing
 
-It isn't on CPAN yet. To install it from GitHub:
+From CPAN:
+
+    cpanm Ekorn::Pipeline
+
+Or the latest from GitHub:
 
     cpanm https://github.com/nukopian/Ekorn-Pipeline.git
 
@@ -367,7 +372,7 @@ programming language system itself. See the file `LICENSE`.
 
 ## Acknowledgements
 
-Written by Iain Campbell, with Claude, Anthropic's AI model, which
-reviews the code, writes parts of it where Iain asks, often from his
-code in DBIx::Squirrel, and helps with the Git Ops, the repository's
-setup, and the tests and documentation.
+Written by Iain Campbell, with Claude, Anthropic's AI model. Claude
+reviews the code, and writes parts of it where Iain asks, often from
+his code in DBIx::Squirrel. It also helps with the Git Ops, the
+repository's setup, and the tests and documentation.

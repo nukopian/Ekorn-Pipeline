@@ -51,3 +51,9 @@ prints what it says, and Iain has read the PDFs of the README, the
 how-to, the reference and MAINTAINING.
 
 ## What happened
+
+- **The README:** rewritten. Two claims were out of date and are
+  fixed: "It isn't on CPAN yet" (v0.1.1 and v0.1.2 are), now with
+  `cpanm Ekorn::Pipeline`; and "DBIx::Squirrel is moving onto it",
+  which it did in v2.0.5. The parts for building a module of stages
+  are a list.
