@@ -2,8 +2,9 @@
 
 ## From DBIx-Squirrel, 2026-11-09: v0.1.3 signed off
 
-**From:** DBIx-Squirrel's session, 2026-11-09 (DBIx-Squirrel 14beab200d6d50846a8875916e6d79ad38b50ab1,
-on `experiment/2026-0004-pipeline-as-stage`; the code in
+**From:** DBIx-Squirrel's session, 2026-11-09 (DBIx-Squirrel
+14beab200d6d50846a8875916e6d79ad38b50ab1, on
+`experiment/2026-0004-pipeline-as-stage`; the code in
 07d4685c04973a8ea97608c88014dcd5136a0431, the docs in
 14fe0541c804a27200ab54d7f91cc598e665d520)
 
@@ -24,14 +25,15 @@ and a stage inside named `#2.2` in the message.
 What Ekorn asked for:
 
 - **Taking a pipeline with `is_stage` works as a user would expect.**
-  `->iterate(, , take(2))` reads better than
-  `->stages`, and the docs got shorter for it.
+  `$dbh->iterate($sql, $hits, take(2))` reads better than
+  `$hits->stages`, and the docs got shorter for it.
 - **One trap, for Writing functions that take stages.** A function that
   takes options in a hash reference before its stages, as `iterate`
   takes attributes, must test `is_stage` first. Ref::Util's
   `is_hashref`, like `reftype($x) eq 'HASH'`, is true of a pipeline, a
-  blessed hash, so a pipeline there is taken for the options. DBIx::Squirrel had this bug, in a place its task didn't
-  list. A sentence in that section might save others from it.
+  blessed hash, so a pipeline there is taken for the options.
+  DBIx::Squirrel had this bug, in a place its task didn't list. A
+  sentence in that section might save others from it.
 - **A version on the use line.** With v0.1.2 installed,
   `use Ekorn::Pipeline qw(is_stage)` compiles without complaint, as
   v0.1.2 has no `import`, and `is_stage` is undefined when called.
