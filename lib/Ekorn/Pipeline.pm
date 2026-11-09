@@ -237,10 +237,10 @@ Ekorn::Pipeline - run values through a list of stages
 =head1 DESCRIPTION
 
 A pipeline is a list of stages, each a code reference. A stage is
-called with one value, as its argument and in C<$_>, so it can name the
-value with a signature, C<sub ($row) { $row-E<gt>[1] }>, or leave the
-signature out and use C<$_>, C<sub { $_-E<gt>[1] }>. C<$_> is localised for
-each call, so the caller's is left as it was. A stage returns a list:
+called with one value, both as its argument and in C<$_>. It can name
+the value with a signature, C<sub ($row) { $row-E<gt>[1] }>, or use
+C<$_>, C<sub { $_-E<gt>[1] }>. C<$_> is localised for each call, so the
+caller's is left alone. A stage returns a list:
 
 =over
 
@@ -253,28 +253,28 @@ on its own (a flatMap).
 
 =back
 
-Each value goes through every stage before the next one starts, so the
-values come out in order, and a stage sees them in the order a C<for>
-loop would.
+Each value goes through every stage before the next one starts. The
+values come out in order, and each stage sees them in the order a
+C<for> loop would.
 
 A stage can end the pipeline early with L<Ekorn::Pipeline::Stop>. The
-values already out are kept, any values the stop carries go on through
-the rest of the stages, and nothing else is processed:
+values already out are kept, and any values the stop carries go on
+through the rest of the stages. Nothing else is processed:
 
     sub ($row) { $row->{id} == $wanted ? Stop($row) : () }
 
 A stage made with L<Ekorn::Pipeline::Gather> is made afresh for each
-run of the pipeline, and can have a function called once the values run
-out, whose values go through the rest of the stages. Each push of
-values, and each iterator, is a run.
+run of the pipeline. It can also have an end function, called once the
+values run out, whose values go through the rest of the stages. Each
+call of a pipeline with values is a run, and so is each iterator.
 
 =head2 Stages from your caller
 
 A pipeline is for the author of any function that hands out values.
 The function takes stages from its caller, as its last arguments, and
-runs what it would return through them, so the caller says what they
-want done with each value, beside the call, and gets back only what
-they want:
+runs what it would return through them. The caller says what they want
+done with each value, beside the call, and gets back only what they
+want:
 
     sub bands (@stages) {
         return Ekorn::Pipeline->new(@stages)->(load_bands());
@@ -283,15 +283,14 @@ they want:
     my @names = bands(sub { $_->{name} }, take(5));
 
 With L</iterator>, the values are made one at a time, as the caller
-asks for them, so a function reading a file or a socket reads no more
+asks for them. A function reading a file or a socket reads no more
 than it has to. Once a stage has stopped the pipeline, the source isn't
 called again.
 
 The canned stages, in L<Ekorn::Pipeline::Stages::Flow>,
 L<Ekorn::Pipeline::Stages::Batch> and L<Ekorn::Pipeline::Stages::Taps>,
-work in any pipeline, and L<Ekorn::Pipeline::Pipes> gives a class of
-your own C<pipe> and C<tap> methods, which run the object through
-stages.
+work in any pipeline. L<Ekorn::Pipeline::Pipes> gives a class of your
+own C<pipe> and C<tap> methods, which run an object through stages.
 
 =head1 METHODS
 
@@ -345,17 +344,17 @@ own, and a C<take> inside limits each call.
 
     my $next = $p->iterator($source);
 
-Returns a closure handing out, one per call, the values that come out
-of the stages. C<$source> is a code reference returning the next value
-or values on each call, and an empty list when there are no more; it's
-called only when the values from its last call have all been handed
-out.
+Returns a closure that hands out the values that come out of the
+stages, one per call. C<$source> is a code reference that returns the
+next value or values each time it's called, and an empty list when
+there are no more. It's called only once the values from its last
+call have all been handed out.
 
-The closure returns an empty list when the values run out, or once a
-stage has stopped the pipeline and the values its stop carried are
-handed out, and on every call after that. After a stop, the source
-isn't called again. Read it in list context, so an C<undef> value
-isn't mistaken as the end:
+The closure returns an empty list when the values run out, and on
+every call after that. After a stop, it returns an empty list once the
+values the stop carried are handed out, and the source isn't called
+again. Read the closure in list context, so that an C<undef> value
+isn't mistaken for the end:
 
     while (my($x) = $next->()) { ... }
 
@@ -364,9 +363,9 @@ called once the source runs out, or after a stop, before the closure
 returns an empty list.
 
 If a stage or an end function dies, the call dies with it, and the
-iterator has ended: every call after returns an empty list, nothing
-waiting goes on through the stages, no end function is called, and the
-source isn't called again, as when a pushed run dies. To skip a bad
+iterator has ended, as a pushed run does. Every call after returns an
+empty list. Nothing waiting goes on through the stages, no end
+function is called, and the source isn't called again. To skip a bad
 value and carry on, catch the error inside the stage.
 
 =head2 stages
@@ -431,8 +430,8 @@ It's exported on request.
 
 True while the values going through the stages come from an end
 function, rather than from the source. It's for code that tells its
-stages about the value they're given, such as the value it came from,
-which a value an end function gives doesn't have. It isn't exported.
+stages more about each value, such as where it came from: a value from
+an end function has no such origin. It isn't exported.
 
 =head1 DIAGNOSTICS
 

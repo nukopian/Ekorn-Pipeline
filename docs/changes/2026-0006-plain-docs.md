@@ -57,3 +57,5 @@ how-to, the reference and MAINTAINING.
   `cpanm Ekorn::Pipeline`; and "DBIx::Squirrel is moving onto it",
   which it did in v2.0.5. The parts for building a module of stages
   are a list.
+- **The modules' POD:** rewritten. Gather's DIAGNOSTICS still gave its
+  message as "#%d"; it's "#%s" since 2026-0004, and now says so.
