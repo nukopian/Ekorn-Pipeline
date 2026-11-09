@@ -65,3 +65,5 @@ how-to, the reference and MAINTAINING.
   that a function putting its own stages first should say so, as error
   messages count them in a stage's position. Its 48 examples print what
   they say.
+- **The how-to:** rewritten. Its examples print what they did before
+  the pass, compared run against run.
