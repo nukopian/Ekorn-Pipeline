@@ -1,12 +1,14 @@
 # 2026-0004. A pipeline given as a stage
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 settled: by its place in each pipeline, "#2.3"; the refusal unchanged. D4 settled: v0.1.3. None open.
 
 **Origin:** roadmap, added 2026-11-07, as an idea left over from
 2026-0001, whose record has the prototype; opened on 2026-11-09, when
 Iain asked what it would mean for DBIx-Squirrel
+
+**Started:** 2026-11-09
 
 ## Background
 
@@ -112,3 +114,48 @@ bb218508ae7a747f8e00906c04a05b063ad8bb8d.
   taking a pipeline as a stage, nested names and `is_stage`, only adds.
   DBIx-Squirrel's range takes it as it stands; its task is only to use
   it.
+
+## The plan
+
+**What:** `Ekorn::Pipeline->new` takes a pipeline where a stage goes,
+composing its stages in place (D1), and names each stage by its place
+in each pipeline, "#2.3" (D3). `is_stage`, exported on request, is true
+for a code reference or an `Ekorn::Pipeline`, and `new` uses it (D2).
+No message a pipeline gives today changes, and it ships in v0.1.3 (D4).
+
+**Why:** `new($clean, take(10))` reads as what's meant, where
+`new($clean->stages, take(10))` needs the reader to know `stages()`; a
+message can say which stage inside a pipeline died; and DBIx::Squirrel,
+and any module taking stages off the end of its arguments, can take a
+pipeline there with one test, the same as `new`'s.
+
+**Steps:**
+
+1. In `lib/Ekorn/Pipeline.pm`: `is_stage`, in `@EXPORT_OK`; `new`
+   checks each stage with it, splices a pipeline's stages in, and keeps
+   a name for each stage beside them; `_iterator` takes the names, and
+   its two messages print a stage's name where they printed its place.
+   The refusal of a bad stage is unchanged.
+2. Tests in a new `t/10-pipeline-as-stage.t`, from the prototype's
+   checks in 2026-0001's record: composing gives what `stages()` gives;
+   a stop inside stops the source; state is per run; ends run in order;
+   a stop's values go on; `ending()` inside; nested names in messages,
+   three deep, and for a bad `gather` inside; an empty pipeline; `pipe`
+   and `tap`; a subclass; `is_stage` for each kind of thing.
+3. The POD's `new`, `stages` and DIAGNOSTICS, and a section for
+   `is_stage`; the same in `docs/REFERENCE.md` and `docs/HOWTO.md`
+   (whose "A pipeline isn't a stage itself" goes), the manuals made
+   again, and the README's example if it reads better.
+4. `Changes`, under Unreleased, with a precis naming 2026-0004.
+5. A task in DBIx-Squirrel's `TODO.md`, waiting on Ekorn-Pipeline
+   v0.1.3: use `is_stage` in `split_stages`, `_ends_in_stages` and
+   Sugar's check of a statement's definition, test
+   `iterate($sql, $pipeline)`, and rewrite "Give `$hits->stages`, not
+   `$hits`" in its reference and how-to.
+
+**Done when:** the tests pass on each Perl from 5.36 to 5.44, and under
+`prove`; coverage stays above its floors; perlcritic and perltidy are
+clean; the docs' changed examples print what they say; and the task is
+in DBIx-Squirrel's `TODO.md`.
+
+## What happened

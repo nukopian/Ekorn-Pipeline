@@ -51,8 +51,8 @@ place, so `Ekorn::Pipeline->new($clean, take(10))` means
 stage inside it by its place in each pipeline, "#2.3", and an
 `is_stage` test, which `new` uses, lets DBIx::Squirrel and others
 recognise a pipeline among their arguments. No message a pipeline
-gives today changes, so it's v0.1.3. Its decisions are settled, in its
-[record](docs/changes/2026-0004-pipeline-as-a-stage.md).
+gives today changes, so it's v0.1.3. Work started on 2026-11-09; its
+[record](docs/changes/2026-0004-pipeline-as-a-stage.md) has the plan.
 
 ## Next
 
