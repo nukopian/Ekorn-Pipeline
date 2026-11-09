@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: compose in place, as if given its stages(). D2 open: export an `is_stage` test. D3 open: how messages name a nested stage. D4 open: v0.1.3 or v0.2.0.
+**Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 open: how messages name a nested stage. D4 open: v0.1.3 or v0.2.0.
 
 **Origin:** roadmap, added 2026-11-07, as an idea left over from
 2026-0001, whose record has the prototype; opened on 2026-11-09, when
@@ -77,12 +77,14 @@ bb218508ae7a747f8e00906c04a05b063ad8bb8d.
   is `new($p->stages, take(10))`. Iain: "as if we'd done
   `$pipeline->stages()`". So the two can't differ, and `stages()`
   stays.
-- [ ] **D2.** Should Ekorn::Pipeline export an `is_stage` test, true
+- [x] **D2.** Should Ekorn::Pipeline export an `is_stage` test, true
   for a code reference (a `gather` stage among them) or an
   `Ekorn::Pipeline`, for DBIx::Squirrel and other modules taking stages
   off the end of their arguments? Without it, each writes its own, and
   they can drift from what `new` accepts. It would be a new public name,
-  in `@EXPORT_OK`. Recommended: yes, and `new` uses it too.
+  in `@EXPORT_OK`. Yes, decided on 2026-11-09: Ekorn::Pipeline exports
+  `is_stage` on request, and `new` uses it too, so what it accepts and
+  what others take for a stage are one definition.
 - [ ] **D3.** How do messages name a stage inside a nested pipeline?
   The prototype names it by its place in each pipeline, "#2.3", so the
   two DIAGNOSTICS entries with `#%d` become `#%s`, though a flat
