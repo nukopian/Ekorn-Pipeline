@@ -2,9 +2,10 @@
 
 ## From DBIx-Squirrel, 2026-11-09: v0.1.3 signed off
 
-**From:** DBIx-Squirrel's session, 2026-11-09 (DBIx-Squirrel
-14beab2d, on `experiment/2026-0004-pipeline-as-stage`; the code in
-07d4685, the docs in 14fe054)
+**From:** DBIx-Squirrel's session, 2026-11-09 (DBIx-Squirrel 14beab200d6d50846a8875916e6d79ad38b50ab1,
+on `experiment/2026-0004-pipeline-as-stage`; the code in
+07d4685c04973a8ea97608c88014dcd5136a0431, the docs in
+14fe0541c804a27200ab54d7f91cc598e665d520)
 
 **Signed off.** DBIx-Squirrel's task 1 is done up to its sign-off,
 against Ekorn-Pipeline's `develop` at
