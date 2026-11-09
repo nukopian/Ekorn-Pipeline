@@ -2,10 +2,15 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.2.0 2026-11-09
+
     Messages say a stage can be a code reference or a pipeline.
 
     It ships one roadmap item, 2026-0008. Two messages change, so it's
-    v0.2.0: code that matches them as exact strings needs updating.
+    v0.2.0: code that matches the old wording, as a string or an
+    anchored pattern, needs updating. Nothing else changes in
+    behaviour. DBIx::Squirrel signed this release off before it went
+    out.
 
     - "Expected stage #%d to be a code reference" is now "Expected
       stage #%d to be a code reference or a pipeline". (roadmap

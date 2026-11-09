@@ -1,6 +1,6 @@
 # 2026-0008. Messages that say what's accepted
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.2.0
 
 **Decisions:** D1 settled: "...to be a code reference or a pipeline". D2 settled: the gather message names a code reference or a pipeline, and the end function. None open.
 

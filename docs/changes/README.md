@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [Messages that say what's accepted](2026-0008-messages-say-whats-accepted.md),
-  roadmap 2026-0008: shipped, unreleased.
+  roadmap 2026-0008: shipped in v0.2.0.
 - [A pipeline returned by a gather block](2026-0007-gather-pipeline.md),
   roadmap 2026-0007: shipped in v0.1.3.
 - [Plain docs](2026-0006-plain-docs.md), roadmap 2026-0006: shipped in v0.1.3.
