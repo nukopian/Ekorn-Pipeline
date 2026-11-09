@@ -1,4 +1,6 @@
-[![Actions Status](https://github.com/nukopian/Ekorn-Pipeline/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/nukopian/Ekorn-Pipeline/actions?workflow=test)
+[![Actions Status](https://github.com/nukopian/Ekorn-Pipeline/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/nukopian/Ekorn-Pipeline/actions?workflow=test) [![MetaCPAN Release](https://badge.fury.io/pl/Ekorn-Pipeline.svg)](https://metacpan.org/release/Ekorn-Pipeline)
+[![Kwalitee](https://cpants.cpanauthors.org/dist/Ekorn-Pipeline.svg)](https://cpants.cpanauthors.org/dist/Ekorn-Pipeline)
+
 # Ekorn-Pipeline
 
 Stages for any function: let the caller finish the job.
