@@ -1,6 +1,6 @@
 # 2026-0004. A pipeline given as a stage
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.3
 
 **Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 settled: by its place in each pipeline, "#2.3"; the refusal unchanged. D4 settled: v0.1.3. None open.
 

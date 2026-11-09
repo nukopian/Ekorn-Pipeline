@@ -1,6 +1,6 @@
 # 2026-0007. A pipeline returned by a gather block
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.3
 
 **Decisions:** D1 settled: its stages are made for the run in its place. D2 settled: the message for a bad block is unchanged, so it's v0.1.3. None open.
 

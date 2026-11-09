@@ -81,12 +81,12 @@ Steps, Done when.
 Newest id first.
 
 - [A pipeline returned by a gather block](2026-0007-gather-pipeline.md),
-  roadmap 2026-0007: shipped, unreleased.
-- [Plain docs](2026-0006-plain-docs.md), roadmap 2026-0006: shipped, unreleased.
+  roadmap 2026-0007: shipped in v0.1.3.
+- [Plain docs](2026-0006-plain-docs.md), roadmap 2026-0006: shipped in v0.1.3.
 - [The reference and the how-to on MetaCPAN](2026-0005-manuals-on-metacpan.md),
   a TODO task from DBIx-Squirrel: shipped in v0.1.2.
 - [A pipeline given as a stage](2026-0004-pipeline-as-a-stage.md),
-  roadmap 2026-0004: shipped, unreleased.
+  roadmap 2026-0004: shipped in v0.1.3.
 - [A pipeline in scalar context](2026-0003-pipeline-in-scalar-context.md),
   roadmap 2026-0003: shipped in v0.1.1.
 - [An iterator after a stage dies](2026-0002-iterator-after-a-stage-dies.md),

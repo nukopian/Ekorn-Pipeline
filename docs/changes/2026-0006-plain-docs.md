@@ -1,6 +1,6 @@
 # 2026-0006. Plain docs
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.1.3
 
 **Decisions:** None.
 

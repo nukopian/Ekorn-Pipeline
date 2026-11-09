@@ -2,14 +2,19 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    A pipeline can now be used as a stage, so pipelines can be built
-    from other pipelines without ->stages, and a gather block can
-    return one. The documentation is rewritten in plainer English.
+v0.1.3 2026-11-09
+
+    A pipeline can be used as a stage, and the docs are plainer.
+
+    Pipelines can be built from other pipelines without ->stages, and a
+    gather block can return one. The documentation is rewritten in
+    plainer English.
 
     It ships three roadmap items, 2026-0004, 2026-0006 and 2026-0007.
-    Existing code is unaffected:
-    every message a pipeline gives today reads as before, and
-    DBIx::Squirrel can use this release as it stands.
+    Existing code runs as before, and every message a pipeline gives
+    today reads as before. The one exception is a subclass of
+    Ekorn::Pipeline used with an import list, which now croaks, as
+    below. DBIx::Squirrel signed this release off before it went out.
 
     - Ekorn::Pipeline->new accepts a pipeline as a stage, and splices
       its stages in where it stands. They run in the new pipeline's
@@ -24,7 +29,9 @@ Unreleased
     - is_stage, exported by Ekorn::Pipeline on request, is true for
       anything new accepts as a stage: a code reference or a pipeline.
       Use it in a function that takes its stages from the end of its
-      arguments, so it accepts pipelines too. (roadmap 2026-0004)
+      arguments, so it accepts pipelines too. Ask for v0.1.3 on the use
+      line, as v0.1.2 lets "use Ekorn::Pipeline qw(is_stage)" compile.
+      (roadmap 2026-0004)
     - Ekorn::Pipeline now has an import method, from Exporter, for
       is_stage. A subclass inherits it, so "use My::Subclass qw(name)"
       croaks unless My::Subclass exports that name; before, the list
