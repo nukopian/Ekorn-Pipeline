@@ -69,3 +69,7 @@ for a later version, to keep the change around DBIx::Squirrel small.
 With something filling the niches of DBIx::Squirrel::Context and
 Syntax::Keyword::Dynamically, a message could name a nested stage more
 helpfully than by its place in the flat list.
+
+Its questions are open, in its
+[record](docs/changes/2026-0004-pipeline-as-a-stage.md), with what it
+means for DBIx-Squirrel.
