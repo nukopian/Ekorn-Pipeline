@@ -49,30 +49,45 @@ Nothing yet.
 
 **Size:** S (2)
 
-What: make the messages, and anything like them, say what Ekorn
-accepts now that a pipeline can be a stage, in v0.2.0. Two are known.
-"Expected stage #%d to be a code reference" is raised for something
-that's neither a code reference nor a pipeline, so it should say
-"...a code reference or a pipeline". "Expected stage #%s, made with
-gather, to return one or two code references" is raised when a
-`gather` block returns something other than a stage, which may be a
-pipeline, and an optional end function. Before changing them, sweep
-the messages, DIAGNOSTICS, the reference and the how-to for others
-written before pipelines were stages, and fix those in the same
-release.
+What: every diagnostic raised because a stage wasn't a code reference
+or a pipeline says so, in v0.2.0, and so does everything that quotes
+or explains it: DIAGNOSTICS, the reference, the how-to, comments and
+tests. As Iain put it, on 2026-11-09: "We are no longer JUST accepting
+code-references." Two messages are known, worded to match
+DBIx-Squirrel's, which already reads "Expected only code references or
+pipelines after the statement for %s":
+
+- "Expected stage #%d to be a code reference" becomes "Expected stage
+  #%d to be a code reference or a pipeline". It's raised in
+  `lib/Ekorn/Pipeline.pm`'s `new`, twice, and quoted in its
+  DIAGNOSTICS, in `Errors.pm`'s `croakf` example, in the how-to's
+  example of a mistake in making a pipeline, and in the reference's
+  `new` section and Diagnostics.
+- "Expected stage #%s, made with gather, to return one or two code
+  references" is raised when a `gather` block returns something other
+  than a stage (a code reference or a pipeline) and an optional end
+  function, so it says that. It's quoted in both modules' DIAGNOSTICS
+  and the reference's `gather` section, whose notes explaining the old
+  wording go.
+
+"Expected a code reference" stays: it's raised for a `gather` block,
+an iterator's source, and the blocks of `take_while`, `drop_while`,
+`collect` and `peek`, none of which is a stage. Before the change,
+sweep `lib`, `t` and `docs` for any other text written when a stage
+could only be a code reference.
 
 Why: a message is the first thing a user reads when something goes
-wrong, and these two point them to the wrong fix. 2026-0004 left them
-unchanged (its D3), and 2026-0007 likewise, as a message change makes
-v0.2.0. Iain put this first in Next on 2026-11-09, after v0.1.3, to
-gather such fixes into that release.
+wrong, and these point them to the wrong fix. 2026-0004 and 2026-0007
+left them unchanged (2026-0004's D3), as a message change makes
+v0.2.0. Iain put this first in Next on 2026-11-09, for that release,
+and asked, through DBIx-Squirrel's session, that comments be covered
+too.
 
-Done when: every message, and every DIAGNOSTICS entry, names what's
-accepted; the reference and the how-to no longer explain old wording
-away; the tests check the new messages; and DBIx-Squirrel has a task
-to test v0.2.0 and move its range to `>= v0.2.0, < v0.3.0`, as
-CLAUDE.md's rule for v0.2.0 says, with its own copies of the messages
-(its DIAGNOSTICS and reference) changed to match.
+Done when: every such message, DIAGNOSTICS entry, comment, and
+passage in the reference and the how-to names what's accepted; the
+tests check the new wording; and DBIx-Squirrel has a task to test
+v0.2.0, move its range to `>= v0.2.0, < v0.3.0`, and change its copies
+of the two messages to match, as CLAUDE.md's rule for v0.2.0 says.
 
 ## Later
 
