@@ -29,9 +29,8 @@ What Ekorn asked for:
 - **One trap, for Writing functions that take stages.** A function that
   takes options in a hash reference before its stages, as `iterate`
   takes attributes, must test `is_stage` first. Ref::Util's
-  `is_hashref`, and `ref  eq 'HASH'` after `reftype`, are true of a
-  pipeline, a blessed hash, so a pipeline there is taken for the
-  options. DBIx::Squirrel had this bug, in a place its task didn't
+  `is_hashref`, like `reftype($x) eq 'HASH'`, is true of a pipeline, a
+  blessed hash, so a pipeline there is taken for the options. DBIx::Squirrel had this bug, in a place its task didn't
   list. A sentence in that section might save others from it.
 - **A version on the use line.** With v0.1.2 installed,
   `use Ekorn::Pipeline qw(is_stage)` compiles without complaint, as
