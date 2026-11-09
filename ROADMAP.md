@@ -41,53 +41,19 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0008. Messages that say what's accepted
 
 **Size:** S (2)
 
-What: every diagnostic raised because a stage wasn't a code reference
-or a pipeline says so, in v0.2.0, and so does everything that quotes
-or explains it: DIAGNOSTICS, the reference, the how-to, comments and
-tests. As Iain put it, on 2026-11-09: "We are no longer JUST accepting
-code-references." Two messages are known, worded to match
-DBIx-Squirrel's, which already reads "Expected only code references or
-pipelines after the statement for %s":
+Every diagnostic raised because a stage wasn't a code reference or a
+pipeline says so, and so does everything that quotes or explains it,
+in v0.2.0. Iain moved it to Now on 2026-11-09. Its
+[record](docs/changes/2026-0008-messages-say-whats-accepted.md) has
+the plan.
 
-- "Expected stage #%d to be a code reference" becomes "Expected stage
-  #%d to be a code reference or a pipeline". It's raised in
-  `lib/Ekorn/Pipeline.pm`'s `new`, twice, and quoted in its
-  DIAGNOSTICS, in `Errors.pm`'s `croakf` example, in the how-to's
-  example of a mistake in making a pipeline, and in the reference's
-  `new` section and Diagnostics.
-- "Expected stage #%s, made with gather, to return one or two code
-  references" is raised when a `gather` block returns something other
-  than a stage (a code reference or a pipeline) and an optional end
-  function, so it says that. It's quoted in both modules' DIAGNOSTICS
-  and the reference's `gather` section, whose notes explaining the old
-  wording go.
+## Next
 
-"Expected a code reference" stays: it's raised for a `gather` block,
-an iterator's source, and the blocks of `take_while`, `drop_while`,
-`collect` and `peek`, none of which is a stage. Before the change,
-sweep `lib`, `t` and `docs` for any other text written when a stage
-could only be a code reference.
-
-Why: a message is the first thing a user reads when something goes
-wrong, and these point them to the wrong fix. 2026-0004 and 2026-0007
-left them unchanged (2026-0004's D3), as a message change makes
-v0.2.0. Iain put this first in Next on 2026-11-09, for that release,
-and asked, through DBIx-Squirrel's session, that comments be covered
-too.
-
-Done when: every such message, DIAGNOSTICS entry, comment, and
-passage in the reference and the how-to names what's accepted; the
-tests check the new wording; and DBIx-Squirrel has a task to test
-v0.2.0, move its range to `>= v0.2.0, < v0.3.0`, and change its copies
-of the two messages to match, as CLAUDE.md's rule for v0.2.0 says.
+Nothing yet.
 
 ## Later
 
