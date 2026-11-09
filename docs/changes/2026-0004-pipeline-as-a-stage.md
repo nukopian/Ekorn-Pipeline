@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 open: compose in place, or not. D2 open: export an `is_stage` test. D3 open: how messages name a nested stage. D4 open: v0.1.3 or v0.2.0.
+**Decisions:** D1 settled: compose in place, as if given its stages(). D2 open: export an `is_stage` test. D3 open: how messages name a nested stage. D4 open: v0.1.3 or v0.2.0.
 
 **Origin:** roadmap, added 2026-11-07, as an idea left over from
 2026-0001, whose record has the prototype; opened on 2026-11-09, when
@@ -66,13 +66,17 @@ bb218508ae7a747f8e00906c04a05b063ad8bb8d.
 
 ## Decisions
 
-- [ ] **D1.** Should `new` compose a pipeline given as a stage in
+- [x] **D1.** Should `new` compose a pipeline given as a stage in
   place, its stages running in the outer pipeline's run as if listed
   there? The alternatives were to keep refusing it, or to run it once
   for each value, as a wrapper does, which makes `take` inside it mean
   something other than its obvious reading. The prototype found
   composing correct, as fast as listing the stages, and small.
-  Recommended: compose in place, and keep `stages()`.
+  Composed in place, decided on 2026-11-09: a pipeline given as a stage
+  means what giving its `stages()` there means, so `new($p, take(10))`
+  is `new($p->stages, take(10))`. Iain: "as if we'd done
+  `$pipeline->stages()`". So the two can't differ, and `stages()`
+  stays.
 - [ ] **D2.** Should Ekorn::Pipeline export an `is_stage` test, true
   for a code reference (a `gather` stage among them) or an
   `Ekorn::Pipeline`, for DBIx::Squirrel and other modules taking stages
