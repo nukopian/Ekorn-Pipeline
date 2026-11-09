@@ -6,9 +6,8 @@
 ce35c04334e0b9138bd90ac193c76a7c50f02be4)
 **Waiting on:** DBIx-Squirrel's sign-off: a message in this file from
 its session, saying it has used `is_stage` and a pipeline as a stage
-against Ekorn-Pipeline's `develop`, and that its tests pass; and roadmap
-2026-0006, plain docs, which Iain put ahead of the release on
-2026-11-09
+against Ekorn-Pipeline's `develop`, and that its tests pass. (Roadmap
+2026-0006, plain docs, which Iain put ahead of the release, is done.)
 
 **What:** release v0.1.3, with roadmap 2026-0004 (a pipeline given as
 a stage, nested names in messages, `is_stage`) and the README's
