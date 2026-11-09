@@ -39,7 +39,9 @@ sub new ($class, @given) {
         croakf 'Expected stage #%d to be a code reference', $n
             unless is_stage($stage);
         if ($stage isa 'Ekorn::Pipeline') {
-            my($inner, $inner_names) = _composed($stage, $n);
+            my($inner, $inner_names) = _composed($stage);
+            croakf 'Expected stage #%d to be a code reference', $n
+                unless $inner_names;
             push @stages, @$inner;
             push @names,  map { "$n.$_" } @$inner_names;
             next;
@@ -61,12 +63,12 @@ sub new ($class, @given) {
     }, $class;
 }
 
-# Return the stages of a pipeline given as stage #$n, from its stages
+# Return the stages of a pipeline given as a stage, from its stages
 # method, as giving its stages would, and their names: its own, if the
 # method returns the stages it was made with, as it does unless a
-# subclass overrides it, or else their places in what it returns, which
-# must be code references.
-sub _composed ($pipeline, $n) {
+# subclass overrides it, or else their places in what it returns. The
+# names are undefined if what it returns isn't all code references.
+sub _composed ($pipeline) {
     my @stages = $pipeline->stages;
     my $made   = $pipeline->{stages};
     my $same   = @stages == @$made;
@@ -75,8 +77,7 @@ sub _composed ($pipeline, $n) {
         $same = (refaddr($stages[$i]) // 0) == refaddr($made->[$i]);
     }
     return \@stages, $pipeline->{names} if $same;
-    croakf 'Expected stage #%d to be a code reference', $n
-        if grep { !is_coderef($_) } @stages;
+    return \@stages, undef              if grep { !is_coderef($_) } @stages;
     return \@stages, [1 .. @stages];
 }
 
@@ -105,23 +106,50 @@ sub ending () {
     return $running{ending};
 }
 
-# Return a closure handing out, one per call, the values from $source run
-# through the stages in @$stages, named in messages by @$names.
-sub _iterator ($stages, $names, $source) {
-    my(@stages, @ends);
-    for my $n (0 .. $#$stages) {
-        my $stage = $stages->[$n];
+# Make the stages of a run from @$stages, named by @$names, into the
+# lists in %$run: each gather stage's block is called, so it's made
+# afresh, and a pipeline it returns as its stage has its stages made in
+# its place, followed by the block's end function, if any, on a stage
+# of its own that passes values on.
+sub _make_run ($stages, $names, $run) {
+    for my $i (0 .. $#$stages) {
+        my($stage, $name) = ($stages->[$i], $names->[$i]);
         unless ($stage isa 'Ekorn::Pipeline::Gather') {
-            $stages[$n] = $stage;
+            push @{ $run->{stages} }, $stage;
+            push @{ $run->{names} },  $name;
+            push @{ $run->{ends} },   undef;
             next;
         }
         my @made = $stage->();
+        my($inner, $inner_names)
+            = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
         croakf
             'Expected stage #%s, made with gather, to return one or two code references',
-            $names->[$n]
-            unless (@made == 1 || @made == 2) && @made == grep { is_coderef($_) } @made;
-        ($stages[$n], $ends[$n]) = @made;
+            $name
+            unless (@made == 1 || @made == 2)
+            && ($inner ? $inner_names : is_coderef($made[0]))
+            && (@made == 1 || is_coderef($made[1]));
+        if ($inner) {
+            _make_run($inner, [map { "$name.$_" } @$inner_names], $run);
+            next unless $made[1];
+            @made = (sub ($value) { $value }, $made[1]);
+        }
+        push @{ $run->{stages} }, $made[0];
+        push @{ $run->{names} },  $name;
+        push @{ $run->{ends} },   $made[1];
     }
+    return;
+}
+
+
+# Return a closure handing out, one per call, the values from $source run
+# through the stages in @$stages, named in messages by @$names.
+sub _iterator ($stages, $names, $source) {
+    my %run = (stages => [], names => [], ends => []);
+    _make_run($stages, $names, \%run);
+    my @stages = @{ $run{stages} };
+    my @ends   = @{ $run{ends} };
+    $names = $run{names};
 
     # Each value waiting to go through a stage, as the stage's index, the
     # value, and whether it came from an end, the next on top. A value a
@@ -454,7 +482,8 @@ The source given to L</iterator> wasn't a code reference.
 =item Expected stage #%s, made with gather, to return one or two code references
 
 The block given to L<Ekorn::Pipeline::Gather/gather> for that stage
-returned something other than a stage, or a stage and an end function.
+returned something other than a stage (a code reference or a
+pipeline), or a stage and an end function.
 
 =item Pipeline stage #%s failed at %s line %d:
 

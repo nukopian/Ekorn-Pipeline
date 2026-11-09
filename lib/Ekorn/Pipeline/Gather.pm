@@ -51,9 +51,9 @@ Ekorn::Pipeline::Gather - a stage made afresh for each run, told when the values
 
 =head1 DESCRIPTION
 
-A plain stage, a code reference, is called with each value in turn. It
-can't tell when the last value has gone by. Whatever it keeps in a closure
-stays there from one run of its pipeline to the next. A stage that
+A plain stage, a code reference, is called with each value in turn.
+It can't tell when the last value has gone by. Whatever it keeps in a
+closure stays there from one run of its pipeline to the next. A stage that
 gathers values, to give them in batches or all together, needs both:
 fresh state on each run, and a call at the end.
 
@@ -64,8 +64,8 @@ returns:
 
 =over
 
-=item * the stage, a code reference, called with each value as any
-stage is (a pipeline isn't accepted here);
+=item * the stage: a code reference, called with each value as any
+stage is, or a pipeline;
 
 =item * optionally, a function called with no arguments, and C<$_>
 undefined, once the values have run out.
@@ -83,6 +83,27 @@ end later in the pipeline gets everything sent to it.
 
 Make any stage that keeps state, such as a count, with C<gather>, even
 without an end function, so that it starts afresh on each run.
+
+=head2 A pipeline as the stage
+
+A pipeline returned as the stage has its stages made for the run in
+its place, as if they had been given to the pipeline there. A
+C<gather> stage inside it is made afresh too, and a stop inside it
+ends the whole run. So the block can build a pipeline for each run,
+or choose one:
+
+    # The first $n values of each run, numbered from 1
+    sub first_numbered ($n) {
+        return gather {
+            my $i = 0;    # this run's
+            Ekorn::Pipeline->new(sub { ++$i . ". $_" }, take($n));
+        };
+    }
+
+The block's end function, if it returns one, is called after the ends
+of the pipeline's own stages. A stage inside the pipeline is named in
+messages by its position in each, as C<#2.3> for the third stage of
+the pipeline returned by stage #2.
 
 =head2 Stopping
 
@@ -124,8 +145,10 @@ C<gather> was given something other than a block or code reference.
 
 =item Expected stage #%s, made with gather, to return one or two code references
 
-A block given to C<gather> returned something other than a stage, or a
-stage and an end function. It's reported when a run starts: when the
+A block given to C<gather> returned something other than a stage (a
+code reference or a pipeline), or a stage and an end function. The
+message predates pipelines as stages, and is unchanged so as not to
+break code matching it. It's reported when a run starts: when the
 pipeline is called with values, or an iterator is made from it. The
 stage is named by its position, as L<Ekorn::Pipeline/DIAGNOSTICS>
 describes.

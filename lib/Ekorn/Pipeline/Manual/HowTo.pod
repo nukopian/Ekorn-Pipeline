@@ -479,6 +479,11 @@ fresh each time:
     my($again) = $p->('a');
     say $again;    # 1. a
 
+The block can return a pipeline instead of a stage. Its stages are
+made for the run in its place, so the block can build a pipeline, or
+choose one, on each run. L<A pipeline as the stage|Ekorn::Pipeline::Manual::Reference/"A pipeline as the stage">
+in the reference has an example.
+
 =over 4
 
 B<For stage authors:> put anything a stage keeps, even a count, in

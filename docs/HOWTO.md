@@ -464,6 +464,11 @@ my($again) = $p->('a');
 say $again;    # 1. a
 ```
 
+The block can return a pipeline instead of a stage. Its stages are
+made for the run in its place, so the block can build a pipeline, or
+choose one, on each run. [A pipeline as the stage](REFERENCE.md#a-pipeline-as-the-stage)
+in the reference has an example.
+
 > **For stage authors:** put anything a stage keeps, even a count, in
 > a `gather` block. Otherwise a stage given to several pipelines, or
 > run by two iterators, carries what it kept from one into the next.

@@ -545,16 +545,17 @@ Returns a stage that a pipeline makes afresh at the start of each run,
 by calling the block. Whatever the block declares is fresh on each
 run. The block returns:
 
-- the stage, a code reference, called with each value, like any stage
-  (a pipeline isn't accepted here);
+- the stage: a code reference, called with each value like any stage,
+  or a pipeline (see [A pipeline as the stage](#a-pipeline-as-the-stage));
 - optionally, an end function, called once the values run out.
 
 `gather` croaks "Expected a code reference" if it's given something
 other than a block or code reference. The block is called when a run
 starts, not when `gather` is called: when the pipeline is called with
-values, or an iterator is made from it. A block that returns something
-other than one or two code references is reported then, as "Expected
-stage #%s, made with gather, to return one or two code references".
+values, or an iterator is made from it. A block that returns anything
+else is reported then, as "Expected stage #%s, made with gather, to
+return one or two code references". (The message predates pipelines
+as stages, and is unchanged so as not to break code matching it.)
 
 What `gather` returns is a code reference, blessed into
 Ekorn::Pipeline::Gather, so it can go wherever a stage can.
@@ -610,6 +611,28 @@ say scalar Ekorn::Pipeline->new(average())->();    # 0
 
 The second line prints 0, the number of results. With no values, the
 end returns nothing.
+
+### A pipeline as the stage
+
+A pipeline returned by a `gather` block as its stage has its stages
+made for the run in its place, as if they had been given there. A
+`gather` stage inside it is made afresh too, and a stop inside it ends
+the whole run. So the block can build a pipeline for each run, or
+choose one:
+
+```perl
+my $run   = 0;
+my $alter = Ekorn::Pipeline->new(gather {
+    Ekorn::Pipeline->new($run++ % 2 ? sub { uc } : sub { lc }, take(2))
+});
+say join ' ', $alter->(qw(A b C));    # a b
+say join ' ', $alter->(qw(A b C));    # A B
+```
+
+The block's end function, if it returns one, is called after the ends
+of the pipeline's own stages. A stage inside the pipeline is named in
+messages by its position in each, as `#2.3` for the third stage of the
+pipeline returned by stage #2.
 
 > **For stage authors:** a stage that holds values should give them
 > up in its end, as `batch` and `collect` do, so none are lost when the
@@ -1054,8 +1077,8 @@ the line of the caller's code that caused it.
   a code reference.
 - **Expected stage #%s, made with gather, to return one or two code
   references:** the block given to `gather` for that stage returned
-  something other than a stage, or a stage and an end function.
-  Reported when the run starts.
+  something other than a stage (a code reference or a pipeline), or a
+  stage and an end function. Reported when the run starts.
 - **Pipeline stage #%s failed at %s line %d:** a stage, or its end
   function, died with a message, which follows, indented. An exception
   object is thrown on as it is.

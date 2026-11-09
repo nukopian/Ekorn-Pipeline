@@ -10,9 +10,10 @@ against Ekorn-Pipeline's `develop`, and that its tests pass. (Roadmap
 2026-0006, plain docs, which Iain put ahead of the release, is done.)
 
 **What:** release v0.1.3, with roadmap 2026-0004 (a pipeline given as
-a stage, nested names in messages, `is_stage`) and the README's
-MetaCPAN and Kwalitee badges, and 2026-0006's plainer docs, as
-`Changes` says under Unreleased.
+a stage, nested names in messages, `is_stage`), 2026-0007 (a pipeline
+returned by a `gather` block), 2026-0006's plainer docs, and the
+README's MetaCPAN and Kwalitee badges, as `Changes` says under
+Unreleased. DBIx-Squirrel's sign-off covers 2026-0007 too.
 Iain gated the release on DBIx-Squirrel's sign-off on 2026-11-09:
 DBIx-Squirrel is the first user, and its task (its `TODO.md`, task 1)
 tries the feature in earnest before CPAN has it.
