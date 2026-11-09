@@ -436,7 +436,7 @@ L</A pipeline as a stage> describes.
 
 =head2 is_stage
 
-    use Ekorn::Pipeline qw(is_stage);
+    use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
     is_stage($thing)
 
@@ -454,7 +454,16 @@ included:
         ...
     }
 
-It's exported on request. Exporter provides the C<import> method,
+It's exported on request. It's new in v0.1.3, so ask for that version
+on the C<use> line, as above: v0.1.2 has no C<import>, so without the
+version, C<use Ekorn::Pipeline qw(is_stage)> compiles under it, and
+fails only when C<is_stage> is called.
+
+A pipeline is a blessed hash, so C<is_hashref> is true of one too. A
+function that takes a hash reference of options before its stages
+should test C<is_stage> first, or it takes a pipeline for the options.
+
+Exporter provides the C<import> method,
 and a subclass inherits it, so C<use My::Pipeline qw(name)> croaks
 unless the subclass exports C<name> itself.
 

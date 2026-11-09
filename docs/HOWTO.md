@@ -679,10 +679,12 @@ caller's stages start by counting. Take the stages off the end with
 `is_stage`, from Ekorn::Pipeline. It's the test `new` uses, so a
 caller can pass a pipeline as a stage too. The values themselves
 mustn't be code references or pipelines, or the last of them would be
-taken for stages:
+taken for stages. And a function that takes a hash reference of
+options first should test `is_stage` before `is_hashref`, which is
+true of a pipeline too:
 
 ```perl
-use Ekorn::Pipeline qw(is_stage);
+use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
 # The values given, through the stages after them.
 sub through (@args) {

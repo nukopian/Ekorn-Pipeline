@@ -100,10 +100,13 @@ say join ' ', numbers(drop(2), take(3));    # 3 4 5
 
 ```perl
 use Ekorn::Pipeline;
-use Ekorn::Pipeline qw(is_stage);
+use Ekorn::Pipeline v0.1.3 qw(is_stage);
 ```
 
-It exports nothing by default, and `is_stage` on request.
+It exports nothing by default, and `is_stage` on request. `is_stage`
+is new in v0.1.3, so ask for that version on the `use` line, as above.
+Without it, `use Ekorn::Pipeline qw(is_stage)` compiles under v0.1.2,
+which has no `import`, and fails only when `is_stage` is called.
 
 Its `import` comes from Exporter, so a subclass inherits it. `use
 My::Pipeline;` imports nothing, but `use My::Pipeline qw(name)` croaks
@@ -268,7 +271,7 @@ explains.
 ### is_stage
 
 ```perl
-use Ekorn::Pipeline qw(is_stage);
+use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
 is_stage($thing)
 ```
@@ -1032,9 +1035,15 @@ say join ' ', Ekorn::Pipeline->new(My::Stages::Numbers::sum_up_to(10))->(4, 3, 2
   pipeline as a stage, as they can to `new`. The values mustn't be
   code references or pipelines themselves, or the last of them would
   be taken for stages.
+- **Test `is_stage` before `is_hashref`,** if the function takes a hash
+  reference of options before its stages. A pipeline is a blessed hash,
+  so `is_hashref` (or `reftype($x) eq 'HASH'`) is true of it too, and a
+  pipeline would be taken for the options:
+  `is_hashref($x) && !is_stage($x)`. Ref::Util's `is_plain_hashref`,
+  false for any blessed hash, avoids it too.
 
 ```perl
-use Ekorn::Pipeline qw(is_stage);
+use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
 # The values given, up to the stages at the end, through those stages.
 sub only (@args) {

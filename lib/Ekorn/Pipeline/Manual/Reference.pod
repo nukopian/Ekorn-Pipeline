@@ -178,9 +178,12 @@ after it.
 =head1 Pipelines: Ekorn::Pipeline
 
     use Ekorn::Pipeline;
-    use Ekorn::Pipeline qw(is_stage);
+    use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
-It exports nothing by default, and C<is_stage> on request.
+It exports nothing by default, and C<is_stage> on request. C<is_stage>
+is new in v0.1.3, so ask for that version on the C<use> line, as above.
+Without it, C<use Ekorn::Pipeline qw(is_stage)> compiles under v0.1.2,
+which has no C<import>, and fails only when C<is_stage> is called.
 
 Its C<import> comes from Exporter, so a subclass inherits it. C<use
 My::Pipeline;> imports nothing, but C<use My::Pipeline qw(name)> croaks
@@ -358,7 +361,7 @@ explains.
 
 =head2 is_stage
 
-    use Ekorn::Pipeline qw(is_stage);
+    use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
     is_stage($thing)
 
@@ -1278,9 +1281,18 @@ pipeline as a stage, as they can to C<new>. The values mustn't be
 code references or pipelines themselves, or the last of them would
 be taken for stages.
 
+=item *
+
+**Test C<is_stage> before C<is_hashref>,** if the function takes a hash
+reference of options before its stages. A pipeline is a blessed hash,
+so C<is_hashref> (or C<reftype($x) eq 'HASH'>) is true of it too, and a
+pipeline would be taken for the options:
+C<is_hashref($x) && !is_stage($x)>. Ref::Util's C<is_plain_hashref>,
+false for any blessed hash, avoids it too.
+
 =back
 
-    use Ekorn::Pipeline qw(is_stage);
+    use Ekorn::Pipeline v0.1.3 qw(is_stage);
 
     # The values given, up to the stages at the end, through those stages.
     sub only (@args) {
