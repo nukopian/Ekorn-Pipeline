@@ -60,9 +60,11 @@ sub tracks (@stages) {
 
 ### Run values through stages
 
-`new` makes a pipeline from a list of stages, each a code reference.
-Call the pipeline with values, and it returns what comes out of the
-last stage:
+`new` makes a pipeline from a list of stages. Each stage is a code
+reference, or another pipeline (see
+[Use a pipeline in another](#use-a-pipeline-in-another)). Call the
+pipeline with values, and it returns what comes out of the last
+stage:
 
 ```perl
 my $titles = Ekorn::Pipeline->new(sub { $_->{title} });
@@ -696,9 +698,9 @@ the line is the caller's.
 
 ### Name the stages you use often
 
-Stages are code references, so a function can make one. A set of such
-functions becomes a vocabulary, which grows in the callers' code, not
-the author's:
+Stages are code references or pipelines, so a function can make one.
+A set of such functions becomes a vocabulary, which grows in the
+callers' code, not the author's:
 
 ```perl
 sub by ($artist) { sub { $_->{artist} eq $artist ? $_ : () } }

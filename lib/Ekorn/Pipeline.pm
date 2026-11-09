@@ -236,11 +236,15 @@ Ekorn::Pipeline - run values through a list of stages
 
 =head1 DESCRIPTION
 
-A pipeline is a list of stages, each a code reference. A stage is
-called with one value, both as its argument and in C<$_>. It can name
-the value with a signature, C<sub ($row) { $row-E<gt>[1] }>, or use
-C<$_>, C<sub { $_-E<gt>[1] }>. C<$_> is localised for each call, so the
-caller's is left alone. A stage returns a list:
+A pipeline is a list of stages. A stage is a code reference, or
+another pipeline, which stands for its own stages (see
+L</A pipeline as a stage>).
+
+A code reference is called with one value, both as its argument and
+in C<$_>. It can name the value with a signature,
+C<sub ($row) { $row-E<gt>[1] }>, or use C<$_>, C<sub { $_-E<gt>[1] }>.
+C<$_> is localised for each call, so the caller's is left alone. It
+returns a list:
 
 =over
 

@@ -105,8 +105,9 @@ L<The modules|/"The modules">
     use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
     use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
 
-    # A pipeline: a list of stages, each a code reference given one value,
-    # in $_ and as its argument, returning nothing, one value or several.
+    # A pipeline: a list of stages. A stage is a code reference given one
+    # value, in $_ and as its argument, returning nothing, one value or
+    # several; or another pipeline, standing for its stages.
     my $p = Ekorn::Pipeline->new(
         sub { $_ % 3 ? $_ : () },    # filter: drop multiples of 3
         sub { $_ * 10 },             # map: ten times each
@@ -138,9 +139,10 @@ B<Value:> anything a pipeline is given, or a stage returns. C<undef>,
 
 =item *
 
-B<Stage:> a code reference, called with one value, returning a list
-of values: none, one or several. A pipeline can also be used as a
-stage (see L<A pipeline as a stage|/"A pipeline as a stage">).
+B<Stage:> a code reference or another pipeline. A code reference
+is called with one value, and returns a list of values: none, one or
+several. A pipeline stands for its own stages (see
+L<A pipeline as a stage|/"A pipeline as a stage">).
 
 =item *
 
@@ -392,6 +394,10 @@ called from a stage while C<ending> is true, C<ending> is false until
 one of the inner pipeline's own end functions is called.
 
 =head1 How values go through stages
+
+This section describes stages that are code references. A pipeline
+given as a stage stands for its stages, and each of them behaves as
+described here.
 
 =head2 One value at a time
 

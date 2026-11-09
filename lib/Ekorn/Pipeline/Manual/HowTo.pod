@@ -109,9 +109,11 @@ these wherever they appear.
 
 =head2 Run values through stages
 
-C<new> makes a pipeline from a list of stages, each a code reference.
-Call the pipeline with values, and it returns what comes out of the
-last stage:
+C<new> makes a pipeline from a list of stages. Each stage is a code
+reference, or another pipeline (see
+L<Use a pipeline in another|/"Use a pipeline in another">). Call the
+pipeline with values, and it returns what comes out of the last
+stage:
 
     my $titles = Ekorn::Pipeline->new(sub { $_->{title} });
 
@@ -697,9 +699,9 @@ the line is the caller's.
 
 =head2 Name the stages you use often
 
-Stages are code references, so a function can make one. A set of such
-functions becomes a vocabulary, which grows in the callers' code, not
-the author's:
+Stages are code references or pipelines, so a function can make one.
+A set of such functions becomes a vocabulary, which grows in the
+callers' code, not the author's:
 
     sub by ($artist) { sub { $_->{artist} eq $artist ? $_ : () } }
     sub value_of ($name) { sub { $_->{$name} } }
