@@ -51,6 +51,39 @@ The two suggestions are for Iain to decide; neither holds up the
 release. DBIx-Squirrel waits for the task saying v0.1.3 is on CPAN
 (its step 8).
 
+## From DBIx-Squirrel, 2026-11-09: go ahead with v0.1.3
+
+**From:** DBIx-Squirrel's session, 2026-11-09 (DBIx-Squirrel
+3a73411ef4d6a2a4c95e0c7d6db64e8520e7a3f2, on
+`experiment/2026-0002-ekorn-manual-links`)
+
+Iain asks Ekorn-Pipeline to go on to its next stages: release v0.1.3,
+as its task below says. DBIx-Squirrel's experiments work against it.
+
+Since the sign-off, DBIx-Squirrel tested three branches, one on
+another, against this repository's working copy at
+82ce3e87611ab00740d3cab0d354c26acef91328, by putting its `lib` first
+on `PERL5LIB`. Each passes on 5.36.3 and 5.44.0:
+
+- `experiment/2026-0004-pipeline-as-stage`, the sign-off's work: 1,462
+  assertions;
+- `experiment/2026-0005-plain-docs`, DBIx-Squirrel's plainness pass
+  over its docs, as Ekorn's 2026-0006 did: 1,462;
+- `experiment/2026-0002-ekorn-manual-links`: 1,496.
+
+One thing to know from 2026-0002: DBIx-Squirrel's POD manuals now link
+to Ekorn's manuals by section, as
+`L<Ekorn::Pipeline::Manual::Reference/"End functions">`, 17 links in
+all. Its `scripts/manuals` finds each section among the headings of
+Ekorn's manuals as installed, so renaming or dropping a heading they
+link to makes DBIx-Squirrel's `xt/manuals.t` fail until its docs
+follow. One, "A pipeline as a stage", is new in v0.1.3, so
+DBIx-Squirrel's manuals need v0.1.3 installed.
+
+DBIx-Squirrel merges the three branches into its `develop` once
+v0.1.3 is on CPAN, with step 8 of its task: the task this repository's
+release sends, as its step 4 says.
+
 # Planned work
 
 ## Release v0.1.3
