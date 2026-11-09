@@ -6,24 +6,23 @@ Stages for any function: let the caller finish the job.
 
 A function that hands out values takes a list of *stages* from its
 caller, as its last arguments, and runs each value through them. A
-stage can change a value, drop it, or turn it into several, and can
-stop the pipeline early, so that the function makes no more values
+stage can change a value, drop it, or turn it into several. It can
+also stop the pipeline early, so the function makes no more values
 than its caller wants.
 
 This reference describes every module, function and method, and how a
-pipeline behaves, with examples; [the how-to](HOWTO.md) shows how to do
-common tasks with them, one recipe at a time. Notes marked **For stage
-authors** are for those writing stages for others, and
-[Writing stages](#writing-stages) brings them together. Each module's
-own POD says the same things more briefly, and is the authority where
-the two differ.
+pipeline behaves, with examples. [The how-to](HOWTO.md) shows how to
+do common tasks, one recipe at a time. Notes marked **For stage
+authors** are for people writing stages for others;
+[Writing stages](#writing-stages) collects them. Each module's POD
+says the same more briefly, and is the authority where they differ.
 
 Ekorn::Pipeline needs Perl 5.36 or later. Its version is 0.x, so the
-interface may still change before 1.0, but the version says when it
-can: a release that only fixes or adds moves the last number, as
-v0.1.1, and one that changes how stages behave, or drops or renames a
-name, moves the middle one, as v0.2.0. [Changes](../Changes) says what
-each release changed.
+interface may still change before 1.0, but the version number says
+when. A release that only fixes or adds moves the last number, as in
+v0.1.1. One that changes how stages behave, or drops or renames a
+name, moves the middle number, as in v0.2.0. [Changes](../Changes)
+says what each release changed.
 
 ## Contents
 
@@ -86,13 +85,14 @@ say join ' ', numbers(drop(2), take(3));    # 3 4 5
 - **Pipeline:** a list of stages, made with `Ekorn::Pipeline->new`.
 - **Run:** one call of a pipeline with values, or one iterator made
   from it. Stages made with `gather` start afresh on each run.
-- **Source:** a code reference an iterator calls for values, returning
+- **Source:** a code reference an iterator calls for values. It returns
   the next value or values, or an empty list when there are no more.
 - **Result:** a value that comes out of the last stage.
 - **Stop:** the exception a stage throws to end its run early, with
   `Stop` or `Ekorn::Pipeline::Stop->throw`.
-- **End function:** a function a `gather` stage can have, called once
-  the values run out, whose values go on through the stages after it.
+- **End function:** a function a `gather` stage can have. It's called
+  once the values run out, and its values go on through the stages
+  after it.
 
 ## Pipelines: Ekorn::Pipeline
 
@@ -110,11 +110,12 @@ my $p = Ekorn::Pipeline->new(@stages);
 ```
 
 Returns a pipeline that runs values through `@stages`, in order. Each
-stage must be a code reference or a pipeline; anything else croaks,
-naming its position: "Expected stage #2 to be a code reference". A stage
-can be any code reference: an anonymous `sub`, a reference to a named
-one, such as `\&trim`, a stage made by a function, such as `take(10)`,
-or one made with `gather`.
+stage must be a code reference or a pipeline. Anything else croaks,
+naming its position: "Expected stage #2 to be a code reference".
+
+Any code reference will do: an anonymous `sub`, a reference to a named
+one such as `\&trim`, a stage made by a function such as `take(10)`, or
+one made with `gather`.
 
 With no stages, a pipeline returns its values unchanged.
 
@@ -157,9 +158,9 @@ my $count   = $p->(@values);
 ```
 
 A pipeline is an object that can be called as a code reference. Called
-with values, it runs each of them through the stages, in order, and
-returns what comes out of the last: in list context, the results; in
-scalar context, how many there are.
+with values, it runs each of them through the stages, in order. In
+list context it returns the results; in scalar context, how many there
+are.
 
 ```perl
 my $evens = Ekorn::Pipeline->new(sub { $_ % 2 ? () : $_ });
@@ -168,7 +169,7 @@ my $count = $evens->(1 .. 6);
 say "@evens, $count of them";    # 2 4 6, 3 of them
 ```
 
-Each call is a run. A pipeline can be called as often as you like, and
+Each call is a run. You can call a pipeline as often as you like, even
 from inside one of its own stages.
 
 ### iterator
@@ -178,34 +179,34 @@ my $next = $p->iterator($source);
 while (my($result) = $next->()) { ... }
 ```
 
-Returns a closure handing out, one per call, the values that come out
-of the stages, pulling values from `$source` as they're needed.
-`$source` is a code reference, called with no arguments, returning the
-next value, several values, or an empty list when there are no more. It
-croaks "Expected a code reference" if `$source` isn't one.
+Returns a closure that hands out the results one per call, pulling
+values from `$source` as they're needed. `$source` is a code reference
+called with no arguments. It returns the next value, several values,
+or an empty list when there are no more. If `$source` isn't a code
+reference, `iterator` croaks "Expected a code reference".
 
 - The source is called only when a result is wanted, and only once the
-  values from its last call have all gone through the stages, so a
-  source reading a file, a socket or a database reads no more than its
-  caller asks for.
-- The closure returns one result per call, and an empty list once the
-  results run out, on every call after that. Read it in list context,
-  as `my($x) = $next->()`, so that a result of `undef`, 0 or `''` isn't
+  values from its last call have all gone through the stages. A source
+  reading a file, a socket or a database reads no more than its caller
+  asks for.
+- The closure returns one result per call. Once the results run out,
+  it returns an empty list, on every call. Read it in list context, as
+  `my($x) = $next->()`, so that a result of `undef`, 0 or `''` isn't
   taken for the end.
 - Once the source has returned an empty list, or a stage has stopped
   the pipeline, the source isn't called again.
 - The end functions of `gather` stages are called once the source
   runs out, or after a stop, before the closure returns an empty list.
 - If a stage or an end function dies, the call dies with it, and the
-  iterator has ended: every call after returns an empty list, nothing
-  waiting goes on, no end function is called, and the source isn't
-  called again, as when a pushed run dies. So an end such as
-  `collect`'s never reports on a run that lost values. To skip a bad
-  value and carry on, catch the error inside the stage, as the how-to's
-  "Catch errors in a stage, but not a stop" does.
+  iterator has ended, as a pushed run does. Every call after returns
+  an empty list. Nothing waiting goes on, no end function is called,
+  and the source isn't called again. So an end such as `collect`'s
+  never reports on a run that lost values. To skip a bad value and
+  carry on, catch the error inside the stage, as in the how-to's
+  "Catch errors in a stage, but not a stop".
 
-Each iterator is a run of its own, so two iterators from one pipeline
-can be read in turn, and each has its own `gather` stages:
+Each iterator is a run of its own. Two iterators from one pipeline can
+be read in turn, and each has its own `gather` stages:
 
 ```perl
 my $numbered = Ekorn::Pipeline->new(gather { my $n = 0; sub { ++$n . $_ } });
@@ -217,9 +218,9 @@ say join ' ', $first->(), $second->(), $first->(), $second->();    # 1a 1x 2b 2y
 ```
 
 A source that returns `shift @queue // ()` ends at the first `undef` in
-the queue; `@queue ? shift @queue : ()` doesn't. A filehandle is read
-in scalar context, `sub { scalar(<$fh>) // () }`, so that each call
-reads one line.
+the queue; `@queue ? shift @queue : ()` doesn't. Read a filehandle in
+scalar context, `sub { scalar(<$fh>) // () }`, so that each call reads
+one line.
 
 ### stages
 
@@ -290,10 +291,10 @@ True while the values going through the stages come from an end
 function, rather than from the source or the values a pipeline was
 called with. It isn't exported.
 
-It's for code that tells its stages about the value they're given,
-such as the value it came from, which a value an end function makes
-doesn't have. DBIx::Squirrel, for instance, tells its stages the row a
-value was made from, and has none to tell while `ending` is true.
+It's for code that tells its stages more about each value, such as
+where it came from. A value from an end function has no such origin.
+DBIx::Squirrel, for instance, tells its stages which row a value was
+made from, and has no row to give while `ending` is true.
 
 ```perl
 my @seen = Ekorn::Pipeline->new(
@@ -303,22 +304,22 @@ my @seen = Ekorn::Pipeline->new(
 say "@seen";    # count 3
 ```
 
-A pipeline run inside a stage has its own: in a pipeline called from a
-stage while `ending` is true, `ending` is false until one of its own
-end functions is called.
+A pipeline run inside a stage has its own `ending`. In a pipeline
+called from a stage while `ending` is true, `ending` is false until
+one of the inner pipeline's own end functions is called.
 
 ## How values go through stages
 
 ### One value at a time
 
 Each value goes through every stage before the next one starts, as it
-would in a `for` loop. So the results come out in order, each stage
-sees the values in order, and nothing is held between stages, except by
-a stage that holds values itself, such as `batch` or `collect`.
+would in a `for` loop. The results come out in order, and each stage
+sees the values in order. Nothing is held between stages, except by a
+stage that holds values itself, such as `batch` or `collect`.
 
-When a stage returns several values, the first goes on through the
-rest of the stages, then the second, and so on, before the next value
-from the source or the caller:
+When a stage returns several values, the first goes through the rest
+of the stages, then the second, and so on. Only then does the next
+value come from the source or the caller:
 
 ```perl
 my @trace;
@@ -332,20 +333,20 @@ say "@trace";    # 1:a 2:a.1 2:a.2 1:b 2:b.1 2:b.2
 ### What a stage is given
 
 A stage is called with one value, both as its only argument and in
-`$_`, so it can name the value with a signature, `sub ($track) { ... }`,
-or leave the signature out and use `$_`, `sub { ... }`.
+`$_`. It can name the value with a signature, `sub ($track) { ... }`,
+or use `$_`, `sub { ... }`.
 
-- `$_` is local to each call, so the caller's `$_` is left as it was,
-  and a stage can call code that uses `$_` itself.
-- The values a pipeline is called with are copied, so assigning to `$_`
+- `$_` is local to each call. The caller's `$_` is left alone, and a
+  stage can call code that uses `$_` itself.
+- The values a pipeline is called with are copied. Assigning to `$_`
   or `$_[0]` changes the pipeline's copy, not the caller's variable.
-- A reference is copied as a reference: a stage that changes the hash
+- A reference is copied as a reference. A stage that changes the hash
   or array it's given changes the caller's.
 
 > **For stage authors:** a stage is always called with exactly one
-> argument, so a signature of one is safe. Don't change the value
-> you're given, unless that's what your stage is for and its
-> documentation says so: return a new value instead.
+> argument, so a one-argument signature is safe. Don't change the
+> value you're given; return a new value instead. The exception is a
+> stage whose job, as documented, is to change it.
 
 ### What a stage returns
 
@@ -357,25 +358,26 @@ A stage returns a list, and what it returns is all that goes on:
 | one value | a map | that value, in place of the one it was given |
 | several values | a flatMap | each of them, in order, through the rest of the stages |
 
-`undef`, 0 and `''` are values, so `return undef` passes on `undef`,
-and a stage ending in a test, such as `sub { $_ > 2 }`, passes on what
-the test returns, not the value. To drop a value, return an empty list:
+`undef`, 0 and `''` are values, so `return undef` passes on `undef`.
+A stage ending in a test, such as `sub { $_ > 2 }`, passes on what the
+test returns, not the value. To drop a value, return an empty list:
 `return;` or `()`.
 
 > **For stage authors:** a stage run for its side effects, such as
-> logging, returns the value it was given, as `peek` does, or it drops
-> it.
+> logging, must return the value it was given, as `peek` does, or the
+> value is dropped.
 
 ### Runs
 
 Each call of a pipeline with values is a run, and so is each iterator
 made from it. At the start of each run, the block of every `gather`
-stage is called, so what those stages keep starts afresh. An iterator's
-run starts when it's made, not when it's first read.
+stage is called, so what those stages keep starts afresh. An
+iterator's run starts when the iterator is made, not when it's first
+read.
 
-A stage that isn't made with `gather` is the same code reference on
-every run, so whatever it keeps in a closure stays there from one run
-to the next:
+A stage not made with `gather` is the same code reference on every
+run. Whatever it keeps in a closure stays there from one run to the
+next:
 
 ```perl
 my $count = 0;
@@ -385,10 +387,9 @@ my @second = $plain->(qw(a b));
 say "@first / @second";    # 1 2 / 3 4
 ```
 
-> **For stage authors:** anything a stage keeps, even a count, goes in
+> **For stage authors:** put anything a stage keeps, even a count, in
 > a `gather` block. A stage made once may be given to several
-> pipelines, run more than once, or run by two iterators at the same
-> time.
+> pipelines, run more than once, or run by two iterators at once.
 
 ### Calling a pipeline from a stage
 
@@ -400,11 +401,11 @@ my $trim = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length 
 say join '|', Ekorn::Pipeline->new(sub { $trim->($_) })->(' a ', '  ', 'b ');    # a|b
 ```
 
-Each call of the inner pipeline is a run of its own: its `gather`
-stages start afresh on each value the outer stage is given, its end
-functions are called at the end of each call, and a stop in it ends
-only that call, not the outer pipeline. To have its stages run in the
-outer pipeline's run instead, give the pipeline itself as a stage (see
+Each call of the inner pipeline is a run of its own. Its `gather`
+stages start afresh on each value the outer stage is given, and its
+end functions are called at the end of each call. A stop in it ends
+only that call, not the outer pipeline. To run its stages in the outer
+pipeline's run instead, give the pipeline itself as a stage (see
 [A pipeline as a stage](#a-pipeline-as-a-stage)).
 
 ## Stopping a pipeline: Ekorn::Pipeline::Stop
@@ -424,8 +425,8 @@ Stop(@values);
 ```
 
 Throws a stop carrying `@values`, the last values of the stage that
-throws it. It's the same as `Ekorn::Pipeline::Stop->throw(@values)`,
-and is exported by default.
+throws it. It's the same as `Ekorn::Pipeline::Stop->throw(@values)`.
+It's exported by default.
 
 ### throw
 
@@ -435,25 +436,26 @@ My::Stop->throw(@values);
 ```
 
 Throws a stop carrying `@values`, blessed into the class it's called
-on, so a subclass of Ekorn::Pipeline::Stop throws one of its own.
+on. A subclass of Ekorn::Pipeline::Stop throws a stop of its own
+class.
 
 ### What a stop does
 
 When a stage throws a stop:
 
 - The rest of the stage that threw it doesn't run.
-- The results already out are kept: returned, in a pushed run, or
-  already handed out, by an iterator.
+- The results already out are kept: returned by a pushed run, or
+  already handed out by an iterator.
 - The values the stop carries go on through the stages after the one
   that threw it, as that stage's last values.
-- Nothing else is processed. The values waiting to go through the
-  stages are dropped: the rest of the values a pipeline was called
-  with, the rest of what a source returned in one call, and the rest of
-  what a stage returned as a flatMap. The source isn't called again.
+- Nothing else is processed. Values waiting to go through the stages
+  are dropped: the rest of the values a pipeline was called with, the
+  rest of what a source returned in one call, and the rest of what a
+  stage returned as a flatMap. The source isn't called again.
 - The end functions of `gather` stages after the one that stopped are
-  called, in order, so they get the values that went by before the
-  stop, and the values it carries. Those of the stage that stopped, and
-  of the stages before it, aren't.
+  called, in order. They get the values from before the stop, and the
+  values it carries. The ends of the stage that stopped, and of the
+  stages before it, aren't called.
 
 ```perl
 my @seen;
@@ -478,23 +480,22 @@ eval { Ekorn::Pipeline::Stop->throw(1, 2) };
 say ref $@, ' ', "@{$@}[1 .. $#{$@}]";    # Ekorn::Pipeline::Stop 1 2
 ```
 
-As a string, a stop is "Stop used outside a pipeline", with a newline,
-which is what a user sees if one is thrown with no pipeline to catch
-it.
+As a string, a stop is "Stop used outside a pipeline", with a newline.
+That's what a user sees if one is thrown with no pipeline to catch it.
 
-A stop that isn't an array, made without `throw`, as by blessing a
-hash into the class, still stops the pipeline, but carries nothing.
+A stop that isn't an array, made without `throw` (by blessing a hash
+into the class, say), still stops the pipeline, but carries nothing.
 
 ### Subclasses
 
 A pipeline recognises a stop with `isa`, so a stop of a subclass of
-Ekorn::Pipeline::Stop stops it too, and behaves in the same way.
+Ekorn::Pipeline::Stop works in exactly the same way.
 
 ### Catching errors in a stage
 
 A stop is an exception, so a stage that catches errors itself, with
-`eval` or `try`, catches stops too, including those of the stages it
-runs, such as `take`'s. It must throw them on:
+`eval` or `try`, catches stops too, including stops from stages it
+runs, such as `take`'s. It must throw them again:
 
 ```perl
 use experimental qw(try);
@@ -513,7 +514,7 @@ say "@out";    # n/a 10 5
 ```
 
 Test with `isa 'Ekorn::Pipeline::Stop'`, not with `ref`, so that a stop
-of a subclass is thrown on too.
+of a subclass is thrown again too.
 
 ## Gathering: Ekorn::Pipeline::Gather
 
@@ -524,8 +525,8 @@ use Ekorn::Pipeline::Gather ();    # nothing: call Ekorn::Pipeline::Gather::gath
 
 A plain stage can't tell when the last value has gone by, and whatever
 it keeps stays from one run to the next. A stage that gathers values,
-to give them in batches or all together, needs both: state of its own
-on each run, and a call at the end. `gather` makes such a stage.
+to give them in batches or all together, needs both: fresh state on
+each run, and a call at the end. `gather` makes such a stage.
 
 ### gather
 
@@ -535,21 +536,21 @@ my $stage = gather { ...; return $stage };
 ```
 
 Returns a stage that a pipeline makes afresh at the start of each run,
-by calling the block, so whatever the block declares is fresh on each
+by calling the block. Whatever the block declares is fresh on each
 run. The block returns:
 
-- the stage, called with each value, as any stage is;
+- the stage, called with each value, like any stage;
 - optionally, an end function, called once the values run out.
 
 `gather` croaks "Expected a code reference" if it's given something
-other than a block or code reference. The block is called when the run
-starts, not when `gather` is: when the pipeline is called with values,
-or an iterator is made from it. So a block that returns something
+other than a block or code reference. The block is called when a run
+starts, not when `gather` is called: when the pipeline is called with
+values, or an iterator is made from it. A block that returns something
 other than one or two code references is reported then, as "Expected
-stage #%d, made with gather, to return one or two code references".
+stage #%s, made with gather, to return one or two code references".
 
 What `gather` returns is a code reference, blessed into
-Ekorn::Pipeline::Gather, so it can be given wherever a stage can.
+Ekorn::Pipeline::Gather, so it can go wherever a stage can.
 
 ```perl
 sub running_total () {
@@ -567,23 +568,24 @@ say join ' ', $p->(1, 2, 3);    # 1 3 6
 ### End functions
 
 An end function is called with no arguments, and with `$_` undefined,
-once the values run out: in a pushed run, after the last value has gone
-through; with an iterator, once the source returns an empty list, or
-after a stop. What it returns goes on through the stages after its
-own, as what a stage returns does: nothing, one value, or several.
+once the values run out. In a pushed run, that's after the last value
+has gone through. With an iterator, it's once the source returns an
+empty list, or after a stop. What it returns goes on through the
+stages after its own, just like what a stage returns: nothing, one
+value, or several.
 
 - It's called even when no values went by, so an end can give an empty
   result, such as `[]`, or nothing at all.
 - The ends are called in order, first stage first. What one returns
-  goes through the stages after it, and those stages' ends see it,
-  before the next end is called. So a `collect` after a `batch` gets
-  `batch`'s last, short batch.
+  goes through the stages after it, and their ends see it, before the
+  next end is called. So a `collect` after a `batch` gets `batch`'s
+  last, short batch.
 - After a stop, only the ends of the stages after the one that stopped
-  are called, as [What a stop does](#what-a-stop-does) says.
+  are called (see [What a stop does](#what-a-stop-does)).
 - While the values an end returns go through the stages,
   [`ending`](#ending) is true.
 - An end that dies is reported as its stage would be, by the stage's
-  place.
+  position.
 
 ```perl
 sub average () {
@@ -599,12 +601,12 @@ say Ekorn::Pipeline->new(average())->(2, 4, 9);    # 5
 say scalar Ekorn::Pipeline->new(average())->();    # 0
 ```
 
-The second line prints 0, the number of results: with no values, the
+The second line prints 0, the number of results. With no values, the
 end returns nothing.
 
-> **For stage authors:** a stage that holds values gives them up in
-> its end, as `batch` and `collect` do, so none are lost when the
-> values run out. Give the end a signature of none, `sub ()`.
+> **For stage authors:** a stage that holds values should give them
+> up in its end, as `batch` and `collect` do, so none are lost when the
+> values run out. Give the end an empty signature, `sub ()`.
 
 ## pipe and tap: Ekorn::Pipeline::Pipes
 
@@ -613,9 +615,9 @@ package My::Client;
 use parent 'Ekorn::Pipeline::Pipes';
 ```
 
-A parent class giving its children two methods, `pipe` and `tap`,
-which run the object they're called on through a pipeline of stages.
-The first stage is given the object, in `$_` and as its argument.
+A parent class that gives its children two methods, `pipe` and `tap`.
+Each runs the object it's called on through a pipeline of stages. The
+first stage is given the object, in `$_` and as its argument.
 DBIx::Squirrel's database and statement handles have the same two
 methods.
 
@@ -627,10 +629,10 @@ my $first   = $object->pipe(@stages);
 ```
 
 Runs the object through a pipeline of `@stages`, and returns what
-comes out of the last one. In scalar context, it returns the first of
-the results, or `undef` if there are none, where a pipeline called in
-scalar context returns how many there are. With no stages, it returns
-the object.
+comes out of the last stage. In scalar context, it returns the first
+result, or `undef` if there are none. (A pipeline called in scalar
+context returns how many there are; `pipe` doesn't.) With no stages,
+it returns the object.
 
 ### tap
 
@@ -639,8 +641,8 @@ $object = $object->tap(@stages);
 ```
 
 Runs the object through a pipeline of `@stages` for their side effects,
-and returns the object, whatever comes out of the stages, so a chain
-of method calls can carry on after it.
+and returns the object, whatever the stages return. A chain of method
+calls can carry on after it.
 
 ```perl
 package Counter {
@@ -657,10 +659,10 @@ say scalar Counter->new->pipe(sub { $_->n + 10 });   # 10
 ## Canned stages
 
 Stages for any values, whatever they are and wherever they come from,
-in three modules. Each is a function that returns a stage, and checks
-what it's given when it's called, not on each value, croaking at the
-caller's line if it's wrong. Those that keep state or hold values are
-made with `gather`, so they start afresh on each run.
+in three modules. Each is a function that returns a stage. It checks
+its arguments when it's called, not on each value, and croaks at the
+caller's line if they're wrong. Those that keep state or hold values
+are made with `gather`, so they start afresh on each run.
 
 | Stage | Module | Passes on | Exported |
 |---|---|---|---|
@@ -675,8 +677,8 @@ made with `gather`, so they start afresh on each run.
 | `count_into(\$n)` | Taps | every value, counting them into `$n` | by default |
 | `dump_to($fh)` | Taps | every value, after writing it to `$fh` or STDERR | on request |
 
-Each module exports its defaults with a plain `use`, and every stage it
-has with `:all`. To have the defaults and one more, name `:DEFAULT`
+Each module exports its defaults with a plain `use`, and every stage
+it has with `:all`. To get the defaults and one more, name `:DEFAULT`
 too:
 
 ```perl
@@ -685,7 +687,8 @@ use Ekorn::Pipeline::Stages::Flow qw(:DEFAULT take_while);
 
 ### Ekorn::Pipeline::Stages::Flow
 
-Stages that decide which values go on, by their place or by a test.
+Stages that decide which values go on, by their position or by a
+test.
 
 #### take
 
@@ -694,11 +697,11 @@ take($count)
 ```
 
 Passes on the first `$count` values, then stops the pipeline, so an
-iterator calls its source no more. The last value it passes on goes
+iterator stops calling its source. The last value it passes on goes
 with the stop, so the source isn't asked for one more than is wanted.
-With fewer values, it passes them all on. `take(0)` passes on none,
-but sees one value first, as a stage isn't called until there is one:
-with an iterator, the source is called once.
+If there are fewer values, it passes them all on. `take(0)` passes on
+none, but it still sees one value first, because a stage isn't called
+until there is one. With an iterator, the source is called once.
 
 It croaks "Expected a count of 0 or more" if `$count` isn't a whole
 number.
@@ -720,10 +723,11 @@ number.
 take_while { ... }
 ```
 
-Passes on values while the block is true of them, then stops the
-pipeline at the first it's false of, which isn't passed on. The block
-is given each value in `$_` and as its argument. It croaks "Expected a
-code reference" if it isn't given a block or code reference.
+Passes on values while the block returns true for them, then stops the
+pipeline at the first value it returns false for. That value isn't
+passed on. The block gets each value in `$_` and as its argument. It
+croaks "Expected a code reference" if it isn't given a block or code
+reference.
 
 #### drop_while
 
@@ -731,11 +735,11 @@ code reference" if it isn't given a block or code reference.
 drop_while { ... }
 ```
 
-Drops values while the block is true of them, and passes on the rest,
-from the first it's false of. Once it's false, the block isn't called
-again on that run. The block is given each value in `$_` and as its
-argument. It croaks "Expected a code reference" if it isn't given a
-block or code reference.
+Drops values while the block returns true for them, then passes on the
+rest, starting with the first value it returns false for. After that,
+the block isn't called again on that run. The block gets each value in
+`$_` and as its argument. It croaks "Expected a code reference" if it
+isn't given a block or code reference.
 
 ```perl
 say join ' ', Ekorn::Pipeline->new(drop_while { $_ < 3 }, take_while { $_ < 6 })->(1 .. 9);
@@ -744,8 +748,8 @@ say join ' ', Ekorn::Pipeline->new(drop_while { $_ < 3 }, take_while { $_ < 6 })
 
 ### Ekorn::Pipeline::Stages::Batch
 
-Stages that gather values, and pass them on together. Both hold values,
-and pass on what they still hold once the values run out.
+Stages that gather values and pass them on together. Both pass on what
+they still hold once the values run out.
 
 #### batch
 
@@ -754,8 +758,8 @@ batch($size)
 ```
 
 Passes values on in batches of `$size`, each a new array reference.
-Once the values run out, the last batch, which may be shorter, goes
-on. There's no empty batch: without values, there's no batch at all.
+Once the values run out, the last batch goes on, which may be shorter.
+There's never an empty batch: with no values, there's no batch at all.
 It holds no more than one batch at a time. It croaks "Expected a batch
 size of 1 or more" if `$size` isn't a whole number above 0.
 
@@ -766,14 +770,13 @@ collect
 collect { ... }
 ```
 
-Holds every value, and once they run out, passes on an array reference
-of them, or, given a block, what the block returns, called once with
-the values as its arguments. What the block returns goes through the
-stages after it, as what a stage returns does: nothing, one value, or
-several. It's called even without values, so `collect` still gives a
-result: an empty array, or what the block makes of none. It croaks
-"Expected a code reference" if it's given something other than a
-block or code reference.
+Holds every value. Once they run out, it passes on an array reference
+of them. Given a block, it calls the block once, with the values as
+its arguments, and passes on what the block returns: nothing, one
+value, or several, just like a stage. The block is called even with no
+values, so `collect` always gives a result: an empty array, or what the
+block makes of none. It croaks "Expected a code reference" if it's
+given something other than a block or code reference.
 
 `collect` holds every value until the end, so the whole result is in
 memory at once.
@@ -785,7 +788,7 @@ say Ekorn::Pipeline->new(collect { join '+', @_ })->(1 .. 3);               # 1+
 
 ### Ekorn::Pipeline::Stages::Taps
 
-Stages that look at each value as it goes by, and pass it on as it is,
+Stages that look at each value as it goes by and pass it on unchanged,
 for logging, counting or debugging.
 
 #### peek
@@ -804,10 +807,10 @@ code reference" if it isn't given a block or code reference.
 count_into(\$count)
 ```
 
-Counts the values into `$count`, setting it to 0 at the start of each
-run, so after a run it holds how many values went by, even when that's
-none. It croaks "Expected a reference to a scalar" if it isn't given
-one.
+Counts the values into `$count`. It sets `$count` to 0 at the start of
+each run, so after a run it holds how many values went by, even if
+none did. It croaks "Expected a reference to a scalar" if it isn't
+given one.
 
 #### dump_to
 
@@ -816,11 +819,11 @@ dump_to($fh)
 dump_to
 ```
 
-Writes each value to `$fh`, or to STDERR, with Data::Dumper, its keys
-in order and indented by two, and passes it on. It croaks "Expected an
+Writes each value to `$fh`, or to STDERR, with Data::Dumper, keys
+sorted and indented by two, and passes it on. It croaks "Expected an
 open filehandle" if `$fh` isn't one.
 
-It's for debugging. It writes each value in full, secrets and all, and
+It's for debugging. It writes each value in full, secrets and all. It
 doesn't escape control characters in strings, so a value from outside
 can send escape sequences to a terminal.
 
@@ -840,12 +843,12 @@ Pipeline stage #2 failed at app.pl line 12:
 ```
 
 An exception object, such as a stop or an object of a class of your
-own, is thrown on as it is, so code that catches it can tell it by its
-class.
+own, is thrown again unchanged, so code that catches it can tell it by
+its class.
 
-Either way, the run has ended. A pushed run returns nothing, and an
+Either way, the run has ended. A pushed run returns nothing. An
 iterator returns an empty list on every call after, without calling
-its source or any end function again, as [iterator](#iterator) says.
+its source or any end function again (see [iterator](#iterator)).
 
 A mistake in making a pipeline, such as a stage that isn't a code
 reference, or in making a canned stage, such as `take(-1)`, is
@@ -860,19 +863,19 @@ croakf 'Expected a length of 0 or more, not %s', $length;
 ```
 
 Croaks with a message made by `sprintf` from a format and its
-arguments, reporting it at the same line as Carp's `croak` would: the
-line that called the function calling `croakf`. It's exported only on
+arguments, at the line Carp's `croak` would report: the line that
+called the function that called `croakf`. It's exported only on
 request.
 
 It's for modules of stages outside Ekorn::Pipeline too. Called from a
-function that makes a stage, in a package of its own, it reports a
-mistake at the line that called the function, with no more set up. A
-`%` in the message is written `%%`.
+function that makes a stage, it reports a mistake at the line that
+called the function, with nothing more to set up. A `%` in the message
+is written `%%`.
 
-The format is a literal, written in the code: values go in as
-arguments, through `%s` and the like, never as the format. A format
-made from data does whatever its `%` directives say, such as
-`%999999999s`, which makes a string of a gigabyte.
+Write the format as a literal in the code. Values go in as arguments,
+through `%s` and the like, never in the format. A format made from
+data does whatever its `%` directives say: `%999999999s` makes a
+string of a gigabyte.
 
 ### @INTERNAL and @CARP_NOT
 
@@ -881,70 +884,71 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 ```
 
 `@Ekorn::Pipeline::Errors::INTERNAL` lists the packages of
-Ekorn::Pipeline. Each of its modules that croaks takes the list as its
-`@CARP_NOT`, so that Carp looks past all of them to the first line
-outside, where the user's code is.
+Ekorn::Pipeline. Each of its modules that croaks uses the list as its
+`@CARP_NOT`, so Carp looks past all of them to the first line outside,
+in the user's code.
 
 A package that puts the list in its own `@CARP_NOT` is looked past
 too:
 
-- **A module of functions taking stages,** which runs its callers'
-  stages, has their errors reported at its callers' lines, rather than
-  at its own line that ran the pipeline. DBIx::Squirrel does this.
+- **A module of functions that take stages** runs its callers' stages.
+  With the list, their errors are reported at its callers' lines, not
+  at the module's own line that ran the pipeline. DBIx::Squirrel does
+  this.
 - **A module of stages whose helpers are in another package** puts
-  that package in its `@CARP_NOT`, and the helper's package puts the
-  module's, so that `croakf` in the helper reports at the line that
-  called the module. A helper in the same package needs nothing.
+  that package in its `@CARP_NOT`, and the helpers' package puts the
+  module's. Then `croakf` in a helper reports at the line that called
+  the module. A helper in the same package needs nothing.
 
 ## Writing stages
 
-A stage for others to use is written as the canned stages are, so that
-it works alongside them.
+Write a stage for others the way the canned stages are written, so it
+works alongside them.
 
-- **A function that makes a stage.** A plain `sub` is a stage. For a
-  stage others will use, write a function that returns one, as
-  `take(10)` does. It can take options, and check them once, when it's
-  called, not on each value.
-- **Report mistakes at the caller's line,** with `croakf`, from a
-  package of your own, as [croakf](#croakf) says, with a literal
-  format and the values as its arguments. Put "Expected" first,
-  and say what was expected, as the canned stages do: "Expected a count
-  of 0 or more".
-- **One argument in; a list out.** The stage is given one value, in `$_`
-  and as its argument. It returns an empty list to drop it, one value to
-  pass it on, or several. Return the value from a stage run for its side
-  effects.
+- **Write a function that makes the stage.** A plain `sub` is a stage,
+  but for one others will use, write a function that returns it, as
+  `take(10)` does. The function can take options, and check them once,
+  when it's called, not on each value.
+- **Report mistakes at the caller's line** with `croakf` (see
+  [croakf](#croakf)), using a literal format and passing the values as
+  arguments. Start with "Expected" and say what was expected, as the
+  canned stages do: "Expected a count of 0 or more".
+- **One argument in, a list out.** The stage gets one value, in `$_`
+  and as its argument. It returns an empty list to drop it, one value
+  to pass it on, or several. A stage run for its side effects returns
+  the value.
 - **Don't change the value you're given,** unless that's the stage's
-  job and its documentation says so.
-- **State goes in `gather`,** even a count, so that it starts afresh on
-  each run, and two runs at once don't share it.
-- **Values held go out in an end function,** called even when there
-  were no values, with no arguments and `$_` undefined.
+  documented job.
+- **Keep state in `gather`,** even a count, so it starts afresh on each
+  run and two runs at once don't share it.
+- **Give up held values in an end function.** It's called even when
+  there were no values, with no arguments and `$_` undefined.
 - **Stop when no more values are wanted,** with `Stop`, so an iterator
   reads no more. Pass the last value on with the stop, as `take` does,
   so the source isn't asked for one more than is needed.
-- **Throw stops on.** A stage that catches errors throws a stop on with
-  `die $e if $e isa 'Ekorn::Pipeline::Stop';`.
-- **Say what the stage takes and gives,** in its documentation: what
-  kind of value it's given, what it passes on, whether it holds values
-  or stops, and what it croaks with.
-- **Names.** A name says what the stage does to a value, and a tap's
+- **Throw stops again.** A stage that catches errors should throw a
+  stop again with `die $e if $e isa 'Ekorn::Pipeline::Stop';`.
+- **Document what the stage takes and gives:** what kind of value it
+  expects, what it passes on, whether it holds values or stops, and
+  what it croaks with.
+- **Names.** A name says what the stage does to a value. A tap's name
   says it passes values on, as `peek` and `count_into` do. Avoid names
-  that common modules export: Flow has `drop`, not `skip`, which
-  Test2::V0 and Test::More both export, and Test2::V0 also exports
+  that common modules export: Flow has `drop`, not `skip`, because
+  Test2::V0 and Test::More both export `skip`. Test2::V0 also exports
   names such as `field`, `item` and `call`.
-- **Exports.** Export the stages a module is usually used for by
-  default, in `@EXPORT`, the rest in `@EXPORT_OK`, and all of them with
-  an `:all` tag.
+- **Exports.** Export the stages a module is mostly used for by
+  default, in `@EXPORT`. Put the rest in `@EXPORT_OK`, and all of them
+  in an `:all` tag.
 - **Where it goes.** Stages for any values go under
   `Ekorn::Pipeline::Stages::*`. Stages for one kind of value or one
-  source go under the namespace of the module that knows about it, as
-  DBIx::Squirrel's stages for rows are `DBIx::Squirrel::Stages::Rows`.
-- **Tests.** A pipeline called with values tests a stage with nothing
-  else to set up. Run it twice, to show it starts afresh, with no
-  values, to show what its end gives, and through an iterator, counting
-  the calls of the source, to show a stage that stops reads no more
-  than it should.
+  source go under the namespace of the module that knows about it. For
+  example, DBIx::Squirrel's stages for rows are in
+  `DBIx::Squirrel::Stages::Rows`.
+- **Tests.** Calling a pipeline with values tests a stage with nothing
+  else to set up. Run it twice, to show it starts afresh. Run it with
+  no values, to show what its end gives. And run it through an
+  iterator, counting the source's calls, to show that a stage that
+  stops reads no more than it should.
 
 ```perl
 package My::Stages::Numbers {
@@ -972,19 +976,20 @@ say join ' ', Ekorn::Pipeline->new(My::Stages::Numbers::sum_up_to(10))->(4, 3, 2
 
 ## Writing functions that take stages
 
-- **Take the stages last,** after whatever arguments the function
-  needs, as `sub lines_of ($file, @stages)`. A caller who wants nothing
-  done passes none.
+- **Take the stages last,** after the function's own arguments, as in
+  `sub lines_of ($file, @stages)`. A caller who wants nothing done
+  passes no stages.
 - **Push what you have; pull what you make.** Call the pipeline with
   values already in memory. For values made one at a time, give
-  `iterator` a source and return the iterator, so a stage that stops
+  `iterator` a source and return the iterator. Then a stage that stops
   saves the work of making the rest.
-- **Let stages do the optional work.** An option that filters,
-  reshapes or limits what's returned is one a stage does already. Keep
+- **Let stages do the optional work.** A stage can already filter,
+  reshape or limit what's returned, so don't add options for it. Keep
   the arguments only the function can act on, such as which file to
   read.
-- **Say what the first stage is given,** and number your own stages
-  into it, if the function puts stages of its own before its caller's.
+- **Say what the first stage is given.** If the function puts stages
+  of its own before its caller's, say so: error messages count them in
+  the stages' positions.
 - **Report errors at your callers' lines,** by putting
   `@Ekorn::Pipeline::Errors::INTERNAL` in the module's `@CARP_NOT`.
 - **Find the stages with `is_stage`,** if the arguments before them

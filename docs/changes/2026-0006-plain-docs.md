@@ -59,3 +59,9 @@ how-to, the reference and MAINTAINING.
   are a list.
 - **The modules' POD:** rewritten. Gather's DIAGNOSTICS still gave its
   message as "#%d"; it's "#%s" since 2026-0004, and now says so.
+- **The reference:** rewritten. Its section on `gather` still gave the
+  bad-block message as "#%d"; it's "#%s". "Say what the first stage is
+  given, and number your own stages into it" was unclear: it now says
+  that a function putting its own stages first should say so, as error
+  messages count them in a stage's position. Its 48 examples print what
+  they say.
