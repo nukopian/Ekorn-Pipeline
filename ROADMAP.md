@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0007.
+Last id: 2026-0008.
 
 Items come in four groups:
 
@@ -45,7 +45,34 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0008. Messages that say what's accepted
+
+**Size:** S (2)
+
+What: make the messages, and anything like them, say what Ekorn
+accepts now that a pipeline can be a stage, in v0.2.0. Two are known.
+"Expected stage #%d to be a code reference" is raised for something
+that's neither a code reference nor a pipeline, so it should say
+"...a code reference or a pipeline". "Expected stage #%s, made with
+gather, to return one or two code references" is raised when a
+`gather` block returns something other than a stage, which may be a
+pipeline, and an optional end function. Before changing them, sweep
+the messages, DIAGNOSTICS, the reference and the how-to for others
+written before pipelines were stages, and fix those in the same
+release.
+
+Why: a message is the first thing a user reads when something goes
+wrong, and these two point them to the wrong fix. 2026-0004 left them
+unchanged (its D3), and 2026-0007 likewise, as a message change makes
+v0.2.0. Iain put this first in Next on 2026-11-09, after v0.1.3, to
+gather such fixes into that release.
+
+Done when: every message, and every DIAGNOSTICS entry, names what's
+accepted; the reference and the how-to no longer explain old wording
+away; the tests check the new messages; and DBIx-Squirrel has a task
+to test v0.2.0 and move its range to `>= v0.2.0, < v0.3.0`, as
+CLAUDE.md's rule for v0.2.0 says, with its own copies of the messages
+(its DIAGNOSTICS and reference) changed to match.
 
 ## Later
 
