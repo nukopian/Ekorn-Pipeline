@@ -305,6 +305,8 @@ the canned stages:
 - `croakf`, from [Ekorn::Pipeline::Errors](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AErrors), to report a mistake
 in making a stage at the line of the caller who made it.
 
+Here's a small one:
+
     package My::Stages::Words;
 
     use v5.36;

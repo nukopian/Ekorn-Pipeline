@@ -41,14 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0006. Plain docs
-
-**Size:** M (3)
-
-The README, the POD, the reference, the how-to and
-`docs/MAINTAINING.md`, rewritten in plain English, saying what they
-said: shorter sentences, words not repeated, links not chained. Its
-[record](docs/changes/2026-0006-plain-docs.md) has the plan.
+Nothing yet.
 
 ## Next
 

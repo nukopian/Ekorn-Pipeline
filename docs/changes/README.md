@@ -80,7 +80,7 @@ Steps, Done when.
 
 Newest id first.
 
-- [Plain docs](2026-0006-plain-docs.md), roadmap 2026-0006: in progress.
+- [Plain docs](2026-0006-plain-docs.md), roadmap 2026-0006: shipped, unreleased.
 - [The reference and the how-to on MetaCPAN](2026-0005-manuals-on-metacpan.md),
   a TODO task from DBIx-Squirrel: shipped in v0.1.2.
 - [A pipeline given as a stage](2026-0004-pipeline-as-a-stage.md),

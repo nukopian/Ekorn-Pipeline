@@ -1,6 +1,6 @@
 # 2026-0006. Plain docs
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** None.
 
@@ -8,7 +8,9 @@
 rewritten plainly and read more easily; Iain moved it to Now the same
 day, ahead of v0.1.3
 
-**Started:** 2026-11-09
+**Started:** 2026-11-09, in 0f943e0f9d81a8eec95c4058dc677541cac0c704
+
+**Finished:** 2026-11-09
 
 ## Background
 
@@ -52,6 +54,11 @@ how-to, the reference and MAINTAINING.
 
 ## What happened
 
+- **Outcome:** each document has had the pass, one commit each, with
+  the manuals and `README.md` generated again. The tests, `podchecker`,
+  `xt/manuals.t` and Minilla's spelling test pass. Iain's reading of
+  the PDFs is what's left of Done when.
+
 - **The README:** rewritten. Two claims were out of date and are
   fixed: "It isn't on CPAN yet" (v0.1.1 and v0.1.2 are), now with
   `cpanm Ekorn::Pipeline`; and "DBIx::Squirrel is moving onto it",
@@ -67,3 +74,9 @@ how-to, the reference and MAINTAINING.
   they say.
 - **The how-to:** rewritten. Its examples print what they did before
   the pass, compared run against run.
+- **MAINTAINING:** rewritten. Its 30 command blocks are unchanged,
+  checked against the version before. The release's step for
+  `Changes`, and the list of tools, are lists.
+- **Changes from the plan:** none. The plan's rules held. Where a
+  sentence was unclear rather than wordy, it was fixed and noted above;
+  three out-of-date or wrong claims came to light this way.

@@ -354,6 +354,8 @@ in making a stage at the line of the caller who made it.
 
 =back
 
+Here's a small one:
+
 
     package My::Stages::Words;
 

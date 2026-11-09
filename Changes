@@ -3,9 +3,11 @@ Revision history for Ekorn-Pipeline
 Unreleased
 
     A pipeline can now be used as a stage, so pipelines can be built
-    from other pipelines without ->stages.
+    from other pipelines without ->stages. The documentation is
+    rewritten in plainer English.
 
-    It ships one roadmap item, 2026-0004. Existing code is unaffected:
+    It ships two roadmap items, 2026-0004 and 2026-0006. Existing code
+    is unaffected:
     every message a pipeline gives today reads as before, and
     DBIx::Squirrel can use this release as it stands.
 
@@ -23,6 +25,10 @@ Unreleased
       anything new accepts as a stage: a code reference or a pipeline.
       Use it in a function that takes its stages from the end of its
       arguments, so it accepts pipelines too. (roadmap 2026-0004)
+    - The README, the POD, the reference and the how-to are rewritten
+      in shorter sentences, saying the same. Two out-of-date claims in
+      the README are fixed: Ekorn::Pipeline is on CPAN, and
+      DBIx::Squirrel uses it. (roadmap 2026-0006)
     - The README has MetaCPAN and Kwalitee badges.
 
 v0.1.2 2026-11-08
