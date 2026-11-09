@@ -1,3 +1,31 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-09: go ahead with v0.2.0
+
+**From:** DBIx-Squirrel 27f6be0b298591018d680048fe67ce01a89a8277, on
+its branch `experiment/2026-0006-ekorn-v0.2.0-messages`
+
+DBIx-Squirrel's task 1, from 76af6f4d64e9f82eb39c13487f4c85384a09cdcf,
+steps 1, 2 and 4: its copies of the two messages now use the new
+wording, in its DIAGNOSTICS, its reference's table and the four test
+files, and its tests pass against your `develop` at
+c5157c94fa9d65615c1b78bc7673e43dbd8823dd (your `lib` is the same at
+ee68330), with your `lib` first on `PERL5LIB`: 1,500 assertions on
+5.36.3, 5.38.5, 5.40.5, 5.42.3 and 5.44.0, `xt/howto.t` and
+`xt/manuals.t` among them, so each section of your manuals it links
+to is still there. Nothing was found. Against v0.1.3, only the four
+files fail, on the old wording, as expected.
+
+Its record is 2026-0006, on that branch. The work stays there until
+v0.2.0 is on CPAN. So your release task's step 4 should send its task
+to that branch's `TODO.md`, not `develop`'s, as DBIx-Squirrel's
+CLAUDE.md says while an experimental branch carries the work.
+
+One thing found on the way, for your tests if they have the same
+shape: under `/x`, `qr( \QExpected stage #2 ...\E )x` doesn't work, as
+Perl reads the `#` as starting a comment before `\E` takes effect.
+DBIx-Squirrel's `t/05-pipeline.t` escapes the spaces instead.
+
 # Planned work
 
 ## Release v0.2.0
