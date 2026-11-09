@@ -301,10 +301,24 @@ stages.
 
 Returns a pipeline running values through C<@stages>, in order. It
 croaks if a stage isn't a code reference or a pipeline. With no stages,
-a pipeline returns its values as they are.
+a pipeline returns its values as they are. A pipeline can be given as a
+stage, as L</A pipeline as a stage> says.
 
-A pipeline given as a stage has its stages composed in place, as if
-its L</stages> had been given there, so these two run the same:
+A pipeline is an object that can be called as a code reference. Called
+with values, it returns the list that comes out of the last stage:
+
+    my @results = $p->(@values);
+
+In scalar context, it returns how many results came out, as an array
+would:
+
+    my $count = $p->(@values);
+
+=head3 A pipeline as a stage
+
+A pipeline given to L</new> as a stage has its stages composed in
+place, as if its L</stages> had been given there, so these two run the
+same:
 
     my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 
@@ -323,15 +337,9 @@ so a subclass that overrides it is composed as it says. If that isn't
 the list the pipeline was made with, its stages are named by their
 places in what the method returns, one level deep.
 
-A pipeline is an object that can be called as a code reference. Called
-with values, it returns the list that comes out of the last stage:
-
-    my @results = $p->(@values);
-
-In scalar context, it returns how many results came out, as an array
-would:
-
-    my $count = $p->(@values);
+To run a pipeline on each value instead, each call a run of its own,
+so that a C<take> inside it limits what each call gives, call it from a
+stage, as C<sub { $clean-E<gt>($_) }>.
 
 =head2 iterator
 
@@ -377,7 +385,7 @@ wherever stages go, even by a function that takes only code references:
     my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);
 
 L</new> takes the pipeline itself as a stage, and composes it the same
-way. The stages run in the other pipeline's run, as if listed there: a
+way, as L</A pipeline as a stage> says. The stages run in the other pipeline's run, as if listed there: a
 stop in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
 is made afresh for each run, so its state isn't shared between the
 pipelines it's spliced into. A plain closure is the same code

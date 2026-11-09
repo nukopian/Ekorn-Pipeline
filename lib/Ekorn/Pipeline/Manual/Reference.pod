@@ -141,7 +141,8 @@ B<Value:> anything a pipeline is given, or a stage returns. C<undef>,
 
 B<Stage:> a code reference, called with one value, returning a list
 of values: none, one or several. Where a stage goes, a pipeline can
-go too, standing for its stages.
+go too, standing for its stages, as
+L<A pipeline as a stage|/"A pipeline as a stage"> says.
 
 =item *
 
@@ -191,10 +192,14 @@ any code reference: an anonymous C<sub>, a reference to a named one,
 such as C<\&trim>, a stage made by a function, such as C<take(10)>, or
 one made with C<gather>.
 
-With no stages, a pipeline returns its values as they are.
+With no stages, a pipeline returns its values as they are. A pipeline
+can be given as a stage, as
+L<A pipeline as a stage|/"A pipeline as a stage"> says.
 
-A pipeline given as a stage has its stages composed in place, as if
-its L<stages|/"stages"> had been given there:
+=head2 A pipeline as a stage
+
+A pipeline given to C<new> as a stage has its stages composed in place,
+as if its L<stages|/"stages"> had been given there:
 
     my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
     say join '|', Ekorn::Pipeline->new($clean, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
@@ -218,7 +223,8 @@ by their places in what the method returns, one level deep.
 
 To run a pipeline on each value instead, each call a run of its own,
 call it from a stage, as
-L<Pipelines inside stages|/"Pipelines inside stages"> says.
+L<Calling a pipeline from a stage|/"Calling a pipeline from a stage">
+says.
 
 =head2 Calling a pipeline
 
@@ -314,8 +320,8 @@ scalar context, it returns how many there are.
 A pipeline's stages can be spliced into another pipeline, or given to
 any function that takes stages, so a pipeline made once can be used
 wherever stages go, even by a function that takes only code
-references. L<new|/"new"> takes the pipeline itself, and composes it the
-same way.
+references. C<new> takes the pipeline itself, and composes it the same
+way, as L<A pipeline as a stage|/"A pipeline as a stage"> says.
 
     my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
     say join '|', Ekorn::Pipeline->new($clean->stages, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
@@ -342,12 +348,13 @@ C<gather>.
 
 A stage that dies is named by its place in the pipeline it was
 spliced into. Given as the pipeline, rather than its stages, it's
-named by its place in each, as L<new|/"new"> says.
+named by its place in each, as
+L<A pipeline as a stage|/"A pipeline as a stage"> says.
 
 =back
 
 That differs from calling a pipeline from a stage, where each call is a
-run of its own, as L<Pipelines inside stages|/"Pipelines inside stages">
+run of its own, as L<Calling a pipeline from a stage|/"Calling a pipeline from a stage">
 says.
 
 =head2 is_stage
@@ -511,7 +518,7 @@ time.
 
 =back
 
-=head2 Pipelines inside stages
+=head2 Calling a pipeline from a stage
 
 A stage can run a pipeline of its own, so stages can be built from
 stages:
@@ -524,7 +531,8 @@ stages start afresh on each value the outer stage is given, its end
 functions are called at the end of each call, and a stop in it ends
 only that call, not the outer pipeline. To have its stages run in the
 outer pipeline's run instead, as if listed there, give the pipeline
-itself as a stage, as L<new|/"new"> says, or splice its stages in with
+itself as a stage, as L<A pipeline as a stage|/"A pipeline as a stage">
+says, or splice its stages in with
 L<stages|/"stages">.
 
 =head1 Stopping a pipeline: Ekorn::Pipeline::Stop
