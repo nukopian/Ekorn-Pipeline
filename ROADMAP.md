@@ -41,28 +41,18 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0006. Plain docs
 
 **Size:** M (3)
 
-What: rewrite the README, the POD, the reference, the how-to and
-`docs/MAINTAINING.md` in plain English, keeping what they say. Use
-shorter sentences, one idea each; say "stage" once where the sentence
-is about stages, not three times; link once, not in chains of "as X
-says"; and drop qualifiers that repeat one another. Examples and
-headings stay, as do the anchors other pages link to.
+The README, the POD, the reference, the how-to and
+`docs/MAINTAINING.md`, rewritten in plain English, saying what they
+said: shorter sentences, words not repeated, links not chained. Its
+[record](docs/changes/2026-0006-plain-docs.md) has the plan.
 
-Why: the docs grew a house style that makes them hard to read, and a
-reader new to the pipeline meets it first. 2026-0004's text, rewritten
-this way on 2026-11-09, read more easily, so the rest should too.
+## Next
 
-Done when: each of those documents has had the pass, the manuals and
-`README.md` are generated again, every changed example still prints
-what it says, and Iain has read the PDFs.
+Nothing yet.
 
 ## Later
 
