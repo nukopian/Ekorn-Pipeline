@@ -2,27 +2,28 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    A pipeline can go where a stage goes, standing for its stages, so
-    pipelines are built from pipelines without ->stages.
+    A pipeline can now be used as a stage, so pipelines can be built
+    from other pipelines without ->stages.
 
-    It ships one roadmap item, 2026-0004. Nothing a pipeline did
-    before changes: every message a pipeline gives today reads as it
-    did, and DBIx::Squirrel can take it as it stands.
+    It ships one roadmap item, 2026-0004. Existing code is unaffected:
+    every message a pipeline gives today reads as before, and
+    DBIx::Squirrel can use this release as it stands.
 
-    - Ekorn::Pipeline->new takes a pipeline as a stage, composing its
-      stages in place, as if its stages had been given there, so a take
-      inside it takes from the whole run. Its stages are what its stages
-      method returns, so a subclass that overrides it is composed as it
-      says. (roadmap 2026-0004)
-    - A stage inside a pipeline given as a stage is named in messages by
-      its place in each pipeline, as "Pipeline stage #2.3 failed", and
-      three deep "#1.2.3"; DIAGNOSTICS now shows "#%s" for these. A
-      stage given directly is named as before. (roadmap 2026-0004)
-    - is_stage, exported by Ekorn::Pipeline on request, is true for what
-      new takes as a stage: a code reference or a pipeline. A function
-      taking its stages off the end of its arguments can use it to take
-      a pipeline there too. (roadmap 2026-0004)
-    - The MetaCPAN and Kwalitee badges are in the README.
+    - Ekorn::Pipeline->new accepts a pipeline as a stage, and splices
+      its stages in where it stands. They run in the new pipeline's
+      run, so a take inside limits the whole run. The stages come from
+      the pipeline's stages method, so a subclass can override it.
+      (roadmap 2026-0004)
+    - In error messages, a stage inside a pipeline used as a stage is
+      named by its position in each pipeline: "Pipeline stage #2.3
+      failed", or "#1.2.3" three levels down. DIAGNOSTICS shows "#%s"
+      for these messages. Other stages are named as before.
+      (roadmap 2026-0004)
+    - is_stage, exported by Ekorn::Pipeline on request, is true for
+      anything new accepts as a stage: a code reference or a pipeline.
+      Use it in a function that takes its stages from the end of its
+      arguments, so it accepts pipelines too. (roadmap 2026-0004)
+    - The README has MetaCPAN and Kwalitee badges.
 
 v0.1.2 2026-11-08
 

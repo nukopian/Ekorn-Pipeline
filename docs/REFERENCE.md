@@ -81,9 +81,8 @@ say join ' ', numbers(drop(2), take(3));    # 3 4 5
 - **Value:** anything a pipeline is given, or a stage returns. `undef`,
   0 and the empty string are values.
 - **Stage:** a code reference, called with one value, returning a list
-  of values: none, one or several. Where a stage goes, a pipeline can
-  go too, standing for its stages, as
-  [A pipeline as a stage](#a-pipeline-as-a-stage) says.
+  of values: none, one or several. A pipeline can also be used as a
+  stage (see [A pipeline as a stage](#a-pipeline-as-a-stage)).
 - **Pipeline:** a list of stages, made with `Ekorn::Pipeline->new`.
 - **Run:** one call of a pipeline with values, or one iterator made
   from it. Stages made with `gather` start afresh on each run.
@@ -110,48 +109,45 @@ It exports nothing by default, and `is_stage` on request.
 my $p = Ekorn::Pipeline->new(@stages);
 ```
 
-Returns a pipeline running values through `@stages`, in order. It
-croaks if a stage isn't a code reference or a pipeline, naming it by
-its place: "Expected stage #2 to be a code reference". A stage can be
-any code reference: an anonymous `sub`, a reference to a named one,
-such as `\&trim`, a stage made by a function, such as `take(10)`, or
-one made with `gather`.
+Returns a pipeline that runs values through `@stages`, in order. Each
+stage must be a code reference or a pipeline; anything else croaks,
+naming its position: "Expected stage #2 to be a code reference". A stage
+can be any code reference: an anonymous `sub`, a reference to a named
+one, such as `\&trim`, a stage made by a function, such as `take(10)`,
+or one made with `gather`.
 
-With no stages, a pipeline returns its values as they are. A pipeline
-can be given as a stage, as
-[A pipeline as a stage](#a-pipeline-as-a-stage) says.
+With no stages, a pipeline returns its values unchanged.
 
 ### A pipeline as a stage
 
-A pipeline given to `new` as a stage has its stages composed in place,
-as if its [stages](#stages) had been given there:
+You can give `new` a pipeline wherever it takes a stage. Its stages
+are spliced in where it stands:
 
 ```perl
 my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 say join '|', Ekorn::Pipeline->new($clean, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
 ```
 
-That runs the same as `Ekorn::Pipeline->new($clean->stages,
-take(2))`, as [stages](#stages) says: its stages run in the new
-pipeline's run, so a `take` inside it takes from all the values, not
-from each. Pipelines can be given inside pipelines given as stages, to
-any depth. A pipeline of a subclass of Ekorn::Pipeline is taken too.
+This runs exactly like `Ekorn::Pipeline->new($clean->stages, take(2))`.
+The spliced stages belong to the new pipeline's run, so a `take`
+inside `$clean` limits the whole run, not each value. Pipelines can be
+nested this way to any depth, and a pipeline of a subclass of
+Ekorn::Pipeline works too.
 
-The one difference from giving its stages is in messages. A stage
-inside a pipeline given as a stage is named by its place in each
-pipeline: the third stage of a pipeline given second is `#2.3`, and,
-three deep, `#1.2.3`. Given with `->stages`, it's named by its place
-in the flat list: `#4`, if a single stage came before it.
+The only difference is in error messages. Given `$clean` itself, a
+stage inside it is named by its position in each pipeline: the third
+stage of a pipeline given second is `#2.3`, and three levels down,
+`#1.2.3`. Given `$clean->stages`, it's named by its position in the
+combined list: `#4`, if one stage came before it.
 
-The stages composed are what the pipeline's [stages](#stages) method
-returns, so a subclass that overrides it is composed as it says. If
-that isn't the list the pipeline was made with, its stages are named
-by their places in what the method returns, one level deep.
+The stages spliced in are whatever the pipeline's [stages](#stages)
+method returns, so a subclass can override it. If the override returns
+a different list, its stages are named by their position in that list.
 
-To run a pipeline on each value instead, each call a run of its own,
-call it from a stage, as
+To run a pipeline on each value separately instead, call it from a
+stage, as
 [Calling a pipeline from a stage](#calling-a-pipeline-from-a-stage)
-says.
+shows.
 
 ### Calling a pipeline
 
@@ -231,40 +227,35 @@ reads one line.
 my @stages = $p->stages;
 ```
 
-Returns the pipeline's stages, in order, as they were given to `new`,
-with a pipeline given as a stage in place of its stages: a copy of the
-list, so changing it changes nothing in the pipeline. In
-scalar context, it returns how many there are.
+Returns the pipeline's stages, in order: a copy, so changing it
+changes nothing in the pipeline. A pipeline that was given as a stage
+appears as the stages it was made of. In scalar context, it returns how
+many there are.
 
-A pipeline's stages can be spliced into another pipeline, or given to
-any function that takes stages, so a pipeline made once can be used
-wherever stages go, even by a function that takes only code
-references. `new` takes the pipeline itself, and composes it the same
-way, as [A pipeline as a stage](#a-pipeline-as-a-stage) says.
+The list can go anywhere stages go, including to a function that
+accepts only code references. To give `new` the pipeline itself, see
+[A pipeline as a stage](#a-pipeline-as-a-stage).
 
 ```perl
 my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 say join '|', Ekorn::Pipeline->new($clean->stages, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
 ```
 
-Spliced in, the stages run in the other pipeline's run, as if they'd
-been listed there, so it behaves just as listing them would:
+Either way, the stages run as if they had been written out in full:
 
-- A stop in one of them ends the whole run, and the source is called no
-  more.
-- A `gather` stage is made afresh for each run of the pipeline it's
-  in, so its state isn't shared between pipelines, or between its uses
-  when given twice. A plain closure is the same code reference
-  wherever it goes, so whatever it keeps is shared: keep state in
-  `gather`.
-- A stage that dies is named by its place in the pipeline it was
-  spliced into. Given as the pipeline, rather than its stages, it's
-  named by its place in each, as
-  [A pipeline as a stage](#a-pipeline-as-a-stage) says.
+- A stop in one of them ends the whole run, and the source isn't called
+  again.
+- A `gather` stage starts afresh on each run, so pipelines that share
+  it, or use it twice, don't share its state. A plain closure is the
+  same code reference wherever it goes, so anything it keeps is
+  shared. Keep state in `gather` instead.
+- A stage that dies is named by its position, as
+  [A pipeline as a stage](#a-pipeline-as-a-stage) describes.
 
-That differs from calling a pipeline from a stage, where each call is a
-run of its own, as [Calling a pipeline from a stage](#calling-a-pipeline-from-a-stage)
-says.
+Calling a pipeline from a stage is different: each call is a run of
+its own, as
+[Calling a pipeline from a stage](#calling-a-pipeline-from-a-stage)
+explains.
 
 ### is_stage
 
@@ -274,15 +265,15 @@ use Ekorn::Pipeline qw(is_stage);
 is_stage($thing)
 ```
 
-True if `$thing` can go where a stage goes: a code reference, a stage
-made with `gather` among them, or a pipeline, of Ekorn::Pipeline or a
-subclass. It's the test [new](#new) makes of each stage. It's exported
-on request.
+True if `$thing` can be used as a stage: a code reference (including
+a stage made with `gather`), or a pipeline of Ekorn::Pipeline or a
+subclass. It's the same test [new](#new) uses. It's exported on
+request.
 
-It's for a function that takes its stages from the end of its
-arguments, so that it takes just what a pipeline takes, a pipeline
-among them, as [Writing functions that take stages](#writing-functions-that-take-stages)
-shows.
+Use it in a function that takes its stages from the end of its
+arguments, so that it accepts the same stages `new` does, pipelines
+included. [Writing functions that take stages](#writing-functions-that-take-stages)
+has an example.
 
 ```perl
 say join ' ', map { is_stage($_) ? 'yes' : 'no' }
@@ -413,10 +404,8 @@ Each call of the inner pipeline is a run of its own: its `gather`
 stages start afresh on each value the outer stage is given, its end
 functions are called at the end of each call, and a stop in it ends
 only that call, not the outer pipeline. To have its stages run in the
-outer pipeline's run instead, as if listed there, give the pipeline
-itself as a stage, as [A pipeline as a stage](#a-pipeline-as-a-stage)
-says, or splice its stages in with
-[stages](#stages).
+outer pipeline's run instead, give the pipeline itself as a stage (see
+[A pipeline as a stage](#a-pipeline-as-a-stage)).
 
 ## Stopping a pipeline: Ekorn::Pipeline::Stop
 
@@ -839,11 +828,11 @@ can send escape sequences to a terminal.
 
 ### When a stage dies
 
-A stage, or an end function, that dies with a message is reported by
-its place in the pipeline, counting from 1, or, inside a pipeline given
-as a stage, by its place in each, as `#2.3`, at the line that ran the
-pipeline: the call of the pipeline, or of the iterator that asked for
-the result. The message it died with follows, indented by four spaces:
+A stage, or an end function, that dies with a message is named by its
+position, counting from 1 (`#2.3` for one inside a pipeline given as a
+stage). It's reported at the line that ran the pipeline: the call of
+the pipeline, or of the iterator that asked for the result. The
+message it died with follows, indented by four spaces:
 
 ```text
 Pipeline stage #2 failed at app.pl line 12:
@@ -998,9 +987,9 @@ say join ' ', Ekorn::Pipeline->new(My::Stages::Numbers::sum_up_to(10))->(4, 3, 2
   into it, if the function puts stages of its own before its caller's.
 - **Report errors at your callers' lines,** by putting
   `@Ekorn::Pipeline::Errors::INTERNAL` in the module's `@CARP_NOT`.
-- **Take the stages off the end with `is_stage`,** if the arguments
-  before them can be anything, so that a caller can give a pipeline
-  where a stage goes, as `new` can.
+- **Find the stages with `is_stage`,** if the arguments before them
+  can be anything, so that callers can pass a pipeline as a stage, as
+  they can to `new`.
 
 ```perl
 use Ekorn::Pipeline qw(is_stage);
@@ -1044,9 +1033,9 @@ the line of the caller's code that caused it.
 ### Ekorn::Pipeline
 
 - **Expected stage #%d to be a code reference:** a stage given to
-  `new` wasn't a code reference or a pipeline, or was a pipeline whose
-  `stages` method, overridden, returned something that isn't a code
-  reference.
+  `new` wasn't a code reference or a pipeline. It's also raised for a
+  pipeline whose overridden `stages` method returned something that
+  isn't a code reference.
 - **Expected a code reference:** the source given to `iterator` wasn't
   a code reference.
 - **Expected stage #%s, made with gather, to return one or two code
@@ -1057,8 +1046,9 @@ the line of the caller's code that caused it.
   function, died with a message, which follows, indented. An exception
   object is thrown on as it is.
 
-In these two, a stage is named by its place, as `#2`, or, inside a
-pipeline given as a stage, by its place in each pipeline, as `#2.3`.
+In these two, a stage is named by its position: `#2` for the second
+stage, or `#2.3` for the third stage of a pipeline given as the second
+stage.
 
 ### Ekorn::Pipeline::Stop
 

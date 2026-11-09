@@ -299,10 +299,10 @@ stages.
 
     my $p = Ekorn::Pipeline->new(@stages);
 
-Returns a pipeline running values through C<@stages>, in order. It
-croaks if a stage isn't a code reference or a pipeline. With no stages,
-a pipeline returns its values as they are. A pipeline can be given as a
-stage, as L</A pipeline as a stage> says.
+Returns a pipeline that runs values through C<@stages>, in order. Each
+stage must be a code reference or a pipeline (see
+L</A pipeline as a stage>); anything else croaks. With no stages, a
+pipeline returns its values unchanged.
 
 A pipeline is an object that can be called as a code reference. Called
 with values, it returns the list that comes out of the last stage:
@@ -316,30 +316,30 @@ would:
 
 =head3 A pipeline as a stage
 
-A pipeline given to L</new> as a stage has its stages composed in
-place, as if its L</stages> had been given there, so these two run the
-same:
+You can give C<new> a pipeline wherever it takes a stage. Its stages
+are spliced in where it stands, so these two run the same:
 
     my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 
     Ekorn::Pipeline->new($clean, take(10));
     Ekorn::Pipeline->new($clean->stages, take(10));
 
-Its stages run in the new pipeline's run, so a C<take> inside it takes
-from all the values, not from each. The one difference is in messages:
-a stage inside a pipeline given as a stage is named by its place in
-each pipeline, so the third stage of a pipeline given second is
-C<#2.3>, and three deep C<#1.2.3>, where C<< $clean->stages >> names
-its stages by their places in the flat list.
+The spliced stages belong to the new pipeline's run. A C<take> inside
+C<$clean> limits the whole run, not each value.
 
-The stages composed are what the pipeline's L</stages> method returns,
-so a subclass that overrides it is composed as it says. If that isn't
-the list the pipeline was made with, its stages are named by their
-places in what the method returns, one level deep.
+The only difference is in error messages. Given C<$clean> itself, a
+stage inside it is named by its position in each pipeline: the third
+stage of a pipeline given second is C<#2.3>, and three levels down,
+C<#1.2.3>. Given C<< $clean->stages >>, it's named by its position in
+the combined list.
 
-To run a pipeline on each value instead, each call a run of its own,
-so that a C<take> inside it limits what each call gives, call it from a
-stage, as C<sub { $clean-E<gt>($_) }>.
+The stages spliced in are whatever the pipeline's L</stages> method
+returns, so a subclass can override it. If the override returns a
+different list, its stages are named by their position in that list.
+
+To run a pipeline on each value separately instead, call it from a
+stage: C<sub { $clean-E<gt>($_) }>. Each call is then a run of its
+own, and a C<take> inside limits each call.
 
 =head2 iterator
 
@@ -373,25 +373,33 @@ value and carry on, catch the error inside the stage.
 
     my @stages = $p->stages;
 
-Returns the pipeline's stages, in order, as given to L</new>, with a
-pipeline given as a stage in place of its stages. In scalar context, it
+Returns the pipeline's stages, in order. A pipeline that was given as
+a stage appears as the stages it was made of. In scalar context, it
 returns how many there are.
 
-A pipeline's stages can be spliced into another pipeline, or given to
-any function that takes stages, so a pipeline made once can be used
-wherever stages go, even by a function that takes only code references:
+The list can go anywhere stages go, including to a function that
+accepts only code references:
 
     my $clean  = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
     my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);
 
-L</new> takes the pipeline itself as a stage, and composes it the same
-way, as L</A pipeline as a stage> says. The stages run in the other pipeline's run, as if listed there: a
-stop in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
-is made afresh for each run, so its state isn't shared between the
-pipelines it's spliced into. A plain closure is the same code
-reference wherever it goes, so whatever it keeps is shared; keep state
-in C<gather>. A stage that dies is named by its place in the pipeline
-it was spliced into.
+To give C<new> the pipeline itself, see L</A pipeline as a stage>.
+Either way, the stages run as if they had been written out in full:
+
+=over
+
+=item * A stop in one of them ends the whole run.
+
+=item * A stage made with L<Ekorn::Pipeline::Gather> starts afresh on
+each run, so pipelines that share it don't share its state.
+
+=item * A plain closure is the same code reference wherever it goes,
+so anything it keeps is shared. Keep state in C<gather> instead.
+
+=item * A stage that dies is named by its position, as
+L</A pipeline as a stage> describes.
+
+=back
 
 =head1 FUNCTIONS
 
@@ -401,11 +409,13 @@ it was spliced into.
 
     is_stage($thing)
 
-True if C<$thing> can go where a stage goes: a code reference,
-including a stage made with L<Ekorn::Pipeline::Gather>, or a pipeline,
-of this class or a subclass. It's the test L</new> makes of each
-stage, for a function that takes its stages from the end of its
-arguments, so that it takes what a pipeline takes:
+True if C<$thing> can be used as a stage: a code reference (including
+a stage made with L<Ekorn::Pipeline::Gather>), or a pipeline of this
+class or a subclass. It's the same test L</new> uses.
+
+Use it in a function that takes its stages from the end of its
+arguments, so that it accepts the same stages C<new> does, pipelines
+included:
 
     sub fetch ($url, @args) {
         my @stages;
@@ -430,9 +440,9 @@ which a value an end function gives doesn't have. It isn't exported.
 
 =item Expected stage #%d to be a code reference
 
-A stage given to L</new> wasn't a code reference or a pipeline, or was
-a pipeline whose C<stages> method, overridden, returned something that
-isn't a code reference.
+A stage given to L</new> wasn't a code reference or a pipeline. It's
+also raised for a pipeline whose overridden C<stages> method returned
+something that isn't a code reference.
 
 =item Expected a code reference
 
@@ -448,9 +458,9 @@ returned something other than a stage, or a stage and an end function.
 A stage, or its end function, died. The message it died with follows,
 indented. An exception object is passed on as it is.
 
-In this message and the one above, a stage is named by its place: in
-the pipeline, as C<#2>, or, inside a pipeline given as a stage, in
-each pipeline, as C<#2.3>.
+In this message and the one above, a stage is named by its position:
+C<#2> for the second stage, or C<#2.3> for the third stage of a
+pipeline given as the second stage.
 
 =back
 

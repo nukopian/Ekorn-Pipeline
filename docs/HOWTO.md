@@ -816,9 +816,9 @@ documentation.
 
 ### Use a pipeline in another
 
-A pipeline can go where a stage goes, standing for its stages, so
-stages made once can be used again, in another pipeline or in a call
-of any function that gives its stages to `new`:
+A pipeline can be used as a stage, so stages you've put together once
+can be reused, in another pipeline or with any function that passes
+its stages to `new`:
 
 ```perl
 my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
@@ -829,22 +829,21 @@ say join '|', @titles;    # Parklife|Tender
 say join '|', tracks(value_of('title'), $clean, take(3));    # Dancing Queen|Knowing Me, Knowing You|Girls & Boys
 ```
 
-A function that checks its stages are code references itself, rather
-than leaving that to `new`, may refuse a pipeline. Give it the
-pipeline's stages instead, as
+Some functions check for code references themselves, and may refuse a
+pipeline. Give those the pipeline's stages instead:
 `tracks(value_of('title'), $clean->stages, take(3))`.
 
-Either way, the stages run as if they'd been listed there: a stop in one ends the
-whole run, and a `gather` stage starts afresh with each run, so what it
-keeps isn't shared by two pipelines, or by its uses twice in one. A
-plain closure is the same code wherever it goes, so whatever it keeps
-is shared: keep state in `gather`, as
-[Keep count, starting afresh on each run](#keep-count-starting-afresh-on-each-run) says.
+Either way, the stages run as if you had written them out in full. A
+stop in one ends the whole run. A `gather` stage starts afresh on each
+run, so two pipelines that use it, or one that uses it twice, don't
+share its state. A plain closure is the same code wherever it goes, so
+anything it keeps is shared; keep state in `gather` instead, as
+[Keep count, starting afresh on each run](#keep-count-starting-afresh-on-each-run)
+shows.
 
-A stage can call a pipeline instead, as `sub { $clean->($_) }`. Then
-each call is a run of its own, so its `gather` stages start afresh on
-each value, and a stop in it ends only that call: a `take(2)` inside
-limits what each call gives, not the whole run.
+To run a pipeline on each value separately, call it from a stage:
+`sub { $clean->($_) }`. Each call is then a run of its own, so a
+`take(2)` inside limits each call, not the whole run.
 
 ### Test a stage
 
@@ -911,9 +910,9 @@ shows. With an iterator, the line is the one that asked for the
 result. An end function that dies is named by its stage's place, as
 the stage is.
 
-A stage inside a pipeline given as a stage is named by its place in
-each pipeline, so the second stage of `$no_blur`, given second, is
-`#2.2`:
+A stage inside a pipeline used as a stage is named by its position in
+each pipeline. Here `$no_blur` is the second stage, and the stage that
+dies is its second, so it's `#2.2`:
 
 ```perl
 my $no_blur = Ekorn::Pipeline->new(sub { $_->{title} }, sub { die "No more Blur\n" if m( Boys )x; $_ });
