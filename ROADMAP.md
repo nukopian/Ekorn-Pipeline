@@ -41,18 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0004. A pipeline given as a stage
-
-**Size:** M (3)
-
-`new` takes a pipeline where a stage goes, composing its stages in
-place, so `Ekorn::Pipeline->new($clean, take(10))` means
-`Ekorn::Pipeline->new($clean->stages, take(10))`. A message names a
-stage inside it by its place in each pipeline, "#2.3", and an
-`is_stage` test, which `new` uses, lets DBIx::Squirrel and others
-recognise a pipeline among their arguments. No message a pipeline
-gives today changes, so it's v0.1.3. Work started on 2026-11-09; its
-[record](docs/changes/2026-0004-pipeline-as-a-stage.md) has the plan.
+Nothing yet.
 
 ## Next
 

@@ -1,6 +1,6 @@
 # 2026-0004. A pipeline given as a stage
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 settled: by its place in each pipeline, "#2.3"; the refusal unchanged. D4 settled: v0.1.3. None open.
 
@@ -8,7 +8,9 @@
 2026-0001, whose record has the prototype; opened on 2026-11-09, when
 Iain asked what it would mean for DBIx-Squirrel
 
-**Started:** 2026-11-09
+**Started:** 2026-11-09, in f7efd24badc2b42f8f7e0bb8a166283723c1fbca
+
+**Finished:** 2026-11-09
 
 ## Background
 
@@ -103,6 +105,24 @@ bb218508ae7a747f8e00906c04a05b063ad8bb8d.
   gives the nested names, though the two run the same (D1). Leaving the
   refusal keeps the messages a flat pipeline can give unchanged, which
   D4 turns on.
+  Added on 2026-11-09, in review: whether `->stages` could carry the
+  nested names too. Left flat: it returns plain code references, to go
+  where only code references go, so nothing ties them to the pipeline
+  they came from. Tagging or wrapping them would break `stages()`
+  returning the stages as given (2026-0001) and add a call to every
+  stage; a table from code reference to name can't tell which name is
+  meant when one stage is in several pipelines, or twice in one; and
+  spotting a pipeline's stages in a run of references is the same
+  guess. With `is_stage`, functions can take the pipeline itself, so
+  `->stages` is left for those that take only code references.
+  Also decided then: `new` takes a given pipeline's stages from its
+  `stages` method, not its internals, so `new($p)` and
+  `new($p->stages)` run the same even for a subclass that overrides
+  it, as D1 says. Its own names are used if the method returns the
+  stages it was made with; otherwise the stages are named by their
+  places in what it returns, one level deep, and a pipeline whose
+  method returns something not a code reference is refused as a bad
+  stage, by its own place.
 - [x] **D4.** v0.1.3 or v0.2.0? A change to the messages makes v0.2.0,
   under CLAUDE.md's rule, which means a task for DBIx-Squirrel to test
   it and move its range. If a flat pipeline's messages are unchanged,
@@ -159,3 +179,30 @@ clean; the docs' changed examples print what they say; and the task is
 in DBIx-Squirrel's `TODO.md`.
 
 ## What happened
+
+- **Outcome:** done as planned. `new` composes a pipeline given as a
+  stage, names a stage inside it "#2.3", and uses `is_stage`, which is
+  exported on request. The tests pass with yath on 5.36.3, 5.38.5,
+  5.40.5, 5.42.3 and 5.44.0, and under `prove`; coverage is at its
+  floors (statement, branch, subroutine and pod 100%, condition 96.9%);
+  perlcritic and perltidy are clean; the changed examples in the
+  how-to and the reference print what they say. DBIx-Squirrel's task
+  is in its `TODO.md`, waiting on v0.1.3.
+- **Changes from the plan:**
+  - In review, `new` was changed to take a given pipeline's stages from
+    its `stages` method rather than its internals, as the prototype
+    did, so `new($p)` and `new($p->stages)` can't differ for a subclass
+    that overrides it. Its names are kept only if the method returns
+    the stages it was made with, and are its places in what it returns
+    otherwise; something not a code reference is refused by the
+    pipeline's own place, with the existing message. D3 has the why.
+  - Whether `->stages` could carry the nested names was asked in
+    review, and it was left flat (D3).
+  - The prototype's composing test compared stages doing arithmetic on
+    the array references `batch` and `collect` pass on, which compared
+    addresses; the test's stages leave references alone.
+- **Measurements:** none taken; the prototype's (2026-0001) found
+  composing as fast as listing the stages, and nothing in the runner's
+  loop changed since.
+- **What's left:** DBIx-Squirrel's use of `is_stage`, as its task; and
+  the release, v0.1.3.

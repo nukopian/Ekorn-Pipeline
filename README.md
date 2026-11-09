@@ -249,12 +249,15 @@ A class of your own can have `pipe` and `tap` methods, from
 returns what comes out, and `tap` returns the object, so a chain of
 method calls can carry on after it.
 
-A pipeline's `stages` go wherever stages go, so a set of stages made
-once can be spliced into another pipeline, or given to any function
-that takes stages:
+A pipeline goes wherever a stage goes, standing for its stages, so a
+set of stages made once can be used in another pipeline, or given to
+any function that takes stages:
 
     my $active_names = Ekorn::Pipeline->new(sub { $_->{active} ? $_ : () }, sub { $_->{name} });
-    my @names = users($active_names->stages, take(10));
+    my @names = users($active_names, take(10));
+
+A function that takes only code references can be given its
+`stages` instead, as `users($active_names->stages, take(10))`.
 
 ## Errors
 

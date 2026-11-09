@@ -30,6 +30,8 @@ for my $pkg (sort keys %imported) {
 }
 
 subtest 'what the packages need is kept' => sub {
+    ok +Ekorn::Pipeline->can('import'),         'Pipeline can export';
+    ok +Ekorn::Pipeline->can('is_stage'),       'and keeps is_stage';
     ok +Ekorn::Pipeline::Errors->can('import'), 'Errors can export';
     ok +Ekorn::Pipeline::Errors->can('croakf'), 'and keeps croakf';
     ok +Ekorn::Pipeline::Gather->can('import'), 'Gather can export';

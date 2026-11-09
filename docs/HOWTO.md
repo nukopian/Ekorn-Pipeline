@@ -814,22 +814,26 @@ say scalar @up_to;    # 4
 not tracks. Mind what a stage is given, and say so in its
 documentation.
 
-### Use a pipeline's stages in another
+### Use a pipeline in another
 
-A pipeline isn't a stage itself, but its stages can go wherever stages
-go, with `stages`, so stages made once can be used again, in another
-pipeline or in a call of any function that takes them:
+A pipeline can go where a stage goes, standing for its stages, so
+stages made once can be used again, in another pipeline or in a call
+of any function that gives its stages to `new`:
 
 ```perl
 my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
 
-my @titles = Ekorn::Pipeline->new($clean->stages, take(2))->('  Parklife ', '   ', 'Tender', 'Waterloo');
+my @titles = Ekorn::Pipeline->new($clean, take(2))->('  Parklife ', '   ', 'Tender', 'Waterloo');
 say join '|', @titles;    # Parklife|Tender
 
-say join '|', tracks(value_of('title'), $clean->stages, take(3));    # Dancing Queen|Knowing Me, Knowing You|Girls & Boys
+say join '|', tracks(value_of('title'), $clean, take(3));    # Dancing Queen|Knowing Me, Knowing You|Girls & Boys
 ```
 
-The stages run as if they'd been listed there: a stop in one ends the
+A function that takes only code references, as one written before
+pipelines could be given as stages may, can be given its stages, with
+`stages`, as `tracks(value_of('title'), $clean->stages, take(3))`.
+
+Either way, the stages run as if they'd been listed there: a stop in one ends the
 whole run, and a `gather` stage starts afresh with each run, so what it
 keeps isn't shared by two pipelines, or by its uses twice in one. A
 plain closure is the same code wherever it goes, so whatever it keeps
@@ -905,6 +909,18 @@ stages can have it be its caller's line, as
 shows. With an iterator, the line is the one that asked for the
 result. An end function that dies is named by its stage's place, as
 the stage is.
+
+A stage inside a pipeline given as a stage is named by its place in
+each pipeline, so the second stage of `$no_blur`, given second, is
+`#2.2`:
+
+```perl
+my $no_blur = Ekorn::Pipeline->new(sub { $_->{title} }, sub { die "No more Blur\n" if m( Boys )x; $_ });
+eval { tracks(sub { $_ }, $no_blur) };
+print $@;
+# Pipeline stage #2.2 failed at ... line ...:
+#     No more Blur
+```
 
 ### Throw exception objects through
 

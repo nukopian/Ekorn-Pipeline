@@ -140,7 +140,8 @@ B<Value:> anything a pipeline is given, or a stage returns. C<undef>,
 =item *
 
 B<Stage:> a code reference, called with one value, returning a list
-of values: none, one or several.
+of values: none, one or several. Where a stage goes, a pipeline can
+go too, standing for its stages.
 
 =item *
 
@@ -175,26 +176,49 @@ the values run out, whose values go on through the stages after it.
 =head1 Pipelines: Ekorn::Pipeline
 
     use Ekorn::Pipeline;
+    use Ekorn::Pipeline qw(is_stage);
 
-It exports nothing.
+It exports nothing by default, and C<is_stage> on request.
 
 =head2 new
 
     my $p = Ekorn::Pipeline->new(@stages);
 
 Returns a pipeline running values through C<@stages>, in order. It
-croaks if a stage isn't a code reference, naming it by its place:
-"Expected stage #2 to be a code reference". A stage can be any code
-reference: an anonymous C<sub>, a reference to a named one, such as
-C<\&trim>, a stage made by a function, such as C<take(10)>, or one made
-with C<gather>.
+croaks if a stage isn't a code reference or a pipeline, naming it by
+its place: "Expected stage #2 to be a code reference". A stage can be
+any code reference: an anonymous C<sub>, a reference to a named one,
+such as C<\&trim>, a stage made by a function, such as C<take(10)>, or
+one made with C<gather>.
 
 With no stages, a pipeline returns its values as they are.
 
-A pipeline is not itself a stage: given to C<new>, it's refused, as it's
-an object that can be called like a code reference, not a code
-reference. To use one inside another, splice its stages in, with
-L<stages|/"stages">, or call it from a stage, as
+A pipeline given as a stage has its stages composed in place, as if
+its L<stages|/"stages"> had been given there:
+
+    my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+    say join '|', Ekorn::Pipeline->new($clean, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
+
+That's the same pipeline as C<< Ekorn::Pipeline->new($clean->stages,
+take(2)) >>, and runs the same way, as L<stages|/"stages"> says: its stages
+run in the new pipeline's run, so a C<take> inside it takes from all the
+values, not from each. Pipelines can be given inside pipelines given as
+stages, to any depth. A pipeline of a subclass of Ekorn::Pipeline is
+taken too.
+
+The one difference from giving its stages is in messages. A stage
+inside a pipeline given as a stage is named by its place in each
+pipeline: the third stage of a pipeline given second is C<#2.3>, and,
+three deep, C<#1.2.3>. Given with C<< ->stages >>, it's named by its place
+in the flat list: C<#4>, if a single stage came before it.
+
+The stages composed are what the pipeline's L<stages|/"stages"> method
+returns, so a subclass that overrides it is composed as it says. If
+that isn't the list the pipeline was made with, its stages are named
+by their places in what the method returns, one level deep.
+
+To run a pipeline on each value instead, each call a run of its own,
+call it from a stage, as
 L<Pipelines inside stages|/"Pipelines inside stages"> says.
 
 =head2 Calling a pipeline
@@ -287,9 +311,11 @@ Returns the pipeline's stages, in order, as they were given to C<new>:
 a copy of the list, so changing it changes nothing in the pipeline. In
 scalar context, it returns how many there are.
 
-A pipeline isn't a stage, but its stages can be spliced into another
-pipeline, or given to any function that takes stages, so a pipeline
-made once can be used wherever stages go:
+A pipeline's stages can be spliced into another pipeline, or given to
+any function that takes stages, so a pipeline made once can be used
+wherever stages go, even by a function that takes only code
+references. L<new|/"new"> takes the pipeline itself, and composes it the
+same way.
 
     my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
     say join '|', Ekorn::Pipeline->new($clean->stages, take(2))->(' a ', '  ', 'b ', 'c');    # a|b
@@ -315,13 +341,33 @@ C<gather>.
 =item *
 
 A stage that dies is named by its place in the pipeline it was
-spliced into.
+spliced into. Given as the pipeline, rather than its stages, it's
+named by its place in each, as L<new|/"new"> says.
 
 =back
 
 That differs from calling a pipeline from a stage, where each call is a
 run of its own, as L<Pipelines inside stages|/"Pipelines inside stages">
 says.
+
+=head2 is_stage
+
+    use Ekorn::Pipeline qw(is_stage);
+
+    is_stage($thing)
+
+True if C<$thing> can go where a stage goes: a code reference, a stage
+made with C<gather> among them, or a pipeline, of Ekorn::Pipeline or a
+subclass. It's the test L<new|/"new"> makes of each stage. It's exported
+on request.
+
+It's for a function that takes its stages from the end of its
+arguments, so that it takes just what a pipeline takes, a pipeline
+among them, as L<Writing functions that take stages|/"Writing functions that take stages">
+shows.
+
+    say join ' ', map { is_stage($_) ? 'yes' : 'no' }
+        sub { $_ }, take(1), Ekorn::Pipeline->new, 'x', [];    # yes yes yes no no
 
 =head2 ending
 
@@ -477,7 +523,8 @@ Each call of the inner pipeline is a run of its own: its C<gather>
 stages start afresh on each value the outer stage is given, its end
 functions are called at the end of each call, and a stop in it ends
 only that call, not the outer pipeline. To have its stages run in the
-outer pipeline's run instead, as if listed there, splice them in with
+outer pipeline's run instead, as if listed there, give the pipeline
+itself as a stage, as L<new|/"new"> says, or splice its stages in with
 L<stages|/"stages">.
 
 =head1 Stopping a pipeline: Ekorn::Pipeline::Stop
@@ -970,7 +1017,8 @@ can send escape sequences to a terminal.
 =head2 When a stage dies
 
 A stage, or an end function, that dies with a message is reported by
-its place in the pipeline, counting from 1, at the line that ran the
+its place in the pipeline, counting from 1, or, inside a pipeline given
+as a stage, by its place in each, as C<#2.3>, at the line that ran the
 pipeline: the call of the pipeline, or of the iterator that asked for
 the result. The message it died with follows, indented by four spaces:
 
@@ -1187,7 +1235,25 @@ into it, if the function puts stages of its own before its caller's.
 B<Report errors at your callers' lines,> by putting
 C<@Ekorn::Pipeline::Errors::INTERNAL> in the module's C<@CARP_NOT>.
 
+=item *
+
+**Take the stages off the end with C<is_stage>,** if the arguments
+before them can be anything, so that a caller can give a pipeline
+where a stage goes, as C<new> can.
+
 =back
+
+    use Ekorn::Pipeline qw(is_stage);
+
+    # The values given, up to the stages at the end, through those stages.
+    sub only (@args) {
+        my @stages;
+        unshift @stages, pop @args while @args && is_stage($args[-1]);
+        return Ekorn::Pipeline->new(@stages)->(@args);
+    }
+
+    my $evens = Ekorn::Pipeline->new(sub { $_ % 2 ? () : $_ });
+    say join ' ', only(1 .. 10, $evens, take(3));    # 2 4 6
 
     package My::Files {
         use Ekorn::Pipeline;
@@ -1219,8 +1285,7 @@ the line of the caller's code that caused it.
 =item *
 
 B<Expected stage #%d to be a code reference:> a stage given to
-C<new> wasn't a code reference. A pipeline, which is an object, isn't
-one either.
+C<new> wasn't a code reference or a pipeline.
 
 =item *
 
@@ -1229,18 +1294,21 @@ a code reference.
 
 =item *
 
-B<Expected stage #%d, made with gather, to return one or two code
+B<Expected stage #%s, made with gather, to return one or two code
 references:> the block given to C<gather> for that stage returned
 something other than a stage, or a stage and an end function.
 Reported when the run starts.
 
 =item *
 
-B<Pipeline stage #%d failed at %s line %d:> a stage, or its end
+B<Pipeline stage #%s failed at %s line %d:> a stage, or its end
 function, died with a message, which follows, indented. An exception
 object is thrown on as it is.
 
 =back
+
+In these two, a stage is named by its place, as C<#2>, or, inside a
+pipeline given as a stage, by its place in each pipeline, as C<#2.3>.
 
 =head2 Ekorn::Pipeline::Stop
 
@@ -1303,7 +1371,7 @@ than an open filehandle.
 
 B<By default:> nothing
 
-B<On request:> nothing
+B<On request:> C<is_stage>
 
 =item C<Ekorn::Pipeline::Stop>
 
@@ -1356,7 +1424,7 @@ empty list: C<use Ekorn::Pipeline::Stop ();>.
 
 =item C<Ekorn::Pipeline>
 
-Runs values through a list of stages: C<new>, C<iterator>, C<stages> and C<ending>.
+Runs values through a list of stages: C<new>, C<iterator>, C<stages>, C<is_stage> and C<ending>.
 
 =item C<Ekorn::Pipeline::Stop>
 

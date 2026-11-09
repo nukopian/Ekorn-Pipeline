@@ -2,34 +2,60 @@ use v5.36;
 
 package Ekorn::Pipeline;
 
-use experimental qw(try);
+use experimental qw(builtin try);
 
+use builtin   qw(refaddr);
 use Carp      qw(croak);
+use Exporter  qw(import);
 use Ref::Util qw(is_arrayref is_coderef is_ref);
 
 use Ekorn::Pipeline::Errors qw(croakf);
 
-use namespace::clean;
+use namespace::clean -except => 'import';
 
 use overload '&{}' => sub ($self, @) { $self->{call} }, fallback => 1;
 
 our $VERSION = 'v0.1.2';
 
+our @EXPORT_OK = qw(is_stage);
+
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
+# Return true if what's given can go where a stage goes: a code reference,
+# or a pipeline, whose stages go in its place.
+sub is_stage ($thing) {
+    return !!($thing isa 'Ekorn::Pipeline' || is_coderef($thing));
+}
+
+
 # Return a pipeline, called with values to run each of them through the
-# stages.
-sub new ($class, @stages) {
-    for my $n (1 .. @stages) {
+# stages. A pipeline given as a stage has its stages spliced in, each
+# named by its place in each pipeline, such as "2.3".
+sub new ($class, @given) {
+    my(@stages, @names);
+    for my $n (1 .. @given) {
+        my $stage = $given[$n - 1];
         croakf 'Expected stage #%d to be a code reference', $n
-            unless is_coderef($stages[$n - 1]);
+            unless is_stage($stage);
+        if ($stage isa 'Ekorn::Pipeline') {
+            my($inner, $inner_names) = _composed($stage);
+            croakf 'Expected stage #%d to be a code reference', $n
+                if grep { !is_coderef($_) } @$inner;
+            push @stages, @$inner;
+            push @names,  map { "$n.$_" } @$inner_names;
+            next;
+        }
+        push @stages, $stage;
+        push @names,  $n;
     }
     return bless {
         stages => \@stages,
+        names  => \@names,
         call   => sub (@values) {
             return @values unless @stages;
-            my $next = _iterator(\@stages, sub { @values ? shift @values : () });
+            my $next
+                = _iterator(\@stages, \@names, sub { @values ? shift @values : () });
             my @results;
             while (my($result) = $next->()) { push @results, $result }
             return @results;
@@ -37,11 +63,27 @@ sub new ($class, @stages) {
     }, $class;
 }
 
+# Return the stages of a pipeline given as a stage, from its stages
+# method, as giving its stages would, and their names: its own, if the
+# method returns the stages it was made with, as it does unless a
+# subclass overrides it, or else their places in what it returns.
+sub _composed ($pipeline) {
+    my @stages = $pipeline->stages;
+    my $made   = $pipeline->{stages};
+    return \@stages, [1 .. @stages] unless @stages == @$made;
+    for my $i (0 .. $#stages) {
+        return \@stages, [1 .. @stages]
+            unless (refaddr($stages[$i]) // 0) == refaddr($made->[$i]);
+    }
+    return \@stages, $pipeline->{names};
+}
+
+
 # Return a closure handing out, one per call, the values from $source run
 # through the stages.
 sub iterator ($self, $source) {
     croakf 'Expected a code reference' unless is_coderef($source);
-    return _iterator($self->{stages}, $source);
+    return _iterator($self->{stages}, $self->{names}, $source);
 }
 
 
@@ -62,8 +104,8 @@ sub ending () {
 }
 
 # Return a closure handing out, one per call, the values from $source run
-# through the stages in @$stages.
-sub _iterator ($stages, $source) {
+# through the stages in @$stages, named in messages by @$names.
+sub _iterator ($stages, $names, $source) {
     my(@stages, @ends);
     for my $n (0 .. $#$stages) {
         my $stage = $stages->[$n];
@@ -73,8 +115,8 @@ sub _iterator ($stages, $source) {
         }
         my @made = $stage->();
         croakf
-            'Expected stage #%d, made with gather, to return one or two code references',
-            $n + 1
+            'Expected stage #%s, made with gather, to return one or two code references',
+            $names->[$n]
             unless (@made == 1 || @made == 2) && @made == grep { is_coderef($_) } @made;
         ($stages[$n], $ends[$n]) = @made;
     }
@@ -148,7 +190,7 @@ sub _iterator ($stages, $source) {
                 croak $e if is_ref($e);
                 my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
                 my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
-                die "Pipeline stage #@{[ $n + 1 ]} failed$at:\n$message\n";
+                die "Pipeline stage #$names->[$n] failed$at:\n$message\n";
             }
             return $value if $kept;
         }
@@ -256,8 +298,28 @@ stages.
     my $p = Ekorn::Pipeline->new(@stages);
 
 Returns a pipeline running values through C<@stages>, in order. It
-croaks if a stage isn't a code reference. With no stages, a pipeline
-returns its values as they are.
+croaks if a stage isn't a code reference or a pipeline. With no stages,
+a pipeline returns its values as they are.
+
+A pipeline given as a stage has its stages composed in place, as if
+its L</stages> had been given there, so these are the same pipeline:
+
+    my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+
+    Ekorn::Pipeline->new($clean, take(10));
+    Ekorn::Pipeline->new($clean->stages, take(10));
+
+Its stages run in the new pipeline's run, so a C<take> inside it takes
+from all the values, not from each. The one difference is in messages:
+a stage inside a pipeline given as a stage is named by its place in
+each pipeline, so the third stage of a pipeline given second is
+C<#2.3>, and three deep C<#1.2.3>, where C<< $clean->stages >> names
+its stages by their places in the flat list.
+
+The stages composed are what the pipeline's L</stages> method returns,
+so a subclass that overrides it is composed as it says. If that isn't
+the list the pipeline was made with, its stages are named by their
+places in what the method returns, one level deep.
 
 A pipeline is an object that can be called as a code reference. Called
 with values, it returns the list that comes out of the last stage:
@@ -304,14 +366,15 @@ value and carry on, catch the error inside the stage.
 Returns the pipeline's stages, in order, as given to L</new>. In
 scalar context, it returns how many there are.
 
-A pipeline isn't a stage, but its stages can be spliced into another
-pipeline, or given to any function that takes stages, so a pipeline
-made once can be used wherever stages go:
+A pipeline's stages can be spliced into another pipeline, or given to
+any function that takes stages, so a pipeline made once can be used
+wherever stages go, even by a function that takes only code references:
 
     my $clean  = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
     my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);
 
-The stages run in the other pipeline's run, as if listed there: a stop
+L</new> takes the pipeline itself as a stage, and composes it the same
+way. The stages run in the other pipeline's run, as if listed there: a stop
 in one ends that run, and a stage made with L<Ekorn::Pipeline::Gather>
 is made afresh for each run, so its state isn't shared between the
 pipelines it's spliced into. A plain closure is the same code
@@ -320,6 +383,26 @@ in C<gather>. A stage that dies is named by its place in the pipeline
 it was spliced into.
 
 =head1 FUNCTIONS
+
+=head2 is_stage
+
+    use Ekorn::Pipeline qw(is_stage);
+
+    is_stage($thing)
+
+True if C<$thing> can go where a stage goes: a code reference,
+including a stage made with L<Ekorn::Pipeline::Gather>, or a pipeline,
+of this class or a subclass. It's the test L</new> makes of each
+stage, for a function that takes its stages from the end of its
+arguments, so that it takes what a pipeline takes:
+
+    sub fetch ($url, @args) {
+        my @stages;
+        unshift @stages, pop @args while @args && is_stage($args[-1]);
+        ...
+    }
+
+It's exported on request.
 
 =head2 ending
 
@@ -336,21 +419,25 @@ which a value an end function gives doesn't have. It isn't exported.
 
 =item Expected stage #%d to be a code reference
 
-A stage given to L</new> wasn't a code reference.
+A stage given to L</new> wasn't a code reference or a pipeline.
 
 =item Expected a code reference
 
 The source given to L</iterator> wasn't a code reference.
 
-=item Expected stage #%d, made with gather, to return one or two code references
+=item Expected stage #%s, made with gather, to return one or two code references
 
 The block given to L<Ekorn::Pipeline::Gather/gather> for that stage
 returned something other than a stage, or a stage and an end function.
 
-=item Pipeline stage #%d failed at %s line %d:
+=item Pipeline stage #%s failed at %s line %d:
 
 A stage, or its end function, died. The message it died with follows,
 indented. An exception object is passed on as it is.
+
+In this message and the one above, a stage is named by its place: in
+the pipeline, as C<#2>, or, inside a pipeline given as a stage, in
+each pipeline, as C<#2.3>.
 
 =back
 
