@@ -41,7 +41,18 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
+### 2026-0004. A pipeline given as a stage
+
+**Size:** M (3)
+
+`new` takes a pipeline where a stage goes, composing its stages in
+place, so `Ekorn::Pipeline->new($clean, take(10))` means
+`Ekorn::Pipeline->new($clean->stages, take(10))`. A message names a
+stage inside it by its place in each pipeline, "#2.3", and an
+`is_stage` test, which `new` uses, lets DBIx::Squirrel and others
+recognise a pipeline among their arguments. No message a pipeline
+gives today changes, so it's v0.1.3. Its decisions are settled, in its
+[record](docs/changes/2026-0004-pipeline-as-a-stage.md).
 
 ## Next
 
@@ -57,19 +68,4 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-### 2026-0004. A pipeline given as a stage
-
-**Added:** 2026-11-07. **Size:** M (3)
-
-`new` would take a pipeline where a stage goes, composing its stages in
-place, so `Ekorn::Pipeline->new($clean, take(10))` works without
-`->stages`. A prototype worked with no change to the runner (see
-2026-0001's [record](docs/changes/2026-0001-stages-method.md)). Left
-for a later version, to keep the change around DBIx::Squirrel small.
-With something filling the niches of DBIx::Squirrel::Context and
-Syntax::Keyword::Dynamically, a message could name a nested stage more
-helpfully than by its place in the flat list.
-
-Its questions are open, in its
-[record](docs/changes/2026-0004-pipeline-as-a-stage.md), with what it
-means for DBIx-Squirrel.
+Nothing yet.

@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 settled: by its place in each pipeline, "#2.3"; the refusal unchanged. D4 open: v0.1.3 or v0.2.0.
+**Decisions:** D1 settled: compose in place, as if given its stages(). D2 settled: export `is_stage`, which `new` uses too. D3 settled: by its place in each pipeline, "#2.3"; the refusal unchanged. D4 settled: v0.1.3. None open.
 
 **Origin:** roadmap, added 2026-11-07, as an idea left over from
 2026-0001, whose record has the prototype; opened on 2026-11-09, when
@@ -101,10 +101,14 @@ bb218508ae7a747f8e00906c04a05b063ad8bb8d.
   gives the nested names, though the two run the same (D1). Leaving the
   refusal keeps the messages a flat pipeline can give unchanged, which
   D4 turns on.
-- [ ] **D4.** v0.1.3 or v0.2.0? A change to the messages makes v0.2.0,
+- [x] **D4.** v0.1.3 or v0.2.0? A change to the messages makes v0.2.0,
   under CLAUDE.md's rule, which means a task for DBIx-Squirrel to test
   it and move its range. If a flat pipeline's messages are unchanged,
   and a nested stage's name and accepting a pipeline are only
   additions, it's v0.1.3, and reaches DBIx::Squirrel's users with no
   release of its own. Rewording the refusal (D3) would argue for
-  v0.2.0. Recommended: v0.1.3, keeping the refusal as it is.
+  v0.2.0. v0.1.3, decided on 2026-11-09: with the refusal left as it
+  is (D3), no message a pipeline gives today changes, and the rest,
+  taking a pipeline as a stage, nested names and `is_stage`, only adds.
+  DBIx-Squirrel's range takes it as it stands; its task is only to use
+  it.
