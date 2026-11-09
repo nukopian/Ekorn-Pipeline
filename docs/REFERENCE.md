@@ -105,6 +105,11 @@ use Ekorn::Pipeline qw(is_stage);
 
 It exports nothing by default, and `is_stage` on request.
 
+Its `import` comes from Exporter, so a subclass inherits it. `use
+My::Pipeline;` imports nothing, but `use My::Pipeline qw(name)` croaks
+unless the subclass exports `name` itself. Before v0.1.3, a subclass
+ignored the list.
+
 ### new
 
 ```perl

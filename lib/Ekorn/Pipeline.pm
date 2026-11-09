@@ -454,7 +454,9 @@ included:
         ...
     }
 
-It's exported on request.
+It's exported on request. Exporter provides the C<import> method,
+and a subclass inherits it, so C<use My::Pipeline qw(name)> croaks
+unless the subclass exports C<name> itself.
 
 =head2 ending
 
