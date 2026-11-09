@@ -100,14 +100,17 @@ without ever seeing the handle they came from.
 count before or after `active_only`? With stages, they run in the
 order the caller wrote them.
 - **A stage is written once, for every function.** Stages are
-plain code references. A stage written for one function works with
+plain code references, or pipelines of them. A stage written for one
+function works with
 every function that takes stages, whoever wrote it. The canned stages
 here work with all of them.
 
 ## Stages
 
-A stage is a code reference. It's called with one value, as its
-argument and in `$_`, and returns a list:
+A stage is either a code reference or another pipeline.
+
+A code reference is called with one value, as its argument and in
+`$_`, and returns a list:
 
 - **nothing,** to drop the value: a _filter_;
 - **one value,** to pass it on, changed or not: a _map_;
@@ -124,6 +127,16 @@ stage needs no wrapper to say which kind it is:
 Returning a list, rather than a value or `undef`, is what makes this
 work. An empty list plainly means "nothing", so `undef`, `0` and the
 empty string are ordinary values, and can be passed on.
+
+A pipeline used as a stage stands for its own stages, spliced in where
+it's given. So stages you've put together once can be reused, in
+another pipeline or with any function that takes stages:
+
+    my $active_names = Ekorn::Pipeline->new(sub { $_->{active} ? $_ : () }, sub { $_->{name} });
+    my @names = users($active_names, take(10));
+
+If a function accepts only code references, give it the pipeline's
+stages instead: `users($active_names->stages, take(10))`.
 
 ## One value at a time
 
@@ -206,8 +219,8 @@ That's how `batch`, `collect`, `take` and `drop` are made.
 
 ## Stages are values
 
-Stages are code references, so they can be kept in variables, built by
-functions and passed around. A function that returns a stage is a word
+Stages are code references or pipelines, so they can be kept in
+variables, built by functions and passed around. A function that returns a stage is a word
 in a vocabulary, and the vocabulary grows in the caller's code, not
 the author's:
 
@@ -247,16 +260,6 @@ A class of your own can have `pipe` and `tap` methods, from
 returns what comes out. `tap` returns the object, so a chain of
 method calls can carry on after it.
 
-A pipeline can be used as a stage, so stages you've put together once
-can be reused, in another pipeline or with any function that takes
-stages:
-
-    my $active_names = Ekorn::Pipeline->new(sub { $_->{active} ? $_ : () }, sub { $_->{name} });
-    my @names = users($active_names, take(10));
-
-If a function accepts only code references, give it the pipeline's
-stages instead: `users($active_names->stages, take(10))`.
-
 ## Errors
 
 A stage that dies is named by its position in the pipeline, and
@@ -284,8 +287,8 @@ counting and debugging.
 
 ## Stage modules of your own
 
-Stages are plain code references, so anyone can make them, in any
-namespace. Where a module of stages belongs depends on what its stages
+Stages are plain code references, or pipelines of them, so anyone can
+make them, in any namespace. Where a module of stages belongs depends on what its stages
 need to know:
 
 - **Stages for any values** go under `Ekorn::Pipeline::Stages`,
