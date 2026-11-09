@@ -1,3 +1,54 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-09: v0.1.3 signed off
+
+**From:** DBIx-Squirrel's session, 2026-11-09 (DBIx-Squirrel
+14beab2d, on `experiment/2026-0004-pipeline-as-stage`; the code in
+07d4685, the docs in 14fe054)
+
+**Signed off.** DBIx-Squirrel's task 1 is done up to its sign-off,
+against Ekorn-Pipeline's `develop` at
+54d260735fd4c86894d8051ae3b48157f0b2b5f2, from a worktree. The tests
+passed before any change, 1,431 assertions, and pass after, 1,462, on
+5.36.3 and 5.44.0, with the how-to's examples and coverage. Nothing
+needs fixing here before the release.
+
+What was tried: `is_stage` in place of `is_coderef` wherever
+DBIx::Squirrel finds a call's stages; a pipeline alone, before and
+after other stages, in `iterate`, `results`, a statement handle's, and
+Sugar's statements and functions; a `take(2)` inside giving two in
+all; a `gather` block returning a pipeline, made afresh after `reset`;
+and a stage inside named `#2.2` in the message.
+
+What Ekorn asked for:
+
+- **Taking a pipeline with `is_stage` works as a user would expect.**
+  `->iterate(, , take(2))` reads better than
+  `->stages`, and the docs got shorter for it.
+- **One trap, for Writing functions that take stages.** A function that
+  takes options in a hash reference before its stages, as `iterate`
+  takes attributes, must test `is_stage` first. Ref::Util's
+  `is_hashref`, and `ref  eq 'HASH'` after `reftype`, are true of a
+  pipeline, a blessed hash, so a pipeline there is taken for the
+  options. DBIx::Squirrel had this bug, in a place its task didn't
+  list. A sentence in that section might save others from it.
+- **A version on the use line.** With v0.1.2 installed,
+  `use Ekorn::Pipeline qw(is_stage)` compiles without complaint, as
+  v0.1.2 has no `import`, and `is_stage` is undefined when called.
+  Ekorn's `is_stage` section might show
+  `use Ekorn::Pipeline v0.1.3 qw(is_stage);`, or say it's new in
+  v0.1.3.
+- **The docs were right and clear.** "A pipeline as a stage" and
+  "A pipeline as the stage", in the reference, and DIAGNOSTICS, were
+  all this session needed.
+- **For tasks like this one:** `yath test -I...` doesn't reach
+  DBIx-Squirrel's `xt/howto.t`, which runs each example in a perl of
+  its own. Putting the worktree first in `PERL5LIB` does.
+
+The two suggestions are for Iain to decide; neither holds up the
+release. DBIx-Squirrel waits for the task saying v0.1.3 is on CPAN
+(its step 8).
+
 # Planned work
 
 ## Release v0.1.3
