@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0009.
+Last id: 2026-0010.
 
 Items come in four groups:
 
@@ -45,7 +45,18 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0010. Named pipelines at compile time
+
+**Size:** M (3)
+
+A module like DBIx::Squirrel::Sugar for pipelines:
+`use Ekorn::Pipeline::Sugar pipeline => {name => [@stages]}` gives the
+package a function of each name, which runs values through it, and
+`pipeline('name')` returns the pipeline, to use as a stage or an
+iterator. Why: a pipeline used in several places needn't be kept in a
+variable or wrapped in a sub. Done when the module, its tests and its
+docs are in, with coverage above the floors. Its questions aren't all
+settled: see its [record](docs/changes/2026-0010-named-pipelines.md).
 
 ## Later
 

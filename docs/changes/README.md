@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Named pipelines at compile time](2026-0010-named-pipelines.md),
+  roadmap 2026-0010: open.
 - [A CPAN badge that keeps up with releases](2026-0009-cpan-badge.md),
   roadmap 2026-0009: shipped, unreleased.
 - [Messages that say what's accepted](2026-0008-messages-say-whats-accepted.md),
