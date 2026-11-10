@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A pipeline() function, and named pipelines](2026-0011-pipeline-function.md),
+  roadmap 2026-0011: open.
 - [Named pipelines at compile time](2026-0010-named-pipelines.md),
   roadmap 2026-0010: open.
 - [A CPAN badge that keeps up with releases](2026-0009-cpan-badge.md),

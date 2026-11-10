@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0010.
+Last id: 2026-0011.
 
 Items come in four groups:
 
@@ -45,18 +45,37 @@ Nothing yet.
 
 ## Next
 
-### 2026-0010. Named pipelines at compile time
+### 2026-0011. A pipeline() function, and named pipelines
 
 **Size:** M (3)
 
+An exported `pipeline(...)` that makes a pipeline from stages, where a
+stage is a code reference, a pipeline, or the name of one:
+`pipeline('active_roles' => take(5))`. Names are kept per package, and
+can be qualified, with a function to define one as the program runs.
+A pipeline given last to a function is stages, not a value, so a
+function whose values may be code references can still take stages
+from its caller. Why: one way to make, name and reuse pipelines, and
+an unambiguous way to pass stages. Done when the function, the
+definer, the convention, their tests and their docs are in, with
+coverage above the floors. Its questions aren't all settled: see its
+[record](docs/changes/2026-0011-pipeline-function.md).
+
+### 2026-0010. Named pipelines at compile time
+
+**Size:** S (2)
+
+**Depends on:** 2026-0011
+
 A module like DBIx::Squirrel::Sugar for pipelines:
-`use Ekorn::Pipeline::Sugar pipeline => {name => [@stages]}` gives the
-package a function of each name, which runs values through it, and
-`pipeline('name')` returns the pipeline, to use as a stage or an
-iterator. Why: a pipeline used in several places needn't be kept in a
-variable or wrapped in a sub. Done when the module, its tests and its
-docs are in, with coverage above the floors. Its questions aren't all
-settled: see its [record](docs/changes/2026-0010-named-pipelines.md).
+`use Ekorn::Pipeline::Sugar pipeline => {name => [@stages]}` names
+pipelines as the program compiles, with 2026-0011's names, and gives
+the package a function of each name, which runs values through it,
+taking more stages as a pipeline after them. Why: a pipeline used in
+several places needn't be kept in a variable or wrapped in a sub.
+Done when the module, its tests and its docs are in, with coverage
+above the floors. Its questions aren't all settled: see its
+[record](docs/changes/2026-0010-named-pipelines.md).
 
 ## Later
 

@@ -2,17 +2,20 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: no stages after values. D2 open: whether a
-named pipeline can have a source of its own, and take stages when
-called without values. D3 settled: names per package, which can be
-qualified. D4 settled: no pull form; `pipeline('name')->iterator`.
-D5 settled: one definition can name another, in order, in an
-array of pairs or a sorted hash. D6 open: what DBIx-Squirrel does
-with it. D7 open: how a definition names another in the same `use`.
+**Decisions:** D1 settled: stages after values, as a pipeline given
+last. D2 open: whether a named pipeline can have a source of its own.
+D3 settled: names per package, which can be qualified. D4 settled: no
+pull form; `pipeline('name')->iterator`. D5 settled: one definition
+can name another, in order, in an array of pairs or a sorted hash. D6
+open: what DBIx-Squirrel does with it. D7 settled: a string where a
+stage goes names a pipeline.
 
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
 make and name pipelines at compile time
+
+**Depends on:** 2026-0011, which makes `pipeline(...)` and keeps the
+names
 
 ## Background
 
@@ -48,20 +51,20 @@ which is core.
 ## Decisions
 
 - [x] **D1.** Can a named pipeline's function take stages after its
-  values? No, decided on 2026-11-10. Values going into a pipeline can
-  be code references, so a trailing stage can't be told from a value.
-  More stages come by composing: `pipeline('name')` is a stage.
-- [ ] **D2.** What does a named pipeline's function do when called with
-  no arguments? Iain, on 2026-11-10, disagreed with returning an empty
-  list: "It could be a function that takes no arguments but still
-  allows result transformations." Read as: a definition can start with
-  a source, a function that makes the values, as a statement makes its
-  rows; its function then takes no values, so whatever it's given is
-  stages, run after its own, as Sugar's statement functions take them.
-  `active_roles(@users)` stays as it is for a pipeline with no source.
-  Awaiting Iain's word that this is what was meant, and how a source is
-  told from a first stage in a definition (a key, such as
-  `source => sub {...}`, or a form of its own).
+  values? Yes, as a pipeline given last, decided on 2026-11-10:
+  `active_roles(@users, pipeline(sub { uc }))`, as 2026-0011's D2
+  says. Earlier the same day it was no, as a code reference given last
+  can't be told from a value; 2026-0011's `pipeline(...)` makes stages
+  that can.
+- [ ] **D2.** Can a named pipeline have a source of its own? Iain, on
+  2026-11-10, disagreed with a call with no arguments returning an
+  empty list: "It could be a function that takes no arguments but
+  still allows result transformations." The transformations are
+  settled by D1: `recent(pipeline(take(5)))`. What's left: whether a
+  definition can start with a source, a function that makes the
+  values, as a statement makes its rows, so that a call with no values
+  has something to give; and, if so, how a source is told from a first
+  stage, such as by a key, `recent => [source => sub {...}, @stages]`.
 - [x] **D3.** Where do names live? In the package that defines them,
   decided on 2026-11-10, so two modules can't clash; a qualified name,
   `pipeline('My::Module::active_roles')`, reaches another package's.
@@ -84,15 +87,9 @@ which is core.
   that its docs show a named pipeline as a statement's stages. A new
   module is an addition, so it's a v0.1.x-style change, in the range
   DBIx::Squirrel takes, needing no release of its own.
-- [ ] **D7.** How does a definition name another in the same `use`?
-  The import list is evaluated before `import` runs, so
-  `pipeline('active_roles')` inside it would be called before
-  `active_roles` exists, and before `pipeline` is imported. The options:
-  - **A.** A string where a stage goes names a pipeline, looked up when
-    the definition is made: `top_five => ['active_roles', take(5)]`.
-    Strings are allowed only in Sugar's definitions, not in
-    `Ekorn::Pipeline->new`.
-  - **B.** Only in separate `use` lines, or with `pipeline(...)` at run
-    time; D5 then holds only across statements.
-
-  Recommended: A, which is what D5 asks for.
+- [x] **D7.** How does a definition name another in the same `use`?
+  By a string where a stage goes, decided on 2026-11-10, as
+  2026-0011's D1 makes a name a stage everywhere:
+  `top_five => ['active_roles', take(5)]`. The import list is
+  evaluated before `import` runs, so `pipeline('active_roles')` in it
+  would be called before `active_roles` is defined.
