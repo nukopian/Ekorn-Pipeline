@@ -4,8 +4,8 @@
 
 **Decisions:** D1 settled: every argument is a stage, a code
 reference, a pipeline or a name. D2 settled: a pipeline given last is
-stages. D3 open: the name of the function that defines a named
-pipeline as the program runs.
+stages. D3 settled: `named`, on the class to define from stages, and
+on a pipeline to name it. None open.
 
 **Origin:** roadmap, added 2026-11-10, from Iain, while settling
 2026-0010's questions: an exported `pipeline(sub {...} => sub {...})`
@@ -64,10 +64,31 @@ fills them as the program compiles.
   and the reference show it as the way for an author whose values
   can be code references, beside taking code references with
   `is_stage` for one whose values can't.
-- [ ] **D3.** What is the function that defines a named pipeline as the
-  program runs called? Kept apart from `pipeline`, so that `pipeline`
-  only ever makes one: a string followed by an array reference could
-  be told from a name followed by stages, but it would be the one
-  exception to D1's rule. Candidates: `define_pipeline(name =>
-  @stages)`, `name_pipeline(...)`, or a class method,
-  `Ekorn::Pipeline->define(name => @stages)`.
+- [x] **D3.** How is a named pipeline defined as the program runs?
+  With `named`, decided on 2026-11-10, in two forms, each returning
+  the pipeline:
+
+  ```perl
+  Ekorn::Pipeline->named(clean => @stages);          # define from stages
+  Ekorn::Pipeline->new(@stages)->named('clean');     # name one you have
+  ```
+
+  On the class, it makes a pipeline of the stages after the name,
+  which follow D1's rule, so they can name other pipelines; on a
+  pipeline, it names that one. The name goes in the caller's package,
+  unless it's qualified. A name already defined croaks, unless it's
+  the same pipeline again, as DBIx::Squirrel::Sugar does.
+
+  Weighed and set aside:
+  - **`new('name' => @stages)`:** under D1 a string where a stage goes
+    is a name to look up, so `new` would read a leading string one
+    way and `pipeline()` another, and a constructor that registers a
+    name as a side effect surprises.
+  - **`name`:** `$obj->name` usually asks an object its name, so a
+    setter would do two jobs. `name` is left free for a getter, which
+    a later item could use in messages, "Pipeline stage #2 of clean
+    failed": a change to the messages, so a v0.2.0.
+  - **`$p->name(clean => @stages)`:** the pipeline named wouldn't be
+    the one it was called on.
+  - **A function of its own,** such as `define_pipeline`: a second
+    name beside `pipeline` for what a method does.
