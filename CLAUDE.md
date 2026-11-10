@@ -363,6 +363,15 @@ what was Iain's.
   becomes an idea, an item or a task there, and the commit that
   removes the message says so. An item that comes of one gives the
   message in its record's Origin, with the repository, date and commit.
+- **A feature is designed in the session of the repository it belongs
+  to,** as Iain decided on 2026-11-10, after the design of Ekorn's
+  grammar of sources, stages, gathers and sinks was split across the
+  two sessions. Its discussion, and its ideas, items and records, are
+  that repository's. The other session sends what it thinks of, or
+  finds, as messages, and designs nothing of it in its own chat:
+  Ekorn::Pipeline's features are designed in Ekorn-Pipeline's session,
+  and DBIx::Squirrel's, such as a stage or sink that needs the DBI, in
+  DBIx-Squirrel's.
 - **`TODO.md` never reaches `main`.** `main` moves only by a
   fast-forward to `develop`, so a release waits until the file is gone:
   each task done, or, to outlast the release, moved to `ROADMAP.md`, a
