@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0012.
+Last id: 2026-0013.
 
 Items come in four groups:
 
@@ -99,3 +99,14 @@ last: `recent(pipeline(take(5)))`. Moved from 2026-0010's D2, where a
 function and `pipeline(@stages)` were found to cover it for now, and
 how a source is told from a first stage, such as by a key,
 `recent => [source => sub {...}, @stages]`, is still to settle.
+
+### 2026-0013. A named pipeline named in a stage's error
+
+**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0011
+
+When a stage in a named pipeline dies, the message gives its place,
+such as `#2.3`, but not the pipeline's name, which would make it
+easier to find. A `name` getter, left free by 2026-0011's D3, would
+give it. It changes a message, so it's a v0.3.0, with a task for
+DBIx-Squirrel to change its tests and its copies of the message.
+Suggested in a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel 60dd1af8f11b7661b4e47decadf9885d3e22a2d3).

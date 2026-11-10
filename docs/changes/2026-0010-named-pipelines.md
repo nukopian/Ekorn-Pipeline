@@ -9,7 +9,9 @@ per package, which can be qualified. D4 settled: no pull form;
 other in the same `use`, in a hash or an array of pairs, defined in
 the order they need. D6 settled: nothing yet; `import_into`, so its
 Sugar can take a `pipeline` key. D7 settled: a string where a stage
-goes names a pipeline.
+goes names a pipeline. D8 settled: names checked, and clashes
+reported, exactly as DBIx::Squirrel::Sugar does. D9 settled: it ships
+in a v0.2.x.
 
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
@@ -133,3 +135,12 @@ which is core.
   `top_five => ['active_roles', take(5)]`. The import list is
   evaluated before `import` runs, so `pipeline('active_roles')` in it
   would be called before `active_roles` is defined.
+- [x] **D8.** How alike is it to DBIx::Squirrel::Sugar? Exactly, where
+  they meet, decided on 2026-11-10, from a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel 60dd1af8f11b7661b4e47decadf9885d3e22a2d3): `is_name` is
+  `m( \A [^\W\d] \w* \z )x`, and a clash croaks "Expected no
+  function of the name in %s already (%s)". So one `use` naming
+  databases, statements and pipelines reports mistakes alike, and
+  DBIx::Squirrel can take `install_sub` and `is_name` from here with
+  no change its users see.
+- [x] **D9.** What version does it ship in? A v0.2.x, decided on
+  2026-11-10, as 2026-0011's D7: it only adds.

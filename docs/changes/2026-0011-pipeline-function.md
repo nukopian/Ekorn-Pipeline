@@ -5,7 +5,11 @@
 **Decisions:** D1 settled: every argument is a stage, a code
 reference, a pipeline or a name. D2 settled: a pipeline given last is
 stages. D3 settled: `named`, on the class to define from stages, and
-on a pipeline to name it. None open.
+on a pipeline to name it. D4 settled: names are read only by
+`pipeline`, `named` and Sugar; `is_stage` stays false for a string. D5
+settled: another package's names by qualifying them; no new API. D6
+settled: a name is resolved when the pipeline is made, as the docs
+say. D7 settled: it ships in a v0.2.x. None open.
 
 **Origin:** roadmap, added 2026-11-10, from Iain, while settling
 2026-0010's questions: an exported `pipeline(sub {...} => sub {...})`
@@ -92,3 +96,29 @@ fills them as the program compiles.
     the one it was called on.
   - **A function of its own,** such as `define_pipeline`: a second
     name beside `pipeline` for what a method does.
+- [x] **D4.** Where is a name read as a stage? Only by `pipeline(...)`,
+  `named` and Sugar's definitions, decided on 2026-11-10, from
+  a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel 60dd1af8f11b7661b4e47decadf9885d3e22a2d3). `is_stage` stays false for a string, so DBIx::Squirrel's
+  `split_stages` never takes a bind value such as `'clean'` for a
+  stage, and the reference says so, for callers to rely on. `new`
+  doesn't read names either: its message, "Expected stage #%d to be a
+  code reference or a pipeline", would have to change, which is a
+  v0.3.0. `pipeline` has a message of its own for a stage it can't
+  read.
+- [x] **D5.** How does code look names up on another package's behalf,
+  as DBIx::Squirrel::Sugar would for its caller? By qualifying them,
+  decided on 2026-11-10, from the same message: `"${package}::clean"`,
+  as D1 allows. The docs show it as the way. A helper,
+  `pipeline_in($package, @stages)`, was weighed and left out, as
+  qualifying needs nothing new; it's cheap to add later, since
+  `import_into` (2026-0010's D6) needs the same lookup inside.
+- [x] **D6.** When is a name resolved? When the pipeline is made, not
+  when it runs, decided on 2026-11-10, and the docs say so plainly, as
+  the same message asked: DBIx::Squirrel::Sugar finds a database by its
+  name when a statement runs, so in one `use` the two differ. A name
+  can't be defined again, as D3 says, so a pipeline already made never
+  sees a different one.
+- [x] **D7.** What version does it ship in? A v0.2.x, decided on
+  2026-11-10, from the same message: it only adds, and with D4 changes
+  no message, so it reaches DBIx::Squirrel's users within its range,
+  `>= v0.2.0, < v0.3.0`, with no release there.

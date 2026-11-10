@@ -65,19 +65,20 @@ both:
   change to them is a change DBIx-Squirrel will take on when it
   switches, so say so in the commit message and in `Changes`.
 - **The version says what DBIx-Squirrel can take.** DBIx::Squirrel
-  requires `>= v0.1.1, < v0.2.0`: below v0.2.0, as Iain decided on
-  2026-11-07, and from v0.1.1, as DBIx-Squirrel raised it on
-  2026-11-08, since v0.1.0's trial carries on after a stage dies. So a
-  v0.1.x reaches its users with no release of DBIx::Squirrel's. A
-  v0.1.x only fixes or adds. A release that changes behaviour users'
-  stages depend on (when a `gather` stage is made, what a stop does,
-  the order end functions run in, where errors are reported, the
-  messages), or drops or renames a public name, is v0.2.0, and comes
-  with a task handed to DBIx-Squirrel, which tests it and moves the
-  range. DBIx::Squirrel imports the names it documents by name: `Stop`,
-  `gather`, `take`, `drop`, `take_while`, `drop_while`, `batch`,
-  `collect`, `peek`, `count_into` and `dump_to`. A stage added here
-  doesn't appear there until it's added to its list.
+  requires `>= v0.2.0, < v0.3.0`, as it moved the range on 2026-11-10,
+  once v0.2.0 was on CPAN; the range began at `>= v0.1.1, < v0.2.0`,
+  as Iain decided on 2026-11-07 and DBIx-Squirrel raised it on
+  2026-11-08. So a v0.2.x reaches its users with no release of
+  DBIx::Squirrel's. A v0.2.x only fixes or adds. A release that changes
+  behaviour users' stages depend on (when a `gather` stage is made,
+  what a stop does, the order end functions run in, where errors are
+  reported, the messages), or drops or renames a public name, is
+  v0.3.0, and comes with a task handed to DBIx-Squirrel, which tests it
+  and moves the range. DBIx::Squirrel imports the names it documents
+  by name: `Stop`, `gather`, `take`, `drop`, `take_while`,
+  `drop_while`, `batch`, `collect`, `peek`, `count_into` and
+  `dump_to`. A stage added here doesn't appear there until it's added
+  to its list.
 
 ## Who does what
 
