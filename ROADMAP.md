@@ -126,8 +126,8 @@ With it, `is_source`, for `iterator` to take a source with a set-up
 and an end. From DBIx-Squirrel's message of 2026-11-10, layer 0 of
 four, each opt-in, for a grammar of sources, stages, gathers and
 sinks; built, as it suggests, on an experimental branch shared with
-DBIx-Squirrel, named for this id, with a line in both CLAUDE.md files
-saying how.
+DBIx-Squirrel, `pipeline-experimental` in both, with a line in both
+CLAUDE.md files saying how.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 

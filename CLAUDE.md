@@ -314,8 +314,13 @@ what was Iain's.
 - **While an experimental branch carries a repository's work, its
   `TODO.md` is kept on that branch,** as Iain decided on 2026-11-08, so
   tasks and messages for it go there, not to `develop`. DBIx-Squirrel's
-  `ekorn-pipeline` did, until it merged on 2026-11-08; with no such
-  branch now, they go to its `develop`. Never switch DBIx-Squirrel's
+  `ekorn-pipeline` did, until it merged on 2026-11-08. Now both
+  repositories' work on roadmap 2026-0014 and the items after it is
+  carried by a branch of the same name in each, `pipeline-experimental`,
+  as Iain decided on 2026-11-10: shorter than a name made from the id,
+  and one name for the two sessions. So tasks and messages for
+  DBIx-Squirrel go to its `pipeline-experimental`, and its own come to
+  ours, until the branches merge. Never switch DBIx-Squirrel's
   working copy, or commit in it, as a session may be working there:
   use a worktree of the branch as GitHub has it, edit
   `/tmp/dbix-squirrel-todo/TODO.md`, commit only it, and push from
@@ -332,11 +337,11 @@ what was Iain's.
   that branch's name in place of `develop` in the second and third
   commands. A push refused as not a fast-forward means the branch
   moved: remove the worktree and start again from the fetch. The
-  same holds here: if an experimental branch of Ekorn-Pipeline's ever
-  carries its work, `TODO.md` is kept on it, and DBIx-Squirrel's
-  session hands tasks and messages to that branch. DBIx-Squirrel's
-  tasks for Ekorn-Pipeline come here the same way. It's the only other
-  repository this one touches.
+  same holds here: while an experimental branch of Ekorn-Pipeline's,
+  such as `pipeline-experimental`, carries its work, `TODO.md` is kept
+  on it, and DBIx-Squirrel's session hands tasks and messages to that
+  branch. DBIx-Squirrel's tasks for Ekorn-Pipeline come here the same
+  way. It's the only other repository this one touches.
 - **A release ends by telling DBIx-Squirrel,** with a task in its
   `TODO.md`, and by looking there for tasks waiting on the release, so
   Iain knows which can now be done. Nothing else tells its session

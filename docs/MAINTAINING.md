@@ -36,7 +36,10 @@ lists the libraries.
   but not in the CPAN tarball
   ([CLAUDE.md](../CLAUDE.md#the-roadmap) has the rules).
 - A branch for a roadmap item, when there is one, is named for its id,
-  as `experiment/2026-0004-pipeline-as-a-stage`.
+  as `experiment/2026-0004-pipeline-as-a-stage`. The exception is
+  `pipeline-experimental`, shared with DBIx-Squirrel, which has a
+  branch of the same name: it carries roadmap 2026-0014 and the items
+  after it, and while it does, `TODO.md` is kept on it.
 
 `main` is protected on GitHub. Pushes to it need signed commits, a
 linear history (no merge commits) and CI passing on every job. It
