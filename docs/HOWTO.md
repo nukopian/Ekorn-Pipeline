@@ -889,17 +889,42 @@ done_testing;
 Test a stage that stops through an iterator too, counting the
 source's calls, to show it reads no more than it should.
 
-### Publish a module of stages
+### Decide where a stage belongs
 
-Where a module of stages belongs depends on what its stages need to
-know:
+Where a stage goes depends on what it needs to know. Ask: could it
+work on values from anywhere, or does it need something only one
+module or source knows?
 
 - **Stages for any values,** whatever they are and wherever they come
-  from, go under `Ekorn::Pipeline::Stages`, like the canned stages.
+  from, go under `Ekorn::Pipeline::Stages`, like the canned stages:
+  a stage that drops repeats, groups values by a key, or keeps every
+  tenth value.
 - **Stages for one kind of value, or one source,** go with the module
-  that knows about it, under its namespace. DBIx::Squirrel's stages
-  for rows are `DBIx::Squirrel::Stages::Rows`. Stages for a log format
-  of your own might be `My::Log::Stages`.
+  that knows about it, under its namespace. DBIx::Squirrel's `pluck`
+  and `as_hash` need a statement's column names, so they're in
+  `DBIx::Squirrel::Stages::Rows`. Stages for a log format of your own
+  might be `My::Log::Stages`.
+
+Some things settle the cases in between:
+
+- **A stage under `Ekorn::Pipeline::Stages` can't depend on the module
+  whose values it's given.** DBIx::Squirrel depends on Ekorn::Pipeline,
+  not the other way round. If a stage would need to `use` the other
+  module, it belongs there.
+- **What the values happen to be isn't enough.** A stage that works
+  on hash references from a query works as well on hash references
+  from a JSON file, so it's a stage for any values. Only what it has to
+  know decides.
+- **Either way, it's built from the same parts:** `gather` for state
+  and an end, `Stop` to end early, and `croakf` to report mistakes at
+  the caller's line. A module of stages in any namespace works with
+  nothing more to set up.
+- **A module that exports Ekorn's stages under its own name lists them
+  one by one,** as DBIx::Squirrel does, so a new stage under
+  `Ekorn::Pipeline::Stages` reaches its users only once it's added to
+  that list.
+
+### Publish a module of stages
 
 Export the stages a module is mostly used for by default, and the rest
 on request, with an `:all` tag, as the canned stages do. Choose names
@@ -911,7 +936,7 @@ tested with, up to the next change of the middle number, since that's
 when the way stages behave can change. In a `cpanfile`:
 
 ```
-requires 'Ekorn::Pipeline', '>= v0.1.1, < v0.2.0';
+requires 'Ekorn::Pipeline', '>= v0.2.0, < v0.3.0';
 ```
 
 ## Handling errors
