@@ -155,8 +155,8 @@ The message, whole:
 `from_array`, `lines`, `file_lines`, `counter`, `unfold`, `cycle`,
 `concat`, `interleave`, and a hash's pairs, under a name that doesn't
 clash with List::Util's `pairs`. Nothing exported by default. Those
-needing CPAN, such as JSON or CSV, go in add-on distributions, as
-DBIx-Squirrel 2026-0003 has them. Layer 2 of DBIx-Squirrel's message.
+needing CPAN, such as JSON or CSV, go in add-on distributions of
+Ekorn's, as they need no database. Layer 2 of DBIx-Squirrel's message.
 A change of scope, toward a stream library, to weigh against the
 README's pitch.
 The message, whole:
@@ -171,8 +171,8 @@ List::Util's: `to_array`, `into`, `to_hash`, `group_by`, `count`,
 `first_value`, `last_value`, `any_value`, `every_value`, `fold`,
 `joined`, `to_file` and `for_each`; those that can, stop the pull
 early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
-message, and the type a database sink there, `insert_into`, would
-need. A change of scope, as 2026-0016 is.
+message, and the type DBIx-Squirrel 2026-0012, a database as a sink,
+`insert_into`, depends on. A change of scope, as 2026-0016 is.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 
