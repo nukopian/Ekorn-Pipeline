@@ -24,7 +24,7 @@ build() {
 	mkdir -p "$(dirname "$2")"
 	# print.css is linked from the page, after pandoc's own styles, so that it
 	# takes precedence over them (a style sheet given to prince --style wouldn't).
-	pandoc "$1" --from gfm --standalone --metadata pagetitle="${title:-README}" \
+	pandoc "$1" --from gfm --standalone --section-divs --metadata pagetitle="${title:-README}" \
 		--css "file://$root/docs/print.css" --output "$html"
 	prince "$html" --no-warn-css --output "$2"
 	echo "$2"

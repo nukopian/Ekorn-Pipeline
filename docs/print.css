@@ -31,12 +31,27 @@ body {
 
 /* Each top-level section starts a page, except the first, which follows the
    title. The section's name runs in the page header. */
-h2 {
+section.level2 ~ section.level2 {
   break-before: page;
+}
+h2 {
   string-set: section content();
 }
-h2:first-of-type {
-  break-before: auto;
+
+/* Keep a short subsection whole: one that would be split across a page
+   break starts on the next page. One taller than a page still breaks. */
+section.level3 {
+  break-inside: avoid;
+}
+
+/* Keep a code block with the paragraph that introduces it, and never leave
+   one line of a paragraph alone at the foot or head of a page. */
+pre {
+  break-before: avoid;
+}
+p, li {
+  orphans: 2;
+  widows: 2;
 }
 
 /* Keep a heading with what follows it. */
