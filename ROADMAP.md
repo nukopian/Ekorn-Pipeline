@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0013.
+Last id: 2026-0019.
 
 Items come in four groups:
 
@@ -110,3 +110,83 @@ easier to find. A `name` getter, left free by 2026-0011's D3, would
 give it. It changes a message, so it's a v0.3.0, with a task for
 DBIx-Squirrel to change its tests and its copies of the message.
 Suggested in a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel 60dd1af8f11b7661b4e47decadf9885d3e22a2d3).
+
+### 2026-0014. An end that always runs, told how the run ended
+
+**Added:** 2026-11-10. **Size:** M (3)
+
+A lifecycle hook in the core: an object given as a stage or a source
+can have two methods, called at the start of each run and at its end,
+the end told whether the run was `done`, `stopped` or `died`. So a
+source can close its file however a run ends, `file_lines($path) |
+take(5)` included, which no caller can do today; and a sink can commit
+or roll back. An object without them behaves as now, so it only adds.
+With it, `is_source`, for `iterator` to take a source with a set-up
+and an end. From DBIx-Squirrel's message of 2026-11-10, layer 0 of
+four, each opt-in, for a grammar of sources, stages, gathers and
+sinks; built, as it suggests, on an experimental branch shared with
+DBIx-Squirrel, named for this id, with a line in both CLAUDE.md files
+saying how. The message, whole: `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0015. Blocks: source, stage, sink, and gather's new form
+
+**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0014
+
+`Ekorn::Pipeline::Blocks`: factories taking a block, optionally
+followed by `step {...}` and `end {...}`, as Try::Tiny's `try` is
+by `catch`: the block alone is the step, and with a `step` after it,
+the set-up, whose result `step` and `end` are given. `end` always
+runs, and what it returns counts only when the run was `done`. Each
+makes a blessed code reference, so it works wherever a code reference
+does. `gather`'s list form stays as it is; the factory can tell the
+new form by a `step` or `end` after its block, rather than by what the
+block returns. Layer 1 of DBIx-Squirrel's message. The message, whole: `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0016. Sources that come with Perl
+
+**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
+
+`Ekorn::Pipeline::Sources`, needing nothing from CPAN: `from`,
+`from_array`, `lines`, `file_lines`, `counter`, `unfold`, `cycle`,
+`concat`, `interleave`, and a hash's pairs, under a name that doesn't
+clash with List::Util's `pairs`. Nothing exported by default. Those
+needing CPAN, such as JSON or CSV, go in add-on distributions, as
+DBIx-Squirrel 2026-0003 has them. Layer 2 of DBIx-Squirrel's message.
+A change of scope, toward a stream library, to weigh against the
+README's pitch. The message, whole: `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0017. Sinks that come with Perl
+
+**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
+
+`Ekorn::Pipeline::Sinks`, with names that can't clash with Perl's or
+List::Util's: `to_array`, `into`, `to_hash`, `group_by`, `count`,
+`first_value`, `last_value`, `any_value`, `every_value`, `fold`,
+`joined`, `to_file` and `for_each`; those that can, stop the pull
+early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
+message, and the type a database sink there, `insert_into`, would
+need. A change of scope, as 2026-0016 is. The message, whole: `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0018. Operators: `|`, `|=` and `@{}`
+
+**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0016, 2026-0017
+
+`Ekorn::Pipeline::Operators`: `$src | take(10) | count`, on the typed
+objects of 2026-0015 and the chains `|` makes, never on a pipeline
+made with `new`. An operator returns one scalar, so a sink gives an
+array reference, or `@{}` drains a source. Between two plain code
+references, `|` silently ORs their addresses, so the docs must say
+loudly that every stage in a chain is a `stage {...}`. Layer 3 of
+DBIx-Squirrel's message. The message, whole: `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0019. A strict is_stage
+
+**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0015
+
+An `is_stage` that accepts only Stage objects and pipelines, as a
+function or an argument, so a function whose values can be code
+references can take stages without 2026-0011's pipeline-last
+convention, provided its callers write `stage {...}`. Made the
+default, it would change behaviour: a v0.3.0, with a task for
+DBIx-Squirrel. Weigh against 2026-0011's D2, which answers the same
+need with plain subs. From DBIx-Squirrel's message, part 4. The message, whole: `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
