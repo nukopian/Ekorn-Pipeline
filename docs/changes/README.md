@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A CPAN badge that keeps up with releases](2026-0009-cpan-badge.md),
+  roadmap 2026-0009: shipped, unreleased.
 - [Messages that say what's accepted](2026-0008-messages-say-whats-accepted.md),
   roadmap 2026-0008: shipped in v0.2.0.
 - [A pipeline returned by a gather block](2026-0007-gather-pipeline.md),

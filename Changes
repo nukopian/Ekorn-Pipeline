@@ -2,6 +2,14 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    The README's CPAN badge keeps up with releases.
+
+    It ships one roadmap item, 2026-0009. It changes the README only.
+
+    - The README's CPAN badge comes from shields.io, which keeps up
+      with a release within minutes, in place of badge.fury.io's, which
+      GitHub showed out of date for hours. (roadmap 2026-0009)
+
 v0.2.0 2026-11-09
 
     Messages say a stage can be a code reference or a pipeline.
