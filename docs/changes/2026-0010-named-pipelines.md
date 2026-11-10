@@ -3,14 +3,13 @@
 **Status:** open
 
 **Decisions:** D1 settled: stages after values, as a pipeline given
-last. D2 open: whether a named pipeline can have a source of its own.
-D3 settled: names per package, which can be qualified. D4 settled: no
-pull form; `pipeline('name')->iterator`. D5 settled: one definition
-can name any other in the same `use`, in a hash or an array of pairs,
-defined in the order they need. D6
-settled: nothing yet; `import_into`, so its Sugar can take a
-`pipeline` key. D7 settled: a string where a stage goes names a
-pipeline.
+last. D2 moved to 2026-0012: a source of its own. D3 settled: names
+per package, which can be qualified. D4 settled: no pull form;
+`pipeline('name')->iterator`. D5 settled: one definition can name any
+other in the same `use`, in a hash or an array of pairs, defined in
+the order they need. D6 settled: nothing yet; `import_into`, so its
+Sugar can take a `pipeline` key. D7 settled: a string where a stage
+goes names a pipeline.
 
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
@@ -63,15 +62,17 @@ which is core.
   says. Earlier the same day it was no, as a code reference given last
   can't be told from a value; 2026-0011's `pipeline(...)` makes stages
   that can.
-- [ ] **D2.** Can a named pipeline have a source of its own? Iain, on
-  2026-11-10, disagreed with a call with no arguments returning an
-  empty list: "It could be a function that takes no arguments but
-  still allows result transformations." The transformations are
-  settled by D1: `recent(pipeline(take(5)))`. What's left: whether a
+- [x] **D2.** Can a named pipeline have a source of its own? Moved to
+  roadmap idea 2026-0012, as Iain decided on 2026-11-10. He had
+  disagreed with a call with no arguments returning an empty list: "It
+  could be a function that takes no arguments but still allows result
+  transformations." The transformations are settled by D1:
+  `recent(pipeline(take(5)))`. Left for 2026-0012: whether a
   definition can start with a source, a function that makes the
-  values, as a statement makes its rows, so that a call with no values
-  has something to give; and, if so, how a source is told from a first
-  stage, such as by a key, `recent => [source => sub {...}, @stages]`.
+  values, so that a call with no values has something to give, and
+  how a source is told from a first stage, such as by a key, `recent
+  => [source => sub {...}, @stages]`. Until then, a function covers
+  it: `sub recent (@stages) { pipeline(@stages)->(load_recent()) }`.
 - [x] **D3.** Where do names live? In the package that defines them,
   decided on 2026-11-10, so two modules can't clash; a qualified name,
   `pipeline('My::Module::active_roles')`, reaches another package's.

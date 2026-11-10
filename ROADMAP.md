@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0011.
+Last id: 2026-0012.
 
 Items come in four groups:
 
@@ -75,7 +75,7 @@ the package a function of each name, which runs values through it,
 taking more stages as a pipeline after them. Why: a pipeline used in
 several places needn't be kept in a variable or wrapped in a sub.
 Done when the module, its tests and its docs are in, with coverage
-above the floors. Its questions aren't all settled: see its
+above the floors. Its questions are settled: see its
 [record](docs/changes/2026-0010-named-pipelines.md).
 
 ## Later
@@ -88,4 +88,14 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-Nothing yet.
+### 2026-0012. A named pipeline with a source of its own
+
+**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0010
+
+A definition that starts with a source, a function making the values,
+as a statement makes its rows, so its function, called with no values,
+still has something to give, and takes stages as a pipeline given
+last: `recent(pipeline(take(5)))`. Moved from 2026-0010's D2, where a
+function and `pipeline(@stages)` were found to cover it for now, and
+how a source is told from a first stage, such as by a key,
+`recent => [source => sub {...}, @stages]`, is still to settle.
