@@ -6,9 +6,11 @@
 last. D2 open: whether a named pipeline can have a source of its own.
 D3 settled: names per package, which can be qualified. D4 settled: no
 pull form; `pipeline('name')->iterator`. D5 settled: one definition
-can name another, in order, in an array of pairs or a sorted hash. D6
-open: what DBIx-Squirrel does with it. D7 settled: a string where a
-stage goes names a pipeline.
+can name any other in the same `use`, in a hash or an array of pairs,
+defined in the order they need. D6
+settled: nothing yet; `import_into`, so its Sugar can take a
+`pipeline` key. D7 settled: a string where a stage goes names a
+pipeline.
 
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
@@ -39,9 +41,14 @@ use Ekorn::Pipeline::Sugar pipeline => {
 my @roles = active_roles(@users);           # values in, a list out
 my @loud  = shout(active_roles(@users));
 
-use Ekorn::Pipeline::Sugar qw(pipeline);
-pipeline(top_five => [pipeline('active_roles'), take(5)]);
+use Ekorn::Pipeline qw(pipeline);
+Ekorn::Pipeline->named(top_five => 'active_roles', take(5));
+my $next = pipeline('top_five')->iterator($source);
 ```
+
+As first sketched, Sugar also exported `pipeline`, to fetch a named
+pipeline and define one as the program runs; 2026-0011 moved both to
+Ekorn::Pipeline, as `pipeline(...)` and `named`.
 
 It needs no new dependency: Ref::Util and namespace::clean are in the
 `cpanfile` already, and Sugar's `_install`, with DBIx::Squirrel::Util's
@@ -71,22 +78,54 @@ which is core.
 - [x] **D4.** Does the named function need a pull form? No, decided on
   2026-11-10: `pipeline('name')->iterator($source)` is enough.
 - [x] **D5.** Can one definition name another given in the same `use`?
-  Yes, decided on 2026-11-10, and documented plainly. Definitions can
-  be given as a hash, `{...}`, defined in sorted order of their names,
-  or as an array of pairs, `[...]`, defined in the order given, so the
-  order is deterministic either way; a definition can name only one
-  defined before it.
-- [ ] **D6.** What does DBIx-Squirrel do with it? Iain asked for a
-  recommendation. Recommended: nothing it has to. A named pipeline is
-  a pipeline, so it already works as a statement's stage in
-  DBIx::Squirrel::Sugar, `artist_names => [music => $sql,
-  pipeline('clean')]`, with no change there. When this ships, send
-  DBIx-Squirrel a message saying so, and offering two things for its
-  session and Iain to decide: that its Sugar take `_install`,
-  `install_sub` and `is_name` from Ekorn rather than keep copies, and
-  that its docs show a named pipeline as a statement's stages. A new
-  module is an addition, so it's a v0.1.x-style change, in the range
-  DBIx::Squirrel takes, needing no release of its own.
+  Yes, any other, decided on 2026-11-10. Definitions can be given as a
+  hash, `{...}`, or as an array of pairs, `[...]`, Iain's suggestion,
+  so they can be read in order. Either way, each is defined once the
+  names it uses from the same `use` are, so the order they're given in
+  doesn't matter: every name a definition uses is a string, seen
+  before anything is defined. A cycle croaks, as does a name defined
+  nowhere, when the `use` is compiled, as 2026-0011's D1 wants. The
+  docs say so in a sentence: a definition can name any other in the
+  same `use`.
+
+  Decided first, the same day: a hash defined in sorted order, and an
+  array in the order given, each definition naming only one before
+  it. It was deterministic, but a trap: `top_five => ['active_roles',
+  ...]` works, as `a` sorts before `t`, and renamed `all_five` it
+  fails, with nothing else changed.
+- [x] **D6.** What does DBIx-Squirrel do with it? Nothing yet, decided
+  on 2026-11-10. A named pipeline is a pipeline, so it already works as
+  a statement's stage in DBIx::Squirrel::Sugar. Iain is considering
+  having DBIx::Squirrel::Sugar take a `pipeline` key, handed on to this
+  module, so one `use` names databases, statements and pipelines:
+
+  ```perl
+  use DBIx::Squirrel::Sugar
+      database  => { music => [...] },
+      statement => { artist_names => [music => $sql, 'clean_names'] },
+      pipeline  => { clean_names => [sub { $_->[0] }, sub { s( \s+ \z )()xr }] };
+  ```
+
+  Called from DBIx::Squirrel::Sugar's `import`, this module's would
+  see DBIx::Squirrel::Sugar as its caller, and define the names and
+  install the functions there. So `import` is a thin wrapper around a
+  public `import_into($package, @args)`, which DBIx::Squirrel::Sugar
+  calls with its caller:
+
+  ```perl
+  Ekorn::Pipeline::Sugar->import_into($package, pipeline => $definitions);
+  ```
+
+  rather than a `goto &import`, or Import::Into, a dependency. When
+  this ships, a message tells DBIx-Squirrel so, and that:
+  - a statement naming a pipeline needs the `pipeline` key defined
+    first, which its Sugar, defining keys in the order given, would
+    have to see to;
+  - its Sugar could take `install_sub` and `is_name` from here, rather
+    than keep copies;
+  - its docs could show a named pipeline as a statement's stages.
+
+  Whether to do any of it is for DBIx-Squirrel's session and Iain.
 - [x] **D7.** How does a definition name another in the same `use`?
   By a string where a stage goes, decided on 2026-11-10, as
   2026-0011's D1 makes a name a stage everywhere:
