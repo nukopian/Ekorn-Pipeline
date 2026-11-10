@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0008.
+Last id: 2026-0009.
 
 Items come in four groups:
 
@@ -57,4 +57,14 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-Nothing yet.
+### 2026-0009. A CPAN badge that keeps up with releases
+
+**Added:** 2026-11-10. **Size:** XS (1)
+
+The README's MetaCPAN badge, from badge.fury.io through Minilla's
+`metacpan` badge, is served with a three-day cache, so GitHub's image
+proxy showed v0.1.3 for hours after v0.2.0 was out, until its copy
+was purged by hand (`curl -X PURGE` on the camo URL). A shields.io
+CPAN badge caches for hours, not days. It would be written in
+`README.pod`, as the Kwalitee badge is, in place of Minilla's; and
+DBIx-Squirrel, which has the same badge, might follow.
