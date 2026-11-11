@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0020.
+Last id: 2026-0021.
 
 Items come in four groups:
 
@@ -44,6 +44,22 @@ dropped is deleted, and the commit that drops it names its id.
 Nothing yet.
 
 ## Next
+
+### 2026-0021. Ekorn::Pipeline::Factories
+
+**Size:** M (3)
+
+A module of words, Ekorn::Pipeline::Factories, holding the short,
+keyword-like functions that make Ekorn's types, starting with
+`pipeline`, moved there from Ekorn::Pipeline, and `gather`; each one
+line over a class method, so the class keeps no `import` of its own.
+Why: `pipeline` is syntax, not behaviour, the first of a family
+2026-0015 adds to, and in the class it needed `import` tricks to make
+a subclass. DBIx::Squirrel's words go in DBIx::Squirrel::Factories.
+Done when the module, the class method, their tests and docs are in,
+with coverage above the floors, and DBIx-Squirrel has a message saying
+how to write its own. Two questions are open: see its
+[record](docs/changes/2026-0021-factories.md).
 
 ### 2026-0010. Named pipelines at compile time
 
@@ -114,11 +130,15 @@ CLAUDE.md files saying how.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 
-### 2026-0015. Blocks: source, stage, sink, and gather's new form
+### 2026-0015. Block factories: source, stage, sink, and gather's new form
 
-**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0014
+**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0014,
+2026-0021
 
-`Ekorn::Pipeline::Blocks`: factories taking a block, optionally
+Factories in Ekorn::Pipeline::Factories (2026-0021), not a module of
+their own, as Iain decided on 2026-11-11: once planned as
+`Ekorn::Pipeline::Blocks`, but `pipeline`, in the same family, takes no
+block. Factories taking a block, optionally
 followed by `step {...}` and `end {...}`, as Try::Tiny's `try` is
 by `catch`: the block alone is the step, and with a `step` after it,
 the set-up, whose result `step` and `end` are given. `end` always
@@ -128,7 +148,9 @@ does. `gather`'s list form stays as it is; the factory can tell the
 new form by a `step` or `end` after its block, rather than by what the
 block returns. Layer 1 of DBIx-Squirrel's message.
 Each factory makes its type with a class method, so a subclass, such
-as DBIx::Squirrel's, can wrap its own (2026-0020).
+as DBIx::Squirrel's, can wrap its own (2026-0020). `step` and `end` are
+exported only under a tag, with the block factories, so a short name
+like `end` is never imported alone (2026-0021).
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 

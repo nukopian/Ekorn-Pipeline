@@ -158,4 +158,8 @@ planned in both repositories:
 - **The test packages and the example** set `@ISA` with `use parent
   -norequire`, at compile time, as an `import` called from a `BEGIN`
   block finds no inherited `import` in an `@ISA` set at run time.
-- **What's left:** nothing; 2026-0010's D10 is settled by D4.
+- **What's left:** nothing; 2026-0010's D10 is settled by D4. On
+  2026-11-11, after it was finished, Iain decided `pipeline` moves out
+  of Ekorn::Pipeline into Ekorn::Pipeline::Factories, 2026-0021, so
+  D2's `import`, and the `SUPER::import` line, go with it once that's
+  built; D3 and D4 stand.

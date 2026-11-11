@@ -67,9 +67,15 @@ both:
   its own class where it makes something, but the class it was reached
   through: a method makes its invocant's class, or asks a method a
   subclass can override, such as Pipes' `pipeline_class`; an exported
-  function that makes something is made for the class it was imported
-  through, as `pipeline` is, or is a one-line wrapper over a class
+  function that makes something is a one-line wrapper over a class
   method, as `Stop` is over `throw`, so a subclass can wrap its own.
+- **Factories are words, and live in a module of words,** as Iain
+  decided on 2026-11-11: a short, keyword-like function that makes one
+  of Ekorn's types, such as `pipeline`, `source {...} step {...} end
+  {...}` or `gather`, is syntax, not behaviour, so it goes in
+  Ekorn::Pipeline::Factories, not in the class it makes. Each is one
+  line over a class method. DBIx::Squirrel's own words, making its
+  classes, go in DBIx::Squirrel::Factories. Record 2026-0021.
   And the streams don't cross: what's made or named in DBIx::Squirrel's
   namespace stays there. A subclass inherits from its ancestor, one
   way, as named pipelines are; Ekorn never holds, finds or makes
