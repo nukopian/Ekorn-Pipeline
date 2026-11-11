@@ -295,8 +295,9 @@ mustn't be code references or pipelines themselves.
 references, such as callbacks, C<is_stage> can't tell them from
 stages. Take a pipeline given last as the stages instead, which your
 callers make with C<pipeline>, from Ekorn::Pipeline:
-C<call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))>. It can
-take the names of pipelines defined with C<named>, too.
+C<call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))>.
+C<pipeline> can take the names of pipelines defined with C<named>,
+too.
 
 =back
 

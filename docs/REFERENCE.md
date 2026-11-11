@@ -86,9 +86,10 @@ say join ' ', numbers(drop(2), take(3));    # 3 4 5
   [A pipeline as a stage](#a-pipeline-as-a-stage)).
 - **Pipeline:** a list of stages, made with `Ekorn::Pipeline->new`
   or `pipeline`.
-- **Name:** a name a pipeline is kept under, with `named`, in a
-  package, so that `pipeline` and `named` can take it where they take a
-  stage (see [Named pipelines](#named-pipelines)).
+- **Name:** a name a pipeline is kept under, with `named`, so that
+  `pipeline` and `named` can take it where they take a stage. A name is
+  in a package, which says whose it is, and belongs to a class, which
+  says who can find it (see [Named pipelines](#named-pipelines)).
 - **Run:** one call of a pipeline with values, or one iterator made
   from it. Stages made with `gather` start afresh on each run.
 - **Source:** a code reference an iterator calls for values. It returns
@@ -301,8 +302,10 @@ code reference, a pipeline or a name croaks, naming its position:
 "Expected stage #2 to be a code reference, a pipeline or the name of
 one".
 
-It's short for `Ekorn::Pipeline->new(...)`, which makes it handy for
-passing stages as one pipeline, given last. A function whose values
+It's like `Ekorn::Pipeline->new(...)`, but reads names, and, imported
+through a subclass, makes the subclass (see
+[pipeline through a subclass](#pipeline-through-a-subclass)). Being
+short, it's handy for passing stages as one pipeline, given last. A function whose values
 can be code references can't tell them from stages with `is_stage`,
 but it can take a pipeline given last as its stages, as
 [Writing functions that take stages](#writing-functions-that-take-stages)
@@ -311,8 +314,9 @@ shows.
 ### pipeline through a subclass
 
 Imported through a subclass, `pipeline` makes that subclass. It's a
-function of its own, made for the subclass when it's imported, and
-the subclass needs no code of its own for it:
+function of its own, made for the subclass when it's imported. A
+subclass that inherits `import` from Ekorn::Pipeline needs no code of
+its own for it:
 
 ```perl
 package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
@@ -331,6 +335,36 @@ into. So a module can import it from its subclass and export it again
 to its own users, and each user's names are looked up in that user's
 package. That's how a distribution built on Ekorn::Pipeline, such as
 DBIx::Squirrel, gives its users a `pipeline` making its own class.
+
+A subclass with an `import` of its own, such as Exporter's, replaces
+Ekorn::Pipeline's, and `use My::Pipeline qw(pipeline)` then croaks:
+`"pipeline" is not exported by the My::Pipeline module`. Such a
+subclass asks for `pipeline` itself, from inside the subclass, which
+installs the function made for it there, and exports it as it exports
+anything else:
+
+```perl
+package My::Pipeline;
+use Exporter qw(import);
+use Ekorn::Pipeline qw();
+
+our @ISA;
+BEGIN { @ISA = ('Ekorn::Pipeline') }
+
+# pipeline, made for this class, installed here, so Exporter exports it.
+BEGIN { __PACKAGE__->SUPER::import('pipeline') }
+
+our @EXPORT_OK = qw(pipeline);
+```
+
+`@ISA` must be set in a `BEGIN` block, as here, before that line runs;
+set at run time, it's empty when the `BEGIN` block calls `SUPER::import`.
+
+A package has one `pipeline`. Importing both Ekorn::Pipeline's and a
+subclass's into the same package warns "Subroutine main::pipeline
+redefined", and the second replaces the first; call the other by its
+full name, such as `Ekorn::Pipeline::pipeline(...)`, as the example in
+[Named pipelines and subclasses](#named-pipelines-and-subclasses) does.
 
 ### named
 
@@ -368,8 +402,24 @@ say join ',', pipeline('cleaned')->(' a ', '  ', 'b ');    # a,b
 
 ### Named pipelines
 
-A named pipeline is kept for the life of the program, under its name
-in a package. These rules say which pipeline a name means:
+A named pipeline is kept for the life of the program. Two things
+decide which pipeline a name means, and they're separate:
+
+- **The package the name is in says whose name it is.** It's the
+  package that called `named`, unless the name is qualified, so two
+  modules can each have a `clean`.
+- **The class it was defined through says who can find it.** A class
+  finds its own names and its ancestors', never a subclass's, as
+  [Named pipelines and subclasses](#named-pipelines-and-subclasses)
+  explains.
+
+So `My::Pipeline->named(loud => sub { uc })`, called in `main`,
+defines `main::loud` for My::Pipeline. Ekorn::Pipeline's own
+`pipeline('loud')`, in `main`, then croaks "No pipeline named
+main::loud": the name is in `main`, but it's My::Pipeline's, and
+Ekorn::Pipeline can't see it.
+
+In detail, these rules say which pipeline a name means:
 
 - **A name is kept per package.** `named` keeps it in the package that
   called it, and `pipeline` and `named` look it up in the package that
@@ -384,9 +434,13 @@ in a package. These rules say which pipeline a name means:
   `#1.2`.
 - **A class can't define a name twice.** Defining it again through the
   same class croaks: "A pipeline named main::clean is already
-  defined". Naming the same pipeline again is no mistake. A subclass
-  defining a name its ancestor has isn't defining it twice: it's
-  overriding it, as the next section explains.
+  defined". Naming the same pipeline again, with `$p->named('clean')`,
+  is no mistake. But `named` on a class always makes a new pipeline,
+  even from a single pipeline, so `Ekorn::Pipeline->named(clean => $p)`
+  twice croaks. A subclass defining a name its ancestor has isn't
+  defining it twice: it's overriding it, as the next section explains.
+- **A name can't be removed.** Define each once, as a program or module
+  loads, not in a sub that may be called again.
 - **A pipeline, once made, keeps what it found.** As a name is looked
   up when the pipeline is made, a name defined or overridden later
   never changes a pipeline already made.
@@ -862,7 +916,9 @@ my $first   = $object->pipe(@stages);
 ```
 
 Runs the object through a pipeline of `@stages`, and returns what
-comes out of the last stage. In scalar context, it returns the first
+comes out of the last stage. The stages are what `new` takes: code
+references and pipelines, not names. To use a named pipeline, pass
+`pipeline('clean')`. In scalar context, it returns the first
 result, or `undef` if there are none. (A pipeline called in scalar
 context returns how many there are; `pipe` doesn't.) With no stages,
 it returns the object.
@@ -897,7 +953,9 @@ my $class = $object->pipeline_class;
 
 The class of the pipelines `pipe` and `tap` make: Ekorn::Pipeline. A
 subclass overrides it to make pipelines of a subclass of its own,
-`sub pipeline_class ($self) { 'My::Pipeline' }`. It's new in v0.2.1.
+`sub pipeline_class ($self) { 'My::Pipeline' }`, so that `pipe` and
+`tap` run with whatever that subclass changes about how its pipelines
+behave. It's new in v0.2.1.
 
 ## Canned stages
 
@@ -1313,10 +1371,14 @@ the line of the caller's code that caused it.
   isn't a code reference.
 - **Expected stage #%d to be a code reference, a pipeline or the name
   of one:** a stage given to `pipeline`, or to `named` after the name,
-  was none of them.
+  was none of them. For `named`, stages are counted from the first
+  after the name.
 - **No pipeline named %s:** a name given to `pipeline` or `named` isn't
-  defined. The name is given qualified, so it says which package it
-  was looked up in.
+  defined in that package for the class it was looked up for, or for
+  any of its ancestors. The name is given qualified, so it says which
+  package it was looked up in. It may be defined for a subclass, which
+  this class can't see, or in another package, which a qualified name
+  reaches (see [Named pipelines](#named-pipelines)).
 - **A pipeline named %s is already defined:** `named` was given a name
   its class has already defined for another pipeline. The class is the
   one `named` was called on, or the pipeline's. A subclass can define a

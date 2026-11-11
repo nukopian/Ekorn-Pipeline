@@ -5,13 +5,13 @@ Unreleased
     Pipelines can be made with pipeline(), and named, and a function
     whose values can be code references can take its stages as a
     pipeline given last. A subclass of Ekorn::Pipeline gets a
-    pipeline() of its own, and Pipes can make a subclass's pipelines. The README's CPAN badge keeps up with
-    releases, and the how-to says where a stage belongs.
+    pipeline() of its own, and Pipes can make a subclass's
+    pipelines. The README's CPAN badge keeps up with releases, and
+    the how-to says where a stage belongs.
 
     It ships two roadmap items, 2026-0009 and 2026-0011, and a task
-    from DBIx-Squirrel, 2026-0020. It only adds:
-    existing code runs as before, and every message a pipeline gives
-    today reads as before.
+    from DBIx-Squirrel, 2026-0020. It only adds: existing code runs as
+    before, and every message a pipeline gives today reads as before.
 
     - Ekorn::Pipeline exports pipeline() on request. It makes a new
       pipeline from stages, as new does, but a stage can also be the
@@ -21,9 +21,9 @@ Unreleased
       pipeline, and $p->named('clean') names one you have. A name is
       kept in the caller's package unless it's qualified, is resolved
       when a pipeline is made, and can't be defined twice by the same
-      class. Only
-      pipeline() and named() read names: new doesn't, and is_stage
-      stays false for a string. (roadmap 2026-0011)
+      class, or removed. Only pipeline() and named() read names: new
+      doesn't, and is_stage stays false for a string. (roadmap
+      2026-0011)
     - Five new messages, for pipeline() and named(): "Expected stage
       #%d to be a code reference, a pipeline or the name of one", "No
       pipeline named %s", "A pipeline named %s is already defined",
@@ -32,8 +32,10 @@ Unreleased
     - pipeline, imported through a subclass, makes that subclass:
       use My::Pipeline qw(pipeline). It looks names up in the package
       that calls it, so a module can export it again to its users.
-      Asked through a subclass, it no longer croaks as a name the
-      subclass doesn't export. (2026-0020)
+      The subclass needn't export pipeline itself, unless it has an
+      import of its own, such as Exporter's; then it asks for it with
+      __PACKAGE__->SUPER::import('pipeline'), as the docs show.
+      (2026-0020)
     - A named pipeline belongs to the class it was defined through,
       and names are inherited one way, as methods are. A subclass's
       pipeline() finds the subclass's own names and its ancestors';

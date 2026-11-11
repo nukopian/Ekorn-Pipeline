@@ -56,6 +56,37 @@ subtest 'It looks names up in the package that calls it' => sub {
         'and not in the module that re-exported it';
 };
 
+# A subclass with an import of its own, as a facade exporting other
+# names would have, which asks for pipeline itself.
+package My::Facade {
+    use Exporter qw(import);
+    our(@ISA, @EXPORT_OK);
+    BEGIN { @ISA = ('Ekorn::Pipeline') }
+    BEGIN { __PACKAGE__->SUPER::import('pipeline') }
+    BEGIN { @EXPORT_OK = qw(pipeline) }
+}
+
+package My::Facade::User {
+    BEGIN { My::Facade->import(qw(pipeline)) }
+    My::Facade->named(quiet => sub { lc });
+    sub make (@stages) { pipeline(@stages) }
+}
+
+subtest 'A subclass with its own import asks for pipeline itself' => sub {
+    like dies {
+
+        package My::Exporting
+        { use parent -norequire, 'Ekorn::Pipeline'; use Exporter qw(import) }
+        My::Exporting->import(qw(pipeline));
+    },
+        qr( "pipeline" \ is\ not\ exported\ by\ the\ My::Exporting\ module )x,
+        'without it, its import refuses pipeline';
+    my $p = My::Facade::User::make('quiet');
+    isa_ok $p, 'My::Facade';
+    is [$p->('LOUD')], ['loud'],
+        'with SUPER::import, its Exporter exports one making the subclass, looking names up in its user\'s package';
+};
+
 subtest 'Ekorn::Pipeline\'s own pipeline is unchanged' => sub {
     is ref(pipeline()), 'Ekorn::Pipeline';
     ref_is \&pipeline, \&Ekorn::Pipeline::pipeline, 'and is the same function';

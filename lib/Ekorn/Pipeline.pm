@@ -493,15 +493,26 @@ by C<::>, such as C<clean> or C<My::Module::clean>. It's new in v0.2.1.
 
 The name belongs to the class C<named> was called on, or, for a
 pipeline, to the pipeline's class. A class can't define the same name
-twice for another pipeline, which croaks; naming the same pipeline
-again is no mistake. A subclass can define a name its ancestor has,
-overriding it for itself and its own subclasses, as
+twice for another pipeline, which croaks. Naming the same pipeline
+again, with C<< $p->named('clean') >>, is no mistake; but C<named> on
+a class always makes a new pipeline, even from a single pipeline, so
+calling C<< Ekorn::Pipeline->named(clean => $p) >> twice croaks. A
+name can't be removed, so define each once, as a program or module
+loads. A subclass can define a name its ancestor has, overriding it
+for itself and its own subclasses, as
 L</Named pipelines and subclasses> explains.
 
 =head3 Named pipelines
 
-A named pipeline is kept for the life of the program, under its name
-in a package:
+A named pipeline is kept for the life of the program. Two things
+decide which pipeline a name means, and they're separate: the
+I<package> the name is in says whose name it is, so two modules can
+each have a C<clean>; and the I<class> it was defined through says who
+can find it (see L</Named pipelines and subclasses>). So
+C<< My::Pipeline->named(loud => ...) >>, called in C<main>, defines
+C<main::loud> for My::Pipeline, and Ekorn::Pipeline's own C<pipeline>,
+in C<main>, croaks "No pipeline named main::loud": the name is in
+C<main>, but it's My::Pipeline's.
 
 =over
 
@@ -673,9 +684,14 @@ It's exported on request, and new in v0.2.1.
 
 =head3 Through a subclass
 
-Imported through a subclass, C<pipeline> makes that subclass:
+Imported through a subclass, C<pipeline> makes that subclass. With
+My::Pipeline in a file of its own, C<My/Pipeline.pm>:
 
-    package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
+    package My::Pipeline;
+    use parent 'Ekorn::Pipeline';
+    1;
+
+a program using it writes:
 
     use My::Pipeline qw(pipeline);
     pipeline('clean', take(5));    # a My::Pipeline
@@ -683,7 +699,32 @@ Imported through a subclass, C<pipeline> makes that subclass:
 It's a function of its own, made for the subclass, which looks names
 up in the package that calls it, as Ekorn::Pipeline's does. So a module
 can import it and export it again to its own users, and names are
-still looked up in theirs. A subclass needs no code of its own for it.
+still looked up in theirs.
+
+A subclass that inherits C<import> from Ekorn::Pipeline needs no code
+of its own for it. A subclass with an C<import> of its own, such as
+Exporter's, replaces Ekorn::Pipeline's, and so must ask for
+C<pipeline> itself, from inside the subclass, and export it as it
+exports anything else:
+
+    package My::Pipeline;
+    use Exporter qw(import);
+    use Ekorn::Pipeline qw();
+
+    our @ISA;
+    BEGIN { @ISA = ('Ekorn::Pipeline') }
+
+    # pipeline, made for this class, installed here, so Exporter exports it.
+    BEGIN { __PACKAGE__->SUPER::import('pipeline') }
+
+    our @EXPORT_OK = qw(pipeline);
+
+C<@ISA> must be set in a C<BEGIN> block, before that line runs.
+
+A package has one C<pipeline>. Importing both Ekorn::Pipeline's and a
+subclass's into the same package warns that the first was redefined;
+call the other by its full name, such as
+C<Ekorn::Pipeline::pipeline(...)>.
 
 =head2 is_stage
 
@@ -742,12 +783,17 @@ something that isn't a code reference.
 =item Expected stage #%d to be a code reference, a pipeline or the name of one
 
 A stage given to L</pipeline>, or to L</named> after the name, was
-none of them.
+none of them. For C<named>, stages are counted from the first after
+the name.
 
 =item No pipeline named %s
 
-A name given to L</pipeline> or L</named> isn't defined. The name is
-given qualified, so it says which package it was looked up in.
+A name given to L</pipeline> or L</named> isn't defined in that
+package for the class it was looked up for, or for any of its
+ancestors. The name is given qualified, so it says which package it
+was looked up in. It may be defined for a subclass, which this class
+can't see (see L</Named pipelines and subclasses>), or in another
+package, which a qualified name reaches.
 
 =item A pipeline named %s is already defined
 

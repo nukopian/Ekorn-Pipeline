@@ -263,8 +263,9 @@ mustn't be code references or pipelines themselves.
 references, such as callbacks, `is_stage` can't tell them from
 stages. Take a pipeline given last as the stages instead, which your
 callers make with `pipeline`, from Ekorn::Pipeline:
-`call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))`. It can
-take the names of pipelines defined with `named`, too.
+`call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))`.
+`pipeline` can take the names of pipelines defined with `named`,
+too.
 
 A class of your own can have `pipe` and `tap` methods, from
 [Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages. `pipe`

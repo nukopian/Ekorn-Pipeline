@@ -69,7 +69,9 @@ methods, and are where they began.
     $first   = $object->pipe(@stages);
 
 Runs the invocant through a pipeline of C<@stages>, and returns what
-comes out of the last stage. In scalar context, it returns the first
+comes out of the last stage. The stages are what L<Ekorn::Pipeline/new>
+takes: code references and pipelines, not names. To use a named
+pipeline, pass C<pipeline('clean')> (see L<Ekorn::Pipeline/pipeline>). In scalar context, it returns the first
 result, or C<undef> if there are none. With no stages, it returns the
 invocant.
 
@@ -86,10 +88,13 @@ of method calls can carry on after it.
     $class = $object->pipeline_class;
 
 The class of the pipelines C<pipe> and C<tap> make: Ekorn::Pipeline.
-A subclass overrides it to make pipelines of a subclass of its own:
+A subclass overrides it to make pipelines of a subclass of its own, so
+that C<pipe> and C<tap> run with whatever that subclass changes about
+how its pipelines behave:
 
     sub pipeline_class ($self) { 'My::Pipeline' }
 
+It's new in v0.2.1.
 =head1 SEE ALSO
 
 L<Ekorn::Pipeline>, L<Ekorn::Pipeline::Stages::Taps>

@@ -786,7 +786,9 @@ say join ', ', tracks(pipeline('hit_titles', take(2)));    # Dancing Queen, Girl
 A name is kept in the package that defined it, so modules don't
 clash, and another package's is used by qualifying it, as
 `'My::Music::hit'`. It's looked up when `pipeline` is called, so a
-name not yet defined croaks there, and a name can't be defined twice.
+name not yet defined croaks there. A name can't be defined twice by
+the same class, or removed, so define each once, as the program
+starts.
 
 ### Give a class `pipe` and `tap`
 

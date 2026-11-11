@@ -151,9 +151,10 @@ or C<pipeline>.
 
 =item *
 
-B<Name:> a name a pipeline is kept under, with C<named>, in a
-package, so that C<pipeline> and C<named> can take it where they take a
-stage (see L<Named pipelines|/"Named pipelines">).
+B<Name:> a name a pipeline is kept under, with C<named>, so that
+C<pipeline> and C<named> can take it where they take a stage. A name is
+in a package, which says whose it is, and belongs to a class, which
+says who can find it (see L<Named pipelines|/"Named pipelines">).
 
 =item *
 
@@ -391,8 +392,10 @@ code reference, a pipeline or a name croaks, naming its position:
 "Expected stage #2 to be a code reference, a pipeline or the name of
 one".
 
-It's short for C<< Ekorn::Pipeline->new(...) >>, which makes it handy for
-passing stages as one pipeline, given last. A function whose values
+It's like C<< Ekorn::Pipeline->new(...) >>, but reads names, and, imported
+through a subclass, makes the subclass (see
+L<pipeline through a subclass|/"pipeline through a subclass">). Being
+short, it's handy for passing stages as one pipeline, given last. A function whose values
 can be code references can't tell them from stages with C<is_stage>,
 but it can take a pipeline given last as its stages, as
 L<Writing functions that take stages|/"Writing functions that take stages">
@@ -401,8 +404,9 @@ shows.
 =head2 pipeline through a subclass
 
 Imported through a subclass, C<pipeline> makes that subclass. It's a
-function of its own, made for the subclass when it's imported, and
-the subclass needs no code of its own for it:
+function of its own, made for the subclass when it's imported. A
+subclass that inherits C<import> from Ekorn::Pipeline needs no code of
+its own for it:
 
     package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
 
@@ -419,6 +423,34 @@ into. So a module can import it from its subclass and export it again
 to its own users, and each user's names are looked up in that user's
 package. That's how a distribution built on Ekorn::Pipeline, such as
 DBIx::Squirrel, gives its users a C<pipeline> making its own class.
+
+A subclass with an C<import> of its own, such as Exporter's, replaces
+Ekorn::Pipeline's, and C<use My::Pipeline qw(pipeline)> then croaks:
+C<"pipeline" is not exported by the My::Pipeline module>. Such a
+subclass asks for C<pipeline> itself, from inside the subclass, which
+installs the function made for it there, and exports it as it exports
+anything else:
+
+    package My::Pipeline;
+    use Exporter qw(import);
+    use Ekorn::Pipeline qw();
+
+    our @ISA;
+    BEGIN { @ISA = ('Ekorn::Pipeline') }
+
+    # pipeline, made for this class, installed here, so Exporter exports it.
+    BEGIN { __PACKAGE__->SUPER::import('pipeline') }
+
+    our @EXPORT_OK = qw(pipeline);
+
+C<@ISA> must be set in a C<BEGIN> block, as here, before that line runs;
+set at run time, it's empty when the C<BEGIN> block calls C<SUPER::import>.
+
+A package has one C<pipeline>. Importing both Ekorn::Pipeline's and a
+subclass's into the same package warns "Subroutine main::pipeline
+redefined", and the second replaces the first; call the other by its
+full name, such as C<Ekorn::Pipeline::pipeline(...)>, as the example in
+L<Named pipelines and subclasses|/"Named pipelines and subclasses"> does.
 
 =head2 named
 
@@ -452,8 +484,33 @@ explains.
 
 =head2 Named pipelines
 
-A named pipeline is kept for the life of the program, under its name
-in a package. These rules say which pipeline a name means:
+A named pipeline is kept for the life of the program. Two things
+decide which pipeline a name means, and they're separate:
+
+=over 4
+
+=item *
+
+B<The package the name is in says whose name it is.> It's the
+package that called C<named>, unless the name is qualified, so two
+modules can each have a C<clean>.
+
+=item *
+
+B<The class it was defined through says who can find it.> A class
+finds its own names and its ancestors', never a subclass's, as
+L<Named pipelines and subclasses|/"Named pipelines and subclasses">
+explains.
+
+=back
+
+So C<< My::Pipeline->named(loud => sub { uc }) >>, called in C<main>,
+defines C<main::loud> for My::Pipeline. Ekorn::Pipeline's own
+C<pipeline('loud')>, in C<main>, then croaks "No pipeline named
+main::loud": the name is in C<main>, but it's My::Pipeline's, and
+Ekorn::Pipeline can't see it.
+
+In detail, these rules say which pipeline a name means:
 
 =over 4
 
@@ -481,9 +538,16 @@ C<#1.2>.
 
 B<A class can't define a name twice.> Defining it again through the
 same class croaks: "A pipeline named main::clean is already
-defined". Naming the same pipeline again is no mistake. A subclass
-defining a name its ancestor has isn't defining it twice: it's
-overriding it, as the next section explains.
+defined". Naming the same pipeline again, with C<< $p->named('clean') >>,
+is no mistake. But C<named> on a class always makes a new pipeline,
+even from a single pipeline, so C<< Ekorn::Pipeline->named(clean => $p) >>
+twice croaks. A subclass defining a name its ancestor has isn't
+defining it twice: it's overriding it, as the next section explains.
+
+=item *
+
+B<A name can't be removed.> Define each once, as a program or module
+loads, not in a sub that may be called again.
 
 =item *
 
@@ -1035,7 +1099,9 @@ methods.
     my $first   = $object->pipe(@stages);
 
 Runs the object through a pipeline of C<@stages>, and returns what
-comes out of the last stage. In scalar context, it returns the first
+comes out of the last stage. The stages are what C<new> takes: code
+references and pipelines, not names. To use a named pipeline, pass
+C<pipeline('clean')>. In scalar context, it returns the first
 result, or C<undef> if there are none. (A pipeline called in scalar
 context returns how many there are; C<pipe> doesn't.) With no stages,
 it returns the object.
@@ -1064,7 +1130,9 @@ calls can carry on after it.
 
 The class of the pipelines C<pipe> and C<tap> make: Ekorn::Pipeline. A
 subclass overrides it to make pipelines of a subclass of its own,
-C<sub pipeline_class ($self) { 'My::Pipeline' }>. It's new in v0.2.1.
+C<sub pipeline_class ($self) { 'My::Pipeline' }>, so that C<pipe> and
+C<tap> run with whatever that subclass changes about how its pipelines
+behave. It's new in v0.2.1.
 
 =head1 Canned stages
 
@@ -1598,13 +1666,17 @@ isn't a code reference.
 
 B<Expected stage #%d to be a code reference, a pipeline or the name
 of one:> a stage given to C<pipeline>, or to C<named> after the name,
-was none of them.
+was none of them. For C<named>, stages are counted from the first
+after the name.
 
 =item *
 
 B<No pipeline named %s:> a name given to C<pipeline> or C<named> isn't
-defined. The name is given qualified, so it says which package it
-was looked up in.
+defined in that package for the class it was looked up for, or for
+any of its ancestors. The name is given qualified, so it says which
+package it was looked up in. It may be defined for a subclass, which
+this class can't see, or in another package, which a qualified name
+reaches (see L<Named pipelines|/"Named pipelines">).
 
 =item *
 

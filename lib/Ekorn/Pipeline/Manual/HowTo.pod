@@ -779,7 +779,9 @@ takes a stage. A definition can name other pipelines too:
 A name is kept in the package that defined it, so modules don't
 clash, and another package's is used by qualifying it, as
 C<'My::Music::hit'>. It's looked up when C<pipeline> is called, so a
-name not yet defined croaks there, and a name can't be defined twice.
+name not yet defined croaks there. A name can't be defined twice by
+the same class, or removed, so define each once, as the program
+starts.
 
 =head2 Give a class C<pipe> and C<tap>
 
