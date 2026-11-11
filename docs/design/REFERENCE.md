@@ -338,15 +338,19 @@ use Ekorn::Pipeline::Sinks qw(count to_array first_value);
 ```
 
 Ready-made sinks, to go last in a pipeline. Nothing is exported by
-default. Their names can't clash with Perl's built-ins or List::Util's,
-which is why they're `first_value` and `joined`, not `first` and
-`join`.
+default. Each `to_` sink is the counterpart of a `from_` source: what
+one reads, the other writes. The rest have names that can't clash with
+Perl's built-ins or List::Util's, which is why they're `first_value`
+and `joined`, not `first` and `join`.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `to_array` | an array reference of every value | no |
-| `into(\@array)` | pushes each value onto your array, and gives how many | no |
-| `to_hash(sub {...})` | a hash reference, each value keyed by what the sub gives | no |
+| `to_array` | every value, in a new array, as a reference | no |
+| `to_arrayref(\@array)` | pushes each value onto your array, and gives how many | no |
+| `to_fh($fh)` | prints each value to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
+| `to_file($path)` | writes each value to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
+| `to_hash` | every pair, `[$key, $value]`, in a new hash, as a reference | no |
+| `to_hashref(\%hash)` | puts every pair into your hash, and gives how many | no |
 | `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
 | `count` | how many values there were | no |
 | `first_value` | the first value | yes |
@@ -355,8 +359,23 @@ which is why they're `first_value` and `joined`, not `first` and
 | `every_value(sub {...})` | false at the first value the sub is false of, or true | yes, when false |
 | `fold($init, sub {...})` | a running total of any kind, from `$init` | no |
 | `joined($separator)` | the values joined into one string | no |
-| `to_file($path)` | writes each value as a line, and gives how many | no; it closes the file |
 | `for_each(sub {...})` | calls the sub with each value, and gives how many | no |
+
+`from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
+`to_file` add it back, so a file read with one is written unchanged by
+the other:
+
+```perl
+my $copied = Ekorn::Pipeline->new(to_file('copy.txt'))->iterator(from_file('original.txt'))->();
+```
+
+`from_hash` and `from_hashref` give pairs, and `to_hash` and
+`to_hashref` take them. To key values by something of their own, make
+the pairs first:
+
+```perl
+my $by_title = Ekorn::Pipeline->new(sub { [$_->{title}, $_] }, to_hash)->(@tracks);
+```
 
 A sink that stops the pull early is told `done`: it decided the run
 had enough. The source and the stages before it are told `stopped`.

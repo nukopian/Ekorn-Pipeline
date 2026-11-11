@@ -185,9 +185,10 @@ The message, whole:
 **Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
 
 `Ekorn::Pipeline::Sinks`, with names that can't clash with Perl's or
-List::Util's: `to_array`, `into`, `to_hash`, `group_by`, `count`,
-`first_value`, `last_value`, `any_value`, `every_value`, `fold`,
-`joined`, `to_file` and `for_each`; those that can, stop the pull
+List::Util's: `to_array`, `to_arrayref`, `to_fh`, `to_file`,
+`to_hash` and `to_hashref`, the counterparts of 2026-0016's `from_`
+sources, and `group_by`, `count`, `first_value`, `last_value`,
+`any_value`, `every_value`, `fold`, `joined` and `for_each`; those that can, stop the pull
 early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
 message, and the type DBIx-Squirrel 2026-0012, a database as a sink,
 `insert_into`, depends on. A change of scope, as 2026-0016 is.

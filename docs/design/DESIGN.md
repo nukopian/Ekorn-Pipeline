@@ -414,14 +414,18 @@ array or a hash, a filehandle or a file. A pair is a two-element array,
 
 ### 8.3 Sinks: Ekorn::Pipeline::Sinks (2026-0017)
 
-Names that can't clash with Perl's built-ins or List::Util's. Nothing
-exported by default.
+Each `to_` sink is the counterpart of a `from_` source, so what one
+reads, the other writes. The rest have names that can't clash with
+Perl's built-ins or List::Util's. Nothing exported by default.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `to_array` | an array reference of every value | no |
-| `into(\@array)` | pushes each value onto your array; gives how many | no |
-| `to_hash(sub {...})` | a hash reference, keyed by what the sub gives | no |
+| `to_array` | every value, in a new array, as a reference | no |
+| `to_arrayref(\@array)` | pushes each value onto your array; gives how many | no |
+| `to_fh($fh)` | prints each value to your filehandle, followed by `$/`; gives how many | no; you close it |
+| `to_file($path)` | writes each value to the file, followed by `$/`; gives how many | no; its end closes the file |
+| `to_hash` | every pair, `[$key, $value]`, in a new hash, as a reference | no |
+| `to_hashref(\%hash)` | puts every pair into your hash; gives how many | no |
 | `group_by(sub {...})` | a hash of arrays | no |
 | `count` | how many values there were | no |
 | `first_value` | the first value | yes |
@@ -430,8 +434,13 @@ exported by default.
 | `every_value(sub {...})` | false at the first value the sub is false of | yes |
 | `fold($init, sub {...})` | a running total, of any kind | no |
 | `joined($separator)` | the values joined into one string | no |
-| `to_file($path)` | writes each value as a line; gives how many | no; its end closes the file |
 | `for_each(sub {...})` | calls the sub with each value; gives how many | no |
+
+`from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
+`to_file` add it back, so a file read with one is written unchanged by
+the other. `from_hash` and `from_hashref` give pairs, and `to_hash` and
+`to_hashref` take them; to key values by something of their own, a
+stage makes the pairs first: `stage { [$_->{id}, $_] }`.
 
 A sink that stops early is told `done`, as the stage that decided the
 run had enough; the source and stages before it are told `stopped`.
@@ -917,8 +926,10 @@ The sources are named for what they take, `from_array`,
 `from_arrayref`, `from_hash`, `from_hashref`, `from_fh` and
 `from_file`, so a reader knows from the call whether a list, a
 reference, a filehandle or a path goes in, and the family reads as
-one. The sinks are `first_value`, `any_value`, `joined` and the like:
-each avoids a built-in (`join`, `each`, `keys`) or a List::Util
+one. The `to_` sinks are their counterparts, named for where the values
+go, so a value read with one is written with the other. The other
+sinks are `first_value`, `any_value`, `joined` and the like: each
+avoids a built-in (`join`, `each`, `keys`) or a List::Util
 function many import (`first`, `any`, `all`, `pairs`, `sum`,
 `reduce`). And nothing is exported by default, so a ready-made part
 never replaces a function already in the user's package. (2026-0016,
@@ -930,6 +941,11 @@ Weighed and set aside:
   take; and `lines` alone in a package reads as a variable's name.
 - **`hash_pairs`,** named for what it gives, where the rest are named
   for what they take.
+- **`into(\@array)`,** for pushing onto your array. `to_arrayref`
+  says the same, and pairs with `from_arrayref`.
+- **`to_hash(sub {...})`, keying each value by what a sub gives.** It
+  wouldn't be the counterpart of `from_hash`, which gives pairs; a
+  stage making pairs, then `to_hash`, does the same.
 
 ## 18. Where each roadmap item lands
 
