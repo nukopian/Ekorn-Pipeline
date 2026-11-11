@@ -34,7 +34,8 @@ examples.
   with nothing until it gives an empty list. Any code reference, or
   one made with `source`.
 - **Sink:** the last stage of a pipeline, which consumes every value
-  and gives one result, such as a count. Made with `sink`, or
+  and gives its result, one value, such as a count, or a list, such as
+  every value. Made with `sink`, or
   ready-made, such as `count`.
 - **Made for a run:** made afresh at the start of each run, by a
   set-up block, so that each run has state of its own. Gathers,
@@ -256,7 +257,7 @@ sink { SET-UP }
 Returns a Sink, to go last in a pipeline, made for each run. Its
 set-up returns its step, called with each value, whose return is
 ignored; and its end, told how the run ended, which, when `done`, gives
-the result, the only value the run gives **[Q8]**.
+the result: one value or a list, all the run gives **[Q8]**.
 
 ```perl
 my $longest = sink {
@@ -345,11 +346,11 @@ and `joined`, not `first` and `join`.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `to_array` | every value, in a new array, as a reference | no |
+| `to_array` | every value, as a list | no |
 | `to_arrayref(\@array)` | pushes each value onto your array, and gives how many | no |
 | `to_fh($fh)` | prints each value to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
 | `to_file($path)` | writes each value to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
-| `to_hash` | every pair, `[$key, $value]`, in a new hash, as a reference | no |
+| `to_hash` | every pair's key and value, as a list to assign to a hash | no |
 | `to_hashref(\%hash)` | puts every pair into your hash, and gives how many | no |
 | `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
 | `count` | how many values there were | no |
@@ -374,7 +375,7 @@ my $copied = Ekorn::Pipeline->new(to_file('copy.txt'))->iterator(from_file('orig
 the pairs first:
 
 ```perl
-my $by_title = Ekorn::Pipeline->new(sub { [$_->{title}, $_] }, to_hash)->(@tracks);
+my %by_title = Ekorn::Pipeline->new(sub { [$_->{title}, $_] }, to_hash)->(@tracks);
 ```
 
 A sink that stops the pull early is told `done`: it decided the run
@@ -410,8 +411,16 @@ code references, `|` is Perl's bitwise OR of their addresses: it gives
 a meaningless number, with no error. So write `stage { uc }` in a
 chain, never `sub { uc }`. A pipeline made with `new` has no operators.
 
-An operator gives one scalar, so a sink at the end gives one result,
-and `@{}` is how a source gives a list.
+An operator gives one scalar. A sink that gives one value, such as
+`count`, gives it from a chain as it is. A sink that gives a list,
+such as `to_array` or `to_hash`, gives it from a chain as a reference,
+to an array or a hash; or `@{}` drains a chain without a sink:
+
+```perl
+my $n      = $source | count;       # a number
+my $titles = $source | to_array;    # an array reference
+my @titles = @{ $source };          # a list
+```
 
 ## Sugar: Ekorn::Pipeline::Sugar
 

@@ -19,7 +19,7 @@ Where the recipes go:
   pipeline you use often", as `pipeline` comes from Factories.
 - **A new part, Sources: reading from anything,** after Pulling values
   one at a time.
-- **A new part, Sinks: one result from many values,** after Gathering
+- **A new part, Sinks: a result from many values,** after Gathering
   values.
 - **A new part, Chaining with |,** after Sinks.
 - **Writing stages for others** gains "Build a distribution on Ekorn".
@@ -136,11 +136,12 @@ you're done with it, as Perl lets it go:
 
 **[Q7]**
 
-## Sinks: one result from many values (new)
+## Sinks: a result from many values (new)
 
 ### Count, total or join, in one result
 
-A sink goes last, and turns every value into one result:
+A sink goes last, and turns every value into its result, here a single
+value:
 
 ```perl
 use Ekorn::Pipeline::Sinks qw(count fold joined);

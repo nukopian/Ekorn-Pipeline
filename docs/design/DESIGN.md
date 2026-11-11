@@ -122,7 +122,7 @@ are values. A value never means "the end"; an empty list does.
 | **Gather** | a stage with state for the run, and an end that lets out what it held | one value | a list | `gather {...}`, `batch`, `collect` |
 | **Pipeline** | a list of stages, run in order | values (push), or a source (pull) | a list, or an iterator | `Ekorn::Pipeline->new` |
 | **Source** | gives values when pulled, until it gives none | nothing | the next value or values, or an empty list | a code reference given to `iterator` |
-| **Sink** | consumes every value, and gives one result | (as the last stage) each value | nothing, until its end gives the result | nothing yet: a call in list context, `all`, `count` |
+| **Sink** | consumes every value, and gives its result: one value, or a list | (as the last stage) each value | nothing, until its end gives the result | nothing yet: a call in list context, `all`, `count` |
 | **Stop** | ends a run early, from inside a stage | values to carry on | (thrown) | `Stop(...)` |
 
 How they relate:
@@ -140,9 +140,9 @@ How they relate:
 - **A gather is a stage** whose state lasts a run, with an end that can
   let out what it held.
 - **A sink is the last stage of a pipeline,** whose end gives the
-  run's one result (proposed, **Q8**). Pushed values in, one result
-  out; or, pulled from a source, an iterator that hands out one value,
-  the result.
+  run's result (proposed, **Q8**): one value, such as a count, or a
+  list, such as every value. Pushed values in, the result out; or,
+  pulled from a source, an iterator that hands out the result.
 - **A stop** ends the run from inside a stage; the values it carries
   go on through the stages after it.
 
@@ -420,11 +420,11 @@ Perl's built-ins or List::Util's. Nothing exported by default.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `to_array` | every value, in a new array, as a reference | no |
+| `to_array` | every value, as a list | no |
 | `to_arrayref(\@array)` | pushes each value onto your array; gives how many | no |
 | `to_fh($fh)` | prints each value to your filehandle, followed by `$/`; gives how many | no; you close it |
 | `to_file($path)` | writes each value to the file, followed by `$/`; gives how many | no; its end closes the file |
-| `to_hash` | every pair, `[$key, $value]`, in a new hash, as a reference | no |
+| `to_hash` | every pair's key and value, as a list to assign to a hash | no |
 | `to_hashref(\%hash)` | puts every pair into your hash; gives how many | no |
 | `group_by(sub {...})` | a hash of arrays | no |
 | `count` | how many values there were | no |
@@ -464,8 +464,11 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   plain code references, `|` silently ORs their addresses. The docs
   must say loudly: in a chain, every stage is a `stage {...}`, or a
   ready-made part, which section 8.1 makes objects.
-- **An operator returns one scalar,** so a sink gives an array
-  reference, or `@{}` drains a source.
+- **An operator returns one scalar.** A sink that gives one value, such
+  as `count`, gives it from a chain as it is. A sink that gives a list,
+  such as `to_array` or `to_hash`, gives it from a chain as a
+  reference, to an array or a hash, as one scalar must; or `@{}`
+  drains a chain without a sink.
 - A pipeline made with `new` gets no operators: only the chains `|`
   makes, and the typed objects, do.
 
@@ -708,7 +711,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q5** | The source's end runs last, after every stage's? | Ekorn | Yes |
 | **Q6** | An end that dies during a die: warn, keeping the first error? | Ekorn | Yes, with a message saying which end |
 | **Q7** | `iterator` returns a blessed code reference whose `DESTROY` ends an abandoned run? | Ekorn, DBIx-Squirrel to confirm | Yes |
-| **Q8** | A sink is the last stage of a pipeline, made for a run, its end giving the result? | Ekorn | Yes |
+| **Q8** | A sink is the last stage of a pipeline, made for a run, its end giving the result, one value or a list? | Ekorn | Yes |
 | **Q9** | `stage(\&trim)`: wrap, never bless the sub given? | Ekorn | Always wrap |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
@@ -896,8 +899,8 @@ Weighed and set aside:
 - **A sink as something outside the pipeline,** taking a source and
   returning a result. It would need a second way of running a
   pipeline, where the last stage of one already gives push and pull
-  for free: pushed values in, one result out; pulled, an iterator of
-  one value.
+  for free: pushed values in, the result out; pulled, an iterator of
+  the result.
 
 ### 17.10 An abandoned iterator ends its run
 
