@@ -306,7 +306,7 @@ default. Each returns a Source.
 |---|---|---|
 | `from_array(@values)` | the values given | none |
 | `from_arrayref(\@array)` | an array's values, read as they're asked for, not copied | none |
-| `from_fh($fh)` | a filehandle's lines, without their newlines | none: you opened it, so you close it |
+| `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
 | `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | closes the file, however the run ends |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
 | `unfold($seed, sub {...})` | the sub, applied again and again from the seed, until it gives nothing | none |
@@ -320,9 +320,9 @@ my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));
 # reads two lines, then closes the file
 ```
 
-`from_file` reads with `$/` as it is at each read, as `readline` does,
-so a caller can read a file's paragraphs, or whole records of their
-own, by setting it while they pull:
+`from_fh` and `from_file` read with `$/` as it is at each read, as
+`readline` does, so a caller can read a file's paragraphs, or records
+of their own, by setting it while they pull:
 
 ```perl
 local $/ = '';    # paragraph mode
