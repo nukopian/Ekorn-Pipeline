@@ -351,6 +351,13 @@ as Perl's, joined by `::`, such as `clean`, `clean_2` or
 `My::Module::clean`.
 Anything else croaks: "Expected a name, made of words joined by ::".
 
+The name belongs to the class `named` was called on, or, for a
+pipeline, to the pipeline's class. A class can't define the same name
+twice, but a subclass can define a name its ancestor has, overriding
+it for itself and its own subclasses, as
+[Named pipelines and subclasses](#named-pipelines-and-subclasses)
+explains.
+
 ```perl
 Ekorn::Pipeline->named(trimmed  => sub { s( \A \s+ | \s+ \z )()xgr });
 Ekorn::Pipeline->named(nonempty => sub { length ? $_ : () });
@@ -375,22 +382,86 @@ in a package. These rules say which pipeline a name means:
   The pipeline it names is spliced in, as a pipeline given to `new`
   is, and its stages are named in messages by their places in each:
   `#1.2`.
-- **A name can't be defined again.** Defining it again croaks: "A
-  pipeline named main::clean is already defined". Naming the same
-  pipeline again is no mistake. So a pipeline, once made, never finds
-  that a name it used means something else.
+- **A class can't define a name twice.** Defining it again through the
+  same class croaks: "A pipeline named main::clean is already
+  defined". Naming the same pipeline again is no mistake. A subclass
+  defining a name its ancestor has isn't defining it twice: it's
+  overriding it, as the next section explains.
+- **A pipeline, once made, keeps what it found.** As a name is looked
+  up when the pipeline is made, a name defined or overridden later
+  never changes a pipeline already made.
 - **Only `pipeline` and `named` read names.** `new` doesn't, and
   `is_stage` is false for a string, so a function finding its stages
   with `is_stage` never takes a value such as `'clean'` for one.
-- **A name belongs to the class it was defined through,** and is
-  inherited one way, as methods are: a subclass sees its own names and
-  its ancestors', but a class never sees its descendants'. So
-  Ekorn::Pipeline's `pipeline` never finds a pipeline named through a
-  subclass, and a subclass's `pipeline` (see
-  [pipeline through a subclass](#pipeline-through-a-subclass)) finds
-  both. A subclass can't define a name it already sees. An ancestor
-  can define one its descendant has, and each then sees its own. So a
-  distribution built on Ekorn::Pipeline keeps what it names to itself.
+- **A name belongs to a class,** and is inherited one way, as methods
+  are, so a distribution built on Ekorn::Pipeline keeps what it names
+  to itself. The next section explains.
+
+### Named pipelines and subclasses
+
+Every named pipeline belongs to a class: the class whose `named`
+defined it. `Ekorn::Pipeline->named(...)` defines a name for
+Ekorn::Pipeline. `My::Pipeline->named(...)`, called on a subclass,
+defines one for My::Pipeline. `$p->named(...)`, called on a pipeline,
+defines one for the pipeline's class.
+
+`pipeline` looks a name up for a class, too. Ekorn::Pipeline's own
+`pipeline` looks it up for Ekorn::Pipeline. One imported through a
+subclass (see [pipeline through a subclass](#pipeline-through-a-subclass))
+looks it up for that subclass. It looks first among that class's own
+names, then among its parent's, then its parent's parent's, and so on
+up to Ekorn::Pipeline, and takes the first it finds. It never looks
+down, among a subclass's names. A name given to `named`, as one of
+the stages after the new name, is looked up the same way, for the
+class `named` was called on.
+
+So, for a subclass and its ancestors:
+
+1. **A subclass sees its ancestors' names.** A pipeline named through
+   Ekorn::Pipeline can be used by a subclass's `pipeline`, as a
+   subclass can call its parent's methods.
+2. **An ancestor never sees a subclass's names.** A pipeline named
+   through a subclass can't be found by Ekorn::Pipeline's own
+   `pipeline`, which croaks "No pipeline named main::clean". So the
+   names a distribution such as DBIx::Squirrel defines for its own
+   subclass never reach a program's plain Ekorn pipelines.
+3. **A subclass can override an ancestor's name.** It defines the same
+   name for itself. From then on, it and its own subclasses get its
+   pipeline for that name; the ancestor, and anything looking names up
+   for the ancestor, still get the ancestor's. An ancestor can likewise
+   define a name a subclass already has, and each class then keeps its
+   own.
+4. **A class can't define the same name twice.** That croaks: "A
+   pipeline named main::clean is already defined". Overriding is
+   defining a name for a different class, so it's not defining it
+   twice.
+5. **Overriding doesn't change a pipeline already made.** A name is
+   looked up when a pipeline is made, so a pipeline made before an
+   override keeps the ancestor's pipeline. Define your names before
+   you use them, as a program usually does at its start, so that every
+   pipeline finds the same.
+
+```perl
+package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
+
+package main;
+BEGIN { My::Pipeline->import(qw(pipeline)) }    # here, pipeline makes My::Pipelines
+
+Ekorn::Pipeline->named(tidy => sub { lc });     # Ekorn::Pipeline's name
+My::Pipeline->named(loud => sub { uc });        # My::Pipeline's name
+
+say pipeline('tidy')->('Hi');                   # hi     (the subclass sees its ancestor's name)
+say pipeline('loud')->('Hi');                   # HI     (and its own)
+say eval { Ekorn::Pipeline::pipeline('loud') } ? 'found' : 'not found';
+                                                # not found  (the ancestor never sees the subclass's)
+
+my $made_before = pipeline('tidy');
+My::Pipeline->named(tidy => sub { ucfirst lc });    # the subclass overrides tidy
+
+say pipeline('tidy')->('hI');                   # Hi     (the subclass now gets its own)
+say Ekorn::Pipeline::pipeline('tidy')->('hI');  # hi     (the ancestor keeps its own)
+say $made_before->('hI');                       # hi     (a pipeline made earlier keeps what it found)
+```
 
 ### is_stage
 
@@ -1247,7 +1318,10 @@ the line of the caller's code that caused it.
   defined. The name is given qualified, so it says which package it
   was looked up in.
 - **A pipeline named %s is already defined:** `named` was given a name
-  already defined for another pipeline.
+  its class has already defined for another pipeline. The class is the
+  one `named` was called on, or the pipeline's. A subclass can define a
+  name its ancestor has, which overrides it rather than defining it
+  twice (see [Named pipelines and subclasses](#named-pipelines-and-subclasses)).
 - **Expected a name, made of words joined by ::** (from `named`): it was given
   something other than a name.
 - **Expected only a name, naming a pipeline you have:** `named`, on a

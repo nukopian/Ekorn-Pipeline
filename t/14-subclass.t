@@ -90,11 +90,20 @@ subtest 'Names are kept per class, inherited one way' => sub {
         qr( \A No\ pipeline\ named\ My::Streams::own\  )x,
         'but an ancestor never sees its descendants\'';
 
+    Ekorn::Pipeline->named('My::Streams::shared' => sub { "ekorn $_" });
+    my $before = My::Streams::mine('shared');
+    My::Pipeline->named('My::Streams::shared' => sub { "mine $_" });
+    is [My::Streams::mine('shared')->('x')], ['mine x'],
+        'a subclass can override a name its ancestor has';
+    is [My::Streams::theirs('shared')->('x')], ['ekorn x'],
+        'which the ancestor keeps';
+    is [$before->('x')], ['ekorn x'],
+        'and a pipeline made before the override keeps what it found';
     like dies {
-        My::Pipeline->named('My::Streams::base' => sub { $_ })
+        My::Pipeline->named('My::Streams::shared' => sub { $_ })
     },
-        qr( \A A\ pipeline\ named\ My::Streams::base\ is\ already\ defined\  )x,
-        'so a subclass can\'t define a name its ancestor has';
+        qr( \A A\ pipeline\ named\ My::Streams::shared\ is\ already\ defined\  )x,
+        'but a class can\'t define a name it has defined itself';
     ok lives {
         Ekorn::Pipeline->named('My::Streams::own' => sub { "base's $_" })
     },

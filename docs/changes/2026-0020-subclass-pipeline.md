@@ -2,7 +2,7 @@
 
 **Status:** shipped, unreleased
 
-**Decisions:** D1 settled: Ekorn::X is the ancestor of DBIx::Squirrel::X, so Ekorn makes the class it was reached through. D2 settled: `pipeline`, imported through a subclass, is made for it. D3 settled: Pipes asks `pipeline_class`. D4 settled: names are kept per class, inherited one way. None open.
+**Decisions:** D1 settled: Ekorn::X is the ancestor of DBIx::Squirrel::X, so Ekorn makes the class it was reached through. D2 settled: `pipeline`, imported through a subclass, is made for it. D3 settled: Pipes asks `pipeline_class`. D4 settled: names are kept per class, inherited one way. D5 settled: a subclass can override an ancestor's name. None open.
 
 **Origin:** a TODO task from DBIx-Squirrel's session, 2026-11-11
 (DBIx-Squirrel b42762959e467286e7406c2f86c4b944a9b101a6), for its
@@ -59,6 +59,29 @@ right, calling `new` on its invocant.
   registries, simpler to explain, but a subclass would lose the
   pipelines its ancestor names, which the notional class and subclass
   should keep.
+- [x] **D5.** Can a subclass override a name its ancestor has? Yes,
+  Iain decided on 2026-11-11, correcting D4 as first built, which
+  croaked "already defined" for it, while letting an ancestor define a
+  name its subclass had. That was lopsided, and unlike methods, which a
+  subclass overrides as a matter of course. It had been meant to keep
+  2026-0011's D6, that a pipeline once made never finds a name it used
+  means something else; but a name is resolved when a pipeline is
+  made, so a pipeline made before an override keeps what it found,
+  and D6 holds. Now:
+  - a class can't define the same name twice ("A pipeline named %s is
+    already defined");
+  - a subclass can define a name its ancestor has, and it and its own
+    subclasses then get its pipeline, while the ancestor keeps its own;
+  - an ancestor can define a name its subclass has, and each keeps its
+    own;
+  - an ancestor never sees a subclass's names.
+  The cost is timing: code that looks a name up for a subclass before
+  the subclass overrides it gets the ancestor's, and the subclass's
+  after. The docs say to define names before using them, as Sugar
+  will, at compile time. Iain asked the same day that the rules be
+  spelled out in plain English, in full: the reference and the POD
+  have a section of their own, Named pipelines and subclasses, with an
+  example showing each.
 
 ## The plan
 
@@ -119,7 +142,9 @@ planned in both repositories:
   3404072a86c6a10c4e80c7f6b6326a8ad0f6bd4e, in a second: `named` keeps
   a name under its invocant's class, and the lookup walks the class's
   linear `@ISA`, with `mro::get_linear_isa`, nearest first. Tested in
-  `t/14-subclass.t`, a grandchild included.
+  `t/14-subclass.t`, a grandchild included. D5 came in a third commit:
+  `named` checks only its class's own names for one already defined,
+  not every name the class sees.
 - **Changes from the plan:** the first `import` passed the rest to
   Exporter with `goto &Exporter::import`, which warns in a sub with a
   signature, as it passes `@_`; it calls `Exporter::export` with the

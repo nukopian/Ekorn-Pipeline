@@ -140,8 +140,8 @@ sub import ($class, @names) {
 # Name a pipeline, in the caller's package unless the name is qualified,
 # and return it: on the class, a new one of the stages after the name,
 # read as pipeline reads them; on a pipeline, that one. The name is the
-# class's, seen by it and its descendants, and can't be one it sees
-# already.
+# class's, seen by it and its descendants, and overrides an ancestor's of
+# the same name for them; it can't be one the class has defined already.
 sub named ($invocant, $name, @stages) {
     my $class     = ref $invocant ? ref $invocant : $invocant;
     my $package   = caller;
@@ -155,9 +155,9 @@ sub named ($invocant, $name, @stages) {
     else {
         $pipeline = $class->new(_resolved($class, $package, @stages));
     }
-    my $seen = _lookup($class, $qualified);
+    my $own = $named{$class}{$qualified};
     croakf 'A pipeline named %s is already defined', $qualified
-        if $seen && refaddr($seen) != refaddr($pipeline);
+        if $own && refaddr($own) != refaddr($pipeline);
     return $named{$class}{$qualified} = $pipeline;
 }
 
@@ -489,9 +489,14 @@ stages after the name.
 
 The name is kept in the caller's package, unless it's qualified, as
 L</Named pipelines> explains. A name is identifiers, as Perl's, joined
-by C<::>, such as C<clean> or C<My::Module::clean>. A name already
-defined for another pipeline croaks; naming the same pipeline again is
-no mistake. It's new in v0.2.1.
+by C<::>, such as C<clean> or C<My::Module::clean>. It's new in v0.2.1.
+
+The name belongs to the class C<named> was called on, or, for a
+pipeline, to the pipeline's class. A class can't define the same name
+twice for another pipeline, which croaks; naming the same pipeline
+again is no mistake. A subclass can define a name its ancestor has,
+overriding it for itself and its own subclasses, as
+L</Named pipelines and subclasses> explains.
 
 =head3 Named pipelines
 
@@ -510,21 +515,71 @@ another package's behalf qualifies them: C<"${package}::clean">.
 
 =item * A name is resolved when the pipeline is made, not when it runs,
 and the pipeline it names is spliced in, as a pipeline given to L</new>
-is. As a name can't be defined again, a pipeline once made never finds
-that a name it used means something else.
+is. So a pipeline, once made, keeps the pipelines it found, whatever's
+defined or overridden later.
 
 =item * Only L</pipeline> and C<named> read names. L</new> doesn't, and
 L</is_stage> is false for a string.
 
-=item * A name belongs to the class it was defined through, and is
-inherited one way: a subclass sees its own names and its ancestors',
-but a class never sees its descendants'. So Ekorn::Pipeline's
-C<pipeline> never finds a pipeline named through a subclass, and a
-subclass's C<pipeline> (see L</Through a subclass>) finds both. A
-subclass can't define a name it already sees; an ancestor can define
-one its descendant has, and each then sees its own.
+=item * A name belongs to a class, and is inherited one way, as methods
+are; L</Named pipelines and subclasses> explains.
 
 =back
+
+=head3 Named pipelines and subclasses
+
+Every named pipeline belongs to a class: the class whose C<named>
+defined it, or, for C<< $p->named(...) >>, the pipeline's class.
+L</pipeline> looks a name up for a class too: Ekorn::Pipeline's own
+for Ekorn::Pipeline, and one imported through a subclass (see
+L</Through a subclass>) for that subclass. It looks among that
+class's own names first, then its parent's, and so on up to
+Ekorn::Pipeline, and takes the first it finds. It never looks down,
+among a subclass's names. Names among the stages given to C<named> are
+looked up the same way, for the class C<named> was called on. So:
+
+=over
+
+=item 1. A subclass sees its ancestors' names.
+
+=item 2. An ancestor never sees a subclass's names: Ekorn::Pipeline's
+own C<pipeline> croaks "No pipeline named ..." for one. So a
+distribution's names for its own subclass never reach a program's
+plain Ekorn pipelines.
+
+=item 3. A subclass can override an ancestor's name, by defining the
+same name for itself. It and its own subclasses then get its pipeline;
+the ancestor still gets its own. An ancestor can likewise define a
+name a subclass already has, and each keeps its own.
+
+=item 4. A class can't define the same name twice, which croaks "A
+pipeline named ... is already defined". Overriding defines the name
+for a different class, so it isn't defining it twice.
+
+=item 5. Overriding doesn't change a pipeline already made, as a name
+is looked up when a pipeline is made. Define names before using them.
+
+=back
+
+    package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
+
+    package main;
+    BEGIN { My::Pipeline->import(qw(pipeline)) }    # here, pipeline makes My::Pipelines
+
+    Ekorn::Pipeline->named(tidy => sub { lc });     # Ekorn::Pipeline's name
+    My::Pipeline->named(loud => sub { uc });        # My::Pipeline's name
+
+    say pipeline('tidy')->('Hi');                   # hi     (the subclass sees its ancestor's name)
+    say pipeline('loud')->('Hi');                   # HI     (and its own)
+    say eval { Ekorn::Pipeline::pipeline('loud') } ? 'found' : 'not found';
+                                                    # not found  (the ancestor never sees the subclass's)
+
+    my $made_before = pipeline('tidy');
+    My::Pipeline->named(tidy => sub { ucfirst lc });    # the subclass overrides tidy
+
+    say pipeline('tidy')->('hI');                   # Hi     (the subclass now gets its own)
+    say Ekorn::Pipeline::pipeline('tidy')->('hI');  # hi     (the ancestor keeps its own)
+    say $made_before->('hI');                       # hi     (a pipeline made earlier keeps what it found)
 
 =head2 iterator
 
@@ -696,7 +751,10 @@ given qualified, so it says which package it was looked up in.
 
 =item A pipeline named %s is already defined
 
-L</named> was given a name already defined for another pipeline.
+L</named> was given a name its class, the one it was called on or the
+pipeline's, has already defined for another pipeline. A subclass can
+define a name its ancestor has, which overrides it rather than
+defining it twice (see L</Named pipelines and subclasses>).
 
 =item Expected a name, made of words joined by ::
 

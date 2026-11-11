@@ -20,7 +20,8 @@ Unreleased
     - Ekorn::Pipeline->named(clean => @stages) defines a named
       pipeline, and $p->named('clean') names one you have. A name is
       kept in the caller's package unless it's qualified, is resolved
-      when a pipeline is made, and can't be defined again. Only
+      when a pipeline is made, and can't be defined twice by the same
+      class. Only
       pipeline() and named() read names: new doesn't, and is_stage
       stays false for a string. (roadmap 2026-0011)
     - Five new messages, for pipeline() and named(): "Expected stage
@@ -33,9 +34,14 @@ Unreleased
       that calls it, so a module can export it again to its users.
       Asked through a subclass, it no longer croaks as a name the
       subclass doesn't export. (2026-0020)
-    - A name belongs to the class it was defined through, and is
-      inherited one way: a subclass sees its ancestors' names, but a
-      class never sees its descendants'. (2026-0020)
+    - A named pipeline belongs to the class it was defined through,
+      and names are inherited one way, as methods are. A subclass's
+      pipeline() finds the subclass's own names and its ancestors';
+      Ekorn::Pipeline's never finds a name defined through a subclass.
+      A subclass can override an ancestor's name by defining it for
+      itself: it and its subclasses then get its pipeline, and the
+      ancestor keeps its own. A class can't define a name twice, and a
+      pipeline already made keeps what it found. (2026-0020)
     - Ekorn::Pipeline::Pipes has pipeline_class, the class of the
       pipelines pipe and tap make, for a subclass to override.
       (2026-0020)
