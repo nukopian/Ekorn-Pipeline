@@ -679,7 +679,8 @@ caller's stages start by counting. Take the stages off the end with
 `is_stage`, from Ekorn::Pipeline. It's the test `new` uses, so a
 caller can pass a pipeline as a stage too. The values themselves
 mustn't be code references or pipelines, or the last of them would be
-taken for stages. And a function that takes a hash reference of
+taken for stages (the next recipe shows what to do if they can be).
+And a function that takes a hash reference of
 options first should test `is_stage` before `is_hashref`, which is
 true of a pipeline too:
 
@@ -696,6 +697,29 @@ sub through (@args) {
 my $short = Ekorn::Pipeline->new(sub { length $_ < 10 ? $_ : () });
 say join ', ', through('Parklife', 'Country House', 'Tender', $short, take(1));    # Parklife
 ```
+
+### Take stages after values that may be code references
+
+If the function's values can be code references, such as callbacks,
+`is_stage` can't tell them from stages. Take a pipeline given last as
+the stages instead: a pipeline is never one of the values. The caller
+makes one with `pipeline`, from Ekorn::Pipeline:
+
+```perl
+use Ekorn::Pipeline v0.2.1 qw(pipeline);
+
+# What each callback returns, through the stages given last, as a pipeline.
+sub call_all (@callbacks) {
+    my $stages = @callbacks && $callbacks[-1] isa 'Ekorn::Pipeline' ? pop @callbacks : pipeline();
+    return $stages->(map { $_->() } @callbacks);
+}
+
+my @plays = map { my $track = $_; sub { $track->{plays} } } @tracks;
+say join ', ', call_all(@plays, pipeline(sub { $_ > 6000 ? $_ : () }, take(2)));    # 9100, 6100
+```
+
+Without a pipeline last, there are no stages, and every value comes
+out.
 
 ### Report your callers' mistakes at their own lines
 
@@ -742,6 +766,27 @@ say join ', ', tracks(by('Abba'), value_of('title'));
 
 The same stages work with every function that takes them, whoever
 wrote it.
+
+### Name a pipeline you use often
+
+A pipeline used in several places can be named, with `named`, and
+found by its name with `pipeline`, which takes a name wherever it
+takes a stage. A definition can name other pipelines too:
+
+```perl
+use Ekorn::Pipeline v0.2.1 qw(pipeline);
+
+Ekorn::Pipeline->named(hit   => sub { $_->{plays} >= 6000 ? $_ : () });
+Ekorn::Pipeline->named(title => sub { $_->{title} });
+Ekorn::Pipeline->named(hit_titles => 'hit', 'title');
+
+say join ', ', tracks(pipeline('hit_titles' => take(2)));    # Dancing Queen, Girls & Boys
+```
+
+A name is kept in the package that defined it, so modules don't
+clash, and another package's is used by qualifying it, as
+`'My::Music::hit'`. It's looked up when `pipeline` is called, so a
+name not yet defined croaks there, and a name can't be defined twice.
 
 ### Give a class `pipe` and `tap`
 

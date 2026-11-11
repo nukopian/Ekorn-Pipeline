@@ -2,11 +2,34 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    The README's CPAN badge keeps up with releases, and the how-to
-    says where a stage belongs.
+    Pipelines can be made with pipeline(), and named, and a function
+    whose values can be code references can take its stages as a
+    pipeline given last. The README's CPAN badge keeps up with
+    releases, and the how-to says where a stage belongs.
 
-    It ships one roadmap item, 2026-0009. It changes the documentation
-    only.
+    It ships two roadmap items, 2026-0009 and 2026-0011. It only adds:
+    existing code runs as before, and every message a pipeline gives
+    today reads as before.
+
+    - Ekorn::Pipeline exports pipeline() on request. It makes a new
+      pipeline from stages, as new does, but a stage can also be the
+      name of a pipeline: pipeline('clean' => take(5)). (roadmap
+      2026-0011)
+    - Ekorn::Pipeline->named(clean => @stages) defines a named
+      pipeline, and $p->named('clean') names one you have. A name is
+      kept in the caller's package unless it's qualified, is resolved
+      when a pipeline is made, and can't be defined again. Only
+      pipeline() and named() read names: new doesn't, and is_stage
+      stays false for a string. (roadmap 2026-0011)
+    - Five new messages, for pipeline() and named(): "Expected stage
+      #%d to be a code reference, a pipeline or the name of one", "No
+      pipeline named %s", "A pipeline named %s is already defined",
+      "Expected a name, made of words joined by ::" and "Expected only
+      a name, naming a pipeline you have". (roadmap 2026-0011)
+    - The reference, the how-to and the README show a pipeline given
+      last as the way to take stages after values that can be code
+      references, and how to name a pipeline you use often. (roadmap
+      2026-0011)
 
     - The README's CPAN badge comes from shields.io, which keeps up
       with a release within minutes, in place of badge.fury.io's, which

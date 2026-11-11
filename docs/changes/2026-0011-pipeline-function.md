@@ -1,6 +1,6 @@
 # 2026-0011. A pipeline() function, and named pipelines
 
-**Status:** open
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: every argument is a stage, a code
 reference, a pipeline or a name. D2 settled: a pipeline given last is
@@ -16,6 +16,10 @@ say. D7 settled: it ships in a v0.2.x. None open.
 returning a new pipeline, so that functions taking code references as
 arguments can tell arguments from stages; then that it could answer
 `pipeline('name')` too
+
+**Started:** 2026-11-11, in 9536c141fd786189a970148a1e8655f60bcae8bb
+
+**Finished:** 2026-11-11
 
 ## Background
 
@@ -122,3 +126,60 @@ fills them as the program compiles.
   2026-11-10, from the same message: it only adds, and with D4 changes
   no message, so it reaches DBIx::Squirrel's users within its range,
   `>= v0.2.0, < v0.3.0`, with no release there.
+
+## The plan
+
+**What:** `pipeline(@stages)`, exported on request, and `named`, on
+the class and on a pipeline, in `lib/Ekorn/Pipeline.pm`, as D1 to D6
+say, with the names kept in a hash of the module's, each under its
+name qualified by its package. A name is resolved by `pipeline` and
+`named` alone, before the stages reach `new`, which is unchanged.
+
+**Why:** one way to make, name and reuse pipelines, and an unambiguous
+way to pass stages to a function whose values can be code references.
+
+**Steps:**
+
+1. The code: `pipeline`, `named`, and helpers to qualify a name and
+   resolve a list of stages, croaking with the messages Iain agreed on
+   2026-11-11: "Expected stage #%d to be a code reference, a pipeline
+   or the name of one", "No pipeline named %s" (the name qualified)
+   and "A pipeline named %s is already defined".
+2. The tests, in `t/13-pipeline-function.t`: making, naming, looking
+   up, per package and qualified, resolved when made, defined once,
+   what croaks and where, the pipeline-last convention, and `gather`
+   in a named pipeline.
+3. The POD: `pipeline` under FUNCTIONS, `named` and Named pipelines
+   under METHODS, `is_stage` false for a string, and DIAGNOSTICS. The
+   reference and the how-to the same, at more length, with a recipe
+   for each of D2 and naming; the README's list for authors of
+   functions taking stages. Then the manuals and `README.md`.
+4. `Changes`, under Unreleased, for a v0.2.x, as D7 says.
+
+**Done when:** the function, `named`, the convention, their tests and
+their docs are in; the tests pass on every Perl and under `prove`;
+coverage holds at its floors; and the new examples print what they
+say.
+
+## What happened
+
+- **Outcome:** done as planned. The tests pass on 5.36.3 under yath
+  and `prove`; coverage is 100% on every criterion; the new examples
+  print what their comments say, run with the version on their `use`
+  lines dropped, as the module is still v0.2.0 until a release.
+- **Changes from the plan:**
+  - **Built on `pipeline-experimental`,** as Iain chose on 2026-11-11,
+    not `develop`, though it's a v0.2.x and comes before 2026-0014.
+  - **Two more messages,** found needed while writing `named`:
+    "Expected a name, made of words joined by ::", for a name that
+    isn't one, and "Expected only a name, naming a pipeline you have",
+    for `$p->named('clean', @stages)`, which would otherwise drop the
+    stages without a word.
+  - **A name is identifiers, as Perl's,** joined by `::`: not `\w+`,
+    which let `42` through as a name, so that a stray number given as a
+    stage gets the stage message, not "No pipeline named main::42".
+  - **A subclass's `named`** makes a pipeline of its own class, as
+    `new` would; `pipeline` always makes an Ekorn::Pipeline.
+- **What's left:** 2026-0010, which this unblocks; and DBIx::Squirrel
+  imports names by name, so `pipeline` reaches its users only once it
+  adds it to its list.

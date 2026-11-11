@@ -45,23 +45,6 @@ Nothing yet.
 
 ## Next
 
-### 2026-0011. A pipeline() function, and named pipelines
-
-**Size:** M (3)
-
-An exported `pipeline(...)` that makes a pipeline from stages, where a
-stage is a code reference, a pipeline, or the name of one:
-`pipeline('active_roles' => take(5))`. Names are kept per package, and
-can be qualified, defined as the program runs with
-`Ekorn::Pipeline->named(name => @stages)`, or `$p->named('name')`.
-A pipeline given last to a function is stages, not a value, so a
-function whose values may be code references can still take stages
-from its caller. Why: one way to make, name and reuse pipelines, and
-an unambiguous way to pass stages. Done when the function, `named`,
-the convention, their tests and their docs are in, with
-coverage above the floors. Its questions are settled: see its
-[record](docs/changes/2026-0011-pipeline-function.md).
-
 ### 2026-0010. Named pipelines at compile time
 
 **Size:** S (2)

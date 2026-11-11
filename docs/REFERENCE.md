@@ -84,7 +84,11 @@ say join ' ', numbers(drop(2), take(3));    # 3 4 5
   is called with one value, and returns a list of values: none, one or
   several. A pipeline stands for its own stages (see
   [A pipeline as a stage](#a-pipeline-as-a-stage)).
-- **Pipeline:** a list of stages, made with `Ekorn::Pipeline->new`.
+- **Pipeline:** a list of stages, made with `Ekorn::Pipeline->new`
+  or `pipeline`.
+- **Name:** a name a pipeline is kept under, with `named`, in a
+  package, so that `pipeline` and `named` can take it where they take a
+  stage (see [Named pipelines](#named-pipelines)).
 - **Run:** one call of a pipeline with values, or one iterator made
   from it. Stages made with `gather` start afresh on each run.
 - **Source:** a code reference an iterator calls for values. It returns
@@ -101,12 +105,14 @@ say join ' ', numbers(drop(2), take(3));    # 3 4 5
 ```perl
 use Ekorn::Pipeline;
 use Ekorn::Pipeline v0.1.3 qw(is_stage);
+use Ekorn::Pipeline v0.2.1 qw(pipeline);
 ```
 
-It exports nothing by default, and `is_stage` on request. `is_stage`
-is new in v0.1.3, so ask for that version on the `use` line, as above.
-Without it, `use Ekorn::Pipeline qw(is_stage)` compiles under v0.1.2,
-which has no `import`, and fails only when `is_stage` is called.
+It exports nothing by default, and `is_stage` and `pipeline` on
+request. `is_stage` is new in v0.1.3, so ask for that version on the
+`use` line, as above. Without it, `use Ekorn::Pipeline qw(is_stage)`
+compiles under v0.1.2, which has no `import`, and fails only when
+`is_stage` is called. `pipeline` and `named` are new in v0.2.1.
 
 Its `import` comes from Exporter, so a subclass inherits it. `use
 My::Pipeline;` imports nothing, but `use My::Pipeline qw(name)` croaks
@@ -268,6 +274,89 @@ its own, as
 [Calling a pipeline from a stage](#calling-a-pipeline-from-a-stage)
 explains.
 
+### pipeline
+
+```perl
+use Ekorn::Pipeline v0.2.1 qw(pipeline);
+
+my $p = pipeline(@stages);
+```
+
+Returns a new pipeline of `@stages`, as `new` does, but each stage can
+also be the name of a pipeline, which stands for that pipeline:
+
+```perl
+pipeline(sub { uc } => take(5))              # new, from stages
+pipeline('clean')                            # the pipeline named clean
+pipeline('clean' => take(5))                 # it, then more
+pipeline('My::Module::clean' => sub {...})   # another package's
+```
+
+A name is looked up when the pipeline is made, as
+[Named pipelines](#named-pipelines) explains, so one not defined
+croaks then: "No pipeline named main::clean". Anything that isn't a
+code reference, a pipeline or a name croaks, naming its position:
+"Expected stage #2 to be a code reference, a pipeline or the name of
+one".
+
+It's short for `Ekorn::Pipeline->new(...)`, which makes it handy for
+passing stages as one pipeline, given last. A function whose values
+can be code references can't tell them from stages with `is_stage`,
+but it can take a pipeline given last as its stages, as
+[Writing functions that take stages](#writing-functions-that-take-stages)
+shows.
+
+### named
+
+```perl
+Ekorn::Pipeline->named(clean => @stages);         # define from stages
+Ekorn::Pipeline->new(@stages)->named('clean');    # name one you have
+```
+
+Names a pipeline, and returns it. On the class, it makes a pipeline of
+the stages after the name, which `pipeline` would take, names included,
+so a pipeline can be defined from others. A subclass makes one of its
+own class. On a pipeline, it names that one, and croaks if given
+stages after the name.
+
+The name is kept in the caller's package, unless it's qualified, as
+[Named pipelines](#named-pipelines) explains. A name is identifiers,
+as Perl's, joined by `::`, such as `clean`, `clean_2` or
+`My::Module::clean`.
+Anything else croaks: "Expected a name, made of words joined by ::".
+
+```perl
+Ekorn::Pipeline->named(trimmed  => sub { s( \A \s+ | \s+ \z )()xgr });
+Ekorn::Pipeline->named(nonempty => sub { length ? $_ : () });
+Ekorn::Pipeline->named(cleaned  => 'trimmed', 'nonempty');
+
+say join ',', pipeline('cleaned')->(' a ', '  ', 'b ');    # a,b
+```
+
+### Named pipelines
+
+A named pipeline is kept for the life of the program, under its name
+in a package. These rules say which pipeline a name means:
+
+- **A name is kept per package.** `named` keeps it in the package that
+  called it, and `pipeline` and `named` look it up in the package that
+  called them, so two modules can each have a `clean` of their own.
+- **A qualified name is another package's.** `My::Module::clean` names
+  `clean` in My::Module, wherever it's used. Code that names or looks
+  up pipelines on another package's behalf qualifies them:
+  `pipeline("${package}::clean")`.
+- **A name is resolved when the pipeline is made,** not when it runs.
+  The pipeline it names is spliced in, as a pipeline given to `new`
+  is, and its stages are named in messages by their places in each:
+  `#1.2`.
+- **A name can't be defined again.** Defining it again croaks: "A
+  pipeline named main::clean is already defined". Naming the same
+  pipeline again is no mistake. So a pipeline, once made, never finds
+  that a name it used means something else.
+- **Only `pipeline` and `named` read names.** `new` doesn't, and
+  `is_stage` is false for a string, so a function finding its stages
+  with `is_stage` never takes a value such as `'clean'` for one.
+
 ### is_stage
 
 ```perl
@@ -278,8 +367,8 @@ is_stage($thing)
 
 True if `$thing` can be used as a stage: a code reference (including
 a stage made with `gather`), or a pipeline of Ekorn::Pipeline or a
-subclass. It's the same test [new](#new) uses. It's exported on
-request.
+subclass. It's the same test [new](#new) uses. It's false for a
+string, even the name of a pipeline. It's exported on request.
 
 Use it in a function that takes its stages from the end of its
 arguments, so that it accepts the same stages `new` does, pipelines
@@ -1042,6 +1131,11 @@ say join ' ', Ekorn::Pipeline->new(My::Stages::Numbers::sum_up_to(10))->(4, 3, 2
   pipeline would be taken for the options:
   `is_hashref($x) && !is_stage($x)`. Ref::Util's `is_plain_hashref`,
   false for any blessed hash, avoids it too.
+- **Take a pipeline given last as the stages,** if the function's
+  values can be code references, so that `is_stage` can't tell them
+  from stages. A pipeline is never taken for a value by this rule, and
+  the caller makes one with `pipeline`. Without one, there are no
+  stages.
 
 ```perl
 use Ekorn::Pipeline v0.1.3 qw(is_stage);
@@ -1077,6 +1171,18 @@ while (my($line) = $next->()) { push @lines, $line }
 say "@lines";    # ONE TWO
 ```
 
+```perl
+use Ekorn::Pipeline v0.2.1 qw(pipeline);
+
+# What each callback returns, through the stages given last, as a pipeline.
+sub call_all (@callbacks) {
+    my $stages = @callbacks && $callbacks[-1] isa 'Ekorn::Pipeline' ? pop @callbacks : pipeline();
+    return $stages->(map { $_->() } @callbacks);
+}
+
+say join ' ', call_all(sub {1}, sub {2}, sub {3}, pipeline(sub { $_ * 10 }, take(2)));    # 10 20
+```
+
 ## Diagnostics
 
 Every message Ekorn::Pipeline writes, by module. Each is reported at
@@ -1089,6 +1195,18 @@ the line of the caller's code that caused it.
   for a
   pipeline whose overridden `stages` method returned something that
   isn't a code reference.
+- **Expected stage #%d to be a code reference, a pipeline or the name
+  of one:** a stage given to `pipeline`, or to `named` after the name,
+  was none of them.
+- **No pipeline named %s:** a name given to `pipeline` or `named` isn't
+  defined. The name is given qualified, so it says which package it
+  was looked up in.
+- **A pipeline named %s is already defined:** `named` was given a name
+  already defined for another pipeline.
+- **Expected a name, made of words joined by ::** (from `named`): it was given
+  something other than a name.
+- **Expected only a name, naming a pipeline you have:** `named`, on a
+  pipeline, was given stages after the name.
 - **Expected a code reference:** the source given to `iterator` wasn't
   a code reference.
 - **Expected stage #%s, made with gather, to return a code reference
@@ -1130,7 +1248,7 @@ stage.
 
 | Module | By default | On request | Tags |
 |---|---|---|---|
-| `Ekorn::Pipeline` | nothing | `is_stage` | |
+| `Ekorn::Pipeline` | nothing | `is_stage`, `pipeline` | |
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
@@ -1146,7 +1264,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 
 | Module | What it is |
 |---|---|
-| `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `iterator`, `stages`, `is_stage` and `ending`. |
+| `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline`, `named`, `iterator`, `stages`, `is_stage` and `ending`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |
 | `Ekorn::Pipeline::Gather` | Makes a stage afresh for each run, with a function called at the end: `gather`. |
 | `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods. |

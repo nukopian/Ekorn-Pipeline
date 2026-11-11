@@ -17,7 +17,7 @@ use overload '&{}' => sub ($self, @) { $self->{call} }, fallback => 1;
 
 our $VERSION = 'v0.2.0';
 
-our @EXPORT_OK = qw(is_stage);
+our @EXPORT_OK = qw(is_stage pipeline);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
@@ -61,6 +61,67 @@ sub new ($class, @given) {
             return @results;
         },
     }, $class;
+}
+
+# The named pipelines, each under its name qualified by its package.
+my %named;
+
+# Return $name qualified by $package, unless it's qualified already, or
+# nothing if it isn't a name: identifiers, as Perl's, joined by "::".
+sub _qualified ($name, $package) {
+    return if !defined $name || is_ref($name);
+    return unless $name =~ m( \A (?: [^\W\d] \w* :: )* [^\W\d] \w* \z )x;
+    return $name =~ m( :: )x ? $name : "${package}::$name";
+}
+
+
+# Return the stages given, each name replaced by the pipeline it names,
+# looked up in $package unless it's qualified.
+sub _resolved ($package, @given) {
+    my @stages;
+    for my $n (1 .. @given) {
+        my $stage = $given[$n - 1];
+        if (is_stage($stage)) {
+            push @stages, $stage;
+            next;
+        }
+        my $name = _qualified($stage, $package);
+        croakf
+            'Expected stage #%d to be a code reference, a pipeline or the name of one',
+            $n
+            unless defined $name;
+        croakf 'No pipeline named %s', $name unless $named{$name};
+        push @stages, $named{$name};
+    }
+    return @stages;
+}
+
+
+# Return a new pipeline of the stages given, each a code reference, a
+# pipeline, or the name of one, which is looked up now.
+sub pipeline (@stages) {
+    return __PACKAGE__->new(_resolved(scalar caller, @stages));
+}
+
+
+# Name a pipeline, in the caller's package unless the name is qualified,
+# and return it: on the class, a new one of the stages after the name,
+# read as pipeline reads them; on a pipeline, that one.
+sub named ($invocant, $name, @stages) {
+    my $package   = caller;
+    my $qualified = _qualified($name, $package);
+    croakf 'Expected a name, made of words joined by ::' unless defined $qualified;
+    my $pipeline;
+    if (ref $invocant) {
+        croakf 'Expected only a name, naming a pipeline you have' if @stages;
+        $pipeline = $invocant;
+    }
+    else {
+        $pipeline = $invocant->new(_resolved($package, @stages));
+    }
+    croakf 'A pipeline named %s is already defined', $qualified
+        if $named{$qualified} && refaddr($named{$qualified}) != refaddr($pipeline);
+    return $named{$qualified} = $pipeline;
 }
 
 # Return the stages of a pipeline given as a stage, from its stages
@@ -262,6 +323,12 @@ Ekorn::Pipeline - run values through a list of stages
         return Ekorn::Pipeline->new(@stages)->iterator(sub { scalar(<$fh>) // () });
     }
 
+    # Named pipelines, and pipeline() to make one from stages and names
+    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+
+    Ekorn::Pipeline->named(clean => sub { s( \A \s+ | \s+ \z )()xgr });
+    my @first = pipeline('clean' => sub { length ? $_ : () })->(@lines);
+
 =head1 DESCRIPTION
 
 A pipeline is a list of stages. A stage is a code reference, or
@@ -372,6 +439,48 @@ To run a pipeline on each value separately instead, call it from a
 stage: C<sub { $clean-E<gt>($_) }>. Each call is then a run of its
 own, and a C<take> inside limits each call.
 
+=head2 named
+
+    Ekorn::Pipeline->named(clean => @stages);         # define from stages
+    Ekorn::Pipeline->new(@stages)->named('clean');    # name one you have
+
+Names a pipeline, and returns it. On the class, it makes a pipeline of
+the stages after the name, each a code reference, a pipeline or the
+name of one, as L</pipeline> takes them; a subclass makes one of its
+own class. On a pipeline, it names that one, and croaks if given
+stages after the name.
+
+The name is kept in the caller's package, unless it's qualified, as
+L</Named pipelines> explains. A name is identifiers, as Perl's, joined
+by C<::>, such as C<clean> or C<My::Module::clean>. A name already
+defined for another pipeline croaks; naming the same pipeline again is
+no mistake. It's new in v0.2.1.
+
+=head3 Named pipelines
+
+A named pipeline is kept for the life of the program, under its name
+in a package:
+
+=over
+
+=item * C<named> keeps a name in the package that called it, and
+L</pipeline> and C<named> look one up in the package that called them,
+so two modules can each have a C<clean> of their own.
+
+=item * A qualified name, such as C<My::Module::clean>, is that
+package's, wherever it's used. Code that names or looks up pipelines on
+another package's behalf qualifies them: C<"${package}::clean">.
+
+=item * A name is resolved when the pipeline is made, not when it runs,
+and the pipeline it names is spliced in, as a pipeline given to L</new>
+is. As a name can't be defined again, a pipeline once made never finds
+that a name it used means something else.
+
+=item * Only L</pipeline> and C<named> read names. L</new> doesn't, and
+L</is_stage> is false for a string.
+
+=back
+
 =head2 iterator
 
     my $next = $p->iterator($source);
@@ -434,6 +543,34 @@ L</A pipeline as a stage> describes.
 
 =head1 FUNCTIONS
 
+=head2 pipeline
+
+    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+
+    pipeline(sub { uc } => take(5))              # new, from stages
+    pipeline('clean')                            # the pipeline named clean
+    pipeline('clean' => take(5))                 # it, then more
+    pipeline('My::Module::clean' => sub {...})   # another package's
+
+Returns a new pipeline of the stages given, as L</new> does, but each
+can also be the name of a pipeline, defined with L</named>, which
+stands for that pipeline. The name is looked up when C<pipeline> is
+called, in the caller's package unless it's qualified (see
+L</Named pipelines>), and one not defined croaks.
+
+A function whose values can be code references can't tell them from
+stages with L</is_stage>, but it can take a pipeline given last as its
+stages, which a caller makes with C<pipeline>:
+
+    sub call_all (@callbacks) {
+        my $stages = @callbacks && $callbacks[-1] isa 'Ekorn::Pipeline' ? pop @callbacks : pipeline();
+        return $stages->(map { $_->() } @callbacks);
+    }
+
+    call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)));
+
+It's exported on request, and new in v0.2.1.
+
 =head2 is_stage
 
     use Ekorn::Pipeline v0.1.3 qw(is_stage);
@@ -442,7 +579,8 @@ L</A pipeline as a stage> describes.
 
 True if C<$thing> can be used as a stage: a code reference (including
 a stage made with L<Ekorn::Pipeline::Gather>), or a pipeline of this
-class or a subclass. It's the same test L</new> uses.
+class or a subclass. It's the same test L</new> uses. It's false for a
+string, even the name of a pipeline.
 
 Use it in a function that takes its stages from the end of its
 arguments, so that it accepts the same stages C<new> does, pipelines
@@ -485,6 +623,28 @@ an end function has no such origin. It isn't exported.
 A stage given to L</new> wasn't a code reference or a pipeline. It's
 also raised for a pipeline whose overridden C<stages> method returned
 something that isn't a code reference.
+
+=item Expected stage #%d to be a code reference, a pipeline or the name of one
+
+A stage given to L</pipeline>, or to L</named> after the name, was
+none of them.
+
+=item No pipeline named %s
+
+A name given to L</pipeline> or L</named> isn't defined. The name is
+given qualified, so it says which package it was looked up in.
+
+=item A pipeline named %s is already defined
+
+L</named> was given a name already defined for another pipeline.
+
+=item Expected a name, made of words joined by ::
+
+L</named> was given something other than a name.
+
+=item Expected only a name, naming a pipeline you have
+
+L</named>, on a pipeline, was given stages after the name.
 
 =item Expected a code reference
 

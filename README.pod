@@ -291,6 +291,13 @@ end with C<is_stage>, from Ekorn::Pipeline. It's the test C<new> uses,
 so your callers can pass a pipeline as a stage, too. The values
 mustn't be code references or pipelines themselves.
 
+=item * B<Or take a pipeline given last.> If the values can be code
+references, such as callbacks, C<is_stage> can't tell them from
+stages. Take a pipeline given last as the stages instead, which your
+callers make with C<pipeline>, from Ekorn::Pipeline:
+C<call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))>. It can
+take the names of pipelines defined with C<named>, too.
+
 =back
 
 A class of your own can have C<pipe> and C<tap> methods, from

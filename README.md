@@ -259,6 +259,12 @@ list of values of its own before the stages, take the stages off the
 end with `is_stage`, from Ekorn::Pipeline. It's the test `new` uses,
 so your callers can pass a pipeline as a stage, too. The values
 mustn't be code references or pipelines themselves.
+- **Or take a pipeline given last.** If the values can be code
+references, such as callbacks, `is_stage` can't tell them from
+stages. Take a pipeline given last as the stages instead, which your
+callers make with `pipeline`, from Ekorn::Pipeline:
+`call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))`. It can
+take the names of pipelines defined with `named`, too.
 
 A class of your own can have `pipe` and `tap` methods, from
 [Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages. `pipe`
