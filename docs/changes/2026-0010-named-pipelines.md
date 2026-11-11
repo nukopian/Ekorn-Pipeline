@@ -7,11 +7,12 @@ last. D2 moved to 2026-0012: a source of its own. D3 settled: names
 per package, which can be qualified. D4 settled: no pull form;
 `pipeline('name')->iterator`. D5 settled: one definition can name any
 other in the same `use`, in a hash or an array of pairs, defined in
-the order they need. D6 settled: nothing yet; `import_into`, so its
-Sugar can take a `pipeline` key. D7 settled: a string where a stage
+the order they need. D6 settled: nothing yet; `import_into`, though
+D10 has DBIx::Squirrel's Sugar define its own pipelines. D7 settled: a string where a stage
 goes names a pipeline. D8 settled: names checked, and clashes
 reported, exactly as DBIx::Squirrel::Sugar does. D9 settled: it ships
-in a v0.2.x. D10 open: the class its pipelines are made with.
+in a v0.2.x. D10 settled: only Ekorn::Pipelines; DBIx::Squirrel's Sugar defines its
+own.
 
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
@@ -144,14 +145,17 @@ which is core.
   no change its users see.
 - [x] **D9.** What version does it ship in? A v0.2.x, decided on
   2026-11-10, as 2026-0011's D7: it only adds.
-- [ ] **D10.** What class are its pipelines made with? Raised on
-  2026-11-11 by the rule that Ekorn::X is the ancestor of
-  DBIx::Squirrel::X (2026-0020): DBIx::Squirrel::Sugar's `pipeline`
-  key, its 2026-0010, should define DBIx::Squirrel::Pipelines, but it
-  reaches this module through `import_into`, with no subclass of
-  Ekorn::Pipeline in sight. Recommended: a `pipeline_class` method, as
-  Pipes has, which a subclass of this module overrides, so
-  DBIx::Squirrel::Sugar calls
-  `DBIx::Squirrel::Pipeline::Sugar->import_into($package, ...)`. The
-  names it looks up for `$package` it qualifies, as D5 of 2026-0011
-  says, so it needs nothing more of Ekorn::Pipeline.
+- [x] **D10.** What class are its pipelines made with?
+  Ekorn::Pipeline, always, decided on 2026-11-11 with 2026-0020's D4,
+  that DBIx::Squirrel's things stay in its namespace. This module
+  doesn't make, name or hold pipelines for DBIx::Squirrel, so
+  DBIx::Squirrel::Sugar's `pipeline` key, its 2026-0010, defines its
+  own with `DBIx::Squirrel::Pipeline->named`, rather than through
+  `import_into` as D6 had it. D6's `import_into` stays, for other
+  modules adding to this one's sugar. If DBIx::Squirrel wants this
+  module's ordering of definitions and its cycle check (D5), they can
+  be a function that makes nothing, which its Sugar calls before
+  defining its own; that's for when it asks. Weighed and set aside the
+  same day: a `pipeline_class` method on this module, overridden by a
+  subclass of DBIx::Squirrel's, and a class passed to `import_into`;
+  both would have this module make DBIx::Squirrel's pipelines.

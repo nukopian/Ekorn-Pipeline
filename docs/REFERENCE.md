@@ -382,6 +382,15 @@ in a package. These rules say which pipeline a name means:
 - **Only `pipeline` and `named` read names.** `new` doesn't, and
   `is_stage` is false for a string, so a function finding its stages
   with `is_stage` never takes a value such as `'clean'` for one.
+- **A name belongs to the class it was defined through,** and is
+  inherited one way, as methods are: a subclass sees its own names and
+  its ancestors', but a class never sees its descendants'. So
+  Ekorn::Pipeline's `pipeline` never finds a pipeline named through a
+  subclass, and a subclass's `pipeline` (see
+  [pipeline through a subclass](#pipeline-through-a-subclass)) finds
+  both. A subclass can't define a name it already sees. An ancestor
+  can define one its descendant has, and each then sees its own. So a
+  distribution built on Ekorn::Pipeline keeps what it names to itself.
 
 ### is_stage
 

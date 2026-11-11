@@ -68,6 +68,58 @@ subtest 'A subclass still croaks on a name it doesn\'t export' => sub {
         qr( "nothing" \ is\ not\ exported\ by\ the\ My::Pipeline\ module )x;
 };
 
+subtest 'Names are kept per class, inherited one way' => sub {
+
+    package My::Grandchild {
+        use parent -norequire, 'My::Pipeline';
+    }
+
+    package My::Streams {
+        BEGIN { My::Pipeline->import(qw(pipeline)) }
+        sub mine   (@stages) { pipeline(@stages) }
+        sub theirs (@stages) { Ekorn::Pipeline::pipeline(@stages) }
+    }
+    Ekorn::Pipeline->named('My::Streams::base' => sub { "base $_" });
+    My::Pipeline->named('My::Streams::own' => sub { "own $_" });
+
+    is [My::Streams::mine('base')->('x')], ['base x'],
+        'a subclass sees the names defined through its ancestors';
+    is [My::Streams::mine('own')->('x')], ['own x'],
+        'and its own';
+    like dies { My::Streams::theirs('own') },
+        qr( \A No\ pipeline\ named\ My::Streams::own\  )x,
+        'but an ancestor never sees its descendants\'';
+
+    like dies {
+        My::Pipeline->named('My::Streams::base' => sub { $_ })
+    },
+        qr( \A A\ pipeline\ named\ My::Streams::base\ is\ already\ defined\  )x,
+        'so a subclass can\'t define a name its ancestor has';
+    ok lives {
+        Ekorn::Pipeline->named('My::Streams::own' => sub { "base's $_" })
+    },
+        'though an ancestor can define one its descendant has';
+    is [My::Streams::mine('own')->('x')], ['own x'],
+        'and the descendant still sees its own';
+    is [My::Streams::theirs('own')->('x')], ["base's x"],
+        'as the ancestor does';
+
+    My::Grandchild->named('My::Streams::grand' => sub { "grand $_" });
+    my $all
+        = My::Grandchild->named('My::Streams::all' => map { "My::Streams::$_" }
+            qw(base own grand),);
+    is [$all->('x')], ['grand own base x'],
+        'and down the line, each class sees its ancestors\' names';
+    like dies { My::Streams::mine('grand') },
+        qr( \A No\ pipeline\ named\ My::Streams::grand\  )x,
+        'and not its descendants\'';
+
+    my $p = Ekorn::Pipeline->new(sub { $_ });
+    $p->named('My::Streams::plain');
+    ok lives { My::Streams::theirs('plain') },
+        'a pipeline named on itself is its own class\'s';
+};
+
 subtest 'Pipes: pipe and tap make the class pipeline_class names' => sub {
 
     package My::Piped {

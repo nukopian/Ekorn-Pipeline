@@ -483,6 +483,18 @@ that a name it used means something else.
 C<is_stage> is false for a string, so a function finding its stages
 with C<is_stage> never takes a value such as C<'clean'> for one.
 
+=item *
+
+B<A name belongs to the class it was defined through,> and is
+inherited one way, as methods are: a subclass sees its own names and
+its ancestors', but a class never sees its descendants'. So
+Ekorn::Pipeline's C<pipeline> never finds a pipeline named through a
+subclass, and a subclass's C<pipeline> (see
+L<pipeline through a subclass|/"pipeline through a subclass">) finds
+both. A subclass can't define a name it already sees. An ancestor
+can define one its descendant has, and each then sees its own. So a
+distribution built on Ekorn::Pipeline keeps what it names to itself.
+
 =back
 
 =head2 is_stage

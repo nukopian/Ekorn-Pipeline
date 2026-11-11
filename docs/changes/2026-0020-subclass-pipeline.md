@@ -2,7 +2,7 @@
 
 **Status:** shipped, unreleased
 
-**Decisions:** D1 settled: Ekorn::X is the ancestor of DBIx::Squirrel::X, so Ekorn makes the class it was reached through. D2 settled: `pipeline`, imported through a subclass, is made for it. D3 settled: Pipes asks `pipeline_class`. None open.
+**Decisions:** D1 settled: Ekorn::X is the ancestor of DBIx::Squirrel::X, so Ekorn makes the class it was reached through. D2 settled: `pipeline`, imported through a subclass, is made for it. D3 settled: Pipes asks `pipeline_class`. D4 settled: names are kept per class, inherited one way. None open.
 
 **Origin:** a TODO task from DBIx-Squirrel's session, 2026-11-11
 (DBIx-Squirrel b42762959e467286e7406c2f86c4b944a9b101a6), for its
@@ -47,6 +47,18 @@ right, calling `new` on its invocant.
   wrapper over `throw`, a class method, so DBIx::Squirrel's Stop
   facade can make its own whenever its subclass needs it. `gather`
   blesses its own class, and no subclass of Gather is planned.
+- [x] **D4.** Whose are the names? The class's they were defined
+  through, inherited one way, Iain decided on 2026-11-11, after this
+  record's first commit: "anything created in the DBIx::Squirrel::
+  namespace needs to remain there. We mustn't cross the streams." One
+  registry for every class let `DBIx::Squirrel::Pipeline->named('clean')`
+  be found by Ekorn's own `pipeline('clean')`. Now a class sees its own
+  names and its ancestors', never its descendants'; a subclass can't
+  define a name it already sees, and an ancestor can define one its
+  descendant has, each then seeing its own. Weighed: strictly separate
+  registries, simpler to explain, but a subclass would lose the
+  pipelines its ancestor names, which the notional class and subclass
+  should keep.
 
 ## The plan
 
@@ -80,9 +92,11 @@ planned in both repositories:
 - **DBIx::Squirrel's facades:** Pipeline inherits `import`, so `use
   DBIx::Squirrel::Pipeline qw(pipeline)` needs nothing of it. Pipes
   can override `pipeline_class`. Stop, as D3 says.
-- **2026-0010, Sugar:** it makes pipelines but isn't one, so it needs
-  a `pipeline_class` too, for DBIx-Squirrel's 2026-0010, a `pipeline`
-  key in its Sugar. Open in its record, as D10.
+- **2026-0010, Sugar:** at first a `pipeline_class` was asked of it,
+  so DBIx-Squirrel's Sugar could hand its `pipeline` key on and get its
+  own class back; D4 settles it otherwise. DBIx::Squirrel's Sugar
+  defines its own pipelines, with `DBIx::Squirrel::Pipeline->named`,
+  and Ekorn's makes only Ekorn::Pipelines. Its D10.
 - **2026-0013, a pipeline's name in its errors:** a getter; unaffected.
 - **2026-0014, the lifecycle hook:** objects as stages; unaffected.
 - **2026-0015, Blocks:** each factory makes its type with a class
@@ -101,6 +115,11 @@ planned in both repositories:
 - **Outcome:** done as planned. The tests pass on 5.36.3 to 5.44.0
   under yath, and under `prove`; coverage holds at 100%; the
   reference's new example prints what it says.
+- **Names per class (D4)** came after the first commit,
+  3404072a86c6a10c4e80c7f6b6326a8ad0f6bd4e, in a second: `named` keeps
+  a name under its invocant's class, and the lookup walks the class's
+  linear `@ISA`, with `mro::get_linear_isa`, nearest first. Tested in
+  `t/14-subclass.t`, a grandchild included.
 - **Changes from the plan:** the first `import` passed the rest to
   Exporter with `goto &Exporter::import`, which warns in a sub with a
   signature, as it passes `@_`; it calls `Exporter::export` with the
@@ -114,4 +133,4 @@ planned in both repositories:
 - **The test packages and the example** set `@ISA` with `use parent
   -norequire`, at compile time, as an `import` called from a `BEGIN`
   block finds no inherited `import` in an `@ISA` set at run time.
-- **What's left:** 2026-0010's D10.
+- **What's left:** nothing; 2026-0010's D10 is settled by D4.

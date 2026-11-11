@@ -33,6 +33,9 @@ Unreleased
       that calls it, so a module can export it again to its users.
       Asked through a subclass, it no longer croaks as a name the
       subclass doesn't export. (2026-0020)
+    - A name belongs to the class it was defined through, and is
+      inherited one way: a subclass sees its ancestors' names, but a
+      class never sees its descendants'. (2026-0020)
     - Ekorn::Pipeline::Pipes has pipeline_class, the class of the
       pipelines pipe and tap make, for a subclass to override.
       (2026-0020)

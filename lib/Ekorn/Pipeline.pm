@@ -8,6 +8,7 @@ use builtin   qw(refaddr);
 use Carp      qw(croak);
 use Exporter  qw();
 use Ref::Util qw(is_arrayref is_coderef is_ref);
+use mro       qw();
 
 use Ekorn::Pipeline::Errors qw(croakf);
 
@@ -63,7 +64,9 @@ sub new ($class, @given) {
     }, $class;
 }
 
-# The named pipelines, each under its name qualified by its package.
+# The named pipelines: for each class, the names defined through it, each
+# qualified by its package. A class sees its own names and its ancestors',
+# never its descendants', so a subclass's stay with it.
 my %named;
 
 # Return $name qualified by $package, unless it's qualified already, or
@@ -75,9 +78,20 @@ sub _qualified ($name, $package) {
 }
 
 
-# Return the stages given, each name replaced by the pipeline it names,
-# looked up in $package unless it's qualified.
-sub _resolved ($package, @given) {
+# Return the pipeline named $name, qualified, as $class sees it: its own,
+# or else its nearest ancestor's, or nothing if it has none.
+sub _lookup ($class, $name) {
+    for my $from (@{ mro::get_linear_isa($class) }) {
+        my $pipeline = $named{$from}{$name};
+        return $pipeline if $pipeline;
+    }
+    return;
+}
+
+
+# Return the stages given, each name replaced by the pipeline it names, as
+# $class sees it, looked up in $package unless it's qualified.
+sub _resolved ($class, $package, @given) {
     my @stages;
     for my $n (1 .. @given) {
         my $stage = $given[$n - 1];
@@ -90,8 +104,9 @@ sub _resolved ($package, @given) {
             'Expected stage #%d to be a code reference, a pipeline or the name of one',
             $n
             unless defined $name;
-        croakf 'No pipeline named %s', $name unless $named{$name};
-        push @stages, $named{$name};
+        my $pipeline = _lookup($class, $name);
+        croakf 'No pipeline named %s', $name unless $pipeline;
+        push @stages, $pipeline;
     }
     return @stages;
 }
@@ -100,7 +115,7 @@ sub _resolved ($package, @given) {
 # Return a new pipeline of the stages given, each a code reference, a
 # pipeline, or the name of one, which is looked up now.
 sub pipeline (@stages) {
-    return __PACKAGE__->new(_resolved(scalar caller, @stages));
+    return __PACKAGE__->new(_resolved(__PACKAGE__, scalar caller, @stages));
 }
 
 
@@ -113,7 +128,7 @@ sub import ($class, @names) {
     if ($class ne __PACKAGE__ && grep { $_ eq 'pipeline' } @names) {
         no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
         *{ "${into}::pipeline" } = sub (@stages) {
-            return $class->new(_resolved(scalar caller, @stages));
+            return $class->new(_resolved($class, scalar caller, @stages));
         };
         @names = grep { $_ ne 'pipeline' } @names;
     }
@@ -124,8 +139,11 @@ sub import ($class, @names) {
 
 # Name a pipeline, in the caller's package unless the name is qualified,
 # and return it: on the class, a new one of the stages after the name,
-# read as pipeline reads them; on a pipeline, that one.
+# read as pipeline reads them; on a pipeline, that one. The name is the
+# class's, seen by it and its descendants, and can't be one it sees
+# already.
 sub named ($invocant, $name, @stages) {
+    my $class     = ref $invocant ? ref $invocant : $invocant;
     my $package   = caller;
     my $qualified = _qualified($name, $package);
     croakf 'Expected a name, made of words joined by ::' unless defined $qualified;
@@ -135,11 +153,12 @@ sub named ($invocant, $name, @stages) {
         $pipeline = $invocant;
     }
     else {
-        $pipeline = $invocant->new(_resolved($package, @stages));
+        $pipeline = $class->new(_resolved($class, $package, @stages));
     }
+    my $seen = _lookup($class, $qualified);
     croakf 'A pipeline named %s is already defined', $qualified
-        if $named{$qualified} && refaddr($named{$qualified}) != refaddr($pipeline);
-    return $named{$qualified} = $pipeline;
+        if $seen && refaddr($seen) != refaddr($pipeline);
+    return $named{$class}{$qualified} = $pipeline;
 }
 
 # Return the stages of a pipeline given as a stage, from its stages
@@ -496,6 +515,14 @@ that a name it used means something else.
 
 =item * Only L</pipeline> and C<named> read names. L</new> doesn't, and
 L</is_stage> is false for a string.
+
+=item * A name belongs to the class it was defined through, and is
+inherited one way: a subclass sees its own names and its ancestors',
+but a class never sees its descendants'. So Ekorn::Pipeline's
+C<pipeline> never finds a pipeline named through a subclass, and a
+subclass's C<pipeline> (see L</Through a subclass>) finds both. A
+subclass can't define a name it already sees; an ancestor can define
+one its descendant has, and each then sees its own.
 
 =back
 

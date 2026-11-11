@@ -70,7 +70,12 @@ both:
   function that makes something is made for the class it was imported
   through, as `pipeline` is, or is a one-line wrapper over a class
   method, as `Stop` is over `throw`, so a subclass can wrap its own.
-  The rule came from DBIx-Squirrel's task to have `pipeline` make its
+  And the streams don't cross: what's made or named in DBIx::Squirrel's
+  namespace stays there. A subclass inherits from its ancestor, one
+  way, as named pipelines are; Ekorn never holds, finds or makes
+  DBIx::Squirrel's things on its behalf, so DBIx::Squirrel's Sugar
+  defines its own pipelines rather than handing them to Ekorn's. The
+  rule came from DBIx-Squirrel's task to have `pipeline` make its
   subclass, record 2026-0020, which says how each planned item meets
   it.
 - **Keep the switch in view.** The messages, the order stages run in,
