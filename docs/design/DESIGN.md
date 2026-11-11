@@ -398,7 +398,7 @@ Using only what comes with Perl. Nothing exported by default.
 |---|---|---|
 | `from_array(@values)` | the values given | none |
 | `from_arrayref(\@array)` | an array's values, read as asked for | none |
-| `lines($fh)` | a filehandle's lines, chomped | none: you opened it |
+| `from_fh($fh)` | a filehandle's lines, chomped | none: you opened it |
 | `file_lines($path)` | a file's lines | closes the file, however the run ends |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
 | `unfold($seed, sub {...})` | a sub applied again and again, until it gives nothing | none |

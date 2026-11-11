@@ -93,7 +93,7 @@ while (my($line) = $next->()) { say $line }
 # the first two lines; the file is closed once take(2) stops
 ```
 
-Compare `lines($fh)`, which reads a filehandle you opened, and leaves
+Compare `from_fh($fh)`, which reads a filehandle you opened, and leaves
 it to you to close.
 
 ### Write a source of your own
