@@ -170,9 +170,9 @@ The message, whole:
 **Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
 
 `Ekorn::Pipeline::Sources`, needing nothing from CPAN: `from_array`,
-`from_arrayref`, `from_fh`, `from_file`, `counter`, `unfold`, `cycle`,
-`concat`, `interleave`, and a hash's pairs, under a name that doesn't
-clash with List::Util's `pairs`. Nothing exported by default. Those
+`from_arrayref`, `from_hash`, `from_hashref`, `from_fh`, `from_file`,
+`counter`, `unfold`, `cycle`, `concat` and `interleave`. Nothing
+exported by default. Those
 needing CPAN, such as JSON or CSV, go in add-on distributions of
 Ekorn's, as they need no database. Layer 2 of DBIx-Squirrel's message.
 A change of scope, toward a stream library, to weigh against the

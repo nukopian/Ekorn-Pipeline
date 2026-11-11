@@ -405,9 +405,12 @@ Using only what comes with Perl. Nothing exported by default.
 | `cycle(@values)` | the values, round and round | none |
 | `concat(@sources)` | each source in turn | ends each source it read |
 | `interleave(@sources)` | one value from each source in turn | ends each source it read |
-| `hash_pairs(\%hash)` | a hash's keys and values, as pairs | none |
+| `from_hash(%hash)` | the keys and values given, as pairs | none |
+| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as asked for | none |
 
-`hash_pairs`, not `pairs`, which List::Util has (**Q13**).
+Each `from_` source says what it takes: a list or a reference, of an
+array or a hash, a filehandle or a file. A pair is a two-element array,
+`[$key, $value]`, in the order Perl gives the hash's keys.
 
 ### 8.3 Sinks: Ekorn::Pipeline::Sinks (2026-0017)
 
@@ -489,7 +492,7 @@ Settled in 2026-0010's record:
 Proposed: the helpers both Sugars need, which make nothing, such as
 checking a name, installing a function, and ordering definitions with
 a cycle check, are functions DBIx::Squirrel can call, in a module of
-their own (**Q14**). That's DBIx-Squirrel's 2026-0011.
+their own (**Q13**). That's DBIx-Squirrel's 2026-0011.
 
 ## 11. The modules
 
@@ -497,7 +500,7 @@ their own (**Q14**). That's DBIx-Squirrel's 2026-0011.
 
 | Module | Layer | Gives | Exports |
 |---|---|---|---|
-| `Ekorn::Pipeline` | core | the class; `new`, `pipeline_in`, `named`, `iterator`, `stages`; the lifecycle (section 5) | `is_stage` (and `is_source`, **Q15**) on request |
+| `Ekorn::Pipeline` | core | the class; `new`, `pipeline_in`, `named`, `iterator`, `stages`; the lifecycle (section 5) | `is_stage` (and `is_source`, **Q14**) on request |
 | `Ekorn::Pipeline::Stop` | core | `Stop`, `throw` | `Stop` by default |
 | `Ekorn::Pipeline::Gather` | core | the Gather class; `gather` | `gather` by default |
 | `Ekorn::Pipeline::Errors` | core | `croakf`, `@INTERNAL` | `croakf` on request |
@@ -566,7 +569,7 @@ So `$sth->iterate(pipeline('clean', take(5)))` makes a
 DBIx::Squirrel::Pipeline, finding `clean` among DBIx::Squirrel's names
 and Ekorn's, in the user's package. Words whose types it doesn't
 subclass, such as `stage` or `sink`, it re-exports from Ekorn's
-Factories (which words it offers is its choice, **Q16**).
+Factories (which words it offers is its choice, **Q15**).
 
 ### 12.3 Its iterator as a source
 
@@ -577,7 +580,7 @@ statement handle. With section 5, a statement's rows read through
 dropped half-read finishes it too.
 
 How DBIx::Squirrel::Iterator becomes one is DBIx-Squirrel's to design
-(**Q17**). It's a hash-based object today, with `next`, `all`,
+(**Q16**). It's a hash-based object today, with `next`, `all`,
 `reset`, `single`, `count`, not a code reference, so it would either
 offer a Source (say `$it->source`) or become callable. Its `reset` is
 the set-up; its `_finish` the end.
@@ -612,7 +615,7 @@ A `pipeline` key in DBIx::Squirrel::Sugar (its 2026-0010) defines its
 own pipelines, qualifying names with its caller's package, with
 `DBIx::Squirrel::Pipeline->named`. Whether a statement's definition
 can name a pipeline by a string, and how that's told from anything
-else in a definition, is its question (**Q18**).
+else in a definition, is its question (**Q17**).
 
 ### 12.6 What could bite
 
@@ -628,7 +631,7 @@ question below.
   DBIx::Squirrel comparing `ref` to `CODE` would fail.
 - Its CI installs Ekorn from CPAN, and runs only on `main` and
   `develop`, so it can't test against Ekorn's `pipeline-experimental`
-  yet (**Q19**).
+  yet (**Q18**).
 
 ## 13. Compatibility and versions
 
@@ -701,15 +704,14 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
 | **Q12** | Canned stages return objects, changing their `ref`? | Iain, DBIx-Squirrel to check its tests | Yes, in a v0.2.x, said plainly in `Changes` |
-| **Q13** | `hash_pairs` for a hash's pairs? | Ekorn | Yes |
-| **Q14** | Shared helpers for both Sugars: where, and named what? | Ekorn and DBIx-Squirrel | A module of functions in Ekorn, such as `Ekorn::Pipeline::Util` |
-| **Q15** | `is_source`, exported like `is_stage`? | Ekorn | Yes, if `iterator` must tell a Source from a code reference |
-| **Q16** | Which words DBIx::Squirrel::Factories offers? | DBIx-Squirrel | |
-| **Q17** | How DBIx::Squirrel::Iterator becomes a source? | DBIx-Squirrel | |
-| **Q18** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
-| **Q19** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
-| **Q20** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
-| **Q21** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
+| **Q13** | Shared helpers for both Sugars: where, and named what? | Ekorn and DBIx-Squirrel | A module of functions in Ekorn, such as `Ekorn::Pipeline::Util` |
+| **Q14** | `is_source`, exported like `is_stage`? | Ekorn | Yes, if `iterator` must tell a Source from a code reference |
+| **Q15** | Which words DBIx::Squirrel::Factories offers? | DBIx-Squirrel | |
+| **Q16** | How DBIx::Squirrel::Iterator becomes a source? | DBIx-Squirrel | |
+| **Q17** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
+| **Q18** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
+| **Q19** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
+| **Q20** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
 
 ## 17. Decisions, and what was weighed
 
@@ -828,7 +830,7 @@ Weighed and set aside:
   (2026-0019). It would work only if callers wrote every stage as
   `stage {...}`, and as a default it would change behaviour, a v0.3.0.
   Pipeline-last works with the plain `sub {...}` stages callers already
-  write (**Q21**).
+  write (**Q20**).
 
 ### 17.6 One shape for things made for a run
 
@@ -911,11 +913,23 @@ Weighed and set aside:
 
 ### 17.12 Ready-made parts are named not to clash
 
-`first_value`, `any_value`, `joined`, `hash_pairs`: each avoids a
-built-in (`join`, `each`, `keys`) or a List::Util function many import
-(`first`, `any`, `all`, `pairs`, `sum`, `reduce`). And nothing is
-exported by default, so a ready-made part never replaces a function
-already in the user's package. (2026-0016, 2026-0017.)
+The sources are named for what they take, `from_array`,
+`from_arrayref`, `from_hash`, `from_hashref`, `from_fh` and
+`from_file`, so a reader knows from the call whether a list, a
+reference, a filehandle or a path goes in, and the family reads as
+one. The sinks are `first_value`, `any_value`, `joined` and the like:
+each avoids a built-in (`join`, `each`, `keys`) or a List::Util
+function many import (`first`, `any`, `all`, `pairs`, `sum`,
+`reduce`). And nothing is exported by default, so a ready-made part
+never replaces a function already in the user's package. (2026-0016,
+2026-0017.)
+
+Weighed and set aside:
+
+- **`from` and `lines`,** shorter, but saying nothing of what they
+  take; and `lines` alone in a package reads as a variable's name.
+- **`hash_pairs`,** named for what it gives, where the rest are named
+  for what they take.
 
 ## 18. Where each roadmap item lands
 
@@ -930,11 +944,11 @@ already in the user's package. (2026-0016, 2026-0017.)
 | Ekorn 2026-0016, sources | 8.2 | as listed |
 | Ekorn 2026-0017, sinks | 8.3 | as listed (**Q8**) |
 | Ekorn 2026-0018, operators | 9 | as listed |
-| Ekorn 2026-0019, strict `is_stage` | 13 | not now (**Q21**) |
+| Ekorn 2026-0019, strict `is_stage` | 13 | not now (**Q20**) |
 | Ekorn 2026-0020, `pipeline` through a subclass | 14 | replaced by Factories; names per class kept |
 | Ekorn 2026-0021, Factories | 6.2 | as its record |
 | DBIx-Squirrel 2026-0003, add-on distributions | 8 | those needing no database may move here |
 | DBIx-Squirrel 2026-0009, export `pipeline` | 12.2 | through its Factories |
 | DBIx-Squirrel 2026-0010, Sugar's `pipeline` key | 12.5 | defines its own |
-| DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | **Q14** |
+| DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | **Q13** |
 | DBIx-Squirrel 2026-0012, `insert_into` | 12.4 | needs Sink and ends |

@@ -313,7 +313,8 @@ default. Each returns a Source.
 | `cycle(@values)` | the values, round and round, without end | none |
 | `concat(@sources)` | each source in turn | ends each source it read |
 | `interleave(@sources)` | one value from each source in turn | ends each source it read |
-| `hash_pairs(\%hash)` | a hash's keys and values, as two-element arrays | none |
+| `from_hash(%hash)` | the keys and values given, as pairs: two-element arrays, `[$key, $value]` | none |
+| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as they're asked for, not copied | none |
 
 ```perl
 my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));
@@ -498,7 +499,7 @@ Wording to be settled when the code is written. One for each:
 
 | Module | By default | On request | Tags |
 |---|---|---|---|
-| `Ekorn::Pipeline` | nothing | `is_stage` (and `is_source` **[Q15]**) | |
+| `Ekorn::Pipeline` | nothing | `is_stage` (and `is_source` **[Q14]**) | |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | each source | `:all` |
 | `Ekorn::Pipeline::Sinks` | nothing | each sink | `:all` |
