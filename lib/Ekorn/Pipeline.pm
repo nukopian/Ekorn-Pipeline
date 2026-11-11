@@ -6,7 +6,7 @@ use experimental qw(builtin try);
 
 use builtin   qw(refaddr);
 use Carp      qw(croak);
-use Exporter  qw(import);
+use Exporter  qw();
 use Ref::Util qw(is_arrayref is_coderef is_ref);
 
 use Ekorn::Pipeline::Errors qw(croakf);
@@ -101,6 +101,24 @@ sub _resolved ($package, @given) {
 # pipeline, or the name of one, which is looked up now.
 sub pipeline (@stages) {
     return __PACKAGE__->new(_resolved(scalar caller, @stages));
+}
+
+
+# Export what's asked for, as Exporter does, but pipeline, asked for
+# through a subclass, is a function making that subclass. It reads its
+# caller when it's called, so names are looked up in the package that
+# calls it, wherever it's been exported to.
+sub import ($class, @names) {
+    my $into = caller;
+    if ($class ne __PACKAGE__ && grep { $_ eq 'pipeline' } @names) {
+        no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
+        *{ "${into}::pipeline" } = sub (@stages) {
+            return $class->new(_resolved(scalar caller, @stages));
+        };
+        @names = grep { $_ ne 'pipeline' } @names;
+    }
+    Exporter::export($class, $into, @names);
+    return;
 }
 
 
@@ -571,6 +589,20 @@ stages, which a caller makes with C<pipeline>:
 
 It's exported on request, and new in v0.2.1.
 
+=head3 Through a subclass
+
+Imported through a subclass, C<pipeline> makes that subclass:
+
+    package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
+
+    use My::Pipeline qw(pipeline);
+    pipeline('clean', take(5));    # a My::Pipeline
+
+It's a function of its own, made for the subclass, which looks names
+up in the package that calls it, as Ekorn::Pipeline's does. So a module
+can import it and export it again to its own users, and names are
+still looked up in theirs. A subclass needs no code of its own for it.
+
 =head2 is_stage
 
     use Ekorn::Pipeline v0.1.3 qw(is_stage);
@@ -601,9 +633,10 @@ A pipeline is a blessed hash, so C<is_hashref> is true of one too. A
 function that takes a hash reference of options before its stages
 should test C<is_stage> first, or it takes a pipeline for the options.
 
-Exporter provides the C<import> method,
-and a subclass inherits it, so C<use My::Pipeline qw(name)> croaks
-unless the subclass exports C<name> itself.
+A subclass inherits C<import>, which exports as Exporter does, so
+C<use My::Pipeline qw(name)> croaks unless the subclass exports C<name>
+itself; C<pipeline> is the exception, made for the subclass, as
+L</Through a subclass> says.
 
 =head2 ending
 

@@ -4,10 +4,12 @@ Unreleased
 
     Pipelines can be made with pipeline(), and named, and a function
     whose values can be code references can take its stages as a
-    pipeline given last. The README's CPAN badge keeps up with
+    pipeline given last. A subclass of Ekorn::Pipeline gets a
+    pipeline() of its own, and Pipes can make a subclass's pipelines. The README's CPAN badge keeps up with
     releases, and the how-to says where a stage belongs.
 
-    It ships two roadmap items, 2026-0009 and 2026-0011. It only adds:
+    It ships two roadmap items, 2026-0009 and 2026-0011, and a task
+    from DBIx-Squirrel, 2026-0020. It only adds:
     existing code runs as before, and every message a pipeline gives
     today reads as before.
 
@@ -26,6 +28,14 @@ Unreleased
       pipeline named %s", "A pipeline named %s is already defined",
       "Expected a name, made of words joined by ::" and "Expected only
       a name, naming a pipeline you have". (roadmap 2026-0011)
+    - pipeline, imported through a subclass, makes that subclass:
+      use My::Pipeline qw(pipeline). It looks names up in the package
+      that calls it, so a module can export it again to its users.
+      Asked through a subclass, it no longer croaks as a name the
+      subclass doesn't export. (2026-0020)
+    - Ekorn::Pipeline::Pipes has pipeline_class, the class of the
+      pipelines pipe and tap make, for a subclass to override.
+      (2026-0020)
     - The reference, the how-to and the README show a pipeline given
       last as the way to take stages after values that can be code
       references, and how to name a pipeline you use often. (roadmap

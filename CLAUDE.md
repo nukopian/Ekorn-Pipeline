@@ -60,6 +60,19 @@ both:
   that a module of stages outside Ekorn's namespace works with no more
   set up. A stage that turns out to need nothing of DBIx::Squirrel's
   belongs here.
+- **Ekorn::X is the ancestor of DBIx::Squirrel::X,** as Iain decided
+  on 2026-11-11: Ekorn::Pipeline is the pipeline without a database,
+  and DBIx::Squirrel::Pipeline its descendant, a subclass, as is any
+  DBIx::Squirrel module with an Ekorn analogue. So Ekorn never names
+  its own class where it makes something, but the class it was reached
+  through: a method makes its invocant's class, or asks a method a
+  subclass can override, such as Pipes' `pipeline_class`; an exported
+  function that makes something is made for the class it was imported
+  through, as `pipeline` is, or is a one-line wrapper over a class
+  method, as `Stop` is over `throw`, so a subclass can wrap its own.
+  The rule came from DBIx-Squirrel's task to have `pipeline` make its
+  subclass, record 2026-0020, which says how each planned item meets
+  it.
 - **Keep the switch in view.** The messages, the order stages run in,
   and what Stop and Gather do are DBIx-Squirrel's behaviour too. A
   change to them is a change DBIx-Squirrel will take on when it

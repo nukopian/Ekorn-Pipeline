@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [pipeline() through a subclass makes the subclass](2026-0020-subclass-pipeline.md),
+  a TODO task from DBIx-Squirrel: shipped, unreleased.
 - [A pipeline() function, and named pipelines](2026-0011-pipeline-function.md),
   roadmap 2026-0011: shipped, unreleased.
 - [Named pipelines at compile time](2026-0010-named-pipelines.md),

@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0019.
+Last id: 2026-0020.
 
 Items come in four groups:
 
@@ -127,6 +127,8 @@ makes a blessed code reference, so it works wherever a code reference
 does. `gather`'s list form stays as it is; the factory can tell the
 new form by a `step` or `end` after its block, rather than by what the
 block returns. Layer 1 of DBIx-Squirrel's message.
+Each factory makes its type with a class method, so a subclass, such
+as DBIx::Squirrel's, can wrap its own (2026-0020).
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 
@@ -171,6 +173,8 @@ array reference, or `@{}` drains a source. Between two plain code
 references, `|` silently ORs their addresses, so the docs must say
 loudly that every stage in a chain is a `stage {...}`. Layer 3 of
 DBIx-Squirrel's message.
+An operator makes the class of its operand, never a class it names,
+so DBIx::Squirrel's pipelines chain as its own (2026-0020).
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 

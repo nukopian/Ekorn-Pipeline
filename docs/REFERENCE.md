@@ -114,10 +114,12 @@ request. `is_stage` is new in v0.1.3, so ask for that version on the
 compiles under v0.1.2, which has no `import`, and fails only when
 `is_stage` is called. `pipeline` and `named` are new in v0.2.1.
 
-Its `import` comes from Exporter, so a subclass inherits it. `use
+A subclass inherits its `import`, which exports as Exporter does. `use
 My::Pipeline;` imports nothing, but `use My::Pipeline qw(name)` croaks
 unless the subclass exports `name` itself. Before v0.1.3, a subclass
-ignored the list.
+ignored the list. `pipeline` is the exception: imported through a
+subclass, it makes that subclass, as
+[pipeline through a subclass](#pipeline-through-a-subclass) says.
 
 ### new
 
@@ -305,6 +307,30 @@ can be code references can't tell them from stages with `is_stage`,
 but it can take a pipeline given last as its stages, as
 [Writing functions that take stages](#writing-functions-that-take-stages)
 shows.
+
+### pipeline through a subclass
+
+Imported through a subclass, `pipeline` makes that subclass. It's a
+function of its own, made for the subclass when it's imported, and
+the subclass needs no code of its own for it:
+
+```perl
+package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
+
+package main;
+BEGIN { My::Pipeline->import(qw(pipeline)) }    # use My::Pipeline qw(pipeline), from its own file
+
+Ekorn::Pipeline->named(shout => sub { uc });
+say ref pipeline('shout');                       # My::Pipeline
+say pipeline('shout')->('hi');                   # HI
+```
+
+It looks names up in the package that calls it, when it's called, as
+Ekorn::Pipeline's `pipeline` does, not in the package it was imported
+into. So a module can import it from its subclass and export it again
+to its own users, and each user's names are looked up in that user's
+package. That's how a distribution built on Ekorn::Pipeline, such as
+DBIx::Squirrel, gives its users a `pipeline` making its own class.
 
 ### named
 
@@ -782,6 +808,16 @@ package Counter {
 say Counter->new->up->tap(sub { $_->up })->up->n;    # 3
 say scalar Counter->new->pipe(sub { $_->n + 10 });   # 10
 ```
+
+### pipeline_class
+
+```perl
+my $class = $object->pipeline_class;
+```
+
+The class of the pipelines `pipe` and `tap` make: Ekorn::Pipeline. A
+subclass overrides it to make pipelines of a subclass of its own,
+`sub pipeline_class ($self) { 'My::Pipeline' }`. It's new in v0.2.1.
 
 ## Canned stages
 
@@ -1267,7 +1303,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline`, `named`, `iterator`, `stages`, `is_stage` and `ending`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |
 | `Ekorn::Pipeline::Gather` | Makes a stage afresh for each run, with a function called at the end: `gather`. |
-| `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods. |
+| `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods, and `pipeline_class`. |
 | `Ekorn::Pipeline::Errors` | Reports errors at the caller's line: `croakf` and `@INTERNAL`. |
 | `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_while`, `drop_while`. |
 | `Ekorn::Pipeline::Stages::Batch` | Canned stages gathering values: `batch`, `collect`. |

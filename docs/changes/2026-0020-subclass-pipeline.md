@@ -1,0 +1,117 @@
+# 2026-0020. pipeline() through a subclass makes the subclass
+
+**Status:** shipped, unreleased
+
+**Decisions:** D1 settled: Ekorn::X is the ancestor of DBIx::Squirrel::X, so Ekorn makes the class it was reached through. D2 settled: `pipeline`, imported through a subclass, is made for it. D3 settled: Pipes asks `pipeline_class`. None open.
+
+**Origin:** a TODO task from DBIx-Squirrel's session, 2026-11-11
+(DBIx-Squirrel b42762959e467286e7406c2f86c4b944a9b101a6), for its
+2026-0009
+
+**Depends on:** 2026-0011
+
+**Started:** 2026-11-11, in f9fe05315716be59936136817e484192900e557b
+
+**Finished:** 2026-11-11
+
+## Background
+
+`pipeline`, from 2026-0011, made `__PACKAGE__->new`, so a pipeline made
+with it was always an Ekorn::Pipeline, never DBIx::Squirrel::Pipeline,
+the subclass where DBIx::Squirrel changes how its pipelines behave. A
+wrapper of DBIx::Squirrel's couldn't fix it: `pipeline` looks names up
+in the package that calls it, so a wrapper's package would be
+searched, and the lookup, `_resolved`, is private. `named` was already
+right, calling `new` on its invocant.
+
+## Decisions
+
+- [x] **D1.** What's the general rule? Ekorn::X is the non-database
+  ancestor of DBIx::Squirrel::X, Iain decided on 2026-11-11, so Ekorn
+  never names its own class where it makes something, but the class
+  it was reached through. CLAUDE.md has the rule. Weighed against
+  separate fixes for each case, which is how this went wrong.
+- [x] **D2.** How does `pipeline` make a subclass? Imported through
+  it, decided on 2026-11-11 with D1: Ekorn::Pipeline's `import`, which
+  a subclass inherits, installs a function made for that subclass,
+  reading its caller when it's called, so a module can export it again
+  and names are still looked up in its users' packages. Weighed and
+  set aside: `Subclass->pipeline(...)`, which can't be told from
+  `pipeline('My::Pipeline', ...)`, a valid qualified name; and a public
+  `pipeline_in($package, @stages)`, which every subclass would have to
+  wrap, passing `scalar caller` itself. 2026-0011's D5 set
+  `pipeline_in` aside, and nothing here needs it.
+- [x] **D3.** What else breaks the rule today? Pipes, whose `pipe` and
+  `tap` made Ekorn::Pipelines; fixed here with `pipeline_class`, as D1
+  asks. `Stop` throws Ekorn::Pipeline::Stop, but it's a one-line
+  wrapper over `throw`, a class method, so DBIx::Squirrel's Stop
+  facade can make its own whenever its subclass needs it. `gather`
+  blesses its own class, and no subclass of Gather is planned.
+
+## The plan
+
+**What:** an `import` for Ekorn::Pipeline, exporting as Exporter does,
+but making `pipeline`, asked for through a subclass, for that
+subclass; and `pipeline_class` for Pipes.
+
+**Steps:**
+
+1. The code, in `lib/Ekorn/Pipeline.pm` and
+   `lib/Ekorn/Pipeline/Pipes.pm`.
+2. Tests, in `t/14-subclass.t`: the subclass made, names looked up in
+   a user's package after a module re-exports it, Ekorn::Pipeline's own
+   `pipeline` unchanged, a name a subclass doesn't export still
+   croaking, and Pipes making the class `pipeline_class` names.
+3. The POD, the reference and `Changes`; the rule in CLAUDE.md; this
+   record's look ahead.
+4. A message to DBIx-Squirrel saying how to use it, and the task gone
+   from `TODO.md`.
+
+**Done when:** a subclass can offer its users a `pipeline` that makes
+the subclass and resolves names in the user's package, with a test,
+on `pipeline-experimental`, with coverage at its floors; and
+DBIx-Squirrel has its message.
+
+## Looking ahead
+
+Iain asked, on 2026-11-11, that the rule be checked against the work
+planned in both repositories:
+
+- **DBIx::Squirrel's facades:** Pipeline inherits `import`, so `use
+  DBIx::Squirrel::Pipeline qw(pipeline)` needs nothing of it. Pipes
+  can override `pipeline_class`. Stop, as D3 says.
+- **2026-0010, Sugar:** it makes pipelines but isn't one, so it needs
+  a `pipeline_class` too, for DBIx-Squirrel's 2026-0010, a `pipeline`
+  key in its Sugar. Open in its record, as D10.
+- **2026-0013, a pipeline's name in its errors:** a getter; unaffected.
+- **2026-0014, the lifecycle hook:** objects as stages; unaffected.
+- **2026-0015, Blocks:** each factory makes its type with a class
+  method, so a subclass can wrap its own. Noted on the roadmap.
+- **2026-0016 and 2026-0017, sources and sinks:** functions, not
+  types; unaffected. DBIx-Squirrel's `insert_into`, its 2026-0012, is
+  built from Ekorn's sink outside Ekorn's namespace, which
+  `t/09-stage-modules.t` already covers for stages.
+- **2026-0018, operators:** `|` makes the class of its operand, never
+  one it names. Noted on the roadmap.
+- **2026-0019, a strict is_stage:** tests with `isa`, so subclasses
+  pass; unaffected.
+
+## What happened
+
+- **Outcome:** done as planned. The tests pass on 5.36.3 to 5.44.0
+  under yath, and under `prove`; coverage holds at 100%; the
+  reference's new example prints what it says.
+- **Changes from the plan:** the first `import` passed the rest to
+  Exporter with `goto &Exporter::import`, which warns in a sub with a
+  signature, as it passes `@_`; it calls `Exporter::export` with the
+  caller instead, needing no `@_`. Iain asked, the same day, for
+  `&{...};` in place of `goto` tail calls, which aren't cheap; the one
+  left, in `croakf`, was tried as `&Carp::croak;` and reverted, as
+  `croakf`'s frame then stays, and a module outside Ekorn's namespace
+  has its errors reported at its own line, not its caller's
+  (`t/09-stage-modules.t` and `t/12-documented.t` fail). It runs only
+  when croaking.
+- **The test packages and the example** set `@ISA` with `use parent
+  -norequire`, at compile time, as an `import` called from a `BEGIN`
+  block finds no inherited `import` in an `@ISA` set at run time.
+- **What's left:** 2026-0010's D10.
