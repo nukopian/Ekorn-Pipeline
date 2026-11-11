@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0021.
+Last id: 2026-0022.
 
 Items come in four groups:
 
@@ -41,7 +41,24 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
+### 2026-0022. One design, end to end, before more is built
+
+**Size:** L (5)
+
+Development is paused, here and in DBIx-Squirrel's work touching Ekorn,
+as Iain decided on 2026-11-11, while one design is written for
+everything planned in both repositories, in `docs/design/`: the
+concepts as a whole (sources, stages, gathers, sinks, pipelines, runs
+and their ends, names, subclasses, factories), the modules on both
+sides, how DBIx::Squirrel builds on Ekorn, what's compatible, and the
+questions still open; with drafts of the sections the reference and
+the how-to would gain. Why: the work had been decomposed into items
+whose decisions, made one at a time, kept turning out to bite later,
+here or in DBIx-Squirrel. DBIx-Squirrel reviews it, as Ekorn's first
+user, and sends its view as messages. Done when Iain has approved the
+design, and only then is it decomposed into items, which replace or
+rewrite those below. What's on `pipeline-experimental` (2026-0011,
+0020) is provisional until then.
 
 ## Next
 
