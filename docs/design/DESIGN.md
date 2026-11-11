@@ -196,11 +196,11 @@ the words `source` and `sink` (section 6). Each block is a set-up,
 returning a step and an end:
 
 ```perl
-sub file_lines ($path) {
+sub from_file ($path) {
     return source {
         open my $fh, '<', $path or die "Can't read $path: $!\n";
         return (
-            sub ()     { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
+            sub ()     { my $record = readline $fh; return unless defined $record; chomp $record; $record },
             sub ($how) { close $fh },
         );
     };
@@ -231,8 +231,8 @@ before the stop and the ones it carries: for them, the stream ended
 normally. The stage that stopped, and those before it, are cut off:
 their ends aren't called.
 
-So `file_lines($path) | take(5) | count` means: the source,
-`file_lines`, is told `stopped`, and closes its file; `count`, after
+So `from_file($path) | take(5) | count` means: the source,
+`from_file`, is told `stopped`, and closes its file; `count`, after
 `take(5)`, is told `done`, and gives 5, the result.
 
 ### 5.4 What an end does
@@ -343,7 +343,7 @@ Two kinds of function make things, and they live apart:
   `pipeline`, `stage`, `gather`, `source`, `sink`. One word per type,
   in Ekorn::Pipeline::Factories.
 - **Ready-made parts** are particular stages, sources and sinks, with
-  a job of their own: `take(5)`, `file_lines($path)`, `count`. They
+  a job of their own: `take(5)`, `from_file($path)`, `count`. They
   live by topic, as the canned stages do now: Ekorn::Pipeline::Stages::*,
   ::Sources, ::Sinks. Each is built with a word or a constructor.
 
@@ -399,7 +399,7 @@ Using only what comes with Perl. Nothing exported by default.
 | `from_array(@values)` | the values given | none |
 | `from_arrayref(\@array)` | an array's values, read as asked for | none |
 | `from_fh($fh)` | a filehandle's lines, chomped | none: you opened it |
-| `file_lines($path)` | a file's lines | closes the file, however the run ends |
+| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | closes the file, however the run ends |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
 | `unfold($seed, sub {...})` | a sub applied again and again, until it gives nothing | none |
 | `cycle(@values)` | the values, round and round | none |

@@ -135,7 +135,7 @@ Suggested in a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel
 A lifecycle hook in the core: an object given as a stage or a source
 can have two methods, called at the start of each run and at its end,
 the end told whether the run was `done`, `stopped` or `died`. So a
-source can close its file however a run ends, `file_lines($path) |
+source can close its file however a run ends, `from_file($path) |
 take(5)` included, which no caller can do today; and a sink can commit
 or roll back. An object without them behaves as now, so it only adds.
 With it, `is_source`, for `iterator` to take a source with a set-up
@@ -170,7 +170,7 @@ The message, whole:
 **Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
 
 `Ekorn::Pipeline::Sources`, needing nothing from CPAN: `from_array`,
-`from_arrayref`, `from_fh`, `file_lines`, `counter`, `unfold`, `cycle`,
+`from_arrayref`, `from_fh`, `from_file`, `counter`, `unfold`, `cycle`,
 `concat`, `interleave`, and a hash's pairs, under a name that doesn't
 clash with List::Util's `pairs`. Nothing exported by default. Those
 needing CPAN, such as JSON or CSV, go in add-on distributions of

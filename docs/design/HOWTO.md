@@ -81,14 +81,14 @@ starts.
 
 ### Read a file, and close it however the run ends
 
-`file_lines` gives a file's lines, and closes the file when the run
-ends, however it ends: when the lines run out, when a stage stops it,
-or when a stage dies.
+`from_file` gives a file's lines, or its records as `$/` divides them,
+and closes the file when the run ends, however it ends: when the lines
+run out, when a stage stops it, or when a stage dies.
 
 ```perl
-use Ekorn::Pipeline::Sources qw(file_lines);
+use Ekorn::Pipeline::Sources qw(from_file);
 
-my $next = Ekorn::Pipeline->new(take(2))->iterator(file_lines('setlist.txt'));
+my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('setlist.txt'));
 while (my($line) = $next->()) { say $line }
 # the first two lines; the file is closed once take(2) stops
 ```
@@ -128,7 +128,7 @@ you're done with it, as Perl lets it go:
 
 ```perl
 {
-    my $next = Ekorn::Pipeline->new(sub { uc })->iterator(file_lines('setlist.txt'));
+    my $next = Ekorn::Pipeline->new(sub { uc })->iterator(from_file('setlist.txt'));
     my($first) = $next->();
 }
 # $next has gone, so the file is closed
@@ -166,7 +166,7 @@ my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, first
 say $first_hit->{title};    # Dancing Queen: the rest aren't read
 ```
 
-The source is told `stopped`. Had it been `file_lines`, it would have
+The source is told `stopped`. Had it been `from_file`, it would have
 closed its file there and then.
 
 ### Write a sink of your own, and act on how the run ended

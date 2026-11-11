@@ -45,7 +45,7 @@ examples.
 - **Word:** a short function that makes one of the types, such as
   `pipeline` or `source {...}`, from Ekorn::Pipeline::Factories.
 - **Ready-made part:** a stage, source or sink with a job of its own,
-  such as `take(5)`, `file_lines($path)` or `count`.
+  such as `take(5)`, `from_file($path)` or `count`.
 
 ## Runs and how they end
 
@@ -296,7 +296,7 @@ for a function passing its caller's stages on, isn't the caller's.
 ## Sources: Ekorn::Pipeline::Sources
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_array file_lines counter);
+use Ekorn::Pipeline::Sources qw(from_array from_file counter);
 ```
 
 Ready-made sources, needing nothing beyond Perl. Nothing is exported by
@@ -307,7 +307,7 @@ default. Each returns a Source.
 | `from_array(@values)` | the values given | none |
 | `from_arrayref(\@array)` | an array's values, read as they're asked for, not copied | none |
 | `from_fh($fh)` | a filehandle's lines, without their newlines | none: you opened it, so you close it |
-| `file_lines($path)` | a file's lines, without their newlines | closes the file, however the run ends |
+| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | closes the file, however the run ends |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
 | `unfold($seed, sub {...})` | the sub, applied again and again from the seed, until it gives nothing | none |
 | `cycle(@values)` | the values, round and round, without end | none |
@@ -316,8 +316,18 @@ default. Each returns a Source.
 | `hash_pairs(\%hash)` | a hash's keys and values, as two-element arrays | none |
 
 ```perl
-my $next = Ekorn::Pipeline->new(take(2))->iterator(file_lines('tracks.txt'));
+my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));
 # reads two lines, then closes the file
+```
+
+`from_file` reads with `$/` as it is at each read, as `readline` does,
+so a caller can read a file's paragraphs, or whole records of their
+own, by setting it while they pull:
+
+```perl
+local $/ = '';    # paragraph mode
+my $next = Ekorn::Pipeline->new(take(3))->iterator(from_file('lyrics.txt'));
+while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
 ```
 
 ## Sinks: Ekorn::Pipeline::Sinks
