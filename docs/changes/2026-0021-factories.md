@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 settled: `step` and `end` only under a tag. D6 open: the class method's name. D7 open: whether Ekorn::Pipeline still exports `pipeline`.
+**Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 withdrawn: there are no `step` and `end`. D6 open: the class method's name. D7 open: whether Ekorn::Pipeline still exports `pipeline`.
 
 **Origin:** roadmap, added 2026-11-11, from Iain, reviewing 2026-0020:
 "`pipeline` IS behaving like a factory but the short keyword-like name
@@ -87,7 +87,9 @@ to pause its 2026-0009, which exports `pipeline`, until this is built
 - [x] **D5.** How are `step` and `end` exported? Only under a tag, with
   the block factories, decided on 2026-11-11, so a short, common name
   like `end` is never imported alone by accident. The tag's name is
-  2026-0015's to choose.
+  2026-0015's to choose. Withdrawn on 2026-11-11: the design for
+  2026-0022 has `source` and `sink` take a set-up returning closures,
+  as `gather` does, so there are no `step` and `end` to export.
 - [ ] **D6.** What's the class method called? It makes a pipeline of
   the stages given, names among them looked up in a package it's
   given. Options: `pipeline_in($package, @stages)`, the name

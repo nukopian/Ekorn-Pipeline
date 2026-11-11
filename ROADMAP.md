@@ -147,27 +147,21 @@ CLAUDE.md files saying how.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 
-### 2026-0015. Block factories: source, stage, sink, and gather's new form
+### 2026-0015. Words for sources, stages and sinks
 
 **Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0014,
 2026-0021
 
-Factories in Ekorn::Pipeline::Factories (2026-0021), not a module of
-their own, as Iain decided on 2026-11-11: once planned as
-`Ekorn::Pipeline::Blocks`, but `pipeline`, in the same family, takes no
-block. Factories taking a block, optionally
-followed by `step {...}` and `end {...}`, as Try::Tiny's `try` is
-by `catch`: the block alone is the step, and with a `step` after it,
-the set-up, whose result `step` and `end` are given. `end` always
-runs, and what it returns counts only when the run was `done`. Each
-makes a blessed code reference, so it works wherever a code reference
-does. `gather`'s list form stays as it is; the factory can tell the
-new form by a `step` or `end` after its block, rather than by what the
-block returns. Layer 1 of DBIx-Squirrel's message.
-Each factory makes its type with a class method, so a subclass, such
-as DBIx::Squirrel's, can wrap its own (2026-0020). `step` and `end` are
-exported only under a tag, with the block factories, so a short name
-like `end` is never imported alone (2026-0021).
+`stage`, `source` and `sink`, in Ekorn::Pipeline::Factories
+(2026-0021). `stage {...}` makes a Stage from its block. `source {...}`
+and `sink {...}` take a set-up, as `gather` does: the block runs at the
+start of each run, declares the run's state with `my`, and returns the
+step and the end as closures sharing it; the end always runs, and is
+told how the run ended. Each makes a blessed code reference, so it
+works wherever a code reference does, with a class method a subclass,
+such as DBIx::Squirrel's, can wrap. Layer 1 of DBIx-Squirrel's message;
+the design, with the reasons for this shape, is in `docs/design/`
+(2026-0022).
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 

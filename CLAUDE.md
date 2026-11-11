@@ -71,8 +71,8 @@ both:
   method, as `Stop` is over `throw`, so a subclass can wrap its own.
 - **Factories are words, and live in a module of words,** as Iain
   decided on 2026-11-11: a short, keyword-like function that makes one
-  of Ekorn's types, such as `pipeline`, `source {...} step {...} end
-  {...}` or `gather`, is syntax, not behaviour, so it goes in
+  of Ekorn's types, such as `pipeline`, `source {...}` or `gather`, is
+  syntax, not behaviour, so it goes in
   Ekorn::Pipeline::Factories, not in the class it makes. Each is one
   line over a class method. DBIx::Squirrel's own words, making its
   classes, go in DBIx::Squirrel::Factories. Record 2026-0021.

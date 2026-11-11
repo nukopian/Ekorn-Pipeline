@@ -4,18 +4,20 @@
 [DESIGN.md](DESIGN.md). These are the sections `docs/REFERENCE.md`
 would gain or change, written as they'd read there. None of the code
 in them runs yet: it shows what's proposed. Where a section depends on
-an open question, a note in brackets says which, such as **[Q3]**;
-those notes go before anything is merged.
+an open question in the design, a note in brackets says which, such as
+**[Q3]**; those notes go before anything is merged.
 
 What changes in the reference as a whole:
 
-- **Terms** gains Source, Sink, Run's end, Word and Ready-made part.
+- **Terms** gains Source, Sink, Made for a run, How a run ended, Word
+  and Ready-made part.
 - **A new section, Runs and how they end,** after How values go
   through stages.
 - **A new section, Words: Ekorn::Pipeline::Factories,** after
-  Pipelines, holding `pipeline` (moved from Pipelines) and the block
-  words.
-- **Pipelines** loses `pipeline`, and gains `pipeline_in`.
+  Pipelines, holding `pipeline`, `stage`, `gather`, `source` and
+  `sink`.
+- **Pipelines** gains `pipeline_in`, the method every `pipeline` word
+  calls.
 - **New sections for Sources, Sinks, Operators and Sugar,** after the
   canned stages.
 - **A new section, Building on Ekorn,** for authors of distributions
@@ -23,18 +25,23 @@ What changes in the reference as a whole:
 - **Diagnostics, Exports and The modules** gain the new entries.
 
 Named pipelines, Named pipelines and subclasses, and `named` stay as
-they are now, except that `pipeline` comes from Factories.
+they are now, with `pipeline` imported from Factories in their
+examples.
 
 ## Terms (additions)
 
 - **Source:** something that gives values when it's pulled, called
-  with nothing until it gives an empty list. A code reference, or one
-  made with `source`.
+  with nothing until it gives an empty list. Any code reference, or
+  one made with `source`.
 - **Sink:** the last stage of a pipeline, which consumes every value
   and gives one result, such as a count. Made with `sink`, or
   ready-made, such as `count`.
+- **Made for a run:** made afresh at the start of each run, by a
+  set-up block, so that each run has state of its own. Gathers,
+  sources and sinks can be.
 - **How a run ended:** `done`, `stopped` or `died`, as each part of
-  the run sees it from where it stands. An end is told which.
+  the run sees it from where it stands. A source's or a sink's end is
+  told which.
 - **Word:** a short function that makes one of the types, such as
   `pipeline` or `source {...}`, from Ekorn::Pipeline::Factories.
 - **Ready-made part:** a stage, source or sink with a job of its own,
@@ -44,32 +51,34 @@ they are now, except that `pipeline` comes from Factories.
 
 A run is one call of a pipeline with values, or one iterator made from
 it. Each run has its own state. A part of the pipeline that needs
-state, such as a running total or an open file, is made afresh for
-each run, and can have an end, called once when the run ends.
+state, such as a batch it's filling or a file it has open, is made
+afresh for each run.
 
 ### Made for a run
 
-A stage or source made with `gather`, `source` or `sink`, with a
-`step` after its block, has three parts:
+A gather, source or sink made with a word has a block that's its
+**set-up**. The set-up runs at the start of each run. It declares
+whatever the run needs, with `my`, and returns two code references,
+closures sharing what it declared:
 
-- **the set-up,** its first block, called at the start of each run.
-  What it returns is the run's state: a filehandle, a total, or a
-  hash reference holding several things;
-- **the step,** called for each value (a gather or a sink) or each
-  pull (a source), given the state as `$_[0]`. In a gather's or a
-  sink's step, the value is `$_[1]`, and also `$_`, as in any stage;
-  in a source's step, which has no value, `$_` is the state **[Q23]**;
-- **the end,** called once, when the run ends, given the state as
-  `$_` and `$_[0]`, and how the run ended as `$_[1]`.
+- **the step,** called with each value (a gather or a sink), or each
+  time the source is pulled (a source);
+- **the end,** called once, when the run ends. It's optional for a
+  gather and a source.
 
 ```perl
-my $lines = source { open my $fh, '<', $path or die "Can't read $path: $!\n"; $fh }
-            step   { my $line = readline $_; defined $line ? $line : () }
-            end    { close $_ };
+my $lines = source {
+    open my $fh, '<', $path or die "Can't read $path: $!\n";
+    return (
+        sub ()     { my $line = readline $fh; defined $line ? $line : () },
+        sub ($how) { close $fh },
+    );
+};
 ```
 
-Two iterators of the same pipeline each get their own state, from
-their own call of the set-up.
+Two iterators of the same pipeline each get their own filehandle, from
+their own call of the set-up. A plain code reference is never made for
+a run: it's the same code, with the same closure, in every run.
 
 ### How a run ends
 
@@ -89,36 +98,32 @@ what's after it. So in
 my $n = Ekorn::Pipeline->new(take(5), count)->iterator($lines)->();
 ```
 
-the source, `$lines`, is told `stopped` and closes its file; `take(5)`,
-which stopped, is told `stopped`; and `count`, after it, is told
-`done`, and gives 5.
+`$lines` is told `stopped`, and closes its file, and `count`, after
+`take(5)`, is told `done`, and gives 5.
 
 ### What an end does
 
-- **It always runs, once,** however the run ended.
-- **What it returns counts only when it's told `done`:** a gather's
-  end lets out its last values, and a sink's gives the result. Told
-  `stopped` or `died`, what it returns is dropped; it runs only to
-  clean up, such as closing a file. **[Q4]**
-- **The ends run in order,** the first stage's first, and the
-  source's last, once every stage has finished with what it gave.
-  **[Q5]**
-- **After a stage dies,** every end still runs, told `died`, and then
-  the error is thrown again, as it would have been. An end that dies
-  then is reported as a warning, naming its stage, and the first error
-  is kept. **[Q6]**
-- While the values an end returns go through the stages after it,
-  [`ending`](#ending) is true.
+A source's or a sink's end:
 
-```perl
-my $total = sink { \my $sum }
-            step { ${ $_[0] } += $_ }
-            end  { ${ $_[0] } };    # counts only when told done
-```
+- **always runs, once,** however the run ended, and is given how, as
+  its argument: `done`, `stopped` or `died` **[Q4]**;
+- **counts only when it's `done`.** A sink's end gives the result
+  then. Told `stopped` or `died`, what it returns is dropped; it runs
+  only to clean up, such as closing a file or rolling back. What a
+  source's end returns is always dropped;
+- **runs in order:** each stage's end, first stage first, then the
+  source's, once every stage has finished with what it gave **[Q5]**.
 
-A gather made the old way, whose block returns a stage and an end, is
-unchanged: after a stop, the ends of the stage that stopped and those
-before it aren't called, and an end isn't told how the run ended.
+After a stage dies, every source's and sink's end still runs, told
+`died`, and then the error is thrown again, as it would have been. An
+end that dies then is reported as a warning, naming its stage, and the
+first error is kept **[Q6]**.
+
+A gather's end is called only when its stream ended normally: when the
+values ran out, or after a stop in a stage before it. It's given no
+arguments, and what it returns goes on through the stages after it,
+as [End functions](#end-functions) describes. While it does,
+[`ending`](#ending) is true.
 
 ### An iterator left unfinished
 
@@ -128,9 +133,9 @@ An iterator that's dropped before its values run out, as in
 my($first) = Ekorn::Pipeline->new(sub { uc })->iterator($lines)->();
 ```
 
-ends its run when the last reference to it goes: every part is told
-`stopped`, so `$lines` closes its file there and then. An iterator is
-still a code reference, called as `$next->()`. **[Q7]**
+ends its run when the last reference to it goes: its source and sink
+are told `stopped`, so `$lines` closes its file there and then. An
+iterator is still a code reference, called as `$next->()` **[Q7]**.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,
@@ -140,15 +145,21 @@ on other objects then.
 ## Words: Ekorn::Pipeline::Factories
 
 ```perl
-use Ekorn::Pipeline::Factories qw(pipeline);
-use Ekorn::Pipeline::Factories qw(:blocks);    # source, stage, sink, gather, step, end
+use Ekorn::Pipeline::Factories qw(pipeline stage gather source sink);
 ```
 
 The words make the types, from what you write. Each is a short form of
 a class method, which a class built on Ekorn can offer in a form of its
 own (see [Building on Ekorn](#building-on-ekorn)). Nothing is exported
-by default. `step` and `end` are exported only with `:blocks`, so a
-name as short as `end` is never imported alone. **[Q11]**
+by default.
+
+| Word | Makes | Its block |
+|---|---|---|
+| `pipeline(@stages)` | a pipeline | (takes a list) |
+| `stage {...}` | a Stage | the stage itself |
+| `gather {...}` | a Gather | a set-up, returning the step and, optionally, the end |
+| `source {...}` | a Source | a set-up, returning the step and, optionally, the end |
+| `sink {...}` | a Sink | a set-up, returning the step and the end |
 
 ### pipeline
 
@@ -168,8 +179,6 @@ pipeline('clean', take(5))                   # it, then more
 pipeline('My::Module::clean', sub {...})     # another package's
 ```
 
-Moved here from Ekorn::Pipeline in v0.2.1, before it was released.
-
 ### stage
 
 ```perl
@@ -183,76 +192,83 @@ on. To give it a signature, give it a sub:
 `stage sub ($row) { $row->[1] }`.
 
 A Stage wraps what it's given, so `stage(\&trim)` never changes `trim`
-itself. **[Q9]**
-
-### source
-
-```perl
-source { STEP }
-source { SET-UP } step { STEP } end { END }
-```
-
-Returns a Source. With one block, the block is its step: called with
-nothing, again and again, it gives the next value or values, or an
-empty list when there are no more. With a `step` after it, the first
-block is the set-up, as [Made for a run](#made-for-a-run) describes,
-and `end` is optional.
-
-```perl
-my $n     = 0;
-my $count = source { ++$n <= 3 ? $n : () };    # 1, 2, 3
-```
-
-### sink
-
-```perl
-sink { SET-UP } step { STEP } end { END }
-```
-
-Returns a Sink, to go last in a pipeline. Its step is called with each
-value, and returns nothing; its end, told `done`, gives the result,
-which is the only value the run gives. **[Q8]**
-
-```perl
-my $longest = sink { \my $max }
-              step { ${ $_[0] } = $_ if length > length(${ $_[0] } // '') }
-              end  { ${ $_[0] } };
-
-say Ekorn::Pipeline->new($longest)->(qw(a bbb cc));    # bbb
-```
+itself **[Q9]**.
 
 ### gather
 
 ```perl
-gather { BLOCK }                                # the old form
-gather { SET-UP } step { STEP } end { END }     # the new form
+gather { SET-UP }
 ```
 
-The old form is as [gather](#gather) describes: its block returns a
-stage and, optionally, an end. The new form is a stage with a set-up
-and an end, made for each run: its step can return nothing (drop the
-value), one value or several; its end, told `done`, lets out what it
-held.
+Returns a Gather: a stage made for each run, whose set-up returns its
+stage and, optionally, an end, as [gather](#gather) describes.
 
 ```perl
-my $pairs = gather { [] }
-            step   { push @{ $_[0] }, $_; @{ $_[0] } == 2 ? [splice @{ $_[0] }] : () }
-            end    { @{ $_[0] } ? [@{ $_[0] }] : () };
+sub batches_of ($size) {
+    return gather {
+        my @batch;    # this run's
+        return (
+            sub ($x) { push @batch, $x; @batch == $size ? [splice @batch] : () },
+            sub ()   { @batch ? [@batch] : () },
+        );
+    };
+}
 ```
 
 `gather` is exported by Ekorn::Pipeline::Gather too, as it always has
 been.
 
-### step and end
+### source
 
 ```perl
-step { BLOCK }
-end  { BLOCK }
+source { SET-UP }
 ```
 
-They carry a block to the word in front of them, and mean nothing on
-their own. A block takes no signature; `step sub ($state, $value)
-{...}` gives one.
+Returns a Source made for each run. Its set-up returns its step,
+called with nothing, again and again, giving the next value or values,
+or an empty list when there are no more; and, optionally, its end,
+told how the run ended.
+
+```perl
+sub up_to ($last) {
+    return source {
+        my $n = 0;    # this run's
+        return sub () { $n < $last ? ++$n : () };
+    };
+}
+
+my $next = Ekorn::Pipeline->new(sub { $_ * 10 })->iterator(up_to(3));
+while (my($n) = $next->()) { say $n }    # 10, 20, 30
+```
+
+Each run counts from 1 again, as the set-up runs at its start. The
+file-reading source in [Made for a run](#made-for-a-run) shows an end.
+
+A source with nothing to set up or end needs no word: any code
+reference is a source, as `iterator` has always taken.
+
+### sink
+
+```perl
+sink { SET-UP }
+```
+
+Returns a Sink, to go last in a pipeline, made for each run. Its
+set-up returns its step, called with each value, whose return is
+ignored; and its end, told how the run ended, which, when `done`, gives
+the result, the only value the run gives **[Q8]**.
+
+```perl
+my $longest = sink {
+    my $max;
+    return (
+        sub ($s) { $max = $s if length $s > length($max // '') },
+        sub ($how) { $max },
+    );
+};
+
+say Ekorn::Pipeline->new($longest)->(qw(a bbb cc));    # bbb
+```
 
 ## Pipelines: pipeline_in (addition)
 
@@ -267,13 +283,15 @@ code reference, a pipeline, or the name of one, looked up in
 `$package`, for its invocant's class, as
 [Named pipelines and subclasses](#named-pipelines-and-subclasses)
 explains. It's the only method that reads names, and it's what every
-`pipeline` word calls. **[Q10]**
+`pipeline` word calls **[Q10]**.
 
 Call it from code the user calls directly, passing the user's package,
 as a word does with `scalar caller`. Code that passes stages through,
 such as a function taking stages from its caller, gives them to `new`,
 which reads no names: the user has already turned any names into
-pipelines with `pipeline`, where they wrote them.
+pipelines with `pipeline`, where they wrote them. If `new` read names,
+it would look them up in the package of whatever called it, which,
+for a function passing its caller's stages on, isn't the caller's.
 
 ## Sources: Ekorn::Pipeline::Sources
 
@@ -333,8 +351,8 @@ A sink that stops the pull early is told `done`: it decided the run
 had enough. The source and the stages before it are told `stopped`.
 
 ```perl
-say Ekorn::Pipeline->new(count)->(1 .. 10);                         # 10
-say Ekorn::Pipeline->new(first_value)->iterator(counter(1, 1))->(); # 1, then stops
+say Ekorn::Pipeline->new(count)->(1 .. 10);                          # 10
+say Ekorn::Pipeline->new(first_value)->iterator(counter(1, 1))->();  # 1, then stops
 ```
 
 ## Operators: Ekorn::Pipeline::Operators
@@ -418,14 +436,15 @@ never finds yours (see
 ### Your own words
 
 Give your users words that make your class, in a module of your own,
-one line each, as Ekorn::Pipeline::Factories does:
+one line each, as Ekorn::Pipeline::Factories does, and pass on
+Ekorn's words for the types you don't subclass:
 
 ```perl
 package My::Factories;
 use Exporter qw(import);
-use Ekorn::Pipeline::Factories qw(:blocks);    # words whose types you don't subclass
+use Ekorn::Pipeline::Factories qw(stage gather source sink);
 
-our @EXPORT_OK = qw(pipeline stage step end);
+our @EXPORT_OK = qw(pipeline stage gather source sink);
 
 sub pipeline (@stages) { My::Pipeline->pipeline_in(scalar caller, @stages) }
 ```
@@ -457,8 +476,9 @@ so a mistake is reported at your users' lines.
 
 Wording to be settled when the code is written. One for each:
 
-- a block word given something other than a block;
-- `step` or `end` used without a word in front of it;
+- a word given something other than a block;
+- a set-up that doesn't return a code reference for its step, and
+  optionally one for its end;
 - a sink not given last;
 - an end that died while the run was already dying (a warning)
   **[Q6]**;
@@ -468,8 +488,8 @@ Wording to be settled when the code is written. One for each:
 
 | Module | By default | On request | Tags |
 |---|---|---|---|
-| `Ekorn::Pipeline` | nothing | `is_stage` (and `is_source` **[Q16]**) | |
-| `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `source`, `sink`, `gather` | `:blocks`, with `step` and `end` |
+| `Ekorn::Pipeline` | nothing | `is_stage` (and `is_source` **[Q15]**) | |
+| `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | each source | `:all` |
 | `Ekorn::Pipeline::Sinks` | nothing | each sink | `:all` |
 | `Ekorn::Pipeline::Operators` | nothing: loading it is enough | | |

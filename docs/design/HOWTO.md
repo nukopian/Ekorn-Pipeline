@@ -4,8 +4,8 @@
 [DESIGN.md](DESIGN.md) and [REFERENCE.md](REFERENCE.md). These are the
 recipes `docs/HOWTO.md` would gain or change, written as they'd read
 there. None of the code in them runs yet. Notes in brackets, such as
-**[Q8]**, name the open question a recipe depends on; they go before
-anything is merged.
+**[Q8]**, name the open question in the design a recipe depends on;
+they go before anything is merged.
 
 The examples follow on from the how-to's first section, The examples'
 data: `@tracks`, six tracks with an artist, a title and a number of
@@ -16,12 +16,11 @@ Where the recipes go:
 
 - **Writing a function that takes stages** changes two recipes, "Take
   stages after values that may be code references" and "Name a
-  pipeline you use often", as `pipeline` moves to Factories.
+  pipeline you use often", as `pipeline` comes from Factories.
 - **A new part, Sources: reading from anything,** after Pulling values
   one at a time.
 - **A new part, Sinks: one result from many values,** after Gathering
   values.
-- **Gathering values** gains a recipe for the new form of `gather`.
 - **A new part, Chaining with |,** after Sinks.
 - **Writing stages for others** gains "Build a distribution on Ekorn".
 
@@ -100,21 +99,27 @@ it to you to close.
 ### Write a source of your own
 
 A source is called with nothing, and gives the next value, or an empty
-list when there are no more. For one with something to open and close,
-give `source` a set-up, a `step` and an `end`:
+list when there are no more. Any code reference will do. For one with
+something to open and close, use `source`: its block runs at the start
+of each run, and returns the step and the end, closures sharing what
+it opened:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(:blocks);
+use Ekorn::Pipeline::Factories qw(source);
 
 sub csv_rows ($path) {
-    return source { open my $fh, '<', $path or die "Can't read $path: $!\n"; $fh }
-           step   { my $line = readline $_; defined $line ? [split m( , )x, $line =~ s( \n \z )()xr] : () }
-           end    { close $_ };
+    return source {
+        open my $fh, '<', $path or die "Can't read $path: $!\n";
+        return (
+            sub ()     { my $line = readline $fh; defined $line ? [split m( , )x, $line =~ s( \n \z )()xr] : () },
+            sub ($how) { close $fh },
+        );
+    };
 }
 ```
 
-The set-up runs at the start of each run, so two iterators each open
-the file for themselves. The end runs once, however the run ends.
+Two iterators each open the file for themselves, and each closes it,
+once, however its run ends.
 
 ### Don't leave a file open when you stop reading early
 
@@ -131,33 +136,9 @@ you're done with it, as Perl lets it go:
 
 **[Q7]**
 
-## Gathering values (new recipe)
-
-### Keep state for a run, and let out what's left at the end
-
-`gather`'s new form has a set-up, a step and an end. What the set-up
-returns is the run's state; the step can drop each value, pass it on,
-or let several out; the end lets out what's left, once the values run
-out:
-
-```perl
-use Ekorn::Pipeline::Factories qw(:blocks);
-
-my $pairs = gather { [] }
-            step   { push @{ $_[0] }, $_->{title}; @{ $_[0] } == 2 ? [splice @{ $_[0] }] : () }
-            end    { @{ $_[0] } ? [@{ $_[0] }] : () };
-
-say join ' | ', map { "@$_" } tracks($pairs);
-# Dancing Queen Knowing Me, Knowing You | Girls & Boys Parklife | Country House Sunshine of Your Love
-```
-
-**[Q23]** If a stage after it stops the run, the end isn't told `done`,
-so what it returns is dropped: a half-made pair isn't let out after a
-stop.
-
 ## Sinks: one result from many values (new)
 
-### Count, total or collect, in one result
+### Count, total or join, in one result
 
 A sink goes last, and turns every value into one result:
 
@@ -166,7 +147,7 @@ use Ekorn::Pipeline::Sinks qw(count fold joined);
 
 say tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count);              # 3
 say tracks(sub { $_->{plays} }, fold(0, sub { $_[0] + $_[1] }));          # 36800
-say tracks(sub { $_->{artist} }, joined(', '));                           # Abba, Abba, Blur, ...
+say tracks(sub { $_->{artist} }, joined(', '));                           # Abba, Abba, Blur, Blur, Blur, Cream
 ```
 
 **[Q8]**
@@ -190,25 +171,33 @@ closed its file there and then.
 
 ### Write a sink of your own, and act on how the run ended
 
-A sink's end is told how the run ended, as its second argument. Most
-ignore it. One that should only take effect if every value went
+`sink`'s block runs at the start of each run, and returns the step,
+called with each value, and the end, told how the run ended. Most ends
+ignore how. One that should take effect only if every value went
 through checks it, such as writing to a temporary file and moving it
 into place only when the run is `done`:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(:blocks);
+use Ekorn::Pipeline::Factories qw(sink);
 use File::Temp qw(tempfile);
 
 sub save_to ($path) {
-    return sink { my($fh, $tmp) = tempfile(); {fh => $fh, tmp => $tmp} }
-           step { say { $_[0]{fh} } $_ }
-           end  {
-               close $_[0]{fh};
-               $_[1] eq 'done' ? rename($_[0]{tmp}, $path) : unlink $_[0]{tmp};
-           };
+    return sink {
+        my($fh, $tmp) = tempfile();
+        my $n = 0;
+        return (
+            sub ($line) { say {$fh} $line; $n++; return },
+            sub ($how) {
+                close $fh;
+                if ($how eq 'done') { rename $tmp, $path; return $n }
+                unlink $tmp;
+                return;
+            },
+        );
+    };
 }
 
-tracks(sub { $_->{title} }, save_to('titles.txt'));
+say tracks(sub { $_->{title} }, save_to('titles.txt'));    # 6
 # titles.txt is replaced only if every title was written
 ```
 
@@ -220,14 +209,14 @@ With Ekorn::Pipeline::Operators loaded, the types join with `|`:
 
 ```perl
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(:blocks);
+use Ekorn::Pipeline::Factories qw(stage);
 use Ekorn::Pipeline::Sources   qw(from_array);
 use Ekorn::Pipeline::Sinks     qw(count);
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-say from_array(\@tracks) | $blur | count;                      # 3
-my @titles = @{ from_array(\@tracks) | $blur | stage { $_->{title} } };
+say from_array(\@tracks) | $blur | count;                                  # 3
+my @titles = @{ from_array(\@tracks) | $blur | stage { $_->{title} } };    # Girls & Boys, Parklife, Country House
 ```
 
 **Write every stage in a chain with `stage`,** or use a ready-made
@@ -251,7 +240,7 @@ DBIx::Squirrel does:
    sub pipeline (@stages) { My::Pipeline->pipeline_in(scalar caller, @stages) }
    ```
 
-   and re-export Ekorn's words for the types you don't subclass.
+   and pass on Ekorn's words for the types you don't subclass.
 3. **If you use Ekorn::Pipeline::Pipes,** override `pipeline_class`,
    so `pipe` and `tap` make your class.
 4. **Put Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
