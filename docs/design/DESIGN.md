@@ -400,13 +400,13 @@ Using only what comes with Perl. Nothing exported by default.
 | `from_arrayref(\@array)` | an array's values, read as asked for | none |
 | `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | none: you opened it |
 | `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | closes the file, however the run ends |
+| `from_hash(%hash)` | the keys and values given, as pairs | none |
+| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as asked for | none |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
 | `unfold($seed, sub {...})` | a sub applied again and again, until it gives nothing | none |
 | `cycle(@values)` | the values, round and round | none |
 | `concat(@sources)` | each source in turn | ends each source it read |
 | `interleave(@sources)` | one value from each source in turn | ends each source it read |
-| `from_hash(%hash)` | the keys and values given, as pairs | none |
-| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as asked for | none |
 
 Each `from_` source says what it takes: a list or a reference, of an
 array or a hash, a filehandle or a file. A pair is a two-element array,

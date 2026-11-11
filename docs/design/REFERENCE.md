@@ -308,13 +308,13 @@ default. Each returns a Source.
 | `from_arrayref(\@array)` | an array's values, read as they're asked for, not copied | none |
 | `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
 | `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | closes the file, however the run ends |
+| `from_hash(%hash)` | the keys and values given, as pairs: two-element arrays, `[$key, $value]` | none |
+| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as they're asked for, not copied | none |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
 | `unfold($seed, sub {...})` | the sub, applied again and again from the seed, until it gives nothing | none |
 | `cycle(@values)` | the values, round and round, without end | none |
 | `concat(@sources)` | each source in turn | ends each source it read |
 | `interleave(@sources)` | one value from each source in turn | ends each source it read |
-| `from_hash(%hash)` | the keys and values given, as pairs: two-element arrays, `[$key, $value]` | none |
-| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as they're asked for, not copied | none |
 
 ```perl
 my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));
