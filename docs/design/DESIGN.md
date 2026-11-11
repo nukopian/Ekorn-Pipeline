@@ -396,8 +396,8 @@ Using only what comes with Perl. Nothing exported by default.
 
 | Source | Gives | Its end |
 |---|---|---|
-| `from(@values)` | the values given | none |
-| `from_array(\@array)` | an array's values, read as asked for | none |
+| `from_array(@values)` | the values given | none |
+| `from_arrayref(\@array)` | an array's values, read as asked for | none |
 | `lines($fh)` | a filehandle's lines, chomped | none: you opened it |
 | `file_lines($path)` | a file's lines | closes the file, however the run ends |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |

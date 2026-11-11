@@ -296,7 +296,7 @@ for a function passing its caller's stages on, isn't the caller's.
 ## Sources: Ekorn::Pipeline::Sources
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from file_lines counter);
+use Ekorn::Pipeline::Sources qw(from_array file_lines counter);
 ```
 
 Ready-made sources, needing nothing beyond Perl. Nothing is exported by
@@ -304,8 +304,8 @@ default. Each returns a Source.
 
 | Source | Gives | Its end |
 |---|---|---|
-| `from(@values)` | the values given | none |
-| `from_array(\@array)` | an array's values, read as they're asked for, not copied | none |
+| `from_array(@values)` | the values given | none |
+| `from_arrayref(\@array)` | an array's values, read as they're asked for, not copied | none |
 | `lines($fh)` | a filehandle's lines, without their newlines | none: you opened it, so you close it |
 | `file_lines($path)` | a file's lines, without their newlines | closes the file, however the run ends |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |

@@ -158,11 +158,11 @@ Some sinks stop the pull as soon as they know the result, so a source
 reading a file or a database reads no further:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_array);
+use Ekorn::Pipeline::Sources qw(from_arrayref);
 use Ekorn::Pipeline::Sinks   qw(first_value);
 
 my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, first_value)
-    ->iterator(from_array(\@tracks))->();
+    ->iterator(from_arrayref(\@tracks))->();
 say $first_hit->{title};    # Dancing Queen: the rest aren't read
 ```
 
@@ -210,13 +210,13 @@ With Ekorn::Pipeline::Operators loaded, the types join with `|`:
 ```perl
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_array);
+use Ekorn::Pipeline::Sources   qw(from_arrayref);
 use Ekorn::Pipeline::Sinks     qw(count);
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-say from_array(\@tracks) | $blur | count;                                  # 3
-my @titles = @{ from_array(\@tracks) | $blur | stage { $_->{title} } };    # Girls & Boys, Parklife, Country House
+say from_arrayref(\@tracks) | $blur | count;                                  # 3
+my @titles = @{ from_arrayref(\@tracks) | $blur | stage { $_->{title} } };    # Girls & Boys, Parklife, Country House
 ```
 
 **Write every stage in a chain with `stage`,** or use a ready-made
