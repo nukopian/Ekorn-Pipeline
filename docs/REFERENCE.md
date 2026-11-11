@@ -288,10 +288,10 @@ Returns a new pipeline of `@stages`, as `new` does, but each stage can
 also be the name of a pipeline, which stands for that pipeline:
 
 ```perl
-pipeline(sub { uc } => take(5))              # new, from stages
+pipeline(sub { uc }, take(5))                # new, from stages
 pipeline('clean')                            # the pipeline named clean
-pipeline('clean' => take(5))                 # it, then more
-pipeline('My::Module::clean' => sub {...})   # another package's
+pipeline('clean', take(5))                   # it, then more
+pipeline('My::Module::clean', sub {...})     # another package's
 ```
 
 A name is looked up when the pipeline is made, as

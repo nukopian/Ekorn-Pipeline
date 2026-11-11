@@ -15,7 +15,7 @@ Unreleased
 
     - Ekorn::Pipeline exports pipeline() on request. It makes a new
       pipeline from stages, as new does, but a stage can also be the
-      name of a pipeline: pipeline('clean' => take(5)). (roadmap
+      name of a pipeline: pipeline('clean', take(5)). (roadmap
       2026-0011)
     - Ekorn::Pipeline->named(clean => @stages) defines a named
       pipeline, and $p->named('clean') names one you have. A name is

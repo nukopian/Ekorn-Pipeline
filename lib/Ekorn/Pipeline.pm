@@ -364,7 +364,7 @@ Ekorn::Pipeline - run values through a list of stages
     use Ekorn::Pipeline v0.2.1 qw(pipeline);
 
     Ekorn::Pipeline->named(clean => sub { s( \A \s+ | \s+ \z )()xgr });
-    my @first = pipeline('clean' => sub { length ? $_ : () })->(@lines);
+    my @first = pipeline('clean', sub { length ? $_ : () })->(@lines);
 
 =head1 DESCRIPTION
 
@@ -647,10 +647,10 @@ L</A pipeline as a stage> describes.
 
     use Ekorn::Pipeline v0.2.1 qw(pipeline);
 
-    pipeline(sub { uc } => take(5))              # new, from stages
+    pipeline(sub { uc }, take(5))                # new, from stages
     pipeline('clean')                            # the pipeline named clean
-    pipeline('clean' => take(5))                 # it, then more
-    pipeline('My::Module::clean' => sub {...})   # another package's
+    pipeline('clean', take(5))                   # it, then more
+    pipeline('My::Module::clean', sub {...})     # another package's
 
 Returns a new pipeline of the stages given, as L</new> does, but each
 can also be the name of a pipeline, defined with L</named>, which

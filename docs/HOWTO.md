@@ -780,7 +780,7 @@ Ekorn::Pipeline->named(hit   => sub { $_->{plays} >= 6000 ? $_ : () });
 Ekorn::Pipeline->named(title => sub { $_->{title} });
 Ekorn::Pipeline->named(hit_titles => 'hit', 'title');
 
-say join ', ', tracks(pipeline('hit_titles' => take(2)));    # Dancing Queen, Girls & Boys
+say join ', ', tracks(pipeline('hit_titles', take(2)));    # Dancing Queen, Girls & Boys
 ```
 
 A name is kept in the package that defined it, so modules don't

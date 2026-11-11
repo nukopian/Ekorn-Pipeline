@@ -379,10 +379,10 @@ explains.
 Returns a new pipeline of C<@stages>, as C<new> does, but each stage can
 also be the name of a pipeline, which stands for that pipeline:
 
-    pipeline(sub { uc } => take(5))              # new, from stages
+    pipeline(sub { uc }, take(5))                # new, from stages
     pipeline('clean')                            # the pipeline named clean
-    pipeline('clean' => take(5))                 # it, then more
-    pipeline('My::Module::clean' => sub {...})   # another package's
+    pipeline('clean', take(5))                   # it, then more
+    pipeline('My::Module::clean', sub {...})     # another package's
 
 A name is looked up when the pipeline is made, as
 L<Named pipelines|/"Named pipelines"> explains, so one not defined
