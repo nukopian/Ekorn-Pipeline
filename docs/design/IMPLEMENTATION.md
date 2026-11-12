@@ -972,7 +972,7 @@ Each of these is for the design to take in, or the code to change.
 
 | The code | Design | To do |
 |---|---|---|
-| The source's end runs as soon as no end is left to call, though values from ends may still be coming | 5.4 says last, not when | say when, in 5.4 |
+| The source's end runs as soon as no end is left to call, though values from ends may still be coming | D6: every end waits for the run to end | build D6 |
 | An iterator given as a source is ended by the outer run, with `finish($how)`, which `DESTROY` also calls | not in 4.4 | add to 4.4's protocols |
 | Ended from outside, by `finish` or `DESTROY`, an iterator stops: nothing more is pulled or handed out | 5.5 implies it | say so in 5.5 |
 | A sink that gives a list is marked when made, `Sink->new($setup, list => 1)`; `sink {...}` can't mark one | 9 needs it, and doesn't say how | decide how a list-giving sink is declared |
@@ -984,7 +984,7 @@ Each of these is for the design to take in, or the code to change.
 | What a sink's step returns goes on, as any stage's: a `sink {...}` whose step returns values is a stage made for a run, with an end that always runs | the draft reference says a sink's step's return is ignored | decide: ignore it, or say a sink is any stage made for a run |
 | A sink is told `stopped` only when its run is ended from outside: a stop after it can't come while the source has values, and one before it leaves it after the stop | 5.3's table puts "stages up to the one that stopped" with the source | say so in 5.3 |
 | One method, `for_run`, serves every role; D5 settled one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list`, not yet built. Meanwhile a part's role, source or stage, is decided by Ekorn's classes and by position, not by a protocol: a package's own blessed-code source given as a stage is taken for a sink, and crashes; its own sink under `\|` gives a chain, which never runs; its hash-based sink is refused; Ekorn's own Sink is taken as a source | principle 3 says the contract is the protocols | D5 |
-| A sink's end is told `done` when its own stream ends, and the source when no end is left, so a stage dying after a sink leaves both told `done`, then the run dies | 5.3 says everything is told `died` | D6 |
+| A sink's end gives its result and is told `done` when its own stream ends, and the source's end runs when no end is left, so a stage dying after a sink leaves both told `done`, then the run dies | D6 settled: a sink's result separate from its end, and every end called once the run has ended | build D6 |
 | `run_source()` gives the source object, shared by every run of it, not the run: what's known per run, such as a statement's columns, can't be had per run; it's Ekorn's closure in a pushed run, undefined in ends called as the run finishes, and an intermediate iterator when there is one | Q21 | D7 |
 | Loading Operators gives every Source `\|`, everywhere in the program | principle 1 and 17.11 say opt-in | D8 |
 | An Iterator given as a source to a second run gives nothing, with no error: there's no reusable source of a sink's result | 4.2 and 9 point to `iterator` for one | D9 |

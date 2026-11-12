@@ -6,7 +6,8 @@
 settled: the design ships as v0.3.0, on `pipeline-experimental` until
 then. D3 settled: the design is proved by code in the core. D4
 settled: Ekorn's types are Elements. D5 settled: one method per role,
-`as_source`, `as_stage`, `as_scalar`, `as_list`. D6 open: when a sink and a source are told how the run ended. D7
+`as_source`, `as_stage`, `as_scalar`, `as_list`. D6 settled: a sink's result is
+separate from its end, and every end waits for the run to end. D7
 open: what a stage asks about its run. D8 open: `|` opt-in for the
 program, or for the code. D9 open: a reusable source of a sink's
 result.
@@ -72,11 +73,26 @@ The design's own open questions are numbered Q1 and on, in its section
   list. Weighed: `for_run` with a `role` method; the role decided by
   position, unchecked; `as_sink` with a `gives_list` flag. The
   design's 4.4, 5.2 and 17.14.
-- [ ] **D6.** When are a sink and a source told how the run ended?
-  From S2: a sink's end gives its result and is told `done` when its
-  own stream ends, so a stage dying after it leaves it committed.
-  Separating "give your result" from "the run has ended, and how" is
-  the direction.
+- [x] **D6.** When are a sink and a source told how the run ended?
+  A sink's set-up returns three closures, Iain decided on 2026-11-12:
+  its step; its result, called when its input runs out, whose return
+  goes on; and, optionally, its end, called once the run has ended,
+  told how. Every end, a source's and a stage's too, waits for the run
+  to end, and the source's is still last. What the words mean, defined
+  with it: `died`, the run died, anywhere, before it ended; `stopped`,
+  the part's input was cut short, by a stop at or after it or by the
+  run being ended from outside; `done`, its input ran out, and the run
+  didn't die; a sink that stops the run itself is told `done`. Why:
+  from the cold review's S2, a sink's one end gave its result and was
+  told `done` as its input ran out, so a stage dying after it left it
+  committed. Weighed: one end called only when the run has ended,
+  which needs a sink to be last; keeping it and calling a part's
+  verdict final, which leaves `insert_into` committing before a die.
+  What it costs: a complete pipeline pulled as a source keeps its
+  source open until its run ends, not only until its first value. It
+  changes the design's 19.2: an outer run's stop or die now reaches the
+  inner run's ends, as they wait for it. The design's 5.3, 5.4 and
+  17.15.
 - [ ] **D7.** What does a stage ask, to know about its run? From S3:
   `run_source()` gives the source object, shared by all its runs, not
   the run. A context for the run, from the source's set-up, is the

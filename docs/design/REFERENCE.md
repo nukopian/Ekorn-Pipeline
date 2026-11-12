@@ -35,8 +35,8 @@ subclass, go, as does Pipes' `pipeline_class`.
 - **Source:** something that gives values when it's pulled, called
   with nothing until it gives an empty list. Any code reference, or
   one made with `source`.
-- **Sink:** a stage that consumes every value and, at its end, gives
-  its result, one value, such as a count, or a list, such as every
+- **Sink:** a part that consumes every value and, when they run out,
+  gives its result, one value, such as a count, or a list, such as every
   value. Usually the last stage, when its result is what the run
   gives; anywhere else, its result goes on through the stages after
   it. Made with `sink`, or ready-made, such as `count`.
@@ -87,7 +87,11 @@ a run: it's the same code, with the same closure, in every run.
 ### How a run ends
 
 A run ends in one of three ways, and each part is told which, from
-where it stands **[Q3]**:
+where it stands **[Q3]**: `died` if the run died, anywhere, before it
+ended; `stopped` if its input was cut short, by a stop at or after it,
+or by the run being ended from outside; and `done` if its input ran
+out, and the run didn't die. A sink that stops the run itself is told
+`done`. For the commonest runs:
 
 | The run | The source, and the stages up to the one that stopped | The stages after it |
 |---|---|---|
@@ -107,14 +111,17 @@ my $n = Ekorn::Pipeline->new(take(5), count)->iterator($lines)->();
 
 ### What an end does
 
+A sink's result is called once its input runs out, and what it
+returns goes on through the stages after it. It isn't told how the run
+ended, as the run hasn't.
+
 A source's or a sink's end:
 
-- **always runs, once,** however the run ended, and is given how, as
-  its argument: `done`, `stopped` or `died` **[Q4]**;
-- **counts only when it's `done`.** A sink's end gives the result
-  then. Told `stopped` or `died`, what it returns is dropped; it runs
-  only to clean up, such as closing a file or rolling back. What a
-  source's end returns is always dropped;
+- **always runs, once, when the run has ended,** however it ended, and
+  is given how, as its argument: `done`, `stopped` or `died` **[Q4]**.
+  A sink that commits only when told `done` never commits for a run
+  that dies after it;
+- **gives nothing:** what it returns is dropped;
 - **runs in order:** each stage's end, first stage first, then the
   source's, once every stage has finished with what it gave **[Q5]**.
 
@@ -163,7 +170,7 @@ exported by default.
 | `stage {...}` | a Stage | the stage itself |
 | `gather {...}` | a Gather | a set-up, returning the step and, optionally, the end |
 | `source {...}` | a Source | a set-up, returning the step and, optionally, the end |
-| `sink {...}` | a Sink | a set-up, returning the step and the end |
+| `sink {...}` | a Sink | a set-up, returning the step, the result and, optionally, the end |
 
 ### pipeline
 
@@ -257,19 +264,19 @@ reference is a source, as `iterator` has always taken.
 sink { SET-UP }
 ```
 
-Returns a Sink, a stage made for each run, usually the last in a
-pipeline. Its set-up returns its step, called with each value, whose
-return is ignored; and its end, told how the run ended, which, when
-`done`, gives the result: one value or a list. Last, the result is all
-the run gives; anywhere else, it goes on through the stages after it
-**[Q8]**.
+Returns a Sink, made for each run, usually the last in a pipeline.
+Its set-up returns its step, called with each value, whose return is
+ignored; its result, called when its input runs out, giving one value
+or a list; and, optionally, its end, told how the run ended once it
+has. Last, the result is all the run gives; anywhere else, it goes on
+through the stages after it **[Q8]**.
 
 ```perl
 my $longest = sink {
     my $max;
     return (
         sub ($s) { $max = $s if length $s > length($max // '') },
-        sub ($how) { $max },
+        sub () { $max },
     );
 };
 

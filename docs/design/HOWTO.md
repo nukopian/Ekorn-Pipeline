@@ -173,10 +173,12 @@ closed its file there and then.
 ### Write a sink of your own, and act on how the run ended
 
 `sink`'s block runs at the start of each run, and returns the step,
-called with each value, and the end, told how the run ended. Most ends
-ignore how. One that should take effect only if every value went
-through checks it, such as writing to a temporary file and moving it
-into place only when the run is `done`:
+called with each value; the result, called when the values run out;
+and, if it needs one, the end, told how the run ended once it has.
+One that should take effect only if the whole run went through checks
+how, such as writing to a temporary file and moving it into place only
+when the run is `done`, so a run that dies, even after the sink, leaves
+the old file:
 
 ```perl
 use Ekorn::Pipeline::Factories qw(sink);
@@ -187,12 +189,11 @@ sub save_to ($path) {
         my($fh, $tmp) = tempfile();
         my $n = 0;
         return (
-            sub ($line) { say {$fh} $line; $n++; return },
+            sub ($line) { say {$fh} $line; $n++ },
+            sub ()      { $n },
             sub ($how) {
                 close $fh;
-                if ($how eq 'done') { rename $tmp, $path; return $n }
-                unlink $tmp;
-                return;
+                $how eq 'done' ? rename $tmp, $path : unlink $tmp;
             },
         );
     };

@@ -137,7 +137,7 @@ are values. A value never means "the end"; an empty list does.
 | **Gather** | a stage with state for the run, and an end that lets out what it held | one value | a list | `gather {...}`, `batch`, `collect` |
 | **Pipeline** | a list of stages, run in order | values (push), or a source (pull) | a list, or an iterator | `Ekorn::Pipeline->new` |
 | **Source** | gives values when pulled, until it gives none | nothing | the next value or values, or an empty list | a code reference given to `iterator` |
-| **Sink** | a stage that consumes every value, and gives its result at its end: one value, or a list | each value | nothing, until its end gives the result | nothing yet: a call in list context, `all`, `count` |
+| **Sink** | consumes every value, and gives its result when they run out: one value, or a list | each value | nothing, until its result is given | nothing yet: a call in list context, `all`, `count` |
 | **Stop** | ends a run early, from inside a stage | values to carry on | (thrown) | `Stop(...)` |
 
 How they relate:
@@ -160,13 +160,16 @@ How they relate:
   my $next = Ekorn::Pipeline->new(take(2))->iterator($artists);
   ```
 
-  The first pull runs the inner pipeline to its end, as its sink holds
-  back every value, so its source and sink are told `done` then, and a
-  later stop or die in the outer run doesn't reach them.
+  The first pull reads all of the inner source, as the inner sink
+  holds back every value until its input runs out. The inner run ends
+  when the inner iterator does: read to its end, finished, or let go,
+  as when the outer run ends. Only then are the inner source and sink
+  told how it ended (section 5.4): `done`, as their input ran out,
+  unless the outer run died, when they're told `died`.
 - **A gather is a stage** whose state lasts a run, with an end that can
   let out what it held.
 - **A sink is a stage that holds back every value,** and lets out its
-  result at its end (proposed, **Q8**): one value, such as a count, or
+  result when its input runs out (proposed, **Q8**): one value, such as a count, or
   a list, such as every value. So it's a flatMap of the whole stream,
   shaped as a gather is. It's usually last, and then its result is
   what the run gives: pushed values in, the result out; or, pulled
@@ -203,7 +206,7 @@ wrapping anything of it (principles 2 and 3; the list proposed):
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
 | **Made for a run** | an object offering a role by a method the core calls at the start of each run, returning its step and its end (section 5.2): `as_source`, to be read from; `as_stage`, to pass values through; or, to be a sink, `as_scalar` or `as_list`, at most one of them. The role it's given in decides which is called, so one object can offer several. A code reference offers none, and takes the role it's given in, with no end |
-| **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list; what its step returns is ignored, and its end gives the result (sections 5.4, 9) |
+| **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list, returning its step, whose return is ignored, its result, called when its input runs out, and, optionally, its end, called when the run has ended, told how (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from an end (section 5.6); and, if **Q21** is settled so, the run's source |
 
@@ -270,19 +273,33 @@ as it is, as every one is today.
 ### 5.3 How a run ends
 
 A run ends in one of three ways, and each part of it is told which,
-**from where it stands** (proposed, **Q3**):
+**from where it stands** (proposed, **Q3**). What each word means to
+the part told it:
+
+- **`died`:** the run died, anywhere, before it ended. A sink rolls
+  back, whether the die came before it or after it.
+- **`stopped`:** its input was cut short: by a stop at or after it
+  while it still had values to come, or by the run being ended from
+  outside, by `finish` or as its iterator was let go, before its input
+  ran out. A sink that stops the run itself is the exception: it had
+  enough, and is told `done`.
+- **`done`:** its input ran out, and the run didn't die.
+
+So, for the commonest runs:
 
 | The run | The source, and stages up to and including the one that stopped | Stages after the one that stopped |
 |---|---|---|
 | ran out of values | `done` | `done` |
 | was stopped by a stage | `stopped` | `done` |
 | had a stage or an end die | `died` | `died` |
+| was ended from outside | `stopped`, for each part whose input hadn't run out; `done` for the rest | the same |
 
 That's how a stop works already. After a stop, the stages after the
 one that stopped go on, and their ends are called with the values from
 before the stop and the ones it carries: for them, the stream ended
 normally. The stage that stopped, and those before it, are cut off:
-their ends aren't called.
+a gather's end there isn't called, and the ends of what's made for a
+run are told `stopped` once the run ends.
 
 So `from_file($path) | take(5) | count` means: the source,
 `from_file`, is told `stopped`, and closes its file; `count`, after
@@ -290,17 +307,25 @@ So `from_file($path) | take(5) | count` means: the source,
 
 ### 5.4 What an end does
 
-**A source's and a sink's end** (proposed, **Q4**):
+**A sink's result** (2026-0022's D6) is called once its input runs
+out, as a gather's end is, and what it returns goes on through the
+stages after it. It isn't told how the run ended, as the run hasn't:
+the stages after the sink are still to see its result. If its input
+is cut short, or the run dies first, it isn't called.
 
-- **always runs, once,** however the run ended, and is given how it
-  ended, `done`, `stopped` or `died`, as its argument;
-- **counts only when it's `done`:** a sink's end gives the result
-  then. Told `stopped` or `died`, what it returns is dropped; it runs
-  only to clean up, such as closing a file or rolling back. What a
-  source's end returns is always dropped.
-- **runs in order:** the stages' ends first, first stage first, as
-  now, and **the source's end last**, after every stage has finished
-  with what it gave (**Q5**);
+**A source's, a sink's, and a stage's end** made for a run (proposed,
+**Q4**):
+
+- **always runs, once, when the run has ended,** however it ended:
+  when its values have all been handed out, when it's been finished or
+  let go, or when it died. It's given how, `done`, `stopped` or
+  `died`, from where it stands (section 5.3), as its argument. So a
+  sink that commits only when told `done` never commits for a run that
+  dies after it;
+- **gives nothing:** what it returns is dropped. A sink's result comes
+  from its result, not its end;
+- **runs in order:** the stages' ends first, first stage first, and
+  **the source's end last** (**Q5**);
 - **after a die,** still runs, told `died`, and then the error is
   thrown again. An end that dies while the run is already dying
   doesn't hide the first error (**Q6**).
@@ -374,7 +399,7 @@ constructor (settled, 2026-0021):
 | `stage {...}` | a Stage | the stage itself, called with each value |
 | `gather {...}` | a Gather | a set-up, returning the step and, optionally, the end |
 | `source {...}` | a Source | a set-up, returning the step and, optionally, the end |
-| `sink {...}` | a Sink | a set-up, returning the step and the end |
+| `sink {...}` | a Sink | a set-up, returning the step, the result and, optionally, the end |
 
 The rule for the blocks: **a word for something made afresh for each
 run takes a set-up; `stage` takes the stage itself.** A source with
@@ -386,7 +411,7 @@ my $upper = stage { uc };
 
 my $count = sink {
     my $n = 0;
-    return (sub ($value) { $n++; return }, sub ($how) { $n });
+    return (sub ($value) { $n++ }, sub () { $n });    # its step and its result
 };
 ```
 
@@ -688,8 +713,9 @@ the set-up; its `_finish` the end.
 
 `insert_into($dbh, $table)`, in DBIx::Squirrel::Sinks (its 2026-0012):
 its set-up prepares the INSERT and begins a transaction; its step
-executes it for each value; its end commits if the run is `done`, and
-rolls back if not, giving how many rows went in:
+executes it for each value; its result is how many rows went in; and
+its end, once the run has ended, commits if it's `done`, and rolls
+back if not, so a run that dies after it inserts nothing:
 
 ```perl
 sub insert_into ($dbh, $table) {
@@ -698,8 +724,9 @@ sub insert_into ($dbh, $table) {
         my $n   = 0;
         $dbh->begin_work;
         return (
-            sub ($row) { $sth->execute(@$row); $n++; return },
-            sub ($how) { $how eq 'done' ? $dbh->commit : $dbh->rollback; $n },
+            sub ($row) { $sth->execute(@$row); $n++ },
+            sub ()     { $n },
+            sub ($how) { $how eq 'done' ? $dbh->commit : $dbh->rollback },
         );
     };
 }
@@ -839,11 +866,11 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q1** | Do sources, sinks and operators belong in Ekorn, a step toward a stream library beyond the README's pitch? | Iain | Yes, opt-in, as the pull is what makes stages safe for files and databases; the README says so in a section of its own |
 | **Q2** | The lifecycle method's name? | Ekorn | Settled by 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands (5.3)? | Ekorn | Yes: it's how a stop works today |
-| **Q4** | A source's and a sink's end always runs, and a sink's result counts only when `done`? | Ekorn | Yes |
+| **Q4** | A source's and a sink's end always runs, once the run has ended, told how; a sink's result comes from a closure of its own, when its input runs out (2026-0022's D6)? | Ekorn | Yes |
 | **Q5** | The source's end runs last, after every stage's? | Ekorn | Yes |
 | **Q6** | An end that dies during a die: warn, keeping the first error? | Ekorn | Yes, with a message saying which end |
 | **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | Ekorn, DBIx-Squirrel to confirm | Yes |
-| **Q8** | A sink is a stage, made for a run, that holds back every value and gives its result at its end, one value or a list: usually last, its result going on through any stages after it? | Ekorn | Yes |
+| **Q8** | A sink is made for a run, holds back every value, and gives its result, one value or a list, when its input runs out: usually last, its result going on through any stages after it? | Ekorn | Yes |
 | **Q9** | `stage(\&trim)`: wrap, never bless the sub given? | Ekorn | Always wrap |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
@@ -1024,10 +1051,11 @@ Weighed and set aside:
 ### 17.9 A sink is a stage, usually the last
 
 (Section 4.2, **Q8**.) A sink holds back every value and lets out its
-result at its end, so it's a flatMap of the whole stream, the same
-shape as a gather. What sets it apart is its end, which always runs
-and is told how the run ended (17.7), so it can roll back or close a
-file after a die, where a gather's end isn't called.
+result when its input runs out, so it's a flatMap of the whole stream,
+the same shape as a gather. What sets it apart is its end, which
+always runs, once the run has ended, and is told how (17.7, 17.15), so
+it can roll back or close a file after a die, where a gather's end
+isn't called.
 
 Weighed and set aside:
 
@@ -1142,6 +1170,31 @@ Weighed and set aside:
   beside the method, where two methods, after Perl's own scalar and
   list context, say it in the method's name.
 
+### 17.15 A sink's result and its end are separate
+
+(Section 5.4; Iain, 2026-11-12, 2026-0022's D6.) A sink gives its
+result from a closure of its own, when its input runs out, and its
+end is told how the run ended only once the run has ended. Every end
+waits for the run to end, so a sink that commits when told `done`
+never commits for a run that dies after it, and section 5.3's table
+holds as written.
+
+Weighed and set aside:
+
+- **One end, giving the result and told how, called when the sink's
+  input runs out,** which the prototype built. A stage dying after the
+  sink left it told `done`, and committed: the cold review's S2.
+- **One end, called only when the run has ended.** The stages after a
+  sink need its result while the run goes on, so it would work only
+  if a sink had to be last, which section 4.2 rejects.
+- **Keeping it, and saying a part's verdict is final once its input
+  runs out.** Simplest, but `insert_into` would commit and then the
+  run die, where a sink matters most.
+
+What it costs: a pipeline ending in a sink, pulled as a source, keeps
+its own source open until its run ends, not only until its first
+value is given; its source is told the truth, a little later.
+
 ## 18. Where each roadmap item lands
 
 | Item | Section | In this design |
@@ -1216,13 +1269,14 @@ my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
 It proves that a whole run, with its ends, can be one part of another
 run, without the ends of either reaching the other:
 
-- **The inner run ends at the first pull:** its sink holds back every
-  value, so the first pull reads all of `a.txt`, and its source and
-  sink are told `done`, before the outer run has its first value.
-- **The outer run's ending doesn't reach the inner:** `take(2)` stops
-  the outer run, telling its source, the inner iterator, `stopped`,
-  but the inner's own source and sink, already ended, aren't told
-  again. The same holds for a die in the outer run.
+- **The first pull reads the inner source to its end:** its sink
+  holds back every value, so all of `a.txt` is read before the outer
+  run has its first value. Neither the inner source nor its sink is
+  told anything yet, as the inner run hasn't ended.
+- **The outer run's ending ends the inner run:** `take(2)` stops the
+  outer run, which finishes the inner iterator; the inner source and
+  sink, whose input had run out, are told `done`, the source last. Had
+  the outer run died, they'd be told `died`.
 - **A result of one value is a source of one value:** with `count` as
   the inner sink, the first pull gives the count, and the next an
   empty list.
@@ -1231,8 +1285,7 @@ run, without the ends of either reaching the other:
   inner source is told `stopped`. So it's the sink that makes the
   inner run read everything first.
 - **Abandoned, it ends:** the outer iterator let go after one pull
-  ends its run, as section 5.5 says, and the inner's too if it hasn't
-  ended already, as it has when the inner pipeline ends in a sink.
+  ends its run, as section 5.5 says, and so the inner's.
 
 ### 19.3 What the proofs need built
 
