@@ -957,7 +957,6 @@ Settled questions keep their numbers, listed after the open ones.
 
 | | Question | Whose | Recommended |
 |---|---|---|---|
-| **Q6** | An end that dies during a die: warn, naming the end, keeping the first error? | Ekorn | Yes; section 5.4 states it so |
 | **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | DBIx-Squirrel to confirm | Yes: Ekorn's side is settled by D4 and D15 |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
@@ -979,6 +978,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
 | **Q5** | Where does the source's end run among the ends? | D11: first |
+| **Q6** | An end that dies during a die? | D27: a warning, naming the end, and the first error kept (section 5.4) |
 | **Q8** | What is a sink? | D6 and D12, and section 4.2: made for a run, holding back every value, its flush giving its result; usually last |
 | **Q9** | `stage(\&trim)`: wrap, never bless? | D4: a Stage holds the code given, untouched |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |

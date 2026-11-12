@@ -21,7 +21,8 @@ settled, from the third cold review: one stage-place method; `done`
 for a part whose input ran out; set-ups when the run starts; ends
 wait, nothing run early; chains of stages; no context in a pushed
 run; a scalar sink always gives one value. D26 settled: the stream
-concept applied to functions is what Ekorn is for.
+concept applied to functions is what Ekorn is for. D27 settled: an end
+dying during a die warns, naming the end.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -236,6 +237,11 @@ D19 to D25 came from the third cold review, settled by Iain on
   pulling a function's values through a pipeline of their own. It
   stays opt-in. The design's section 2, and the roadmap's 2026-0016 and
   0017, no longer a change of scope to weigh.
+- [x] **D27.** An end that dies while the run is already dying (the
+  design's Q6)? A warning, naming the end, and the first error kept,
+  Iain decided on 2026-11-12, as recommended. Why: a second error must
+  not hide the first, which is the one that ended the run, and the
+  warning is no use if it doesn't say which end failed. Design 5.4.
 
 ## The plan
 

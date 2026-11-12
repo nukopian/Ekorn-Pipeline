@@ -143,8 +143,7 @@ An end:
 
 After a stage dies, every end still runs, told `died`, and then the
 error is thrown again, as it would have been. An end that dies then is
-reported as a warning, naming its stage, and the first error is kept
-**[Q6]**.
+reported as a warning, naming its stage, and the first error is kept.
 
 ### An iterator left unfinished
 
@@ -597,7 +596,7 @@ Wording to be settled when the code is written. One for each:
 - a chain with `|` ending in a sink that gives a list, such as
   `to_array`;
 - an end that died while the run was already dying (a warning)
-  **[Q6]**;
+ ;
 - `|` started with something that isn't one of the types, or given
   on its right what can't go where a stage goes.
 
