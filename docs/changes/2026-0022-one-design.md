@@ -134,6 +134,27 @@ What the prototype found, for the design to take in:
 11. **`to_file` in paragraph mode** writes a blank line after each
     record, as `chomp` took off all the newlines there were.
 
+### The implementation document, 2026-11-12
+
+`docs/design/IMPLEMENTATION.md` describes what's built, with examples
+that run, and sets the design beside the code, part by part. Writing
+it found three more things:
+
+12. **An iterator ended from outside didn't stop.** After `finish`, or
+    once let go, its run's source had been told it ended, but calling
+    the iterator again went on pulling from it: for `from_file`, a
+    closed file. Ended from outside, a run now also stops, and
+    `t/15-proofs.t` tests it.
+13. **What a sink's step returns goes on,** as any stage's does; the
+    draft reference says it's ignored. Ekorn's sinks return nothing,
+    so they're unaffected; a `sink {...}` whose step returns values is
+    a stage made for a run, with an end that always runs. The design
+    should decide which it means.
+14. **A sink is told `stopped` only when its run is ended from
+    outside.** It holds back every value, so a stop after it can't
+    come while the source has values, and one before it leaves it
+    after the stop. Section 5.3 of the design should say so.
+
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
   placeholder POD; CI doesn't run on `pipeline-experimental`. Each item
