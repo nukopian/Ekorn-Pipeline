@@ -624,7 +624,7 @@ reads, the other writes. Nothing exported by default.
 | `keep_all` | every item, as a list | list | no |
 | `keep_first` | the first item; `undef` if none | scalar | yes |
 | `keep_single` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | scalar | at a second |
-| `last_item` | the last item | scalar | no |
+| `keep_last` | the last item, reading every one to find it; `undef` if none | scalar | no |
 | `any_item(sub {...})` | true at the first item the sub is true of | scalar | yes |
 | `every_item(sub {...})` | false at the first item the sub is false of | scalar | yes |
 | `count_items` | how many items there were: it's what it is, not where it's put | scalar | no |
@@ -1734,9 +1734,10 @@ Weighed and set aside:
 (Section 8.3; Iain, 2026-11-12, 2026-0022's D50, from DBIx-Squirrel's
 design, where its iterator's `all`, `single` and `count` give way to
 sinks.) Two families: sinks named for what they give, `keep_all`,
-`keep_first`, `keep_single`, `last_item`, `any_item`, `every_item`,
-`count_items` and the rest, "item" replacing "value" (D55 since
-renamed three, as `keep_all`, `keep_first` and `keep_single`, 17.30);
+`keep_first`, `keep_single`, `keep_last`, `any_item`, `every_item`,
+`count_items` and the rest, "item" replacing "value" (D55 and D56
+since renamed four, as `keep_all`, `keep_first`, `keep_single` and
+`keep_last`, 17.30);
 and container sinks,
 named for where the items go, the `to_` sinks, now `to_fh` and
 `to_file` (D54, 17.29). `keep_single`
@@ -1873,7 +1874,8 @@ renamed `keep_all`, `first_item` `keep_first`, and `single_item`
 what the sink keeps of what reaches it, which is what it gives.
 `keep_all` no longer shares its name with Test2::V0's `all_items`
 check, so a test imports both with no more said. `count_items` keeps
-its name, and `last_item`, not built, is still to be named.
+its name. `last_item`, designed but not built, became `keep_last`, and
+was built (D56).
 
 ## 18. Where each roadmap item lands
 

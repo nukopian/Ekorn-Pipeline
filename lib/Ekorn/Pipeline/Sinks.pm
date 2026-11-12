@@ -9,14 +9,16 @@ use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK = qw(keep_all count_items keep_first keep_single to_file);
+our @EXPORT_OK
+    = qw(keep_all count_items keep_first keep_last keep_single to_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Each sink taking no arguments has an empty prototype, so that
-# `count_items + 0` reads as `count_items() + 0`, not `count_items(+0)`. A chain inside a
-# larger expression still needs parentheses, as | binds loosest.
+# `count_items + 0` reads as `count_items() + 0`, not `count_items(+0)`.
+# A chain inside a larger expression still needs parentheses, as |
+# binds loosest.
 
 # Return a sink giving how many values there were.
 sub count_items : prototype() () {
@@ -27,8 +29,8 @@ sub count_items : prototype() () {
 }
 
 
-# The sinks named for what they give: keep_all, keep_first, keep_single
-# and count_items. The container sink, named for where the items go, is
+# The sinks named for what they give: keep_all, keep_first, keep_last,
+# keep_single and count_items. The container sink, named for where the items go, is
 # to_file, below.
 
 # Return a sink giving every item, as a list.
@@ -70,6 +72,16 @@ sub keep_first : prototype() () {
             sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
             sub () { @first },
         );
+    });
+}
+
+
+# Return a sink giving the last item, reading every one to find it;
+# undef if there was none.
+sub keep_last : prototype() () {
+    return Ekorn::Pipeline::Sink->new_scalar(sub {
+        my @kept;
+        return (sub ($item) { @kept = ($item); return }, sub () { @kept });
     });
 }
 

@@ -391,7 +391,7 @@ source: what one reads, the other writes.
 | `keep_all` | every item, as a list | no |
 | `keep_first` | the first item, or `undef` if none | yes |
 | `keep_single` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
-| `last_item` | the last item | no |
+| `keep_last` | the last item, reading every one to find it, or `undef` if none | no |
 | `any_item(sub {...})` | true at the first item the sub is true of, or false | yes, when true |
 | `every_item(sub {...})` | false at the first item the sub is false of, or true | yes, when false |
 | `count_items` | how many items there were | no |

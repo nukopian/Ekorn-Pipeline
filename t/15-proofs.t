@@ -15,7 +15,7 @@ use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
-    keep_all count_items keep_first keep_single
+    keep_all count_items keep_first keep_last keep_single
     to_file);
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Stages::Flow;
@@ -578,6 +578,15 @@ subtest 'Sinks named for what they give (D50)' => sub {
     like $warnings->[0], qr( \A Expected\ only\ one\ item )x;
     is from_arrayref([9]) | keep_single, 9, 'it ends a chain';
     is keep_first->(3, 4),               3, 'keep_first gives the first';
+
+    is keep_last->(3, 4, 5),                5,        'keep_last gives the last';
+    is keep_last->(),                       undef,    'or undef, given none';
+    is from_arrayref([1, 2]) | keep_last,   2,        'it ends a chain';
+    is Ekorn::Pipeline::is_sink(keep_last), 'scalar', 'a scalar sink';
+    my $next = $class->new(keep_last)->iterator(from_arrayref([1, 2, 3]));
+    is [$next->()],  [3],    'pulled, it gives the last';
+    is [$next->()],  [],     'and only that';
+    is $next->ended, 'done', 'having read the source to its end';
 };
 
 subtest 'Sinks and context (D10, D17, D25, D51)' => sub {

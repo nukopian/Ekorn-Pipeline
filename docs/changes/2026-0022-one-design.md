@@ -50,7 +50,8 @@ sink. D53 settled: `count` renamed `count_items`, and `only_item`
 `single_item`, revising D50's names. D54 settled: no containers for
 arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
 `all_items`, `first_item` and `single_item` renamed `keep_all`,
-`keep_first` and `keep_single`.
+`keep_first` and `keep_single`. D56 settled: `last_item` is
+`keep_last`, and built.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -524,6 +525,11 @@ D19 to D25 came from the third cold review, settled by Iain on
   the check out goes. `count_items` keeps its name; `last_item`, not
   built, is still to be named. Unreleased. Built: renamed in Sinks,
   with its tests. Design 8.3 and the new 17.30; the names throughout.
+- [x] **D56.** What's `last_item` called, and is it built now? It's
+  `keep_last`, matching `keep_first`, and built now, Iain decided on
+  2026-11-12. It gives the last item, `undef` if there was none, and,
+  unlike `keep_first`, reads every item to find it, so it never stops
+  the pull early. Built: in Sinks, with tests. Design 8.3 and 17.30.
 
 ## The plan
 
