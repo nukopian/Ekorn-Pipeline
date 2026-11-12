@@ -104,9 +104,16 @@ section 17 gives the reasons for each.
    user calls reads names, in the user's own package. `new` reads
    none, as it's called by code in between: Pipes, DBIx::Squirrel's
    `iterate`, any function taking stages from its caller.
-6. **Every type is a code reference.** Each is a blessed code
-   reference, so it works wherever a code reference does, and every
-   function taking stages today takes the new types unchanged.
+6. **Every type is an Element, called as a code reference** (settled
+   by Iain, 2026-11-12). Each of Ekorn's types, the pipeline included,
+   is an object of a class built on Ekorn::Pipeline::Element: a hash
+   holding what it was made with, overloading `&{}`, so it's called as
+   a code reference wherever one is. A plain code reference given to
+   a pipeline is made a Stage, so a pipeline is made of Elements.
+   `is_stage` takes a plain code reference, or an Element that goes
+   where a stage goes, so every function taking stages today takes the
+   new types unchanged. Code that checks for a code reference by its
+   type, `ref` or Ref::Util's `is_coderef`, doesn't see one.
 7. **State made for a run lives in lexicals.** Whatever needs fresh
    state for each run is written as `gather` is today: its block runs
    at the start of the run, declares the state with `my`, and returns
@@ -307,10 +314,12 @@ An iterator nobody finishes, such as `my($first) = $next->()` and
 then nothing more, never runs out and is never stopped. Its source's
 file would stay open until the program ends.
 
-**Proposed (Q7):** `iterator` returns a blessed code reference (still
-callable as `$next->()`, so nothing changes for its callers), whose
-`DESTROY` ends the run, telling its source and sink `stopped`, if it
-hasn't ended already. Perl calls `DESTROY` when the last reference
+**Proposed (Q7):** `iterator` returns an Ekorn::Pipeline::Iterator,
+an Element (still called as `$next->()`, so nothing changes for its
+callers), whose `DESTROY` ends the run, telling its source and sink
+`stopped`, if it hasn't ended already. Its `finish` method ends the
+run the same way, sooner, and a run ended either way hands out
+nothing more. Perl calls `DESTROY` when the last reference
 goes, which is prompt for a lexical iterator. During global
 destruction its order isn't guaranteed, so an end mustn't rely on
 other objects then.
@@ -326,14 +335,16 @@ it came from.
 
 ### 6.1 Classes and their constructors
 
-Each type is a class, made by its constructor, a class method that
-takes only real things (code references, pipelines), never names:
+Each type is a class built on Ekorn::Pipeline::Element (principle 6),
+made by its constructor, a class method that takes only real things
+(code references, pipelines), never names:
 
 | Class | Constructor | Notes |
 |---|---|---|
-| `Ekorn::Pipeline` | `new(@stages)` | settled; strict: no names |
-| `Ekorn::Pipeline::Stage` | `new($code)` | proposed; wraps the code given, never blesses it (**Q9**) |
-| `Ekorn::Pipeline::Gather` | `new($setup)` | as `gather` makes today |
+| `Ekorn::Pipeline::Element` | (none) | the base: `call`, `&{}`, and `goes_as_stage`, true unless a class says not, as Source and Iterator do |
+| `Ekorn::Pipeline` | `new(@stages)` | settled; strict: no names; makes a Stage of each plain code reference, and `stages` returns the Elements |
+| `Ekorn::Pipeline::Stage` | `new($code)` | proposed; wraps the code given, never blesses it (**Q9**); a run calls the code as it is |
+| `Ekorn::Pipeline::Gather` | `new($setup)` | as `gather` makes today, now an Element |
 | `Ekorn::Pipeline::Source` | `new($setup)` | proposed; `$setup` returns the step and the end |
 | `Ekorn::Pipeline::Sink` | `new($setup)` | proposed; `$setup` returns the step and the end |
 
@@ -575,6 +586,8 @@ neither depends on the other's internals.
 | `Ekorn::Pipeline::Gather` | core | the Gather class; `gather` | `gather` by default |
 | `Ekorn::Pipeline::Errors` | core | `croakf`, `@INTERNAL` | `croakf` on request |
 | `Ekorn::Pipeline::Pipes` | core | `pipe` and `tap`, for a class's objects to make pipelines with | none: a parent class |
+| `Ekorn::Pipeline::Element` | core | the base class of every type | none |
+| `Ekorn::Pipeline::Iterator` | core | what `iterator` returns | none |
 | `Ekorn::Pipeline::Stage`, `::Source`, `::Sink` | 1 | the classes | none |
 | `Ekorn::Pipeline::Factories` | 1 | the words | on request |
 | `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | canned stages | as now |
@@ -750,7 +763,9 @@ before. A v0.2.x from `develop` in the meantime only fixes.
 |---|---|
 | The lifecycle protocol; sources' and sinks' ends | no: only the new types use them |
 | `gather` | unchanged |
-| `iterator` returning a blessed code reference | no, unless code checks `ref` is `CODE` (**Q7**) |
+| `iterator` returning an Iterator, an Element | no, unless code checks `ref` is `CODE` (**Q7**) |
+| Gather, and the canned stages made with it, become Elements | `ref` and `is_coderef` change: an object, called as a code reference |
+| `stages` returns Elements: a code reference given comes back as a Stage of it | code comparing them with what it gave |
 | Stage, Source, Sink, Factories, Sources, Sinks, Sugar, Operators | no: new modules |
 | `pipeline` and `named`, names per package | no: new, unreleased |
 | Canned stages returning objects | `ref` changes from `CODE` (**Q12**) |
@@ -816,7 +831,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q4** | A source's and a sink's end always runs, and a sink's result counts only when `done`? | Ekorn | Yes |
 | **Q5** | The source's end runs last, after every stage's? | Ekorn | Yes |
 | **Q6** | An end that dies during a die: warn, keeping the first error? | Ekorn | Yes, with a message saying which end |
-| **Q7** | `iterator` returns a blessed code reference whose `DESTROY` ends an abandoned run? | Ekorn, DBIx-Squirrel to confirm | Yes |
+| **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | Ekorn, DBIx-Squirrel to confirm | Yes |
 | **Q8** | A sink is a stage, made for a run, that holds back every value and gives its result at its end, one value or a list: usually last, its result going on through any stages after it? | Ekorn | Yes |
 | **Q9** | `stage(\&trim)`: wrap, never bless the sub given? | Ekorn | Always wrap |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
@@ -1067,6 +1082,29 @@ Weighed and set aside:
 - **`to_hash(sub {...})`, keying each value by what a sub gives.** It
   wouldn't be the counterpart of `from_hash`, which gives pairs; a
   stage making pairs, then `to_hash`, does the same.
+
+### 17.13 Ekorn's types are Elements
+
+(Principle 6; Iain, 2026-11-12.) Each type is a class on
+Ekorn::Pipeline::Element, a hash overloading `&{}`, as Ekorn::Pipeline
+always was, and a pipeline is made of Elements.
+
+Weighed and set aside:
+
+- **Blessed code references,** which the prototype first built. A
+  code reference has no fields, so Source, Sink and Iterator kept what
+  they were made with in hashes keyed by their address, cleaned up in
+  `DESTROY`, and reached by their methods through them. And each had
+  to close over something: Perl gives every evaluation of an anonymous
+  sub that refers to no outer variable the same code reference, so
+  every Sink was one object until the prototype's tests caught it. It
+  also left the pipeline, a hash, as a second model beside them. In
+  their favour, they were code references to any code checking the
+  type, which Elements aren't.
+- **Plain code references kept as they are in a pipeline,** beside
+  Elements. The core would meet two kinds of stage, and `stages` two
+  kinds of answer. Made a Stage, a code reference costs nothing per
+  value: a run calls the code as it is.
 
 ## 18. Where each roadmap item lands
 

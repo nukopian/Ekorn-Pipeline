@@ -160,9 +160,8 @@ The message, whole:
 and `sink {...}` take a set-up, as `gather` does: the block runs at the
 start of each run, declares the run's state with `my`, and returns the
 step and the end as closures sharing it; the end always runs, and is
-told how the run ended. Each makes a blessed code reference, so it
-works wherever a code reference does, with a class method a subclass,
-can wrap. Layer 1 of DBIx-Squirrel's message;
+told how the run ended. Each makes an Element, an object called as a
+code reference, over a class method. Layer 1 of DBIx-Squirrel's message;
 the design, with the reasons for this shape, is in `docs/design/`
 (2026-0022).
 The message, whole:

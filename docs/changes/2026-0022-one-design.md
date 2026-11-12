@@ -4,7 +4,8 @@
 
 **Decisions:** D1 settled: DBIx::Squirrel uses Ekorn as it is. D2
 settled: the design ships as v0.3.0, on `pipeline-experimental` until
-then. D3 settled: the design is proved by code in the core.
+then. D3 settled: the design is proved by code in the core. D4
+settled: Ekorn's types are Elements.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -39,6 +40,14 @@ The design's own open questions are numbered Q1 and on, in its section
   it proves the design fits today's run loop, stops and gathers, not
   only itself. Whether it's kept once the design is split into items
   is the design's Q19.
+- [x] **D4.** Blessed code references, or classes? Classes, Iain
+  decided on 2026-11-12: each type a class on a base,
+  Ekorn::Pipeline::Element, a hash overloading `&{}` as Ekorn::Pipeline
+  always was, and a plain code reference given to a pipeline made a
+  Stage, so a pipeline is made of Elements, and `stages` returns them.
+  Why: blessed code references have no fields, so their state lived in
+  address-keyed hashes, and the closure trap of finding 8 came with
+  them. The design's principle 6 and 17.13.
 
 ## The plan
 
@@ -154,6 +163,24 @@ it found three more things:
     outside.** It holds back every value, so a stop after it can't
     come while the source has values, and one before it leaves it
     after the stop. Section 5.3 of the design should say so.
+
+### Elements, 2026-11-12
+
+Built to D4: Element, with `call`, `&{}` and `goes_as_stage`; Stage,
+Gather, Source, Sink, Iterator and Ekorn::Pipeline on it; `new` making
+a Stage of each plain code reference, and a run calling its code as it
+is; `is_stage` asking an Element whether it goes where a stage goes;
+chains keeping what they're made of in their own hash. The
+address-keyed hashes, and the closure each class needed, are gone.
+Two existing tests changed with it, as v0.3.0 changes: a gather is no
+longer a code reference to `is_coderef`, and `stages` returns Stages
+of the code given. Everything else passed unchanged.
+
+15. **An object made for a run is taken as a source unless it's an
+    Element or a code reference.** Both a package's source and a
+    package's sink have `for_run`, so a package's own sink must be one
+    or the other to go where a stage goes. Section 4.4 of the design
+    should say how a source is told from a stage made for a run.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

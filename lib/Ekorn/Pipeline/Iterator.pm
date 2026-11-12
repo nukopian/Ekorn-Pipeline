@@ -2,36 +2,35 @@ use v5.36;
 
 package Ekorn::Pipeline::Iterator;
 
-use experimental qw(builtin);
-use builtin      qw(refaddr);
+use parent 'Ekorn::Pipeline::Element';
+
 use namespace::clean;
 
-# Each iterator's finish, by its address.
-my %finish;
-
-# Return an iterator: a code reference of this class, calling $next,
-# whose run $finish ends, told how it ended.
+# Return an iterator, calling $next for each value, whose run $finish
+# ends, told how it ended.
 sub new ($class, $next, $finish) {
-    my $self = bless sub { &{ $next } }, $class;
-    $finish{refaddr($self)} = $finish;
-    return $self;
+    return bless {call => $next, finish => $finish}, $class;
 }
 
 
 # End the run, if it hasn't ended, telling its parts how: "stopped",
 # unless told otherwise.
 sub finish ($self, $how = 'stopped') {
-    my $finish = $finish{refaddr($self)};
-    $finish->($how) if $finish;
+    $self->{finish}->($how);
     return;
+}
+
+
+# An iterator is a source, so it can't go where a stage goes.
+sub goes_as_stage ($self) {
+    return 0;
 }
 
 
 # An iterator let go ends its run, as stopped.
 sub DESTROY ($self) {
     local $@ = undef;
-    my $finish = delete $finish{refaddr($self)};
-    $finish->('stopped') if $finish;
+    $self->{finish}->('stopped') if $self->{finish};
     return;
 }
 

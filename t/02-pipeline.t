@@ -72,7 +72,9 @@ subtest 'in scalar context, a pipeline returns how many results' => sub {
 subtest 'stages returns the stages, to splice into another pipeline' => sub {
     my($double, $odd) = (sub { $_ * 2 }, sub { $_ % 2 ? $_ : () });
     my $p = $class->new($odd, $double);
-    is [$p->stages], [exact_ref($odd), exact_ref($double)], 'in order';
+    is [map { $_->code } $p->stages], [exact_ref($odd), exact_ref($double)],
+        'in order, each a code reference given made a Stage, of that code';
+    isa_ok [$p->stages]->[0], ['Ekorn::Pipeline::Stage'];
     my $n = $p->stages;
     is $n,                    2,  'how many, in scalar context';
     is [$class->new->stages], [], 'none';

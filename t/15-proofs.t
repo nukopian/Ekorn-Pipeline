@@ -249,6 +249,52 @@ subtest '19.2 A complete pipeline as a source' => sub {
     };
 };
 
+subtest "Ekorn's types are Elements" => sub {
+    my $plain    = sub { $_ * 2 };
+    my $pipeline = $class->new($plain);
+    my $stage    = ($pipeline->stages)[0];
+    isa_ok $stage, ['Ekorn::Pipeline::Stage'],
+        'a code reference given to new is made a Stage';
+    ref_is $stage->code, $plain, 'of the code given, kept as it is';
+    is [$pipeline->(1, 2)], [2, 4], 'and run as it is';
+
+    my %made = (
+        stage  => stage { $_ },
+        gather => Ekorn::Pipeline::Gather::gather(sub {
+            sub { $_ }
+        }),
+        sink   => count,
+        source => source {
+            sub { () }
+        },
+        pipeline => $pipeline,
+        iterator => $pipeline->iterator(sub { () }),
+    );
+    for my $type (sort keys %made) {
+        isa_ok $made{$type}, ['Ekorn::Pipeline::Element'], "a $type";
+    }
+    is {
+        map { ($_ => Ekorn::Pipeline::is_stage($made{$_})) } keys %made
+    },
+        {
+            stage    => T(),
+            gather   => T(),
+            sink     => T(),
+            pipeline => T(),
+            source   => F(),
+            iterator => F(),
+        },
+        'each says whether it goes where a stage goes';
+    ok Ekorn::Pipeline::is_stage($plain), 'as a code reference does';
+
+    like dies { $class->new($made{source}) },
+        qr( \A Expected\ stage\ \#1\ to\ be\ a\ stage,\ not\ a\ source )x,
+        'a source given as a stage croaks';
+    like dies { $class->new->iterator($pipeline) },
+        qr( \A Expected\ a\ code\ reference )x,
+        'and a pipeline given as a source';
+};
+
 # A package outside Ekorn's namespace, standing for DBIx::Squirrel: a
 # source of rows that knows its columns, and a stage that asks the run's
 # source for them. It uses Ekorn as it is: nothing subclassed or wrapped.

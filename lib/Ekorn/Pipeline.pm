@@ -10,12 +10,13 @@ use Exporter  qw();
 use Ref::Util qw(is_arrayref is_coderef is_ref);
 use mro       qw();
 
+use parent 'Ekorn::Pipeline::Element';
+
 use Ekorn::Pipeline::Errors   qw(croakf);
 use Ekorn::Pipeline::Iterator qw();
+use Ekorn::Pipeline::Stage    qw();
 
 use namespace::clean -except => 'import';
-
-use overload '&{}' => sub ($self, @) { $self->{call} }, fallback => 1;
 
 our $VERSION = 'v0.2.0';
 
@@ -24,10 +25,23 @@ our @EXPORT_OK = qw(is_stage pipeline);
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
-# Return true if what's given can go where a stage goes: a code reference,
-# or a pipeline, whose stages go in its place.
+# Return true if what's given can go where a stage goes: a code
+# reference, or an element that says it can, such as a stage, a sink or
+# a pipeline, whose stages go in its place.
 sub is_stage ($thing) {
-    return !!($thing isa 'Ekorn::Pipeline' || is_coderef($thing));
+    return !!(
+          $thing isa 'Ekorn::Pipeline::Element'
+        ? $thing->goes_as_stage
+        : is_coderef($thing));
+}
+
+
+# Return the stage given as an element, making a Stage of a code
+# reference; a code reference made for a run, as a sink of a package's
+# own may be, is kept as it is.
+sub _element ($stage) {
+    return $stage if $stage isa 'Ekorn::Pipeline::Element' || _made_for_run($stage);
+    return Ekorn::Pipeline::Stage->new($stage);
 }
 
 
@@ -38,19 +52,19 @@ sub new ($class, @given) {
     my(@stages, @names);
     for my $n (1 .. @given) {
         my $stage = $given[$n - 1];
-        croakf 'Expected stage #%d to be a code reference or a pipeline', $n
-            unless is_stage($stage);
         croakf 'Expected stage #%d to be a stage, not a source', $n
             if $stage isa 'Ekorn::Pipeline::Source';
+        croakf 'Expected stage #%d to be a code reference or a pipeline', $n
+            unless is_stage($stage);
         if ($stage isa 'Ekorn::Pipeline') {
             my($inner, $inner_names) = _composed($stage);
             croakf 'Expected stage #%d to be a code reference or a pipeline', $n
                 unless $inner_names;
-            push @stages, @$inner;
+            push @stages, map { _element($_) } @$inner;
             push @names,  map { "$n.$_" } @$inner_names;
             next;
         }
-        push @stages, $stage;
+        push @stages, _element($stage);
         push @names,  $n;
     }
     return bless {
@@ -178,7 +192,7 @@ sub _composed ($pipeline) {
         $same = (refaddr($stages[$i]) // 0) == refaddr($made->[$i]);
     }
     return \@stages, $pipeline->{names} if $same;
-    return \@stages, undef              if grep { !is_coderef($_) } @stages;
+    return \@stages, undef              if grep { !is_stage($_) } @stages;
     return \@stages, [1 .. @stages];
 }
 
@@ -187,7 +201,9 @@ sub _composed ($pipeline) {
 # through the stages.
 sub iterator ($self, $source) {
     croakf 'Expected a code reference'
-        unless is_coderef($source) || _made_for_run($source);
+        unless is_coderef($source)
+        || _made_for_run($source)
+        || $source isa 'Ekorn::Pipeline::Iterator';
     return _iterator($self->{stages}, $self->{names}, $source);
 }
 
@@ -279,6 +295,8 @@ sub _make_run ($stages, $names, $run) {
             next;
         }
         unless ($stage isa 'Ekorn::Pipeline::Gather') {
+            # A Stage's code is run as it is, with nothing in between.
+            $stage = $stage->code if $stage isa 'Ekorn::Pipeline::Stage';
             push @{ $run->{stages} }, $stage;
             push @{ $run->{names} },  $name;
             push @{ $run->{ends} },   undef;

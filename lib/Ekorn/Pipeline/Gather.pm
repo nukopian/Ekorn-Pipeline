@@ -2,6 +2,8 @@ use v5.36;
 
 package Ekorn::Pipeline::Gather;
 
+use parent 'Ekorn::Pipeline::Element';
+
 use Exporter  qw(import);
 use Ref::Util qw(is_coderef);
 
@@ -18,8 +20,15 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # block given, which returns the stage, and optionally a function called
 # when the values run out.
 sub gather : prototype(&) ($block) {
+    return __PACKAGE__->new($block);
+}
+
+
+# Return a gather of the block given. Called, it calls the block, as
+# the core does at the start of each run.
+sub new ($class, $block) {
     croakf 'Expected a code reference' unless is_coderef($block);
-    return bless sub { $block->() }, __PACKAGE__;
+    return bless {call => sub { $block->() }}, $class;
 }
 
 1;
@@ -129,8 +138,8 @@ one.
     my $stage = gather { ...; return ($stage, $end) };
 
 Returns a stage that a pipeline makes afresh for each run, by calling
-the block. It's a code reference, blessed into Ekorn::Pipeline::Gather,
-so it can go wherever a stage can. C<gather> is exported by default.
+the block. It's an Ekorn::Pipeline::Gather, which can be called as a
+code reference, so it can go wherever a stage can. C<gather> is exported by default.
 To keep it out of your namespace:
 
     use Ekorn::Pipeline::Gather ();

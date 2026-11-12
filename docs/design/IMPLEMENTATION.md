@@ -172,7 +172,7 @@ stream end normally, so it was told `done` and gave its count.
               new, iterator, the run loop, the lifecycle,
                    ending(), run_source(), names
                              |
-               Iterator   Stop   Errors   Pipes
+          Element   Iterator   Stop   Errors   Pipes
 ```
 
 Each layer uses only those below it. Nothing below Factories knows the
@@ -183,7 +183,8 @@ for a run, whatever its class (section 4.2).
 | Module | Layer | What it holds |
 |---|---|---|
 | `Ekorn::Pipeline` | core | the pipeline class; `new`, `iterator`, `stages`, `named`, `pipeline`; the run loop and the lifecycle; `ending()`, `run_source()`, `is_stage` |
-| `Ekorn::Pipeline::Iterator` | core | what `iterator` returns: a code reference that ends its run when it's let go, or when it's told to |
+| `Ekorn::Pipeline::Element` | core | the base of every type: a hash, called as a code reference, which says whether it goes where a stage goes |
+| `Ekorn::Pipeline::Iterator` | core | what `iterator` returns: called for each value, it ends its run when it's let go, or when it's told to |
 | `Ekorn::Pipeline::Stop` | core | `Stop(...)`, and `throw`, which end a run early from inside a stage |
 | `Ekorn::Pipeline::Gather` | core | `gather {...}`: a stage made for a run, with an end that lets out what it held |
 | `Ekorn::Pipeline::Errors` | core | `croakf`, and `@INTERNAL`, the packages Carp looks past |
@@ -206,10 +207,10 @@ whole contract between Ekorn and code built on it:
 
 | Protocol | As the core checks it | What it must do |
 |---|---|---|
-| **Stage** | a code reference, blessed or not (`is_stage`) | called with one value, in `$_` and `$_[0]`, return a list |
+| **Stage** | a code reference, or an Element whose `goes_as_stage` is true (`is_stage`) | called with one value, in `$_` and `$_[0]`, return a list |
 | **Pipeline as a stage** | `isa Ekorn::Pipeline` | its stages are spliced in where it's given |
 | **Source** | a code reference, or made for a run | called with nothing, return the next value or values, or an empty list when there are no more |
-| **Made for a run** | a blessed object that `can('for_run')` | `for_run` returns a step, a code reference, and an end, a code reference or nothing |
+| **Made for a run** | a blessed object that `can('for_run')` | `for_run` returns a step, a code reference, and an end, a code reference or nothing. Given as a stage, it must also be a stage: an Element, or a code reference; one that's neither is taken only as a source |
 | **Sink** | a stage made for a run | its step returns nothing, as Ekorn's sinks' do, though what it returns would go on; its end is called with how the run ended, and, when `done`, returns the result |
 | **Stop** | an exception `isa Ekorn::Pipeline::Stop` | thrown from a stage, it ends the run; values it carries go on through the stages after it |
 | **An iterator as a source** | `isa Ekorn::Pipeline::Iterator` | the outer run ends it, with `finish($how)` |
@@ -219,22 +220,49 @@ A sink and a stage made for a run are the same thing to the core: a
 stage whose object has `for_run`. Ekorn::Pipeline::Sink is one; a
 package's own class with `for_run` is another.
 
-### 4.3 Every type is a code reference
+### 4.3 Every type is an Element
 
-Stage, Source, Sink, Gather and Iterator objects are blessed code
-references, so anything that takes a code reference takes them. A
-pipeline is a blessed hash that overloads `&{}`, so it's called like
-one. Stage and Gather keep what they were made with in the closure
-itself; Source, Sink and Iterator keep it in a lexical hash, keyed by
-the object's address, deleted in `DESTROY`, for their methods to
-reach.
+Every type Ekorn makes, the pipeline included, is an object of a
+class built on Ekorn::Pipeline::Element: a hash holding what it was
+made with, and a `call` field, the closure that does its work. Element
+overloads `&{}` to return that closure, so an Element is called as a
+code reference, `$element->(...)`, or with its `call` method. The
+closure never refers to the object, so the object is freed as soon as
+nothing else holds it.
 
-Each object's code reference must be a closure. Perl gives every
-evaluation of an anonymous sub that refers to no outer variable the
-same code reference, so the objects would all be one, and the address
-keyed hash would hold only the last one made. The prototype's tests
-caught this in Sink; every class's sub now closes over what it was
-made with.
+```
+Ekorn::Pipeline::Element          call, &{}, goes_as_stage
+  ├─ Ekorn::Pipeline::Stage       wraps a code reference
+  ├─ Ekorn::Pipeline::Gather      a set-up: step, and an end told nothing
+  ├─ Ekorn::Pipeline::Sink        a set-up: step, and an end told how
+  ├─ Ekorn::Pipeline::Source      a set-up: step, and an end told how
+  ├─ Ekorn::Pipeline::Iterator    a run: call pulls, finish ends it
+  └─ Ekorn::Pipeline              a list of stages: call pushes values
+```
+
+`goes_as_stage` says whether an Element can go where a stage goes. It's
+true unless a class says not, as Source and Iterator do, and it's what
+`is_stage` asks of an Element. A plain code reference is a stage too,
+and `new` makes it a Stage, so a pipeline is made of Elements only.
+A run calls a Stage's code as it is, so wrapping costs nothing per
+value.
+
+```perl
+my $double   = sub { $_[0] * 2 };    # $_ is set only in a run
+my $pipeline = Ekorn::Pipeline->new($double);
+my($stage)   = $pipeline->stages;
+say ref $stage;                                        # Ekorn::Pipeline::Stage
+say $stage->code == $double ? 'the same code' : '';    # the same code
+say ref(\&$stage), ' ', join ',', $stage->(4);         # CODE 8
+```
+
+An Element isn't a code reference to code that checks the type, with
+`ref` or Ref::Util's `is_coderef`. Inside Ekorn, `is_stage` and
+`iterator` ask what a thing can do instead.
+
+Element is how Ekorn builds its own types. A package built on Ekorn
+doesn't subclass it: it keeps the protocols of section 4.2, as
+section 7 shows.
 
 ## 5. A run, step by step
 
@@ -404,14 +432,15 @@ say 'after the block';
 
 ### 6.1 Ekorn::Pipeline
 
-`new(@stages)` makes a pipeline: each stage a code reference, a
-pipeline, whose stages are spliced in, or a stage object. It croaks if
-given a source as a stage. It reads no names.
+`new(@stages)` makes a pipeline: each stage a code reference, which
+it makes a Stage, a pipeline, whose stages are spliced in, or an
+Element that goes where a stage goes. It croaks if given a source as a
+stage. It reads no names.
 
 Called with values, a pipeline pushes them through, and returns what
 comes out. `iterator($source)` pulls instead: `$source` is a code
-reference, or any object made for a run. `stages` returns the stages,
-to splice into another pipeline.
+reference, an Iterator, or any object made for a run. `stages`
+returns the stages, as Elements, to splice into another pipeline.
 
 A pipeline holds only what it was made of. Everything a run needs is
 made by `_iterator` when the run starts (section 5.1), so one pipeline
@@ -436,8 +465,8 @@ package; until that's built, see section 10.2.
 
 ### 6.2 Ekorn::Pipeline::Iterator
 
-What `iterator` returns: a blessed code reference, called as
-`$next->()` as before, with `finish($how)` and `DESTROY` (section 5.4).
+What `iterator` returns: an Element, called as `$next->()` as before,
+with `finish($how)` and `DESTROY` (section 5.4).
 Given to another pipeline's `iterator` as its source, it's ended by
 that run, through `finish` (section 6.8).
 
@@ -505,8 +534,11 @@ meaning outside a run.
 
 ### 6.4 Gather and Stop
 
-Unchanged from v0.2.0. A gather's set-up returns its step, and
-optionally an end called with nothing; a stop carries values on:
+As in v0.2.0, except that a Gather is an Element, made by
+`Ekorn::Pipeline::Gather->new($setup)`, which `gather` calls. Called,
+it calls its set-up, as the core does at the start of each run. A
+gather's set-up returns its step, and optionally an end called with
+nothing; a stop carries values on:
 
 ```perl
 use Ekorn::Pipeline::Stages::Batch;
@@ -872,6 +904,7 @@ the prototype, and passes, so v0.2.0's behaviour is kept.
 | 19.2 abandoned, it ends | `DESTROY` | 5.5, Q7 |
 | 19.2 ended by finish, it stops | nothing more pulled or handed out | 5.5 |
 | 19.2 with \|, a chain of a complete pipeline is a result | `to_array` gives a reference | 9 |
+| Ekorn's types are Elements | each type an Element; a code reference given to `new` made a Stage; what goes where a stage goes | principle 6, 6.1 |
 | A package delivers parts, using Ekorn as it is | section 7's pattern: `for_run`, `run_source()`, `chain` | 3 (principles 2, 3), 12, Q21 |
 
 ## 10. Design and implementation, side by side
@@ -892,7 +925,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 3, principle 2 | other packages use Ekorn as it is | built: section 7 and its test |
 | 3, principle 3 | the contract is the protocols | built: section 4.2 lists them as the code checks them |
 | 3, principle 4 | words in Factories | built, differs: `stage`, `source`, `sink` and `gather` are there; `pipeline` is still in Ekorn::Pipeline |
-| 3, principle 6 | every type is a code reference | built |
+| 3, principle 6 | every type is an Element, called as a code reference; a pipeline made of Elements | built |
 | 3, principle 8 | nothing that works today changes | built: the existing tests pass unchanged; `iterator` returns an object, still a code reference (Q7) |
 | 4.2 | the six types; a sink usually last, its result going on | built: section 6.3 |
 | 4.2 | a complete pipeline, pulled, is a source | built: section 6.8 |
@@ -905,7 +938,8 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.4 | an end dying during a die warns (Q6) | built |
 | 5.5 | an abandoned iterator ends its run (Q7) | built |
 | 5.6 | `ending()` | built, unchanged; true for a sink's end's values too |
-| 6.1 | Stage, Source, Sink classes and constructors | built; Sink adds `list => 1` (10.2) |
+| 6.1 | Element, and the Stage, Gather, Source, Sink classes and constructors | built; Sink adds `list => 1` (10.2) |
+| 13 | Gather an Element; `stages` returns Elements | built: two tests in `t/02` and `t/03` changed with it |
 | 6.1 | `pipeline_in` (Q10) | not built |
 | 6.2 | the words | built, differs: no `pipeline` in Factories |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
@@ -945,6 +979,7 @@ Each of these is for the design to take in, or the code to change.
 | `run_source()` is the closure over the values in a pushed run | not said | say so with Q21 |
 | What a sink's step returns goes on, as any stage's: a `sink {...}` whose step returns values is a stage made for a run, with an end that always runs | the draft reference says a sink's step's return is ignored | decide: ignore it, or say a sink is any stage made for a run |
 | A sink is told `stopped` only when its run is ended from outside: a stop after it can't come while the source has values, and one before it leaves it after the stop | 5.3's table puts "stages up to the one that stopped" with the source | say so in 5.3 |
+| An object made for a run that isn't an Element or a code reference is taken only as a source: a package's own sink must be one or the other | 4.4 doesn't say how a source is told from a stage made for a run | say so in 4.4 |
 | A Source given as a stage croaks | 4.2 says neither is the other; no message | add to the diagnostics |
 | A Source called directly, outside a run, makes a run of its own, never ended | principle 6 says every type works as a code reference | say what it means for a source |
 | A Sink called directly croaks | as above | as above |

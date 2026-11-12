@@ -2,6 +2,11 @@ use v5.36;
 
 package Ekorn::Pipeline::Stage;
 
+use parent 'Ekorn::Pipeline::Element';
+
+use experimental            qw(builtin);
+use builtin                 qw(blessed);
+use overload                qw();
 use Ref::Util               qw(is_coderef);
 use Ekorn::Pipeline::Errors qw(croakf);
 use namespace::clean;
@@ -9,11 +14,19 @@ use namespace::clean;
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
-# Return a stage of the code given: a code reference of this class,
-# calling the code, which is wrapped, never blessed itself.
+# Return a stage of the code given, which is kept as it is, never
+# blessed: anything that can be called as a code reference.
 sub new ($class, $code) {
-    croakf 'Expected a code reference' unless is_coderef($code);
-    return bless sub { &{ $code } }, $class;
+    croakf 'Expected a code reference'
+        unless is_coderef($code)
+        || (blessed($code) && overload::Method($code, '&{}'));
+    return bless {call => $code}, $class;
+}
+
+
+# Return the code the stage was made of.
+sub code ($self) {
+    return $self->{call};
 }
 
 1;
