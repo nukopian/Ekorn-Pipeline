@@ -300,10 +300,11 @@ D19 to D25 came from the third cold review, settled by Iain on
   the roadmap with it. Design 7.
 - [x] **D36.** Can a statement's definition in DBIx::Squirrel's Sugar
   name a pipeline by a string (the design's Q15)? Yes, Iain decided on
-  2026-11-12, written as a chain of names, `clean => trim => 'top5'`:
+  2026-11-12, written as a chain of names, `clean => trim => top5 =>`:
   "name1 => name2 => name3 => ... has a beautiful ring to it", reading
-  as the values' path. `=>` quotes only the bareword on its left, so
-  the last name is quoted, or followed by another `=>` or a stage. How
+  as the values' path. `=>` always quotes the bareword on its left, so
+  every name is followed by one, the last included, and none needs
+  quotes; Perl allows the trailing `=>`, which adds nothing. How
   a name is told from the rest of a definition is DBIx-Squirrel's to
   design, taking this in when it reviews. Design 12.5.
 

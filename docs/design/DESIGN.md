@@ -866,12 +866,12 @@ A statement's definition can name pipelines by string (Q15; Iain,
 as the values' path through them:
 
 ```perl
-recent => [$sql, clean => trim => 'top5'],
+recent => [$sql, clean => trim => top5 =>],
 ```
 
-`=>` quotes only the bareword on its left, so the last name of a chain
-is quoted, or followed by another `=>` or a stage; under `strict`, a
-bare last name doesn't compile. How a name is told from anything else
+`=>` always quotes the bareword on its left, so every name is followed
+by one, the last included, and none needs quotes: Perl allows the
+trailing `=>`, which adds nothing to the list. How a name is told from anything else
 in a definition, such as its SQL, is DBIx-Squirrel's to design, taking
 this in when it reviews the design.
 
@@ -1047,7 +1047,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q11** | Named sources (2026-0012) now, or later? | D35: neither: dropped, with the roadmap idea; if there's a need, it'll be found again |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
 | **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
-| **Q15** | Can a statement's definition in DBIx::Squirrel's Sugar name a pipeline by a string? | D36: yes, written as a chain of names, `clean => trim => 'top5'`, the last quoted (section 12.5); how a name is told from the rest is DBIx-Squirrel's to design |
+| **Q15** | Can a statement's definition in DBIx::Squirrel's Sugar name a pipeline by a string? | D36: yes, written as a chain of names, each followed by `=>`, `clean => trim => top5 =>` (section 12.5); how a name is told from the rest is DBIx-Squirrel's to design |
 | **Q16** | DBIx::Squirrel's CI testing against Ekorn's `pipeline-experimental`? | D29: yes; `pipeline-experimental` is a sandbox, so testing against it costs nothing that matters; DBIx-Squirrel does it, told when it reviews the design |
 | **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | D30: no; `pipeline` is a word, in Factories only |
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions as they are? | D31: yes, for now, as plain re-exports, so its users' code keeps working |
