@@ -252,18 +252,27 @@ With `use Ekorn::Pipeline::Operators` in scope, the types join with
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Factories qw(stage);
 use Ekorn::Pipeline::Sources   qw(from_arrayref);
-use Ekorn::Pipeline::Sinks     qw(count);
+use Ekorn::Pipeline::Sinks     qw(all_items count);
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-say from_arrayref(\@tracks) | $blur | count;                                  # 3
-my @titles = @{ from_arrayref(\@tracks) | $blur | stage { $_->{title} } };    # Girls & Boys, Parklife, Country House
+say from_arrayref(\@tracks) | $blur | count;                                   # 3
+my $titles = from_arrayref(\@tracks) | $blur | stage { $_->{title} } | all_items;
+say join ', ', @$titles;                                                       # Girls & Boys, Parklife, Country House
 ```
 
+A chain ends in one value, as `|` gives one: `count`'s number, or, from
+a sink giving a list, such as `all_items`, the list as an array
+reference. So `my @titles = ... | all_items` would get one element,
+the reference; write `my @titles = @{ ... | all_items }`.
+
 A source and a sink join directly too, so a file is copied with
-`from_file('setlist.txt') | to_file('setlist.bak')`. A chain ending in
-a sink gives its result at once, not a source: to feed one pipeline's
-result to another, use `iterator`, as above.
+`my $copied = from_file('setlist.txt') | to_file('setlist.bak')`. Keep
+the result, even if you don't need it: written as a statement of its
+own, the chain still runs, but Perl warns of a useless `|` in void
+context. A chain ending in a sink gives its result at once, not a
+source: to feed one pipeline's result to another, use `iterator`, as
+above.
 
 **Start a chain with a source, or a stage made with `stage`,** or a
 ready-made one. `sub { ... } | sub { ... }` isn't an error in Perl:
@@ -271,6 +280,60 @@ it's a bitwise OR of two addresses, and gives a meaningless number.
 And `|` binds more loosely than `.`, so put a chain in parentheses
 inside a string: `say 'Blur: ' . (from_arrayref(\@tracks) | $blur |
 count)`.
+
+### Get every value, or only what you need
+
+End a chain in the sink that says what you want, and it reads only
+what that needs:
+
+```perl
+use Ekorn::Pipeline::Sinks        qw(all_items count first_item to_arrayref);
+use Ekorn::Pipeline::Stages::Flow qw(take);
+
+my $hits = from_arrayref(\@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
+
+my $all = $hits | all_items;           # an array reference
+say join ', ', @$all;                  # Dancing Queen, Girls & Boys, Sunshine of Your Love
+my @all = @{ $hits | all_items };      # a list
+say scalar @all;                       # 3
+say $hits | first_item;                # Dancing Queen
+say $hits | count;                     # 3
+say join ', ', @{ $hits | take(2) | all_items };    # Dancing Queen, Girls & Boys
+
+my @mine = ('Waterloo');
+say join ', ', @{ $hits | to_arrayref(\@mine) };    # Waterloo, Dancing Queen, Girls & Boys, Sunshine of Your Love
+```
+
+`$hits` is a source, so each chain from it is a run of its own, from
+the first track. `first_item` stops reading at the first hit, and
+`take(2)` at the second.
+
+To take each value as it comes, pull them from an iterator:
+
+```perl
+my $next = Ekorn::Pipeline->new->iterator($hits);
+while (my ($title) = $next->()) {
+    say "Now playing: $title";         # Now playing: Dancing Queen, and the rest, one at a time
+}
+```
+
+**`@{ $source }` reads a source through, with no sink.** It looks like
+a dereference, but a source holds no array: Operators gives sources
+an `@{}` that runs the source, collects every value into a new array,
+and hands Perl a reference to it to dereference:
+
+```perl
+my @titles = @{$hits};                 # every value, read through, with no sink
+say join ', ', @titles;                # Dancing Queen, Girls & Boys, Sunshine of Your Love
+```
+
+Each use reads the source again, from its start to its end, however
+little you take: `$hits->[0]` reads every track to give the first, and
+`scalar @$hits` keeps every title to count them. `for (@$hits)` reads
+them all before the loop starts. Use `first_item`, `count`, `take` or
+an iterator instead, as above. `@{}` is only for sources; in
+`@{ $hits | all_items }` the braces are Perl's own, dereferencing the
+array reference `all_items` gave.
 
 ## Writing stages for others (new recipe)
 

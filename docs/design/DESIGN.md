@@ -665,7 +665,8 @@ to right; other syntax may be explored beside it (2026-0022's D18).
 my $clean = $trim | $lowercase | $dedupe;               # Stage | Stage: a chain of stages
 my $names = $src | take(10) | stage { $_->{name} };    # Source | Stage: a source
 my $n     = $src | stage { $_->{name} } | count;       # Source | ... | Sink: the result
-my @names = @{ $src | take(10) };                       # @{} drains a source
+my $names = $src | take(10) | all_items;                # ... | list sink: every item, as an array reference
+my @names = @{ $src | take(10) };                       # @{}: every item, read through, with no sink
 ```
 
 - **A chain starts with a typed source or a typed stage** (D14,
@@ -704,10 +705,51 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   gives one value, as a run asked for one value in scalar context does
   (D51): a scalar sink's result, or a list sink's list as an array
   reference, so `$rows | all_items` is every row. `to_arrayref` and
-  `to_hashref` fill a container you hand them. Or `@{}` drains a chain
-  without a sink. (`to_hash`, a list of pairs, would more naturally
-  give a hash reference; how a list sink would say so is left until
-  it's built.)
+  `to_hashref` fill a container you hand them. (`to_hash`, a list of
+  pairs, would more naturally give a hash reference; how a list sink
+  would say so is left until it's built.) So a list assignment from a
+  chain gets one element, the reference: `my @rows = $src | all_items`
+  is a trap, and `my @rows = @{ $src | all_items }` what was meant.
+- **`@{}` reads a source through, with no sink** (D52). It looks like
+  a dereference, but a source holds no array to dereference. Perl lets
+  a class say what `@{ $object }` means, with a function that returns
+  an array reference, which Perl then dereferences; Ekorn's, Operators'
+  `drain`, runs the source from its start, collects every value it
+  gives into a new array, and returns a reference to it. So:
+  - **each use is a run of its own,** reading the source to its end:
+    `$src->[0]`, `scalar @$src` and `$#$src` read every value to give
+    one value, a count or an index, and two uses read it twice;
+  - **`for (@$src)` reads every value before the loop starts,** as
+    Perl needs the array first; to take values as they come, pull them
+    from an iterator;
+  - **an iterator is one run,** so it's drained once, and croaks the
+    second time (D41);
+  - **only a source has it:** a stage, or a chain of stages, has
+    nothing to read, and Perl says "Not an ARRAY reference"; and a
+    chain ending in a sink has already given its result, so
+    `@{ $src | count }` dereferences a number;
+  - **in `@{ $src | all_items }`, the braces are Perl's own,**
+    dereferencing the array reference the sink gave, not `drain`.
+
+  It stays as the shortest way to say "every value", but the docs
+  lead with a sink, which says what comes back in its name. What to
+  write, by what's wanted:
+
+  | Wanted | Write | Rather than |
+  |---|---|---|
+  | every item, as a reference | `my $all = $src \| all_items` | `my @all = $src \| all_items`, one element, the reference |
+  | every item, as a list | `my @all = @{ $src \| all_items }`, or `@{$src}` | |
+  | the first item | `$src \| first_item`, reading one | `$src->[0]`, reading them all |
+  | how many | `$src \| count` | `scalar @$src`, keeping every value to count them |
+  | the first few | `$src \| take(5) \| all_items` | `(@$src)[0 .. 4]`, reading them all |
+  | every item, added to your array | `$src \| to_arrayref(\@mine)` | `push @mine, @$src` |
+  | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($src)`, then `while (my ($item) = $next->()) {...}` | `for (@$src) {...}`, reading them all first |
+- **Keep a chain's result,** even when the chain is run for what its
+  sink does, such as `to_file`: `my $copied = $src | to_file($path)`.
+  Written as a statement of its own, `$src | to_file($path);`, it runs,
+  but Perl warns "Useless use of numeric bitwise or (|) in void
+  context" as it compiles the line, before any overload is called, so
+  Ekorn can't stop the warning.
 - **Nothing can be chained after a sink that ends a chain from a
   source.** Not because a sink must be last, which it needn't be
   (section 4.2), but because such a chain has already run: what `|`
@@ -1114,7 +1156,7 @@ Settled questions keep their numbers, listed after the open ones.
 ### 16.1 Open
 
 None, since 2026-11-12. A question that arises, from a review, from
-DBIx-Squirrel, or from building, is added here as Q33 and on, with
+DBIx-Squirrel, or from building, is added here as Q34 and on, with
 whose it is and a recommendation.
 
 ### 16.2 Settled
@@ -1131,6 +1173,7 @@ whose it is and a recommendation.
 | **Q30** | How is a list sink declared? | D47: lists first: `Sink->new` and `sink {...}` make a list sink, and `Sink->new_scalar` and `sink_scalar {...}` a scalar one, scalars being the second-class citizen; asked for one value, a list sink gives its list as an array reference (D51) |
 | **Q31** | How is a part told from any object offering a method of the same name? | D49: the role methods are named for Ekorn, `ekorn_source`, `ekorn_stage`, `ekorn_sink`, `ekorn_sink_scalar` (17.24) |
 | **Q32** | What does a list sink give when one value is asked for? | D51: its list, as an array reference, in scalar context and at the end of a `\|` chain, revising D10 and D47; counting is `count`'s job (17.26) |
+| **Q33** | Does `@{}` stay, though it reads as a dereference? | D52: yes, explained in detail: it reads a source through, a run of its own each use; the docs lead with a sink, and show the alternatives, by what's wanted (section 9, 17.27) |
 | **Q2** | The lifecycle method's name? | D5: one method per role; their names, `ekorn_source`, `ekorn_stage`, `ekorn_sink` and `ekorn_sink_scalar`, by D49 |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
@@ -1750,6 +1793,34 @@ Weighed and set aside:
 How `to_hash`, whose items are pairs, would give a hash reference
 instead is left until it's built: a list sink would need a way to say
 what it gives when asked for one value.
+
+### 17.27 `@{}` stays, explained, and the docs lead with a sink
+
+(Section 9; Iain, 2026-11-12, 2026-0022's D52, from DBIx-Squirrel's
+design.) Iain read `@{ $sth->iterate | pluck('name') | take(5) }` and
+asked why `take` returned an array reference. It doesn't: the braces
+are `drain`, reading the chain through. It reads like a dereference of
+an array that isn't there, so the docs explain it in detail, as
+section 9 does: what Perl's overloading of `@{}` is, that each use is
+a run of its own, reading the source to its end, and what that costs
+in `$src->[0]`, `scalar @$src` and `for (@$src)`. And they lead with a
+chain ending in a sink, `| all_items`, `| first_item`, `| count`,
+showing the alternatives by what's wanted, as DBIx-Squirrel's design
+now does, so the two read alike.
+
+Weighed and set aside:
+
+- **Dropping `@{}`.** It's the shortest way to say "every value", and
+  part of the protocol, a package's own source class overloading it
+  with `drain`; explained, it's not a trap.
+- **A `drain` sink, so a chain could end `| drain`,** as Iain asked
+  after. `all_items` is that sink, named for what it gives; `drain` is
+  the overload's function, which takes the chain, and isn't exported.
+
+Found writing it: a chain run for its sink's effect, written as a
+statement of its own, makes Perl warn of a useless `|` in void
+context, at compile time, before any overload is called. The docs say
+to keep the result.
 
 ## 18. Where each roadmap item lands
 

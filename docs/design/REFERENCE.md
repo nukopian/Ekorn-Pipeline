@@ -466,7 +466,7 @@ that gives a sink's result, none of which a chain can.
 | `$source \| $stage` | a source: the source's values, through the stage |
 | `$source \| ... \| $sink` | the sink's result, at once, not a source; for a source of the result, use `iterator` |
 | `$chain \|= $stage` | a new chain with the stage added, put in the variable |
-| `@{ $source }` | every value the source gives |
+| `@{ $source }` | every value the source gives, read through anew each time (see [`@{}`](#-reads-a-source-through)) |
 
 **A chain starts with one of the types,** a source or a stage made
 with a word, or ready-made. What follows can be anything that goes
@@ -486,15 +486,63 @@ expression in parentheses.
 
 An operator gives one scalar, so a chain ending in a sink gives one
 value: a scalar sink's, such as `count`'s, or a list sink's list, such
-as `all_items`'s, as an array reference. Or `@{}` drains a chain
-without a sink.
-Nothing can be chained after a sink: a chain ending in one has already
-run, and gives its result.
+as `all_items`'s, as an array reference. Nothing can be chained after
+a sink: a chain ending in one has already run, and gives its result.
 
 ```perl
-my $n      = $source | count;          # a number
-my $titles = $source | all_items;      # an array reference
-my @titles = @{ $source };             # a list
+my $n      = $source | count;                  # a number
+my $titles = $source | all_items;              # an array reference
+my @titles = @{ $source | all_items };         # a list
+```
+
+As `|` gives one value, a list assignment from a chain gets one
+element: `my @titles = $source | all_items` is the array reference
+alone. Dereference it, as above.
+
+Keep a chain's result, even one run for what its sink does:
+`my $copied = $source | to_file($path)`. Written as a statement of its
+own, the chain runs, but Perl warns "Useless use of numeric bitwise or
+(|) in void context", as it compiles the line, which Ekorn can't stop.
+
+### `@{}` reads a source through
+
+`@{ $source }` gives every value a source gives, with no sink. It looks
+like a dereference, but a source holds no array. Perl lets a class say
+what `@{ $object }` means, with a function returning an array
+reference, which Perl then dereferences. Ekorn's runs the source from
+its start, collects every value into a new array, and returns a
+reference to it. So:
+
+- **Each use is a run of its own,** reading the source to its end.
+  `$source->[0]`, `scalar @$source` and `$#$source` read every value,
+  to give one value, a count or an index; two uses read it twice.
+- **`for (@$source)` reads every value before the loop starts.** Pull
+  from an iterator to take each as it comes.
+- **An iterator is one run,** so it's read through once, and croaks
+  the second time: "Expected a source with values still to give".
+- **Only a source has it.** On a stage, or a chain of stages, Perl
+  says "Not an ARRAY reference"; a chain ending in a sink is already
+  its result, so `@{ $source | count }` dereferences a number.
+- **`@{ $source | all_items }` is Perl's own dereference,** of the
+  array reference the sink gave.
+
+What to write, by what's wanted:
+
+| Wanted | Write | Rather than |
+|---|---|---|
+| every value, as a reference | `my $all = $source \| all_items` | `my @all = $source \| all_items`, one element |
+| every value, as a list | `my @all = @{ $source \| all_items }`, or `@{$source}` | |
+| the first value | `$source \| first_item`, reading one | `$source->[0]`, reading them all |
+| how many | `$source \| count` | `scalar @$source`, keeping every value to count them |
+| the first few | `$source \| take(5) \| all_items` | `(@$source)[0 .. 4]`, reading them all |
+| every value, added to your array | `$source \| to_arrayref(\@mine)` | `push @mine, @$source` |
+| each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |
+
+```perl
+my @all   = @{$source};                                      # every value
+my $first = $source | first_item;                            # the first, reading only one
+my $next  = Ekorn::Pipeline->new->iterator($source);
+while (my ($value) = $next->()) { say $value }               # each, as it comes
 ```
 
 ## Sugar: Ekorn::Pipeline::Sugar

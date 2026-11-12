@@ -63,7 +63,7 @@ use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
-use Ekorn::Pipeline::Sinks   qw(count first_item to_array to_arrayref to_file);
+use Ekorn::Pipeline::Sinks   qw(all_items count first_item to_array to_arrayref to_file);
 use Ekorn::Pipeline::Stages::Flow;    # take and drop
 use File::Temp qw(tempdir);
 
@@ -704,17 +704,28 @@ gives Ekorn's sources `|` and `@{}`, and its stages, gathers and sinks
 | `$source \| $stage` | a chain: a source of the values from `$source` through the stage |
 | `$source \| ... \| $sink` | at once, a scalar sink's result, or a list sink's list as an array reference (D51) |
 | `$stage \| $stage` | a chain of stages: a pipeline, of a subclass that has `\|` |
-| `@{ $source }` | every value the source gives, as an array |
+| `@{ $source }` | every value the source gives, as an array, read through by `drain`, a run of its own each use (D52) |
 
 ```perl
 my $titles = from_arrayref(\@tracks) | stage { $_->{title} };
 say $titles | count;                                        # 6
-say join ', ', @{ $titles | take(2) | to_arrayref };        # Dancing Queen, Knowing Me, Knowing You
+say join ', ', @{ $titles | take(2) | all_items };          # Dancing Queen, Knowing Me, Knowing You
 
 my $clean = stage { s( \A \s+ | \s+ \z )()xgr } | stage {uc};
 say join ',', $clean->(' a ', 'b ');                        # A,B
 say join ',', @{ from_arrayref([' c']) | $clean };          # C
 ```
+
+In the first `@{...}`, the braces are Perl's own, dereferencing the
+array reference `all_items` gave (D51). In the last, they're `drain`:
+`@{}` on a source, a chain from one included, calls it, and it makes
+an iterator of the source, an empty pipeline's, collects every value
+into a new array, and returns a reference to it for Perl to
+dereference. Each use is a run of its own, read to the end, even for
+`$source->[0]` or `scalar @$source`; an iterator, one run, is drained
+once, and croaks the second time. On a stage, or a chain of stages,
+there's no `@{}`, and Perl says "Not an ARRAY reference". The design's
+section 9 has the alternatives, by what's wanted.
 
 A chain from a source is a Source made for a run, whose set-up makes
 an iterator of its stages over its source, so it can be used again, as
@@ -1062,7 +1073,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
 | 8.3 | sinks, in two families (D50) | built: `all_items`, `first_item`, `only_item`, `count`, `to_array`, `to_arrayref`, `to_file`. Not built: `last_item`, `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh`, `to_hash`, `to_hashref` |
-| 9 | chains from a source or a stage (D14, D23); a list sink at the end giving an array reference (D51, revising D10); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
+| 9 | chains from a source or a stage (D14, D23); a list sink at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
 | 10 | Sugar | not built |
 | 12 | DBIx::Squirrel as a user of Ekorn | built, as a stand-in: section 7 |

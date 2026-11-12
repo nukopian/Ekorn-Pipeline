@@ -44,7 +44,9 @@ source; lists first, `sink` and `sink_scalar`. D48 settled: `ended`
 says whether the source was read to its end, revising D45. D49 settled: the role methods are named
 for Ekorn. D50 settled: sinks named for what they
 give, and containers. D51 settled: a list sink asked for one value
-gives its list as an array reference, revising D10 and D47.
+gives its list as an array reference, revising D10 and D47. D52
+settled: `@{}` stays, explained in detail, and the docs lead with a
+sink.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -462,6 +464,27 @@ D19 to D25 came from the third cold review, settled by Iain on
   Iain: "quite nice, too". Built: `Ekorn::Pipeline`'s call and
   `Operators`' `chain`, the croak at a chain's end gone, with tests.
   Design 4.3, 6.2, 8.3, 9, 13, 16, 17.12, 17.23, 17.25, 17.26, 20.
+- [x] **D52.** Does `@{}` stay, though it reads as a dereference (the
+  design's Q33)? Yes, Iain decided on 2026-11-12, from DBIx-Squirrel's
+  design, where he read `@{ $sth->iterate | pluck('name') | take(5) }`
+  and asked why `take` returned an array reference: "Looks weird but
+  you should explain it in detail, and use more examples of
+  alternatives." So the docs explain what Perl's overloading of `@{}`
+  is, that Operators' `drain` reads a source through, a run of its own
+  each use, even for `$source->[0]` or `scalar @$source`, that
+  `for (@$source)` reads every value first, that an iterator is
+  drained once, and that only a source has it. And they lead with a
+  chain ending in a sink, showing the alternatives by what's wanted:
+  `all_items`, `@{ ... | all_items }`, `first_item`, `count`, `take`,
+  `to_arrayref(\@mine)`, and an iterator for each value as it comes.
+  A `drain` sink, for `| drain`, as Iain asked after, isn't needed:
+  `all_items` is it. Found writing it: a chain run for its sink's
+  effect, as a statement of its own, makes Perl warn of a useless `|`
+  in void context, at compile time, which Ekorn can't stop, so the
+  docs say to keep the result. Checked by hand: the reads each use
+  makes, an iterator croaking the second time, a stage's and a
+  count's errors, and the how-to's examples, run after its data.
+  No code changes. Design 9, 16, 17.27.
 
 ## The plan
 
@@ -803,6 +826,14 @@ which a list sink giving its count broke. It became D51, taking in
 the points its session found weighing it: the trap goes, `|` can end
 in `all_items`, an empty result is true, and `to_hash` would want a
 hash reference.
+
+### `@{}`, explained, 2026-11-12
+
+A message from DBIx-Squirrel (DBIx-Squirrel
+36f74b2c013b4f2188d0df2b441a0dbe2934c9cd), read and removed: Iain
+found a bare `@{ chain }` weird, and DBIx-Squirrel's design now ends
+its chains in a sink. It became D52: `@{}` stays, explained in detail,
+and Ekorn's drafts lead with a sink too, with more alternatives.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
