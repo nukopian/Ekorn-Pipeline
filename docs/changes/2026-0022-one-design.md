@@ -692,6 +692,20 @@ pipeline", now "Expected no stop in an end"; Sink's constructors
 ignoring their class, now honouring a subclass of a sink's kind; and
 test sinks of one value written as list sinks.
 
+### Handed to DBIx-Squirrel, 2026-11-12
+
+With every question settled, Iain asked DBIx-Squirrel's session to
+review the design, IMPLEMENTATION.md and the prototype's code, and to
+write its own `docs/design/DESIGN.md`: the downstream impact, and the
+new version of DBIx::Squirrel it proposes, severing the tight coupling
+by using Ekorn as it is (D1), and mirroring Ekorn's concepts, extended
+where a database needs it. It's task 3 in DBIx-Squirrel's `TODO.md` on
+its `pipeline-experimental` (DBIx-Squirrel
+ec0f200e27bb25f81a8deebc0dc6b9786018bee0, after a message saying its
+task 2 is replaced and task 1 overtaken). What it finds in Ekorn's design comes back as
+messages; Iain approves both designs together, before either is split
+into items.
+
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
   placeholder POD; CI doesn't run on `pipeline-experimental`. Each item
