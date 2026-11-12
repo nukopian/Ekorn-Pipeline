@@ -940,15 +940,18 @@ Status: **built** as the design says; **built, differs**, with how;
 | 4.3 | push and pull | built |
 | 4.3 | a pushed run in scalar context gives a scalar sink's result (D17) | built, differs: it gives how many results came out, so `count` last gives 1 |
 | 4.4 | the protocols, by role methods, with a context for each run | built, differs: `for_run` for every role, no context; adds an iterator as a source, ended by `finish` |
+| 4.4 | an object offers at most one of `as_stage`, `as_scalar`, `as_list` (D19) | not built: no role methods yet (D5) |
 | 5.2 | made for a run, by one method per role (D5) | built, differs: one method, `for_run`, for every role |
-| 5.3 | told how it ended, from where it stands (Q3) | built, differs: ended from outside, every unended part is told `stopped`, even one whose input ran out (10.2) |
+| 5.2 | set-ups run when the run starts (D21) | built |
+| 5.3 | told how it ended, from where it stands; a part whose input had run out is `done` (D20) | built, differs: ended from outside, every unended part is told `stopped`, even one whose input ran out; after a stop, such a part is told `stopped` or `done` by what follows it (10.2) |
 | 5.4 | a flush and an end for everything made for a run (D6, D12) | built, differs: a sink has one end, giving its result and told how; a gather has no end told how |
 | 5.4 | a run ends when nothing can act on a value (D15) | built, differs: a sink's end runs when its own input runs out, the source's when no end is left, and a pulled run's otherwise at the next pull, or as it's let go |
 | 5.4 | the source's end first (D11, Q5) | built, differs: last |
+| 5.4 | ends wait for the stages, nothing run early; `finish` drops what's still to be handed out (D22) | built |
 | 5.4 | an end dying during a die warns, naming the end (Q6) | built, differs: the warning doesn't say which end |
 | 5.4 | a stop from a source, a flush or an end (D16) | built, differs: a stop from a source goes to the caller as an object, and the source is told `died` |
 | 5.5 | an abandoned iterator ends its run (Q7); `finish` takes no verdict | built, differs: `finish` takes any verdict (10.2) |
-| 5.6 | `ending()`, true for a flush's values, a sink's result included (D16) | built |
+| 5.6 | `ending()`, true while a flush runs and its values go on, a sink's result included (D16) | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes and constructors | built, differs: Element has `goes_as_stage`; Sink takes `list => 1` |
 | 13 | Gather an Element; `stages` returns Elements | built: two tests in `t/02` and `t/03` changed with it |
 | 6.1 | `pipeline_in` (Q10) | not built |
@@ -956,15 +959,17 @@ Status: **built** as the design says; **built, differs**, with how;
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12) | not built: they're gathers and code references, as in v0.2.0 |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
+| 8.3 | a scalar sink gives one value, `undef` if it has none (D25) | built, differs: `first_value` with no values gives nothing |
 | 8.3 | sinks; `to_arrayref` gives an array reference (D10) | built: `count`, `first_value`, `to_array`, `to_file`. Not built: `to_arrayref`, `to_fh`, `to_hash`, `to_hashref`, `group_by`, `last_value`, `any_value`, `every_value`, `fold`, `joined`, `for_each` |
-| 9 | a chain starts with a typed source, a package's class overloading `\|` with `chain` (D14) | built |
+| 9 | a chain starts with a typed source or stage; a package's class overloads `\|` with `chain`, and `@{}` with `drain` (D14, D23) | built, differs: only a source starts one; no chain of stages; no `drain` |
+| 9 | sinks taking no arguments have an empty prototype | built, differs: `count` and the rest don't, so `$src \| count + 0` dies |
 | 9 | a chain ending in a list sink croaks (D10) | built, differs: it gives an array reference |
 | 9 | `\|` between stages; `\|=`; `@{}` | not built |
 | 9 | a chain ending in a sink is a result, not a source | built |
 | 10 | Sugar | not built |
 | 11.1 | the modules | built for those above; Sugar not built |
 | 12 | DBIx::Squirrel as a user of Ekorn | built, as a stand-in: section 7 |
-| 12.7, Q21 | a stage asks for its run's context, `run_context()` (D7), the outer run's in a run with none (D16) | built, differs: `run_source()` gives the source object |
+| 12.7, Q21 | a stage asks for its run's context, `run_context()` (D7); a pushed run has none (D24) | built, differs: `run_source()` gives the source object, and Ekorn's closure in a pushed run |
 | 13 | v0.3.0, on this branch until then | not code |
 | 14 | `pipeline`'s `import`, names per class and `pipeline_class` go | not built: all three are still there |
 | 17 | decisions | not code |
@@ -986,19 +991,23 @@ Each of these is for the design to take in, or the code to change.
 | A sink has one end, giving its result and told how; a gather's end is v0.2.0's, with no end told how | D6, D12: a flush and an end for everything made for a run | build D6, D12 |
 | A sink's end runs when its own input runs out; the source's when no end is left, though values from ends may still be coming; a pulled run's otherwise at the next pull, or as it's let go, when an end's error becomes a warning | D15: a run ends when nothing in it can act on a value | build D15 |
 | The source's end runs last | D11: first | build D11 |
-| `run_source()` gives the source object, shared by every run; Ekorn's closure in a pushed run, and in a pushed run inside a stage; undefined in ends called as the run finishes; an intermediate iterator when there is one | D7, D16: a context for each run, from `as_source`, asked for with `run_context()`; a run with none sees the outer run's | build D7, D16 |
+| `run_source()` gives the source object, shared by every run; Ekorn's closure in a pushed run, and in a pushed run inside a stage; undefined in ends called as the run finishes; an intermediate iterator when there is one | D7, D24: a context for each run, from `as_source`, asked for with `run_context()`; a pushed run has none | build D7, D24 |
 | `\|` ending in `to_array` gives an array reference; `to_arrayref` and `to_hashref` aren't built | D10 | build D10 |
 | A pushed run in scalar context gives how many results came out, so `count` last gives 1 | D17: a scalar sink's result | build D17 |
 | A `Stop` thrown by a source goes to the caller as an object, and the source is told `died` | D16: it ends the source's values, which is told `done` | build D16 |
 | Ended from outside, every part not yet ended is told `stopped`, even one whose input ran out, such as a source that had returned empty while a gather's flush was still giving values | 5.3, 5.5: `done` for a part whose input ran out | fix |
 | `finish($how)` takes any verdict: `finish('done')` on a half-read run tells the sink `done`, so it commits a partial run | 5.5: `finish` takes no verdict of its own | fix: `finish` takes none |
+| After a stop, a part whose input had run out is told `stopped` or `done` by what follows it: `stopped` if a sink is still to flush after the stop, `done` if not; and a stop from a gather's flush tells the source `stopped` | D20: `done`, whatever follows | fix |
+| An inner iterator not yet ended, used as a source, is told the outer run's `died`, through `finish` | 5.3: ended from outside, it's `stopped` | fix |
+| `first_value` with no values gives nothing | D25: one value, `undef` | build D25 |
+| `count`, `first_value` and `to_array` have no empty prototype, so `$src \| count + 0` reads as `count(+0)`, and dies | 9: an empty prototype | fix |
+| `\|` can't start with a stage, and there's no `drain` for a package's own `@{}` | D23 | build D23 |
 | `finish` called from inside one of the run's own stages tells the sink `stopped`, then calls its step again with the value in flight | not said | decide: refuse it, or stop at once |
 | An error from a source's end is wrapped as a stage's failure, with an empty stage name and a warning, when a sink is last; thrown as it is when there are no ends; a warning from `DESTROY` | 5.4: thrown, after the rest are told `died` | fix with D11 and D15 |
 | The warning for an end that dies during a die doesn't say which end | Q6: it does | fix |
 | `Stage->new` takes any object overloading `&{}`, a Gather included, which then runs per value | not said | refuse what isn't a plain stage |
 | An iterator given as a source is ended by the outer run, with `finish`, which `DESTROY` also calls | 4.4 says an iterator passes on its context, but not how it's ended | add to 4.4 |
 | `iterator` takes any object with `for_run`, not only code references | Q13 asks for `is_source` | settle Q13 so |
-| Set-ups run when the iterator is made, as a gather's always have, so `from_file` opens its file then, not at the first pull | not said | decide, in 5.2 |
 | Loading Operators gives every Source `\|`, everywhere in the program | principle 1 and 17.11 say opt-in | D8 |
 | An Iterator given as a source to a second run gives nothing, with no error: there's no reusable source of a sink's result | 4.2 and 9 point to `iterator` for one | D9 |
 | A Source given as a stage croaks | no message in the diagnostics | add one |

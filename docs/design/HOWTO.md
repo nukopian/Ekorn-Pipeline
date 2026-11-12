@@ -4,7 +4,7 @@
 [DESIGN.md](DESIGN.md) and [REFERENCE.md](REFERENCE.md). These are the
 recipes `docs/HOWTO.md` would gain or change, written as they'd read
 there. None of the code in them runs yet. Notes in brackets, such as
-**[Q8]**, name the open question in the design a recipe depends on;
+**[Q7]**, name the open question in the design a recipe depends on;
 they go before anything is merged.
 
 The examples follow on from the how-to's first section, The examples'
@@ -151,7 +151,6 @@ say tracks(sub { $_->{plays} }, fold(0, sub { $_[0] + $_[1] }));          # 3680
 say tracks(sub { $_->{artist} }, joined(', '));                           # Abba, Abba, Blur, Blur, Blur, Cream
 ```
 
-**[Q8]**
 
 ### Stop reading once you have your answer
 
@@ -264,9 +263,12 @@ A source and a sink join directly too, so a file is copied with
 a sink gives its result at once, not a source: to feed one pipeline's
 result to another, use `iterator`, as above.
 
-**Write every stage in a chain with `stage`,** or use a ready-made
-one. `sub { ... } | sub { ... }` isn't an error in Perl: it's a
-bitwise OR of two addresses, and gives a meaningless number.
+**Start a chain with a source, or a stage made with `stage`,** or a
+ready-made one. `sub { ... } | sub { ... }` isn't an error in Perl:
+it's a bitwise OR of two addresses, and gives a meaningless number.
+And `|` binds more loosely than `.`, so put a chain in parentheses
+inside a string: `say 'Blur: ' . (from_arrayref(\@tracks) | $blur |
+count)`.
 
 ## Writing stages for others (new recipe)
 
@@ -275,16 +277,32 @@ bitwise OR of two addresses, and gives a meaningless number.
 If your package hands out values, as DBIx::Squirrel hands out rows,
 use Ekorn as it is: give your users the parts only you can make, and
 let them run them in Ekorn's pipelines, with Ekorn's parts and their
-own.
+own. Your parts say what they can be by their methods, and needn't
+load Ekorn to say it:
 
-1. **A source for what you read,** made with `source` if it opens
-   something, so it's closed however the run ends.
-2. **A sink for what you write,** made with `sink`, committing only
-   when the run is `done`.
-3. **Stages for what only you know** about your values.
+1. **`as_source`, for what you read.** It starts a run, and returns
+   its step, its end, closing what it opened, and a context, what your
+   stages may need to know about the run:
+
+   ```perl
+   sub as_source ($self) {
+       my $sth = $self->{sth};
+       $sth->execute;
+       return (sub () { $sth->fetchrow_arrayref // () }, sub ($how) { $sth->finish },
+           {columns => $sth->{NAME}});
+   }
+   ```
+
+2. **`as_scalar` or `as_list`, for what you write.** A sink's end is
+   told how the run ended, so it can commit only when the run is
+   `done`.
+3. **Stages for what only you know,** asking
+   `Ekorn::Pipeline::run_context()` for what the source gave.
 4. **Functions that take stages,** if you like, finding them with
    `is_stage` and running them with `Ekorn::Pipeline->new(@stages)`.
-5. **Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
+5. **`|` for your sources,** by overloading it with
+   `Ekorn::Pipeline::Operators::chain`, and `@{}` with `drain`.
+6. **Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
    reported at your users' lines.
 
 Don't subclass Ekorn's classes, or make words of your own for its
@@ -292,5 +310,5 @@ types: your users take those from Ekorn, and compose your parts with
 them:
 
 ```perl
-my $next = Ekorn::Pipeline->new(take(5))->iterator(rows($sth));
+my $next = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($table);
 ```

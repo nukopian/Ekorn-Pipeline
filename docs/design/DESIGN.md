@@ -211,8 +211,8 @@ wrapping anything of it (principles 2 and 3; the list proposed):
 |---|---|
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
-| **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `as_source`, to be read from, returning its step, and, optionally, its end and a context; `as_stage`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `as_scalar` or `as_list`, at most one of them, returning its step, its flush, and, optionally, an end. The role it's given in decides which is called, so one object can offer several. A code reference offers none, and takes the role it's given in, with no flush or end |
-| **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result (sections 5.4, 9) |
+| **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `as_source`, to be read from, returning its step, and, optionally, its end and a context; `as_stage`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `as_scalar` or `as_list`, at most one of them, returning its step, its flush, and, optionally, an end. A stage and a sink go in the same place, so an object offers at most one of `as_stage`, `as_scalar` and `as_list`, which is checked when the pipeline is made; `as_source` can go with any of them (D19). The role it's given in decides which is called, so one object can be read from and written to. A code reference offers none, and takes the role it's given in, with no flush or end |
+| **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `first_value` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
 | **A run's context** | the third value `as_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it |
@@ -237,7 +237,7 @@ pipeline don't share a gather's batch, or a source's filehandle.
 
 `gather` already makes a stage afresh for each run. Its block is the
 set-up: it runs at the start of the run, declares the run's state as
-lexicals, and returns the step, and optionally an end, as closures
+lexicals, and returns the step, and optionally a flush, as closures
 sharing that state:
 
 ```perl
@@ -254,7 +254,8 @@ sub batches_of ($size) {
 
 **Proposed:** sources and sinks are made for a run the same way, with
 the words `source` and `sink` (section 6). Each block is a set-up,
-returning a step and an end:
+returning a step, a sink's flush, and an end, and, for a source,
+optionally a context (section 5.4):
 
 ```perl
 sub from_file ($path) {
@@ -271,11 +272,17 @@ sub from_file ($path) {
 So there's one shape to learn, state lives in plain lexicals, and the
 core needs one protocol: an object it's given as a source, a stage or
 a sink can be **made for a run**, by a method for that role, which the
-core calls at the start of each run, and which returns the step and
-the end: `as_source`, `as_stage`, and `as_scalar` or `as_list` for a
-sink (section 4.4; 2026-0022's D5). An object without the method for
-the role it's given in can't take that role. A code reference is used
-as it is, as every one is today.
+core calls at the start of each run, and which returns the closures
+of section 5.4: `as_source`, `as_stage`, and `as_scalar` or `as_list`
+for a sink (section 4.4; 2026-0022's D5). An object without the method
+for the role it's given in can't take that role. A code reference is
+used as it is, as every one is today.
+
+**When set-ups run** (D21): when the run starts, for every part, as a
+gather's always have: when `iterator` makes the iterator, or when a
+pipeline is called with values. So `from_file` opens its file as its
+iterator is made, and a source's context is there before the first
+pull, for an iterator used as a source to pass on (section 12.7).
 
 ### 5.3 How a run ends
 
@@ -290,14 +297,17 @@ the part told it:
   outside, by `finish` or as its iterator was let go, before its input
   ran out. A sink that stops the run itself is the exception: it had
   enough, and is told `done`.
-- **`done`:** its input ran out, and the run didn't die.
+- **`done`:** its input ran out, and the run didn't die. This wins
+  over the table below (D20): a part whose input had run out before a
+  stop came is told `done`, whatever follows it, as when a stage after
+  a sink stops on the sink's result.
 
 So, for the commonest runs:
 
 | The run | The source, and stages up to and including the one that stopped | Stages after the one that stopped |
 |---|---|---|
 | ran out of values | `done` | `done` |
-| was stopped by a stage | `stopped` | `done` |
+| was stopped by a stage | `stopped`, if it still had values to come; `done` if its input had run out | `done` |
 | had a stage or an end die | `died` | `died` |
 | was ended from outside | `stopped`, for each part whose input hadn't run out; `done` for the rest | the same |
 
@@ -321,11 +331,14 @@ required, and gives its result. A gather, as v0.2.0 has it, is a step
 and a flush, so it keeps its shape.
 
 **A flush** (D6, D12) is called once its part's input runs out
-normally: the values ran out, a stop came in a stage before it, or the
-part stopped the run itself, as `first_value` does (D16). What it
-returns goes on through the stages after it, with `ending()` true. It
-isn't called if the input was cut short, or the run died first. It
-isn't told how the run ended, as the run hasn't.
+normally: the values ran out, a stop came in a stage before it, or,
+for a sink, the sink stopped the run itself, as `first_value` does
+(D16). A gather that stops the run isn't flushed, as in v0.2.0. What a
+flush returns goes on through the stages after it, and `ending()` is
+true while it runs and while its values go on. It isn't called if the
+input was cut short, or the run died first. It isn't told how the run
+ended, as the run hasn't. A scalar sink's flush gives one value,
+`undef` if it has none (D25).
 
 **An end** (proposed, **Q4**):
 
@@ -333,7 +346,9 @@ isn't told how the run ended, as the run hasn't.
   run has ended as soon as nothing in it can still act on a value
   (D15): the source has run out or stopped, every flush has been
   called, and every value still to be handed out has passed the last
-  stage. So with a sink last, the run ends as its result is ready,
+  stage. Nothing is run early to make it so (D22): while values still
+  wait to go through stages, the ends wait, and those values go
+  through as they're pulled. So with a sink last, the run ends as its result is ready,
   before it's handed out, and a pulled sink commits then, not when its
   iterator is let go; with a stage after the sink, the run ends only
   once that stage has seen the result. A run also ends when it's
@@ -367,7 +382,11 @@ callers), whose `DESTROY` ends the run, if it hasn't ended already,
 telling each part how from where it stands: `stopped` if its input
 hadn't run out, `done` if it had (section 5.3). Its `finish` method
 ends the run the same way, sooner, and takes no verdict of its own; a
-run ended either way hands out nothing more. Perl calls `DESTROY` when the last reference
+run ended either way hands out nothing more, and what was still to be
+handed out is dropped (D22). A run that ended by itself (section 5.4),
+with values still to hand out, such as a list sink's result, hands
+them out as it's pulled: its ends have run, but its iterator hasn't
+finished. Perl calls `DESTROY` when the last reference
 goes, which is prompt for a lexical iterator. During global
 destruction its order isn't guaranteed, so an end mustn't rely on
 other objects then.
@@ -569,13 +588,26 @@ my $n     = $src | stage { $_->{name} } | count;       # Source | ... | Sink: th
 my @names = @{ $src | take(10) };                       # @{} drains a source
 ```
 
-- **A chain starts with a typed source** (D14): an object whose class
-  overloads `|`. Ekorn's sources and chains do, once Operators is
-  loaded; a package's own source class does by overloading `|` with
-  `Ekorn::Pipeline::Operators::chain`, which is part of the protocol.
-  What follows it is anything `is_stage` takes, a package's own parts
-  included, and a sink, by `as_scalar` or `as_list`, ends it. A plain
-  code reference can't start a chain: Perl gives it no overload.
+- **A chain starts with a typed source or a typed stage** (D14,
+  D23): an object whose class overloads `|`. Ekorn's sources, stages,
+  gathers and chains do, once Operators is loaded; a package's own
+  source class does by overloading `|` with
+  `Ekorn::Pipeline::Operators::chain`, and `@{}` with
+  `Ekorn::Pipeline::Operators::drain`, which are part of the protocol.
+  What follows is anything `is_stage` takes, a package's own parts
+  included. A chain from a source is a source, and a sink, by
+  `as_scalar` or `as_list`, ends it with its result. A chain of stages,
+  `$trim | $lowercase`, is a pipeline, of a subclass of Ekorn::Pipeline
+  that has `|`, so it goes wherever a pipeline does, given last to a
+  function taking a pipeline last included; a sink can end it, making
+  a pipeline that ends in a sink. A plain code reference can't start a
+  chain: Perl calls no overload for it, or, when the right side is
+  typed, Ekorn's, which croaks.
+- **Two traps of precedence:** `|` binds more loosely than `.` and
+  `+`, so a chain inside a larger expression goes in parentheses; and
+  the ready-made sinks that take no arguments, such as `count`, are
+  declared with an empty prototype, so `$src | count + 0` reads as
+  `($src | count) + 0`.
 - **Perl calls an overload only if one side is an object.** Between two
   plain code references, `|` silently ORs their addresses. The docs
   must say loudly: in a chain, every stage is a `stage {...}`, or a
@@ -597,9 +629,8 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   `my $n = $src | count` an object to drain. For a source that gives
   a sink's result, use `iterator` (section 4.2).
 - A pipeline made with `new` gets no operators: only the chains `|`
-  makes, and the typed objects, do. So `Stage | Stage` makes a chain
-  of stages, not a pipeline, which `|` can extend, and which can be
-  given wherever a pipeline can.
+  makes, and the typed objects, do. A chain of stages is a pipeline
+  of a subclass that has them, so plain pipelines never do.
 - **`|=` makes a new chain,** and puts it in the variable: `$chain |=
   $stage` is `$chain = $chain | $stage`. Nothing made is changed in
   place.
@@ -810,10 +841,12 @@ sub pluck ($name) {
 - **An iterator used as a source passes on the context of the run
   inside it,** so `pluck` sees the statement's columns behind a
   pipeline between them.
-- **A run with no context of its own,** a pushed run, or one whose
-  source gives none, sees the context of the run it's inside, as when
-  a stage pushes values through a pipeline of its own (D16); at the
-  top, `run_context()` gives nothing.
+- **A run whose source gives no context has none,** a pushed run
+  included, even one pushed inside a stage of another run (D24): only
+  an iterator used as a source passes its context on. So `pluck` in a
+  pushed run, fed values that aren't the statement's rows, finds no
+  columns and croaks, rather than read the statement's and give wrong
+  fields.
 - **It's generic:** a CSV source could give its header the same way,
   and no provider needs more of Ekorn than this function.
 
@@ -912,31 +945,39 @@ first, before any of the lifecycle work.
 ## 16. Open questions
 
 Each says whose it is, and recommends an answer where there's one.
+Settled questions keep their numbers, listed after the open ones.
+
+### 16.1 Open
 
 | | Question | Whose | Recommended |
 |---|---|---|---|
-| **Q1** | Do sources, sinks and operators belong in Ekorn, a step toward a stream library beyond the README's pitch? | Iain | Yes, opt-in, as the pull is what makes stages safe for files and databases; the README says so in a section of its own |
-| **Q2** | The lifecycle method's name? | Ekorn | Settled by 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
-| **Q3** | Each part told how the run ended from where it stands (5.3)? | Ekorn | Yes: it's how a stop works today |
-| **Q4** | A source's and a sink's end always runs, once the run has ended, told how; a sink's result comes from a closure of its own, when its input runs out (2026-0022's D6)? | Ekorn | Yes |
-| **Q5** | Where does the source's end run among the ends? | Ekorn | Settled by 2026-0022's D11: first, so a failing close is known before any sink commits |
-| **Q6** | An end that dies during a die: warn, keeping the first error? | Ekorn | Yes, with a message saying which end |
-| **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | Ekorn, DBIx-Squirrel to confirm | Yes |
-| **Q8** | A sink is made for a run, holds back every value, and gives its result, one value or a list, when its input runs out: usually last, its result going on through any stages after it? | Ekorn | Yes |
-| **Q9** | `stage(\&trim)`: wrap, never bless the sub given? | Ekorn | Always wrap |
+| **Q1** | Do sources, sinks and operators belong in Ekorn, a step toward a stream library beyond the README's pitch? | Iain | Yes, opt-in, as the pull is what makes stages safe for files and databases; the operators stay (2026-0022's D18); the README says so in a section of its own |
+| **Q6** | An end that dies during a die: warn, naming the end, keeping the first error? | Ekorn | Yes; section 5.4 states it so |
+| **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | DBIx-Squirrel to confirm | Yes: Ekorn's side is settled by D4 and D15 |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
-| **Q12** | Canned stages return objects, changing their `ref`? | Iain, DBIx-Squirrel to check its tests | Yes, in v0.3.0, said plainly in `Changes` |
-| **Q13** | `is_source`, exported like `is_stage`? | Ekorn | Yes, if `iterator` must tell a Source from a code reference |
-| **Q14** | How DBIx::Squirrel::Iterator becomes a source? | DBIx-Squirrel | |
+| **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | |
 | **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
 | **Q16** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
 | **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
-| **Q18** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
+| **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
-| **Q21** | How does a stage that needs to know about its source, such as `pluck`, find it out (section 12.7)? | Ekorn | Settled by 2026-0022's D7: the source gives a context for each run, and the stage asks `run_context()` |
 | **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
+
+### 16.2 Settled
+
+| | Question | Settled by |
+|---|---|---|
+| **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
+| **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
+| **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
+| **Q5** | Where does the source's end run among the ends? | D11: first |
+| **Q8** | What is a sink? | D6 and D12, and section 4.2: made for a run, holding back every value, its flush giving its result; usually last |
+| **Q9** | `stage(\&trim)`: wrap, never bless? | D4: a Stage holds the code given, untouched |
+| **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
+| **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
+| **Q21** | How does a stage find out about its source? | D7 and D24: the source's context for the run, from `run_context()` |
 
 ## 17. Decisions, and what was weighed
 
@@ -1061,7 +1102,8 @@ Weighed and set aside:
 
 `gather`, `source` and `sink` each take a block that's the set-up: it
 runs at the start of each run, declares the run's state with `my`, and
-returns the step and the end as closures sharing it. (Principle 7.)
+returns its closures, the step, a flush and an end (section 5.4), as
+closures sharing it. (Principle 7.)
 
 Weighed and set aside:
 
@@ -1303,6 +1345,39 @@ Weighed and set aside:
   An end can still die as it's called, so a commit is never atomic
   with what follows it; ordering the ends puts the likeliest failure,
   closing the source, before any commit, and costs nothing.
+
+### 17.18 One role in a stage's place, decided ends, and chains of stages
+
+(Iain, 2026-11-12, 2026-0022's D19 to D25, from the third cold
+review.) An object offers at most one of `as_stage`, `as_scalar` and
+`as_list`, as they'd be called in the same place (D19). A part whose
+input had run out is told `done`, whatever follows it (D20). Set-ups
+run when the run starts (D21). A run's ends wait for its stages, and
+nothing is run early (D22). Stages chain with `|` as well as sources,
+into a pipeline of a subclass with `|` (D23). A pushed run has no
+context of its own (D24). A scalar sink always gives one value (D25).
+
+Weighed and set aside:
+
+- **A precedence rule for an object with both a stage's and a sink's
+  method,** a sink's winning. An author could offer both and not know
+  which is used.
+- **The verdict by the table, by position alone.** A source whose
+  input had run out was told `stopped` or `done` by what happened to
+  follow it: the code gave both.
+- **Set-ups at the first pull.** An iterator used as a source couldn't
+  pass on its context when the outer run starts.
+- **Values run through the stages early,** so a run's ends run sooner.
+  It would run `peek` and `dump_to` before the values were pulled.
+- **Chains of sources only,** which D14 said. Section 9's own example
+  chained stages, and a chain of stages tells the story the operators
+  are kept for (D18).
+- **A pushed run seeing the context of the run it's inside,** as D16
+  first said. `pluck` in a pushed run fed other values would read the
+  statement's columns and give wrong fields, without a word.
+- **A scalar sink giving nothing when it has no value.** "A result of
+  one value is a source of one value" would fail, and scalar context
+  would give how many results there were, nought.
 
 ## 18. Where each roadmap item lands
 

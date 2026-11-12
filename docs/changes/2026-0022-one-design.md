@@ -16,7 +16,11 @@ settled, from the second cold review: the source's end first; a flush
 and an end for everything made for a run; `is_stage` by the role
 methods; a chain starts with a typed source; a run ends when nothing
 in it can act; the unanswered cases answered; a scalar sink's result
-in scalar context. D18 settled: the operators stay.
+in scalar context. D18 settled: the operators stay. D19 to D25
+settled, from the third cold review: one stage-place method; `done`
+for a part whose input ran out; set-ups when the run starts; ends
+wait, nothing run early; chains of stages; no context in a pushed
+run; a scalar sink always gives one value.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -98,7 +102,9 @@ The design's own open questions are numbered Q1 and on, in its section
   source open until its run ends, not only until its first value. It
   changes the design's 19.2: an outer run's stop or die now reaches the
   inner run's ends, as they wait for it. The design's 5.3, 5.4 and
-  17.15.
+  17.15. Since revised: D11 put the source's end first, and D15 ends a
+  run when nothing in it can act, so a complete pipeline pulled as a
+  source ends its run at the first pull again, and 19.2 is as it was.
 - [x] **D7.** What does a stage ask, to know about its run? A context
   for the run, Iain decided on 2026-11-12: `as_source` may return a
   third value, after its step and its end, anything the source knows
@@ -171,7 +177,9 @@ fixed; each can be reopened.
   going through as its last, and it's told `done`; from a flush, it's
   a stop at that stage; from an end, an error; and a run with no
   context of its own, such as one pushed inside a stage, sees the
-  context of the run it's in. Design 5.4, 5.6, 12.7.
+  context of the run it's in. Design 5.4, 5.6, 12.7. Since revised: D24
+  gives a pushed run no context, and D16's "a part that stops the run"
+  means a sink, as a gather that stops isn't flushed.
 - [x] **D17.** What does a pushed run give in scalar context? How many
   values came out, as in v0.2.0, unless its last stage is a scalar
   sink, when it gives that sink's result: `my $n = $p->(@values)` with
@@ -181,6 +189,41 @@ fixed; each can be reopened.
 - [x] **D18.** Do the operators stay? Yes, Iain decided on 2026-11-12:
   a chain tells its story visually; other syntax may be explored
   beside it. The second review had suggested deferring them. Design 9.
+
+D19 to D25 came from the third cold review, settled by Iain on
+2026-11-12 as recommended.
+
+- [x] **D19.** An object offering a stage's method and a sink's? It
+  offers at most one of `as_stage`, `as_scalar` and `as_list`, checked
+  when the pipeline is made, as they'd be called in the same place;
+  `as_source` goes with any. Design 4.4, 17.18.
+- [x] **D20.** A part whose input ran out before a stop? It's told
+  `done`, whatever follows it: the definition in 5.3 wins over its
+  table, which the code followed or not by what came downstream.
+  Design 5.3.
+- [x] **D21.** When do set-ups run? When the run starts, as a gather's
+  always have: when the iterator is made, or a pipeline called. D7's
+  context through an iterator depends on it. Design 5.2.
+- [x] **D22.** What does D15's ending mean for values still waiting?
+  The ends wait while they go through the stages, as they're pulled,
+  and nothing is run early; `finish` drops what's still to be handed
+  out, and a run that ended by itself hands out what's left. Design
+  5.4, 5.5.
+- [x] **D23.** Do stages chain with `|`? Yes: `$trim | $lowercase` is a
+  pipeline of a subclass that has `|`, going wherever a pipeline does;
+  a chain starts with a typed source or stage, and a package's source
+  class gets `|` from `chain` and `@{}` from `drain`. Why: section 9's
+  own example chained stages, which D14 forbade, and a chain of stages
+  tells the story the operators are kept for. Design 9.
+- [x] **D24.** Does a pushed run see the context of the run it's in?
+  No, reversing that part of D16: only an iterator used as a source
+  passes its context on. Why: `pluck` in a pushed run fed other values
+  would read the statement's columns and give wrong fields, silently.
+  Design 12.7.
+- [x] **D25.** What does a scalar sink give with no values? One value,
+  `undef`, as its flush always gives one. So a result of one value is
+  a source of one value, and scalar context (D17) gives `undef`, not
+  nought. Design 4.4, 5.4.
 
 ## The plan
 
@@ -376,6 +419,22 @@ section 10.2 missed, now listed: a run ended from outside tells parts
 `finish('done')` commits a partial run; `finish` from inside a stage
 calls the sink's step again; and an error from a source's end shows an
 empty stage name. Section 10 is rewritten whole.
+
+### The third cold review, 2026-11-12
+
+A third fresh reviewer found the design mostly coherent and improved on
+both earlier reviews, and the implementation and its document accurate,
+all 33 runnable examples printing what they say. Its structural points
+became D19 to D25. It also found: D16's "a part that stops the run"
+broader than meant; the reference and how-to lagging the day's
+decisions, their sections for package authors never naming the role
+methods, `run_context()` or `chain`, now rewritten around them; wording
+from before D12 in the design's 5.2 and 17.6; D6 not marked where D11
+and D15 revised it; the operators' traps of precedence and of sinks
+without an empty prototype; and three drifts section 10.2 missed, now
+listed. The open questions are tidied: Q3, Q4, Q8, Q9, Q12 and Q13
+settled by decisions since, beside Q2, Q5 and Q21, and Q14 and Q18
+restated.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
