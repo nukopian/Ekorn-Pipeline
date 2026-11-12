@@ -35,7 +35,8 @@ directly, is open in the design. D35 settled: named sources, Q11,
 dropped. Q14, DBIx-Squirrel's, has a suggested
 answer for its review. D36 settled: a statement's definition
 names pipelines by string, as a chain of names. D37 settled: the name-reading class
-method is `pipeline_in`.
+method is `pipeline_in`. D38 settled: no strict `is_stage`, for
+now; `is_sink` is the design's Q27.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -315,6 +316,12 @@ D19 to D25 came from the third cold review, settled by Iain on
   package they're given, and a public method serves both, where a
   private one would be reached into from another module. `new_in`
   would read as `new` with an option. Design 6.1.
+- [x] **D38.** A strict `is_stage` (the design's Q18, roadmap
+  2026-0019)? Not now, Iain decided on 2026-11-12, as recommended:
+  pipeline-last answers the need, and plain code references stay
+  stages. He asked whether an `is_sink` beside it, telling a scalar
+  sink from a list sink, had real value: it does, for a function
+  taking its caller's stages, so it's the design's Q27.
 
 ## The plan
 

@@ -209,7 +209,8 @@ function or an argument, so a function whose values can be code
 references can take stages without 2026-0011's pipeline-last
 convention, provided its callers write `stage {...}`. Made the
 default, it would change behaviour: a v0.3.0, with a task for
-DBIx-Squirrel. Weigh against 2026-0011's D2, which answers the same
-need with plain subs. From DBIx-Squirrel's message, part 4.
+DBIx-Squirrel. Weighed against 2026-0011's D2, which answers the same
+need with plain subs: not now, as Iain decided on 2026-11-12
+(2026-0022's D38). From DBIx-Squirrel's message, part 4.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
