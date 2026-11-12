@@ -177,8 +177,8 @@ How they relate:
 - **A pipeline with a source in front is a source.** Joined, they
   make a new source, not a pipeline: a chain, `$src | $stage`, which
   can be used again, or an iterator, one run. An iterator that's spent,
-  having handed out all it will, or been finished, croaks when given as
-  a source again, rather than give nothing (D41).
+  having handed out all it will, been finished, or died, croaks when
+  given as a source again, rather than give nothing (D41).
   `$pipeline->iterator($source)` already makes one: pulled, it gives
   the values that come out of the stages. Ending in a sink, it gives
   the sink's result, so it can feed another pipeline:
@@ -220,7 +220,10 @@ A pipeline runs two ways (settled):
   context it gives how many came out, as in v0.2.0, unless its last
   stage is a scalar sink, when it gives that sink's result:
   `my $n = $p->(@values)` with `count` last is the count
-  (2026-0022's D17).
+  (2026-0022's D17). A sink giving one value must say so, with
+  `sink_scalar`: one written with `sink {...}` is a list sink (D47),
+  and in scalar context gives how many results it had, 1, not its
+  value, as Perl's lists do.
 - **Pull:** given a source, `$p->iterator($source)`, it returns an
   iterator that hands out one result per call, pulling from the source
   only as it needs. Once a stage stops, the source isn't called again.
@@ -402,7 +405,9 @@ ended, as the run hasn't. A scalar sink's flush gives one value,
 the source's values, what it carries going through as its last, and
 the source is told `done`, as it decided it had enough; from a flush,
 it's a stop at that flush's stage; from an end, the run has ended, so
-it's an error like any other die.
+it's an error like any other die, "Expected no stop in an end"; and
+from a set-up, the run has no values yet to stop, so it's an error,
+"Expected no stop in a set-up".
 
 ### 5.5 A run that's abandoned
 
@@ -429,16 +434,18 @@ goes, which is prompt for a lexical iterator. During global
 destruction its order isn't guaranteed, so an end mustn't rely on
 other objects then.
 
-**The caller asks how it ended** (2026-0022's D34 and D45):
-`$next->ended` gives nothing while the run is going, and, once it has
-ended, the verdict of the run's last part, which is whether the result
-the caller got is complete: `done` if the last part's input ran out, so
-a complete `first_value`, which stops the run once it has its answer,
-is `done`; `stopped` if it was cut short, as by `take(5)` last, or if
-`finish` dropped values still to be handed out; and `died` if anything
-in the run died, an end included. With no stages, it's the source's
-verdict. A pushed run leaves no object to ask; a caller who wants to
-know pulls with `iterator`.
+**The caller asks how it ended** (2026-0022's D34 and D48):
+`$next->ended` gives nothing until the iterator has given all it will,
+been finished or died, so it's said once, and doesn't change. Then it
+says whether the source was read to its end: `done` if it was;
+`stopped` if the reading was cut short, by a stop anywhere, such as
+`take(5)`'s or `first_value`'s, or from outside, or if `finish`
+dropped values still to be handed out; and `died` if anything in the
+run died, an end included. So it answers "were there more values than
+I got?", which the values alone don't show. A `take(2)` over exactly
+two values says `stopped`, as the run can't know there were no more
+without reading on. A pushed run leaves no object to ask; a caller who
+wants to know pulls with `iterator`.
 
 ### 5.6 What `ending` means
 
@@ -492,7 +499,7 @@ constructor (settled, 2026-0021):
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
 | `sink {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
-| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value (D47) |
+| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value (D47). Use it for a sink of one value: one written with `sink {...}`, in scalar context, gives 1, its count of results, and can't end a `\|` chain |
 
 The rule for the blocks: **a word for something made afresh for each
 run takes a set-up; `stage` takes the stage itself.** A source with
@@ -517,8 +524,9 @@ well. `Stop` isn't a factory, and stays only in Ekorn::Pipeline::Stop.
 Two kinds of function make things, and they live apart:
 
 - **Words** make one of the types from what the user writes:
-  `pipeline`, `stage`, `gather`, `source`, `sink`. One word per type,
-  in Ekorn::Pipeline::Factories.
+  `pipeline`, `stage`, `gather`, `source`, `sink` and `sink_scalar`:
+  one word per type, a sink's two, by its result, in
+  Ekorn::Pipeline::Factories.
 - **Ready-made parts** are particular stages, sources and sinks, with
   a job of their own: `take(5)`, `from_file($path)`, `count`. They
   live by topic, as the canned stages do now: Ekorn::Pipeline::Stages::*,
@@ -643,8 +651,8 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
 ```
 
 - **A chain starts with a typed source or a typed stage** (D14,
-  D23): an object whose class overloads `|`. Ekorn's sources, stages,
-  gathers and chains do, once Operators is loaded; a package's own
+  D23): an object whose class overloads `|`. Ekorn's sources,
+  iterators, stages, gathers and chains do, once Operators is loaded; a package's own
   source class does by overloading `|` with
   `Ekorn::Pipeline::Operators::chain`, and `@{}` with
   `Ekorn::Pipeline::Operators::drain`, which are part of the protocol.
@@ -1070,11 +1078,11 @@ whose it is and a recommendation.
 | | Question | Settled by |
 |---|---|---|
 | **Q1** | Do sources, sinks and operators belong in Ekorn? | D26: yes, the stream concept applied to functions, which Iain wants to run with; opt-in; the operators stay (D18); the README says so in a section of its own |
-| **Q24** | How is a complete pipeline, source to sink, kept as a reusable source of its result? And what of an iterator given to a second run? | D41: narrowed: a reusable source of a sink's result is dropped, as a few lines of `source {...}` make one, and it'll be found again if needed; and a spent iterator, one that has handed out all it will, or was finished, croaks when given as a source, rather than give nothing |
+| **Q24** | How is a complete pipeline, source to sink, kept as a reusable source of its result? And what of an iterator given to a second run? | D41: narrowed: a reusable source of a sink's result is dropped, as a few lines of `source {...}` make one, and it'll be found again if needed; and a spent iterator, one that has handed out all it will, was finished, or died, croaks when given as a source, rather than give nothing |
 | **Q26** | What does each type do when called directly? | D42: what its role means: a Sink pushes the values it's given through itself and gives its result, so a sink can be tested on its own; a Source croaks; Stage, Pipeline, Iterator and Gather as they were (principle 6) |
 | **Q27** | Should Ekorn export `is_sink`? | D43: yes, on request, beside `is_stage`: `'scalar'`, `'list'`, or false; a pipeline by the sink it ends in |
-| **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, nothing while it goes, then `done`, `stopped` or `died`, as the source sees it; for iterators only (section 5.5) |
-| **Q28** | What does `ended` tell the caller? | D45: the verdict of the run's last part, whether the result is complete: a complete `first_value` is `done`, `take(5)` last `stopped`, and `finish` dropping undelivered values `stopped`; with no stages, the source's (section 5.5) |
+| **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, for iterators only; what it says, D48 (section 5.5) |
+| **Q28** | What does `ended` tell the caller? | D48, revising D45: whether the source was read to its end, `stopped` too if `finish` dropped values still to be handed out; said once the iterator has given all it will (section 5.5) |
 | **Q29** | What does a context describe? | D46: the run's source, not the values: a stage that reshapes rows doesn't change it, so a stage after it reading the context reads the source's (4.4, 12.7); a way to replace it waits until a need is found |
 | **Q30** | How is a list sink declared? | D47: lists first: `Sink->new` and `sink {...}` make a list sink, and `Sink->new_scalar` and `sink_scalar {...}` a scalar one, scalars being the second-class citizen; a chain ends only in a scalar sink (D10), so a sink written to end one is a `sink_scalar` |
 | **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
@@ -1540,8 +1548,8 @@ Weighed and set aside:
 ### 17.21 A spent iterator is no source
 
 (Section 4.2; Iain, 2026-11-12, 2026-0022's D41.) An iterator is one
-run. Once it has handed out all it will, or been finished, given as a
-source to another run it croaks: "Expected a source with values still
+run. Once it has handed out all it will, been finished, or died, given
+as a source to another run it croaks: "Expected a source with values still
 to give".
 
 Weighed and set aside:
@@ -1584,12 +1592,19 @@ Weighed and set aside:
 (Sections 5.5, 6.1, 6.2; Iain, 2026-11-12, 2026-0022's D45 to D47, from
 the fourth cold review.)
 
-`ended` gives the verdict of the run's last part, as that's what says
-whether the caller's result is complete. Weighed and set aside: the
-source's verdict, which D34 first built, as it called a complete
-`first_value` `stopped`, the same as `take(5)` cutting a read short,
-and called a run `done` though `finish` had dropped values the caller
-never got.
+`ended` says whether the source was read to its end (D48, revising
+D45), `stopped` too if `finish` dropped values still to be handed out,
+and it's held back until the iterator has given all it will. Weighed
+and set aside: the verdict of the run's last part, which D45 first
+settled, as "whether the result is complete". The fifth cold review
+showed it isn't that: by section 5.3's rules, `take(2)` before a stage
+is `done` and after one `stopped`, for the same values, and `take(2)`
+then `count` is `done`, though the count was cut short. "Complete" has
+two meanings, whether the caller got all there was and whether the
+last part got what it wanted, and only the first is well defined.
+Also set aside: a verdict that could change, `done` while a list
+sink's result was still being handed out and `stopped` once `finish`
+dropped the rest.
 
 A context describes the run's source, not the values. Weighed and set
 aside: a pipeline replacing or dropping it, until a need is found.

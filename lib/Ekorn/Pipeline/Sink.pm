@@ -20,13 +20,16 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # pipeline of the one sink would, and gives its result: the closure
 # holds the set-up, not the sink, so it works however long it's kept.
 sub new ($class, $setup) {
-    return _made('Ekorn::Pipeline::Sink::List', $setup);
+    return _made($class->can('as_list') ? $class : 'Ekorn::Pipeline::Sink::List',
+        $setup);
 }
 
 
 # Return a sink, as new does, whose result is one value.
 sub new_scalar ($class, $setup) {
-    return _made('Ekorn::Pipeline::Sink::Scalar', $setup);
+    return _made(
+        $class->can('as_scalar') ? $class : 'Ekorn::Pipeline::Sink::Scalar',
+        $setup);
 }
 
 

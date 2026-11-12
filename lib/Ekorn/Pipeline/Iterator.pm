@@ -28,9 +28,10 @@ sub new (
 }
 
 
-# Return how the run ended: "done" if its source's values ran out,
-# "stopped" if the reading was cut short, by a stop or from outside,
-# and "died" if anything in it died; nothing while it's going.
+# Return how the run ended: "done" if its source was read to its end,
+# "stopped" if the reading was cut short, by a stop or from outside, or
+# values still to be handed out were dropped, and "died" if anything in
+# it died; nothing until the iterator has given all it will.
 sub ended ($self) {
     return $self->{ended}->();
 }

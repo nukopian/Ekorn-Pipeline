@@ -169,7 +169,10 @@ closed its file there and then.
 
 ### Write a sink of your own, and act on how the run ended
 
-`sink`'s block runs at the start of each run, and returns the step,
+A sink giving one value, as most do, is written with `sink_scalar`; one
+written with `sink` gives a list, and in scalar context gives 1, its
+count of results. The block runs at the start of each run, and returns
+the step,
 called with each value; the result, called when the values run out;
 and, if it needs one, the end, told how the run ended once it has.
 One that should take effect only if the whole run went through checks

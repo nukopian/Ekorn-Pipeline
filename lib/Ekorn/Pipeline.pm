@@ -298,6 +298,15 @@ sub _code_or_none (@things) {
 }
 
 
+# Return the text of an end's error: a stop's own text, "Stop used
+# outside a pipeline", would mislead, as the stop was in a run.
+sub _end_error ($error) {
+    return 'Expected no stop in an end, as the run has ended'
+        if $error isa 'Ekorn::Pipeline::Stop';
+    return "$error";
+}
+
+
 # Call each end given, as [$label, $end, $how], in order. While the run
 # is dying, an end that dies is reported as a warning naming it, and the
 # rest are called. Otherwise, an end that dies tells every end after it
@@ -313,7 +322,7 @@ sub _end_all ($ends, $dying) {
         catch ($e) {
             if ($dying || defined $error) {
                 Carp::carp sprintf 'The end of %s died while the run was already dying: %s',
-                    $label, $e =~ s( \n \z )()xr;
+                    $label, _end_error($e) =~ s( \n \z )()xr;
             }
             else {
                 ($error, $failed) = ($e, $label);
@@ -323,8 +332,8 @@ sub _end_all ($ends, $dying) {
     return unless defined $error;
     # A stop from an end is an error like any other: the run has ended.
     croak $error if is_ref($error) && !($error isa 'Ekorn::Pipeline::Stop');
-    my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
-    my $message = "$error" =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
+    my $at      = Carp::shortmess()  =~ s( \.? \n \z )()xr;
+    my $message = _end_error($error) =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
     die "Pipeline end of $failed failed$at:\n$message\n";
 }
 
@@ -438,19 +447,16 @@ sub _iterator ($stages, $names, $source) {
         $ended, $spent, $dropped,
     );
     my $next_flush = 0;
-    # How the run ended, as its caller asks: as the source sees it, or
-    # "died" if anything died, an end included.
+    # How the run ended, as its caller asks: whether the source was read
+    # to its end, "stopped" if values still to be handed out were dropped,
+    # or "died" if anything died, an end included.
     my $finish = sub ($died) {
         return if $finished++;
-        # The verdict of the run's last part, or of its source, if it has
-        # no stages; "stopped" if it was ended from outside with values
-        # still to be handed out.
         $ended
-            = $died           ? 'died'
-            : $dropped        ? 'stopped'
-            : !@stages        ? ($source_done ? 'done' : 'stopped')
-            : $input_done[-1] ? 'done'
-            :                   'stopped';
+            = $died        ? 'died'
+            : $dropped     ? 'stopped'
+            : $source_done ? 'done'
+            :                'stopped';
         my @calls;
         push @calls, ['the source', $source_end, $source_done ? 'done' : 'stopped']
             if $source_end;
@@ -464,7 +470,8 @@ sub _iterator ($stages, $names, $source) {
             _end_all(\@calls, $died);
         }
         catch ($e) {
-            $ended = 'died';
+            # An end died: the run died, and hands out nothing more.
+            ($ended, $spent, @todo) = ('died', 1);
             die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
         }
         return;
@@ -616,7 +623,12 @@ sub _iterator ($stages, $names, $source) {
     };
     return Ekorn::Pipeline::Iterator->new(
         $next, $end_run, $context,
-        sub () { $ended },
+        # How the run ended, held back until the iterator has nothing more
+        # to give, so it's said once, and doesn't change.
+        sub () {
+            return $ended if $spent || $outside || ($ended // '') eq 'died';
+            return;
+        },
         sub () { $spent || $outside || ($ended // '') eq 'died' },
     );
 }

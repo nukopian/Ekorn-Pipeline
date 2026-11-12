@@ -35,10 +35,10 @@ subclass, go, as does Pipes' `pipeline_class`.
   with nothing until it gives an empty list. Any code reference, or
   one made with `source`.
 - **Sink:** a part that consumes every value and, when they run out,
-  gives its result, one value, such as a count, or a list, such as every
+  gives its result, a list, or one value for a scalar sink, one value, such as a count, or a list, such as every
   value. Usually the last stage, when its result is what the run
   gives; anywhere else, its result goes on through the stages after
-  it. Made with `sink`, or ready-made, such as `count`.
+  it. Made with `sink` or `sink_scalar`, or ready-made, such as `count`.
 - **Made for a run:** made afresh at the start of each run, by a
   set-up block, so that each run has state of its own. Gathers,
   sources and sinks can be.
@@ -158,10 +158,11 @@ how from where it stands, `stopped` if its input hadn't run out, so
 code reference, `$next->()`, as before.
 
 `$next->finish` ends its run sooner, the same way. And
-`$next->ended` says whether the result was complete: nothing while the
-run goes, then `done` if its last part's input ran out, as a complete
-`first_value`'s does, `stopped` if it was cut short, as by `take(5)`
-last or by `finish` dropping values, or `died`.
+`$next->ended` says whether the source was read to its end: nothing
+until the iterator has given all it will, been finished or died; then
+`done` if it was, `stopped` if a stop anywhere, such as `take(5)`'s or
+`first_value`'s, or `finish`, cut the reading short, or `finish`
+dropped values still to be handed out, and `died` if anything died.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,
@@ -293,7 +294,9 @@ Its set-up returns its step, called with each value, whose return is
 ignored; its flush, called when its input runs out, giving its result;
 and, optionally, its end, told how the run ended once it has. A sink
 made with `sink` gives a list; one made with `sink_scalar` gives one
-value, and is what ends a `|` chain. Last, the result is all the run gives; anywhere else, it goes on
+value, and is what ends a `|` chain. Write a sink of one value with
+`sink_scalar`: one written with `sink`, in scalar context, gives 1, its
+count of results, not its value. Last, the result is all the run gives; anywhere else, it goes on
 through the stages after it.
 
 ```perl

@@ -55,7 +55,7 @@ sub spy_sink () {
 # A sink keeping its values only if the run is done, as a transaction
 # commits, logging which; its result is how many it was given.
 sub saving_sink ($saved) {
-    return sink {
+    return sink_scalar {
         my @pending;
         return (
             sub ($value) { push @pending, $value },
@@ -142,7 +142,7 @@ subtest '19.1 A source joined directly to a sink' => sub {
     subtest
         'a sink that dies on a value: both told died, and the error thrown' => sub {
             @log = ();
-            my $fails = sink {
+            my $fails = sink_scalar {
                 return (
                     sub ($value) { die "No room\n" }, sub () { 0 },
                     sub ($how) { push @log, "sink $how" },
@@ -213,7 +213,7 @@ subtest 'An end that dies (Q6, D27)' => sub {
         'while the run is dying: a warning naming it, keeping the first error' =>
         sub {
             @log = ();
-            my $fails = sink {
+            my $fails = sink_scalar {
                 return (
                     sub ($value) { croak 'First' }, sub () { 0 },
                     sub ($how) { croak 'Second' },
@@ -232,7 +232,7 @@ subtest 'An end that dies (Q6, D27)' => sub {
 
     subtest 'as the run ends: thrown, once the rest are told it died' => sub {
         @log = ();
-        my $fails = sink {
+        my $fails = sink_scalar {
             return (sub ($value) { return }, sub () { 0 }, sub ($how) { croak 'Full' });
         };
         like
@@ -379,7 +379,7 @@ subtest '19.2 A complete pipeline as a source' => sub {
             @log = ();
             my $next;
             my $steps = 0;
-            my $after = sink {
+            my $after = sink_scalar {
                 return (
                     sub ($value) { $steps++ }, sub () { $steps },
                     sub ($how) { push @log, "sink $how" },
@@ -402,7 +402,7 @@ subtest 'The caller asks how the run ended (D34)' => sub {
     is $next->ended, 'done', 'done when its values ran out';
 
     $next = $class->new(take(1))->iterator(from_arrayref([1, 2, 3]));
-    $next->();
+    my @one = drain_all($next);
     is $next->ended, 'stopped', 'stopped when take(1) cut the reading short';
 
     $next = $class->new(sub { $_ })->iterator(from_arrayref([1, 2, 3]));
@@ -467,23 +467,43 @@ subtest 'A part called directly (D42, D43)' => sub {
         $class->new(count, stage { $_ }), 'count';
 };
 
-subtest "ended is the last part's verdict (D45)" => sub {
+subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
     my $next = $class->new(first_value)->iterator(from_arrayref([1, 2, 3]));
-    $next->();
-    is $next->ended, 'done',
-        'a complete first_value is done, though the source was cut short';
+    is [$next->()],  [1];
+    is $next->ended, undef, 'nothing until the iterator has given all it will';
+    is [$next->()],  [];
+    is $next->ended, 'stopped',
+        'first_value stopped the source: there were more';
 
     $next
-        = $class->new(sub { $_ }, take(2))->iterator(from_arrayref([1, 2, 3]));
+        = $class->new(take(2), sub { $_ })->iterator(from_arrayref([1, 2, 3]));
     my @two = drain_all($next);
-    is $next->ended, 'stopped', 'take(2) last cut the result short: stopped';
+    is $next->ended, 'stopped', 'take(2), wherever it is, cut the source short';
+
+    $next = $class->new(sub { $_ })->iterator(from_arrayref([1, 2]));
+    my @all = drain_all($next);
+    is $next->ended, 'done', 'read to its end';
 
     $next = $class->new(to_array)->iterator(from_arrayref([1, 2, 3]));
     $next->();
-    is $next->ended, 'done', 'a list sink, its result ready, is done';
+    is $next->ended, undef,
+        'a list sink still handing out its result: nothing yet';
     $next->finish;
-    is $next->ended, 'stopped',
-        'but finished with its values undelivered, stopped';
+    is $next->ended, 'stopped', 'finished with values undelivered: stopped';
+};
+
+subtest 'An end dying with values still waiting: no more is handed out' => sub {
+    my $dies = sink {
+        my @all;
+        return (
+            sub ($v) { push @all, $v }, sub () { @all },
+            sub ($how) { die "Late\n" },
+        );
+    };
+    my $next = $class->new($dies)->iterator(from_arrayref([1, 2, 3]));
+    like dies { $next->() }, qr( Late )x;
+    is [$next->()], [], 'nothing more';
+    is $next->ended, 'died';
 };
 
 subtest 'A list sink by default; sink_scalar for one value (D47)' => sub {
@@ -509,7 +529,7 @@ subtest 'Fixes from the fourth review' => sub {
         return (sub ($value) { return }, sub () { 1 }, sub ($how) { Stop() });
     };
     like dies { $class->new($stops_at_end)->(1) },
-        qr( \A Pipeline\ end\ of\ stage\ \#1\ failed )x,
+        qr( \A Pipeline\ end\ of\ stage\ \#1 .* no\ stop\ in\ an\ end )xs,
         'a stop from an end is an error, not a raw stop (D16)';
     my $outer = $class->new(sub { $class->new($stops_at_end)->($_) });
     ok dies { $outer->(1) }, "and so can't quietly stop a run around it";

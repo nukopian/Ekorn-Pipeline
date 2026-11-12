@@ -40,7 +40,8 @@ as a source; a reusable source of a sink's result dropped. D42 settled: each typ
 does what its role means. D43 settled: `is_sink`. D44 settled: DBIx::Squirrel's iterator
 offers `as_source`, as the design's 12.3 sets out. D45 to D47 settled, from the fourth
 cold review: `ended` the last part's verdict; a context describes the
-source; lists first, `sink` and `sink_scalar`.
+source; lists first, `sink` and `sink_scalar`. D48 settled: `ended`
+says whether the source was read to its end, revising D45.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -375,7 +376,8 @@ D19 to D25 came from the third cold review, settled by Iain on
   last is `stopped`; `finish` dropping values still to be handed out
   is `stopped`; with no stages, the source's verdict. Why: D34 gave the
   source's verdict, which called a complete `first_value` `stopped`,
-  like a truncation. Built. Design 5.5, 17.23.
+  like a truncation. Built. Design 5.5, 17.23. Revised by D48, as the
+  fifth cold review showed the last part's verdict isn't completeness.
 - [x] **D46.** What does a run's context describe (the design's Q29)?
   The run's source, not the values, Iain decided on 2026-11-12, as
   recommended: a stage that reshapes rows doesn't change it. A way to
@@ -390,6 +392,18 @@ D19 to D25 came from the third cold review, settled by Iain on
   is a `sink_scalar`. Built; `count`, `first_value`, `to_arrayref` and
   `to_file` are made with `new_scalar`, and the examples' sinks of one
   value with `sink_scalar`. Design 6.1, 6.2, 17.23.
+- [x] **D48.** What does `ended` say, revising D45? Whether the source
+  was read to its end, Iain decided on 2026-11-12, as recommended, and
+  only once the iterator has given all it will, been finished or died,
+  so it's said once and doesn't change. `done` if it was; `stopped` if
+  a stop anywhere, or `finish`, cut the reading short, or `finish`
+  dropped values still to be handed out; `died` if anything died. Why:
+  the fifth cold review showed D45's last-part verdict isn't "whether
+  the result is complete": `take(2)` before a stage was `done` and
+  after one `stopped`, for the same values, and `take(2)` then `count`
+  was `done`, though cut short. "Complete" has two meanings; only
+  "were there more values than I got?" is well defined. Built. Design
+  5.5, 17.23.
 
 ## The plan
 
@@ -660,6 +674,23 @@ gather's pipeline as its step is Ekorn's own, not a protocol; and
 `finish` from inside a stage runs every end while that stage is still
 running. Three questions are opened, Q28 to Q30: what `ended` tells
 the caller, what a context describes, and how a list sink is declared.
+
+### The fifth cold review, 2026-11-12
+
+A fifth review, focused on what changed since the fourth, found the
+code changes sound, and all 36 examples printing what they say, but:
+D45's meaning not what the code computes, now D48; `ended` able to
+change after it was first given, now held back; a sink of one value
+written with `sink {...}` giving 1 in scalar context, D47's trap, now
+warned of in the design's 4.3 and 6.2, the reference and the how-to;
+an end dying with values still waiting leaving an iterator that said
+`died` but still handed them out, now fixed; the design not yet saying
+that a stop in a set-up is an error, that iterators have `|` and `@{}`,
+or that a died iterator is spent, now said; `sink_scalar` missing from
+the lists of words; a stop from an end reading "Stop used outside a
+pipeline", now "Expected no stop in an end"; Sink's constructors
+ignoring their class, now honouring a subclass of a sink's kind; and
+test sinks of one value written as list sinks.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

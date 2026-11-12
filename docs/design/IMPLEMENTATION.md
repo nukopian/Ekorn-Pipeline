@@ -200,7 +200,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Stage` | 1 | a stage as an object, wrapping a code reference |
 | `Ekorn::Pipeline::Source` | 1 | a source made for each run, from a set-up |
 | `Ekorn::Pipeline::Sink`, `::Sink::Scalar`, `::Sink::List` | 1 | a sink made for each run, from a set-up, giving one value or a list |
-| `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink`, `gather` |
+| `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink`, `sink_scalar`, `gather` |
 | `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
 | `Ekorn::Pipeline::Sinks` | 2 | `count`, `first_value`, `to_array`, `to_arrayref`, `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
@@ -400,8 +400,10 @@ When the run ends, `$finish` decides each verdict, once:
   `stopped`; each stage is `done` if its flag in `@input_done` is set,
   else `stopped`;
 - **and for the caller,** `$ended`, which the iterator's `ended`
-  returns: `died` if the run died, else the source's verdict. It's
-  undefined until then, and becomes `died` if an end dies as the run
+  returns once the iterator has given all it will, been finished or
+  died: `died` if the run died, `stopped` if `finish` dropped values
+  still to be handed out, else the source's verdict. It becomes `died`,
+  and nothing more is handed out, if an end dies as the run
   finishes.
 
 So the design's rule, `done` if its input ran out and `stopped` if it
@@ -482,9 +484,10 @@ say $next->ended;
 # stopped
 ```
 
-`ended` tells the caller whether the result is complete, as the run's
-last part was told: here, that it was cut short. Read to the end, it
-would say `done`; had anything died, `died`.
+`ended` tells the caller whether the source was read to its end:
+here, it wasn't. Read to the end, it would say `done`; had anything
+died, `died`. Until the iterator is spent or finished, it says
+nothing.
 
 ```perl
 {
@@ -546,20 +549,19 @@ with values still to give, such as a list sink's, isn't spent until
 they've gone. As a source, it has `|` and `@{}`, once Operators is
 loaded, as Ekorn's other sources have.
 
-`ended` tells its caller whether its result is complete: nothing while
-the run goes, then the verdict of its last part, `done` if that part's
-input ran out, `stopped` if it was cut short, or if `finish` dropped
-values still to be handed out, and `died` if anything in it died, an
-end included (D34, D45). `$finish` decides it as the run ends, from
-the last stage's flag in `@input_done`, or `$source_done` with no
-stages (section 5.3); `$end_run` makes it `stopped` if it dropped
-values:
+`ended` tells its caller whether the source was read to its end, once
+the iterator has given all it will, been finished or died, and nothing
+before (D34, D48): `done` if it was, `stopped` if a stop, or `finish`,
+cut the reading short, or `finish` dropped values still to be handed
+out, and `died` if anything in it died, an end included. `$finish`
+decides it from `$source_done` (section 5.3), and `$end_run` makes it
+`stopped` if it dropped values:
 
 ```perl
 my $all  = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_arrayref(\@tracks));
 my $some = Ekorn::Pipeline->new(sub { $_->{title} }, take(2))->iterator(from_arrayref(\@tracks));
 my @all  = map { $all->() } 1 .. 7;
-my @some = map { $some->() } 1 .. 2;
+my @some = map { $some->() } 1 .. 3;
 say $all->ended, ' ', $some->ended;    # done stopped
 ```
 
@@ -980,6 +982,7 @@ are built:
 | `Expected sink #%s to return a code reference, a flush, and optionally an end` | `as_scalar` or `as_list` returns anything else |
 | `Expected a source to be read through iterator` | a source called as a code reference |
 | `Expected no stop in a set-up, as the run has nothing yet to stop` | a stop thrown from a set-up: a gather's block, `as_source`, or a role method |
+| `Expected no stop in an end, as the run has ended` | a stop thrown from an end, inside "Pipeline end of ... failed", or the warning when the run is already dying |
 | `Expected a source with values still to give: an iterator is one run, and this one is spent` | a spent iterator given as a source |
 | `Expected a source, or a stage made with a word, on the left of \|` | `chain` given anything else on its left |
 | `Expected a stage or a sink on the right of \|` | `chain` given what can't go where a stage goes |
@@ -1032,7 +1035,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 3, principle 1 | opt-in, in layers | built: Operators in force only where used (Q23); the lifecycle touches only what's made for a run |
 | 3, principle 2 | other packages use Ekorn as it is | built: section 7 and its test |
 | 3, principle 3 | the contract is the protocols | built: section 4.2 |
-| 3, principle 4 | words in Factories | built, differs: `stage`, `source`, `sink` and `gather` are there; `pipeline` is still in Ekorn::Pipeline (D30) |
+| 3, principle 4 | words in Factories | built, differs: `stage`, `source`, `sink`, `sink_scalar` and `gather` are there; `pipeline` is still in Ekorn::Pipeline (D30) |
 | 3, principle 6 | every type an Element; `is_stage` by the role methods (D13) | built |
 | 3, principle 8 | nothing that works today changes, but by v0.3.0's changes | built: every existing test passes; three changed with v0.3.0's changes (section 9) |
 | 4.2 | the six types; a sink usually last, its result going on | built: section 6.3 |
@@ -1044,7 +1047,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.3 | how each part is told the run ended (D20) | built |
 | 5.4 | a flush and an end (D6, D12); a run ends when nothing can act (D15, D22); the source's end first (D11); an end dying during a die warns, naming it (D27); stops from a source, a flush, an end (D16) | built |
 | 5.5 | an abandoned iterator ends its run (D28); `finish` takes no verdict, and drops what's left | built |
-| 5.5 | the caller asks how the run ended, `$next->ended`: the last part's verdict (D34, D45) | built |
+| 5.5 | the caller asks how the run ended, `$next->ended`: whether the source was read to its end, said once spent (D34, D48) | built |
 | 4.4, 12.7 | a context describes the run's source, not the values (D46) | built |
 | 5.6 | `ending()`, true while a flush runs and its values go on | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes | built: Sink's roles by its subclasses, Scalar and List |
