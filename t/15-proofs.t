@@ -1,6 +1,8 @@
 use v5.36;
 use Test2::V0;
 use Test2::Plugin::NoWarnings;
+use experimental qw(builtin);
+use builtin      qw(blessed);
 
 # The design's proofs (docs/design/DESIGN.md, section 19), and its
 # settled decisions (2026-0022's record), run against the prototype on
@@ -648,6 +650,16 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
     }));
     is [$next->all], [1, 2], 'and stopped part way through a step';
     is $next->ended, 'stopped';
+};
+
+subtest "An iterator's code reference, taken once (D63)" => sub {
+    my $it   = $class->new->iterator(from_arrayref([1, 2, 3]));
+    my $next = \&$it;
+    ok !blessed($next), 'a plain code reference, with no overload to call';
+    is [$next->()], [1], 'pulled through it';
+    is [$it->()],   [2], 'the same run as the iterator';
+    undef $it;
+    is [$next->()], [], 'and the run ended when the iterator was let go';
 };
 
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {

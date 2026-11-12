@@ -57,7 +57,7 @@ first N items, stopping there. D58 settled: a `take` stage for every
 and `single`. D60 settled: `single`'s check doesn't consume, revising
 D59. D61 settled: `single` finishes, as `first` does, revising D60.
 D62 settled: a step's many values are cheap, and `all` takes them in
-bulk.
+bulk. D63 settled: the `&{}` overload stays; `\&$next` is documented.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -614,6 +614,22 @@ D19 to D25 came from the third cold review, settled by Iain on
   stage after it, and a stop part way through a step; and
   `xt/scaling.t`, where one step of every value takes 0.12 of the time
   of a step each, against 0.69 before.
+- [x] **D63.** Is the `&{}` overload on each pull worth removing? No,
+  Iain decided on 2026-11-12, from DBIx-Squirrel's task (its 2026-0013
+  D30). Over 300,000 pulls, best of five: `$it->()` 0.111 s, and the
+  same through the code reference taken once, `my $f = \&$it`, 0.077
+  s; the overload alone, on a bare object, 0.042 s against 0.009 s. So
+  it costs about 0.03 s per 300,000 pulls, and Perl already lets a
+  caller skip it, so the idiom is documented instead, with its catch:
+  the code reference doesn't keep the iterator, whose run ends when
+  it's let go. Making the Iterator a blessed code reference, with no
+  overload, was set aside: a change to D4's Elements, for that much. A
+  pipeline reading an iterator, then `keep_all`, 0.404 s, isn't the
+  overload: the run takes the iterator's code reference itself, and
+  the cost is the `try` and `local`s for each value through a stage,
+  which stay. Tested: `\&$it` is a plain code reference, pulls the
+  same run, and gives nothing once the iterator is let go. The draft
+  reference and IMPLEMENTATION.md describe it.
 
 ## The plan
 
@@ -977,6 +993,15 @@ asked until its spike shows a need, so nothing is added here. What it
 relies on was checked: a step giving several values works with `all`,
 and `ended` then says `done`, now tested; and `finish` after `single`
 ends the run, `stopped`, already tested.
+
+### Timings, and the overload, 2026-11-12
+
+A message from DBIx-Squirrel (DBIx-Squirrel
+9331a4d7ba024d3891e8dc47e9d336460a12aed5), read and removed: against
+D62, its `$it->all` over 297,848 rows takes 0.150 s, from 0.403 s, and
+`iterate(keep_all, $stage)` finishes, in 1.1 s; its `next`, its source
+giving whole batches, 0.38 s against its version 2's 0.35 s. And its
+task on the `&{}` overload, done as D63.
 
 ### `keep(N)`, 2026-11-12
 
