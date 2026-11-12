@@ -5,8 +5,8 @@
 **Decisions:** D1 settled: DBIx::Squirrel uses Ekorn as it is. D2
 settled: the design ships as v0.3.0, on `pipeline-experimental` until
 then. D3 settled: the design is proved by code in the core. D4
-settled: Ekorn's types are Elements. D5 open: how a part declares its
-role. D6 open: when a sink and a source are told how the run ended. D7
+settled: Ekorn's types are Elements. D5 settled: one method per role,
+`as_source`, `as_stage`, `as_scalar`, `as_list`. D6 open: when a sink and a source are told how the run ended. D7
 open: what a stage asks about its run. D8 open: `|` opt-in for the
 program, or for the code. D9 open: a reusable source of a sink's
 result.
@@ -53,12 +53,25 @@ The design's own open questions are numbered Q1 and on, in its section
   address-keyed hashes, and the closure trap of finding 8 came with
   them. The design's principle 6 and 17.13.
 
-- [ ] **D5.** How does a part declare its role, source or stage, so
-  that a package's own parts can take any role Ekorn's can, without
-  being Ekorn's classes? From the cold review's S1: `for_run` serves
-  both, and the core tells them apart by Ekorn's classes. The options,
-  and the recommendation, are in the chat of 2026-11-12, and go here
-  once settled.
+- [x] **D5.** How does a part declare its role, so that a package's
+  own parts can take any role Ekorn's can, without being Ekorn's
+  classes? By one method per role, Iain decided on 2026-11-12:
+  `as_source`, to be read from; `as_stage`, to pass values through,
+  with an end; and, to be a sink, `as_scalar`, its result one value,
+  or `as_list`, its result a list. A part offers at most one of the
+  two sink methods, which is an error caught when the pipeline is
+  made. The role a part is given in decides which method is called,
+  so one object can offer several, as a table read from and written
+  to. A sink's step's return is ignored; a stage's goes on, which
+  settles finding 13. A code reference offers none, and takes the role
+  it's given in, with no end. What each method returns waits on D6,
+  and, for `as_source`, on D7. Why: from the cold review's S1,
+  `for_run` served every role, and the core told them apart by Ekorn's
+  classes and by position, so a package's own parts couldn't take
+  every role; and `|` needs to know whether a sink gives a value or a
+  list. Weighed: `for_run` with a `role` method; the role decided by
+  position, unchecked; `as_sink` with a `gives_list` flag. The
+  design's 4.4, 5.2 and 17.14.
 - [ ] **D6.** When are a sink and a source told how the run ended?
   From S2: a sink's end gives its result and is told `done` when its
   own stream ends, so a stage dying after it leaves it committed.

@@ -202,8 +202,8 @@ wrapping anything of it (principles 2 and 3; the list proposed):
 |---|---|
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
-| **Made for a run** | an object with a method the core calls at the start of each run (**Q2**, `for_run`), returning its step and, optionally, its end (section 5.2) |
-| **Sink** | a stage made for a run, whose end is told `done`, `stopped` or `died` and, when `done`, gives the result (section 5.4) |
+| **Made for a run** | an object offering a role by a method the core calls at the start of each run, returning its step and its end (section 5.2): `as_source`, to be read from; `as_stage`, to pass values through; or, to be a sink, `as_scalar` or `as_list`, at most one of them. The role it's given in decides which is called, so one object can offer several. A code reference offers none, and takes the role it's given in, with no end |
+| **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list; what its step returns is ignored, and its end gives the result (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from an end (section 5.6); and, if **Q21** is settled so, the run's source |
 
@@ -259,11 +259,13 @@ sub from_file ($path) {
 ```
 
 So there's one shape to learn, state lives in plain lexicals, and the
-core needs one protocol: an object it's given as a stage or a source
-can be **made for a run**, by a method the core calls at the start of
-each run, which returns the step and the end (the method's name is
-**Q2**; here, `for_run`). An object without the method is used as it
-is, as every code reference is today.
+core needs one protocol: an object it's given as a source, a stage or
+a sink can be **made for a run**, by a method for that role, which the
+core calls at the start of each run, and which returns the step and
+the end: `as_source`, `as_stage`, and `as_scalar` or `as_list` for a
+sink (section 4.4; 2026-0022's D5). An object without the method for
+the role it's given in can't take that role. A code reference is used
+as it is, as every one is today.
 
 ### 5.3 How a run ends
 
@@ -835,7 +837,7 @@ Each says whose it is, and recommends an answer where there's one.
 | | Question | Whose | Recommended |
 |---|---|---|---|
 | **Q1** | Do sources, sinks and operators belong in Ekorn, a step toward a stream library beyond the README's pitch? | Iain | Yes, opt-in, as the pull is what makes stages safe for files and databases; the README says so in a section of its own |
-| **Q2** | The lifecycle method's name (`for_run` here)? | Ekorn | `for_run` |
+| **Q2** | The lifecycle method's name? | Ekorn | Settled by 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands (5.3)? | Ekorn | Yes: it's how a stop works today |
 | **Q4** | A source's and a sink's end always runs, and a sink's result counts only when `done`? | Ekorn | Yes |
 | **Q5** | The source's end runs last, after every stage's? | Ekorn | Yes |
@@ -1114,6 +1116,31 @@ Weighed and set aside:
   Elements. The core would meet two kinds of stage, and `stages` two
   kinds of answer. Made a Stage, a code reference costs nothing per
   value: a run calls the code as it is.
+
+### 17.14 One method per role
+
+(Section 4.4; Iain, 2026-11-12, 2026-0022's D5.) A part says what it
+can be by its methods: `as_source`, `as_stage`, and, for a sink,
+`as_scalar` or `as_list`. The core and the operators ask only these,
+so a package's own parts take any role Ekorn's can, without loading
+Ekorn, and one object, such as a table, can be read from and written
+to. A sink's own methods let its protocol differ from a stage's, and
+say whether its result is one value or a list, which `|` needs.
+
+Weighed and set aside:
+
+- **One method, `for_run`, for every role,** which the prototype
+  built. The core then told a source from a sink by Ekorn's classes
+  and by position, so a package's own parts couldn't take every role:
+  the cold review's S1.
+- **`for_run`, and a `role` method saying which it is.** An object
+  could take only one role, and the method would exist only to say
+  what the other meant.
+- **The role decided by where a part is given, unchecked.** Mistakes
+  crashed mid-run, and `|` couldn't tell a sink from a stage.
+- **`as_sink`, with `gives_list` for a sink giving a list.** A flag
+  beside the method, where two methods, after Perl's own scalar and
+  list context, say it in the method's name.
 
 ## 18. Where each roadmap item lands
 
