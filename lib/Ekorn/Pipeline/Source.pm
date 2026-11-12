@@ -12,38 +12,28 @@ use namespace::clean;
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a source made afresh for each run by the set-up given, which
-# returns the source's step and, optionally, its end. Called as a code
-# reference outside a run, it makes one run of its own, and steps it.
+# returns the source's step and, optionally, its end and a context for
+# the run. Called as a code reference outside a run, it makes one run
+# of its own, and steps it.
 sub new ($class, $setup) {
     croakf 'Expected a code reference' unless is_coderef($setup);
     my $step;
     return bless {
         setup => $setup,
-        call  => sub { $step //= (_made($setup))[0]; return $step->() },
+        call  => sub {
+            $step //= ($setup->())[0];
+            croakf 'Expected the set-up of a source to return a code reference'
+                unless is_coderef($step);
+            return $step->();
+        },
     }, $class;
 }
 
 
-# Return the step and the end of a new run.
-sub for_run ($self) {
-    return _made($self->{setup});
-}
-
-
-# A source can't go where a stage goes.
-sub goes_as_stage ($self) {
-    return 0;
-}
-
-
-sub _made ($setup) {
-    my @made = $setup->();
-    croakf
-        'Expected the set-up of a source to return a code reference, and optionally an end'
-        unless (@made == 1 || @made == 2)
-        && is_coderef($made[0])
-        && (@made == 1 || is_coderef($made[1]));
-    return @made;
+# Return what the set-up returns for a new run: the step, and
+# optionally the end and a context.
+sub as_source ($self) {
+    return $self->{setup}->();
 }
 
 1;

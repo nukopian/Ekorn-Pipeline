@@ -6,32 +6,90 @@ use experimental            qw(builtin);
 use builtin                 qw(blessed);
 use Ekorn::Pipeline         qw(is_stage);
 use Ekorn::Pipeline::Errors qw(croakf);
+use Ekorn::Pipeline::Gather qw();
 use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Source qw();
+use Ekorn::Pipeline::Stage  qw();
 use namespace::clean;
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
-# The | of a source and what follows it: with a sink, the sink's result,
-# at once, as one value, or, for a sink giving a list, an array
-# reference; with a stage, a chain, a source of the values through it.
-# A class of sources of its own can overload | with this, to chain as
-# Ekorn's do.
+# The key in %^H marking the scopes where the operators are in force.
+my $IN_FORCE = 'Ekorn::Pipeline::Operators';
+
+# Put the operators in force for the rest of the scope being compiled:
+# they work on Ekorn's types only in code that says so.
+sub import ($class, @) {
+    $^H{$IN_FORCE} = 1;    ## no critic (Variables::RequireLocalizedPunctuationVars): a pragma's import sets %^H for the scope being compiled
+    return;
+}
+
+
+# Take the operators out of force for the rest of the scope.
+sub unimport ($class, @) {
+    delete $^H{$IN_FORCE};
+    return;
+}
+
+
+# Croak unless the operators are in force where the line that used one
+# was compiled.
+sub _check_in_force ($operator) {
+    my $hints = (caller 1)[10];
+    croakf 'Expected use Ekorn::Pipeline::Operators in scope, for %s', $operator
+        unless $hints && $hints->{$IN_FORCE};
+    return;
+}
+
+# The | of two parts. From a source: with a scalar sink, the sink's
+# result, at once; with a stage, a chain, a source of the values through
+# it. From a stage: a chain of stages, a pipeline with |. A class of
+# sources of its own can overload | with this, to chain as Ekorn's do.
 sub chain ($before, $after, $swapped = undef, @) {
+    _check_in_force('|');
     ($before, $after) = ($after, $before) if $swapped;
-    croakf 'Expected a source on the left of |'
-        if !blessed($before)
-        || !$before->can('for_run')
-        || $before isa 'Ekorn::Pipeline::Sink';
+    croakf 'Expected a source, or a stage made with a word, on the left of |'
+        unless blessed($before) && (_is_source($before) || is_stage($before));
     croakf 'Expected a stage or a sink on the right of |' unless is_stage($after);
+    unless (_is_source($before)) {
+        return Ekorn::Pipeline::Operators::Stages->new($before, $after);
+    }
     my($source, @stages) = _parts($before);
-    return _chain($source, @stages, $after)
-        unless $after isa 'Ekorn::Pipeline::Sink';
-    my $next = Ekorn::Pipeline->new(@stages, $after)->iterator($source);
-    my @result;
-    while (my($value) = $next->()) { push @result, $value }
-    return $after->gives_list ? \@result : $result[0];
+    my $sink = _sink($after) // '';
+    croakf
+        'Expected a sink giving one value at the end of |, not a list: use to_arrayref, not to_array'
+        if $sink eq 'as_list';
+    return _chain($source, @stages, $after) unless $sink;
+    my($result) = Ekorn::Pipeline->new(@stages, $after)->iterator($source)->();
+    return $result;
+}
+
+
+# Return a reference to an array of every value the source gives. A
+# class of sources of its own can overload @{} with this.
+sub drain ($source, @) {
+    _check_in_force('@{}');
+    my $next = Ekorn::Pipeline->new->iterator($source);
+    my @values;
+    while (my($value) = $next->()) { push @values, $value }
+    return \@values;
+}
+
+
+sub _is_source ($thing) {
+    return !!(blessed($thing) && $thing->can('as_source'));
+}
+
+
+# Return the sink's role method, if what's given is a sink, or a
+# pipeline whose last stage is one.
+sub _sink ($thing) {
+    ($thing) = ($thing->stages)[-1] if $thing isa 'Ekorn::Pipeline';
+    return                          unless blessed($thing);
+    return 'as_scalar'              if $thing->can('as_scalar');
+    return 'as_list'                if $thing->can('as_list');
+    return;
 }
 
 
@@ -50,19 +108,44 @@ sub _chain ($source, @stages) {
     my $pipeline = Ekorn::Pipeline->new(@stages);
     my $chain    = Ekorn::Pipeline::Operators::Chain->new(sub {
         my $next = $pipeline->iterator($source);
-        return (sub () { $next->() }, sub ($how) { $next->finish($how) });
+        return (
+            sub () { $next->() }, sub ($how) { $next->finish },
+            $next->{context},
+        );
     });
     $chain->{parts} = [$source, @stages];
     return $chain;
 }
 
-# A chain is a source that keeps what it was made of.
+# A chain from a source is a source that keeps what it was made of.
 package Ekorn::Pipeline::Operators::Chain {    ## no critic (Modules::ProhibitMultiplePackages)
     use parent -norequire, 'Ekorn::Pipeline::Source';
 }
 
-# Loading this module gives Ekorn's sources |, and only then.
+# A chain of stages is a pipeline, of this class, which has |.
+package Ekorn::Pipeline::Operators::Stages {    ## no critic (Modules::ProhibitMultiplePackages)
+    use parent -norequire, 'Ekorn::Pipeline';
+    use overload '|' => \&Ekorn::Pipeline::Operators::chain, fallback => 1;
+}
+
+# Loading this module gives Ekorn's sources | and @{}, and its stages,
+# gathers and sinks |, and only then.
 package Ekorn::Pipeline::Source {    ## no critic (Modules::ProhibitMultiplePackages)
+    use overload
+        '|'      => \&Ekorn::Pipeline::Operators::chain,
+        '@{}'    => \&Ekorn::Pipeline::Operators::drain,
+        fallback => 1;
+}
+
+package Ekorn::Pipeline::Stage {    ## no critic (Modules::ProhibitMultiplePackages)
+    use overload '|' => \&Ekorn::Pipeline::Operators::chain, fallback => 1;
+}
+
+package Ekorn::Pipeline::Gather {    ## no critic (Modules::ProhibitMultiplePackages)
+    use overload '|' => \&Ekorn::Pipeline::Operators::chain, fallback => 1;
+}
+
+package Ekorn::Pipeline::Sink {    ## no critic (Modules::ProhibitMultiplePackages)
     use overload '|' => \&Ekorn::Pipeline::Operators::chain, fallback => 1;
 }
 

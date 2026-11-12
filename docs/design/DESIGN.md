@@ -36,6 +36,7 @@ Ekorn's first user and sends its view as messages.
 17. [Decisions, and what was weighed](#17-decisions-and-what-was-weighed)
 18. [Where each roadmap item lands](#18-where-each-roadmap-item-lands)
 19. [Proving the design](#19-proving-the-design)
+20. [Knock-on effects on other documents](#20-knock-on-effects-on-other-documents)
 
 ## 1. Why this document
 
@@ -88,7 +89,9 @@ section 17 gives the reasons for each.
 
 1. **Opt-in, in layers.** The core is extended only as far as the
    layers above need. Each layer comes in a module of its own, so
-   someone who never `use`s it sees no change.
+   someone who never `use`s it sees no change. The operators are
+   opt-in lexically, in force only in the scopes that `use` them
+   (2026-0022's D32).
 2. **Other packages use Ekorn as it is** (settled by Iain, 2026-11-12). DBIx::Squirrel,
    or any package that hands out values, is a user of Ekorn like any
    other. It delivers sources, sinks and stages that keep Ekorn's
@@ -609,11 +612,19 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   a pipeline that ends in a sink. A plain code reference can't start a
   chain: Perl calls no overload for it, or, when the right side is
   typed, Ekorn's, which croaks.
-- **Two traps of precedence:** `|` binds more loosely than `.` and
-  `+`, so a chain inside a larger expression goes in parentheses; and
-  the ready-made sinks that take no arguments, such as `count`, are
-  declared with an empty prototype, so `$src | count + 0` reads as
-  `($src | count) + 0`.
+- **In force lexically** (D32, settling Q23): `use
+  Ekorn::Pipeline::Operators` marks the rest of its scope in `%^H`,
+  and `no Ekorn::Pipeline::Operators` unmarks it. `chain` and `drain`
+  read the hints of the line that used `|` or `@{}`, and croak where
+  the operators aren't in force. So loading Operators anywhere doesn't
+  give code elsewhere `|`, and where it's loaded at all, `|` written
+  out of its scope croaks rather than ORing two addresses.
+- **Precedence:** `|` binds more loosely than `.` and `+`, so a chain
+  inside a larger expression goes in parentheses:
+  `'Blur: ' . ($src | $blur | count)`. Without them, `$src | count +
+  10` is `$src | (count + 10)`, which croaks. The ready-made sinks
+  that take no arguments have an empty prototype, so that `count + 10`
+  at least reads as `count() + 10`, not `count(+10)`.
 - **Perl calls an overload only if one side is an object.** Between two
   plain code references, `|` silently ORs their addresses. The docs
   must say loudly: in a chain, every stage is a `stage {...}`, or a
@@ -624,11 +635,12 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   can't be given: its scalar counterpart, `to_arrayref` or
   `to_hashref`, gives the same as a reference, saying so in its name.
   Or `@{}` drains a chain without a sink.
-- **Nothing can be chained after a sink.** Not because a sink must be
-  last, which it needn't be (section 4.2), but because a chain ending
-  in a sink has already run: what `|` gives is the result, not a part
-  that more can be joined to. In a pipeline made with `new`, or
-  spliced as a stage, a sink can have stages after it.
+- **Nothing can be chained after a sink that ends a chain from a
+  source.** Not because a sink must be last, which it needn't be
+  (section 4.2), but because such a chain has already run: what `|`
+  gives is the result, not a part that more can be joined to. A chain
+  of stages, which hasn't run, can have a sink in it and stages after
+  it, as a pipeline made with `new` can.
 - **A chain from a source to a sink is a result, not a source.**
   `$src | count` is a number, at once: `|` is for getting the answer
   in one expression, and giving a source instead would make
@@ -963,9 +975,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
-| **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
 | **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
-| **Q23** | Is `\|` opt-in for the whole program, or only for the code that loads Operators (section 9; 2026-0022's D8)? Overloading belongs to a class, so loading Operators anywhere gives Ekorn's types `\|` everywhere, against principle 1 and 17.11's reason. Where it isn't loaded at all, `$src \| $stage` silently ORs two addresses. | Iain | Lexical: `use Ekorn::Pipeline::Operators` marks its scope in `%^H`, and `chain` checks the caller's hints, croaking "`\|` needs `use Ekorn::Pipeline::Operators` in this scope" where it's not in force. It's cheap, and turns the silent OR into an error wherever Operators is loaded in the program. The alternative is to say plainly that it's for the program |
 | **Q24** | How is a sink's result had as a source that can run more than once (2026-0022's D9)? An iterator is one run: given to a second run, it gives nothing, with no error; a chain from a source to a sink is a result, not a source. | Iain | A method making a Source of a pipeline and a source, `$pipeline->source_of($source)`, whose `as_source` makes a fresh iterator for each run, passing on its context; name open. And an Iterator given to a second run croaks, rather than give nothing |
 
 ### 16.2 Settled
@@ -985,6 +995,8 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
 | **Q16** | DBIx::Squirrel's CI testing against Ekorn's `pipeline-experimental`? | D29: yes; `pipeline-experimental` is a sandbox, so testing against it costs nothing that matters; DBIx-Squirrel does it, told when it reviews the design |
 | **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | D30: no; `pipeline` is a word, in Factories only |
+| **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions as they are? | D31: yes, for now, as plain re-exports, so its users' code keeps working |
+| **Q23** | Is `\|` opt-in for the whole program, or only for the code that loads Operators? | D32: lexically, if it can be done, which it can: in force where `use Ekorn::Pipeline::Operators` is, checked against the caller's hints (section 9) |
 | **Q21** | How does a stage find out about its source? | D7 and D24: the source's context for the run, from `run_context()` |
 
 ## 17. Decisions, and what was weighed
@@ -1194,15 +1206,20 @@ Weighed and set aside:
   Callers forget, and the commonest pull, reading the first few values
   and stopping, is exactly the one where they would.
 
-### 17.11 Operators only on the typed objects
+### 17.11 Operators only on the typed objects, in force lexically
 
-(Section 9.)
+(Section 9; D32.) Overloading belongs to a class, so the operators are
+given to Ekorn's typed objects only, and checked against the hints of
+the scope that uses them.
 
 Weighed and set aside:
 
-- **Operators on every pipeline.** Overloading belongs to a class, not
-  a scope, so it would change Ekorn::Pipeline for everyone, whether or
-  not they loaded the operators.
+- **Operators on every pipeline.** It would change Ekorn::Pipeline for
+  everyone, whether or not they loaded the operators.
+- **Operators for the whole program, once loaded,** said plainly. Code
+  that never asked for `|` would have it, and `|` written where it
+  wasn't meant would quietly join parts, or, with nothing loaded,
+  quietly OR two addresses.
 - **`+`, `.` or `>>`.** Each already means too much to a Perl reader.
 
 ### 17.12 Ready-made parts are named not to clash
@@ -1490,3 +1507,91 @@ the words `source`, `sink` and `stage`; `from_file`, `to_file`,
 stage and a sink. (As built, before 2026-0022's D5 to D7 and D10:
 `for_run` is now one method per role, and `|` ends in `to_arrayref`,
 not `to_array`.) Built in that order, as section 15 has it.
+
+## 20. Knock-on effects on other documents
+
+What the design changes beyond this folder, so that the plan it's
+split into covers everything. Each item that builds a part takes its
+share of these into its Done when; nothing here is done until the
+design is approved and split (roadmap 2026-0022).
+
+### 20.1 In Ekorn-Pipeline
+
+- **README.pod,** and the README.md Minilla makes from it: the purpose
+  in section 2's terms, the stream concept applied to functions (D26),
+  with a section of its own on sources, sinks and the operators (Q1),
+  and its examples rerun.
+- **docs/REFERENCE.md and docs/HOWTO.md:** they take in the drafts in
+  this folder, REFERENCE.md and HOWTO.md, and lose what's gone:
+  - "end function" becomes "flush" throughout, and "end" means only
+    an end told how the run ended (D12);
+  - Named pipelines go back to names per package, and Named pipelines
+    and subclasses, and pipeline through a subclass, go (section 7,
+    17.4);
+  - `pipeline` is imported from Factories (D30);
+  - the examples are checked by hand, as CLAUDE.md says.
+- **The manuals,** `lib/Ekorn/Pipeline/Manual/Reference.pod` and
+  `HowTo.pod`, made again from those with `scripts/manuals`, which
+  `xt/manuals.t` checks.
+- **Each module's POD:**
+  - Ekorn::Pipeline: `new` making Stages, `stages` returning Elements,
+    scalar context (D17), `iterator` returning an Iterator (D28),
+    `run_context()`, `ending()`'s meaning (D16); `pipeline`, its
+    `import` and names per class gone;
+  - Ekorn::Pipeline::Gather: an Element, not a code reference (D4); a
+    flush and an end (D12);
+  - Ekorn::Pipeline::Pipes: `pipeline_class` gone;
+  - Ekorn::Pipeline::Stop: a stop from a source, a flush or an end
+    (D16);
+  - the canned stages: objects (Q12);
+  - the new modules, Element, Stage, Source, Sink, Iterator, Factories,
+    Sources, Sinks and Operators, written in full in place of their
+    placeholders, so the POD floor of `scripts/coverage` holds;
+  - `t/12-documented.t`, checking what the reference claims, gains the
+    new claims.
+- **The error messages:** those the prototype adds (IMPLEMENTATION.md
+  section 8) are settled, and two of v0.2.0's revised, `iterator`'s,
+  which takes sources now, and a gather's, which may return a flush
+  and an end; each in its module's DIAGNOSTICS and the reference's. A
+  changed message is a v0.3.0 change (section 13).
+- **Changes:** the v0.3.0 entry, its precis naming the items it ships,
+  and every change to behaviour DBIx::Squirrel takes on when it
+  switches, as CLAUDE.md's "Keep the switch in view" asks.
+- **CLAUDE.md:**
+  - "What Ekorn-Pipeline is for" says it in D26's terms, and the test
+    of any feature with it;
+  - the factories rule says `pipeline` lives in Factories only (D30);
+  - "The version says what DBIx-Squirrel can take" moves to the v0.3.0
+    range when it ships, and its list of the names DBIx::Squirrel
+    imports gains any it takes.
+- **ROADMAP.md:** the items this design replaces or rewrites, 2026-0010
+  and 2026-0012 to 2026-0021, give way to those it's split into, and
+  2026-0022 ships.
+- **The change records:** 2026-0011, 2026-0020 and 2026-0021 are
+  finished, saying what this design undid or moved; 2026-0010's, for
+  Sugar, is revisited for names per package.
+- **The tests:** `t/13` and `t/14`, for `pipeline` and names, are
+  rewritten for Factories and names per package; `t/15`, the proofs,
+  is split among the items' own tests; coverage is brought back to the
+  floors.
+- **cpanfile and minil.toml:** nothing to add, as everything the
+  design uses comes with Perl; checked as each item is built.
+- **This folder:** DESIGN.md, the drafts and IMPLEMENTATION.md become
+  history once their content is in the documents above; whether
+  IMPLEMENTATION.md stays alive after delivery is to decide (Q19's
+  neighbour, kept with it).
+
+### 20.2 In DBIx-Squirrel
+
+Told by a task in its `TODO.md` when the design is approved, and
+again when v0.3.0 is ready; designed in its own session:
+
+- **Its code:** its statements offer `as_source`, with their columns as
+  the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
+  `insert_into` is a sink with a flush and an end; its facades go or
+  stay as plain re-exports, as it chooses (D31).
+- **Its docs:** its README, reference and how-to for the above, and
+  for `|` from its statements.
+- **Its CI:** testing against Ekorn's `pipeline-experimental` (D29).
+- **Its range on Ekorn:** moved to v0.3.0 once Ekorn ships it, with its
+  tests run against it (section 13).

@@ -15,12 +15,6 @@ sub call ($self, @arguments) {
 }
 
 
-# Return true if the element can go where a stage goes; a source or an
-# iterator says not.
-sub goes_as_stage ($self) {
-    return 1;
-}
-
 1;
 
 __END__

@@ -98,8 +98,8 @@ subtest 'what it may return' => sub {
             sub { ('x', sub { }) },
         ],
         [
-            'three things',
-            sub { ($class->new, sub { }, sub { }) },
+            'four things',
+            sub { ($class->new, sub { }, sub { }, sub { }) },
         ],
     );
     for my $test (@bad) {

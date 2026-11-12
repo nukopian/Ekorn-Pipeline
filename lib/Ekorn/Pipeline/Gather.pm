@@ -31,6 +31,13 @@ sub new ($class, $block) {
     return bless {call => sub { $block->() }}, $class;
 }
 
+
+# Return what the block returns for a new run: the step, or a pipeline
+# of steps, and optionally a flush and an end.
+sub as_stage ($self) {
+    return $self->{call}->();
+}
+
 1;
 __END__
 

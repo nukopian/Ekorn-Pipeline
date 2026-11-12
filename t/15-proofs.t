@@ -2,21 +2,22 @@ use v5.36;
 use Test2::V0;
 use Test2::Plugin::NoWarnings;
 
-# The design's proofs (docs/design/DESIGN.md, section 19), run against
-# the prototype on pipeline-experimental: a source joined directly to a
-# sink, and a complete pipeline used as a source. And the pattern that
-# lets a package such as DBIx::Squirrel use Ekorn as it is: a source of
-# its own that knows something, and a stage of its own that asks it
-# (Q21).
+# The design's proofs (docs/design/DESIGN.md, section 19), and its
+# settled decisions (2026-0022's record), run against the prototype on
+# pipeline-experimental. And the pattern that lets a package such as
+# DBIx::Squirrel use Ekorn as it is: parts of its own, keeping Ekorn's
+# protocols, that load nothing of Ekorn's to do it.
 
 use Carp       qw(croak);
 use File::Temp qw(tempdir);
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories qw(stage source sink);
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_file);
-use Ekorn::Pipeline::Sources qw(from_file);
+use Ekorn::Pipeline::Sink    qw();
+use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_arrayref to_file);
+use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Stages::Flow;
+use Ekorn::Pipeline::Stop;
 
 my $class = 'Ekorn::Pipeline';
 my $dir   = tempdir(CLEANUP => 1);
@@ -24,8 +25,8 @@ my $dir   = tempdir(CLEANUP => 1);
 # What the parts below were told, in order.
 my @log;
 
-# A source of the values given, logging its set-up, how many values it
-# was asked for, and how its run ended.
+# A source of the values given, logging its set-up, each pull, and how
+# its run ended.
 sub spy_source (@values) {
     return source {
         push @log, 'source set-up';
@@ -37,20 +38,41 @@ sub spy_source (@values) {
     };
 }
 
-# A sink giving every value, logging its set-up and how its run ended.
+# A list sink giving every value, logging its set-up and how its run
+# ended.
 sub spy_sink () {
+    return Ekorn::Pipeline::Sink->new(
+        sub {
+            push @log, 'sink set-up';
+            my @all;
+            return (
+                sub ($value) { push @all, $value },
+                sub () { @all },
+                sub ($how) { push @log, "sink $how" },
+            );
+        },
+        list => 1,
+    );
+}
+
+# A sink keeping its values only if the run is done, as a transaction
+# commits, logging which; its result is how many it was given.
+sub saving_sink ($saved) {
     return sink {
-        push @log, 'sink set-up';
-        my @all;
+        my @pending;
         return (
-            sub ($value) { push @all, $value; return },
-            sub ($how) { push @log, "sink $how"; @all },
+            sub ($value) { push @pending, $value },
+            sub () { scalar @pending },
+            sub ($how) {
+                if ($how eq 'done') { push @$saved, @pending; push @log, 'commit' }
+                else                { push @log, "rollback ($how)" }
+            },
         );
     };
 }
 
 
-sub drain ($next) {
+sub drain_all ($next) {
     my @values;
     while (my($value) = $next->()) { push @values, $value }
     return @values;
@@ -91,14 +113,14 @@ subtest '19.1 A source joined directly to a sink' => sub {
         is read_file("$dir/short-copy.txt"),                   "x\ny\n";
     };
 
-    subtest 'run out: both told done, the source last' => sub {
+    subtest 'run out: both told done, the source first (D11)' => sub {
         @log = ();
-        my @result = drain($class->new(spy_sink)->iterator(spy_source(1, 2)));
+        my @result = drain_all($class->new(spy_sink)->iterator(spy_source(1, 2)));
         is \@result, [1, 2];
         is \@log,
             [
-                'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'sink done',
-                'source done',
+                'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'source done',
+                'sink done',
             ];
     };
 
@@ -125,13 +147,13 @@ subtest '19.1 A source joined directly to a sink' => sub {
             @log = ();
             my $fails = sink {
                 return (
-                    sub ($value) { die "No room\n" },
+                    sub ($value) { die "No room\n" }, sub () { 0 },
                     sub ($how) { push @log, "sink $how" },
                 );
             };
-            like dies { drain($class->new($fails)->iterator(spy_source(1, 2))) },
+            like dies { drain_all($class->new($fails)->iterator(spy_source(1, 2))) },
             qr( \A Pipeline\ stage\ \#1\ failed .* No\ room )xs;
-            is \@log, ['source set-up', 'pull', 'sink died', 'source died'];
+            is \@log, ['source set-up', 'pull', 'source died', 'sink died'];
         };
 
     subtest 'both forms agree' => sub {
@@ -146,19 +168,67 @@ subtest '19.1 A source joined directly to a sink' => sub {
     };
 };
 
-subtest 'An end that dies (Q6)' => sub {
-    subtest 'while the run is dying: a warning, keeping the first error' =>
+subtest 'A sink commits only if the whole run went through (D6, D11, D15)' =>
+    sub {
+        subtest 'a stage dying after the sink: rolled back' => sub {
+            @log = ();
+            my @saved;
+            like dies {
+                drain_all($class->new(saving_sink(\@saved), sub { die "Later\n" })
+                    ->iterator(spy_source(1, 2)))
+            }, qr( Later )x;
+            is \@saved, [], 'nothing kept';
+            is \@log,
+            ['source set-up', 'pull', 'pull', 'pull', 'source died', 'rollback (died)'];
+        };
+
+        subtest "the source's end dying: known before the sink commits" => sub {
+            @log = ();
+            my @saved;
+            my $closing = source {
+                my @rest = (1, 2);
+                return (
+                    sub () { @rest ? shift @rest : () },
+                    sub ($how) { die "Can't close\n" },
+                );
+            };
+            like
+            dies { drain_all($class->new(saving_sink(\@saved))->iterator($closing)) },
+            qr( \A Pipeline\ end\ of\ the\ source\ failed .* Can't\ close )xs;
+            is \@saved, [],                  'nothing kept';
+            is \@log,   ['rollback (died)'], 'the sink told died';
+        };
+
+        subtest 'a pulled sink last commits as its result is ready' => sub {
+            @log = ();
+            my @saved;
+            my $next = $class->new(saving_sink(\@saved))->iterator(spy_source(1, 2));
+            my($n) = $next->();
+            is $n,      2,      'its result';
+            is \@saved, [1, 2], 'kept, while the iterator still lives';
+            is \@log,
+            ['source set-up', 'pull', 'pull', 'pull', 'source done', 'commit'];
+        };
+    };
+
+subtest 'An end that dies (Q6, D27)' => sub {
+    subtest
+        'while the run is dying: a warning naming it, keeping the first error' =>
         sub {
             @log = ();
             my $fails = sink {
-                return (sub ($value) { croak 'First' }, sub ($how) { croak 'Second' });
+                return (
+                    sub ($value) { croak 'First' }, sub () { 0 },
+                    sub ($how) { croak 'Second' },
+                );
             };
             my $warnings = warnings {
-                like dies { drain($class->new($fails)->iterator(spy_source(1))) },
+                like dies { drain_all($class->new($fails)->iterator(spy_source(1))) },
                 qr( First )x;
             };
             is scalar @$warnings, 1;
-            like $warnings->[0], qr( \A An\ end\ died .* dying:\ Second )x;
+            like $warnings->[0],
+            qr( \A The\ end\ of\ stage\ \#1\ died .* dying:\ Second )x;
             is \@log, ['source set-up', 'pull', 'source died'],
             'and the source is still told';
         };
@@ -166,20 +236,62 @@ subtest 'An end that dies (Q6)' => sub {
     subtest 'as the run ends: thrown, once the rest are told it died' => sub {
         @log = ();
         my $fails = sink {
-            return (sub ($value) { return }, sub ($how) { croak 'Full' });
+            return (sub ($value) { return }, sub () { 0 }, sub ($how) { croak 'Full' });
         };
-        like dies { drain($class->new($fails, spy_sink)->iterator(spy_source(1))) },
-            qr( Full )x;
+        like
+            dies { drain_all($class->new($fails, spy_sink)->iterator(spy_source(1))) },
+            qr( \A Pipeline\ end\ of\ stage\ \#1\ failed .* Full )xs;
         is \@log,
             [
-                'source set-up', 'sink set-up', 'pull', 'pull', 'sink died',
-                'source died',
+                'source set-up', 'sink set-up', 'pull', 'pull', 'source done',
+                'sink died',
+            ];
+    };
+};
+
+subtest 'How each part is told the run ended (D16, D20)' => sub {
+    subtest 'a part whose input ran out is done, whatever follows it' => sub {
+        @log = ();
+        is [drain_all($class->new(spy_sink, take(1))->iterator(spy_source(1, 2, 3)))
+        ], [1];
+        is \@log,
+            [
+                'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'pull',
+                'source done',   'sink done',
+            ],
+            'take(1) stops after the sink has had all its input';
+    };
+
+    subtest 'a source that stops has had enough, and is done' => sub {
+        @log = ();
+        my $enough = source {
+            my $n = 0;
+            return (
+                sub () { ++$n < 2 ? $n : Stop(9) },
+                sub ($how) { push @log, "source $how" },
+            );
+        };
+        is [drain_all($class->new(sub { $_ * 10 })->iterator($enough))], [10, 90],
+            'what it carries is its last';
+        is \@log, ['source done'];
+    };
+
+    subtest 'ended from outside: done for a part whose input ran out' => sub {
+        @log = ();
+        my $next = $class->new(spy_sink)->iterator(spy_source(1, 2, 3));
+        is [$next->()], [1];
+        $next->finish;
+        is [$next->()], [], 'what was still to be handed out is dropped (D22)';
+        is \@log,
+            [
+                'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'pull',
+                'source done',   'sink done',
             ];
     };
 };
 
 subtest '19.2 A complete pipeline as a source' => sub {
-    subtest 'the inner run ends at the first pull' => sub {
+    subtest 'the inner run ends at the first pull (D15)' => sub {
         @log = ();
         my $lines
             = $class->new(stage { uc }, spy_sink)->iterator(spy_source(qw(a b c)));
@@ -188,11 +300,11 @@ subtest '19.2 A complete pipeline as a source' => sub {
         is \@log,
             [
                 'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'pull',
-                'sink done',     'source done',
+                'source done',   'sink done',
             ],
             'its source and sink told done, before the outer run has its first value';
-        is [drain($next)], ['B'], 'take(2) then stops the outer run';
-        is scalar @log,    8,     "and the inner's parts, ended, aren't told again";
+        is [drain_all($next)], ['B'], 'take(2) then stops the outer run';
+        is scalar @log,        8,     "and the inner's parts, ended, aren't told again";
     };
 
     subtest "a die in the outer run doesn't reach the inner" => sub {
@@ -204,22 +316,22 @@ subtest '19.2 A complete pipeline as a source' => sub {
         like dies { $next->() }, qr( Two )x;
         is \@log,
             [
-                'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'sink done',
-                'source done',
+                'source set-up', 'sink set-up', 'pull', 'pull', 'pull', 'source done',
+                'sink done',
             ];
     };
 
     subtest 'a result of one value is a source of one value' => sub {
         my $counted = $class->new(count)->iterator(spy_source(qw(a b c)));
-        is [drain($class->new->iterator($counted))], [3];
+        is [drain_all($class->new->iterator($counted))], [3];
     };
 
     subtest 'without a sink, the inner run is pulled only as needed' => sub {
         @log = ();
         my $lines = $class->new(stage { uc })->iterator(spy_source(qw(a b c d)));
-        is [drain($class->new(take(2))->iterator($lines))], [qw(A B)];
+        is [drain_all($class->new(take(2))->iterator($lines))], [qw(A B)];
         is \@log, ['source set-up', 'pull', 'pull', 'source stopped'],
-            'two pulls, and the inner source told stopped by the outer stop';
+            'two pulls, and the inner source told stopped, as from outside';
     };
 
     subtest 'abandoned, it ends' => sub {
@@ -233,49 +345,122 @@ subtest '19.2 A complete pipeline as a source' => sub {
             'let go after one pull';
     };
 
-    subtest 'ended by finish, it stops' => sub {
+    subtest 'ended by finish, it stops, taking no verdict' => sub {
         @log = ();
         my $next = $class->new(stage { uc })->iterator(spy_source(qw(a b c)));
         is [$next->()], ['A'];
+        ok dies { $next->finish('done') }, 'finish takes no verdict of its own';
         $next->finish;
         is [$next->()], [], 'nothing more is handed out';
         is \@log, ['source set-up', 'pull', 'source stopped'],
             'and nothing more pulled';
     };
 
-    subtest 'with |, a chain of a complete pipeline is a result' => sub {
-        is spy_source(qw(a b)) | stage { uc } | to_array, [qw(A B)],
-            'to_array gives a reference';
-    };
+    subtest 'finished from inside one of its own stages, it stops there' =>
+        sub {
+            @log = ();
+            my $next;
+            my $steps = 0;
+            my $after = sink {
+                return (
+                    sub ($value) { $steps++ }, sub () { $steps },
+                    sub ($how) { push @log, "sink $how" },
+                );
+            };
+            $next = $class->new(sub { $next->finish if $_ == 2; $_ }, $after)
+            ->iterator(spy_source(1, 2, 3));
+            is [drain_all($next)], [];
+            is $steps, 1, "the sink's step isn't called again";
+            is \@log,
+            ['source set-up', 'pull', 'pull', 'source stopped', 'sink stopped'];
+            undef $next;
+        };
 };
 
-subtest "Ekorn's types are Elements" => sub {
-    my $plain    = sub { $_ * 2 };
-    my $pipeline = $class->new($plain);
-    my $stage    = ($pipeline->stages)[0];
-    isa_ok $stage, ['Ekorn::Pipeline::Stage'],
-        'a code reference given to new is made a Stage';
-    ref_is $stage->code, $plain, 'of the code given, kept as it is';
-    is [$pipeline->(1, 2)], [2, 4], 'and run as it is';
+subtest 'Sinks and context (D10, D17, D25)' => sub {
+    like dies { from_arrayref([1, 2]) | to_array },
+        qr( \A Expected\ a\ sink\ giving\ one\ value .* use\ to_arrayref )x,
+        'a list sink croaks at the end of a chain';
+    is from_arrayref([1, 2]) | to_arrayref, [1, 2],
+        'to_arrayref gives an array reference';
+    my @mine = (0);
+    ref_is from_arrayref([1, 2]) | to_arrayref(\@mine), \@mine,
+        'your array, if given one';
+    is \@mine, [0, 1, 2], 'filled';
 
-    my %made = (
-        stage  => stage { $_ },
-        gather => Ekorn::Pipeline::Gather::gather(sub {
-            sub { $_ }
-        }),
-        sink   => count,
-        source => source {
-            sub { () }
-        },
-        pipeline => $pipeline,
-        iterator => $pipeline->iterator(sub { () }),
-    );
-    for my $type (sort keys %made) {
-        isa_ok $made{$type}, ['Ekorn::Pipeline::Element'], "a $type";
+    my $n = $class->new(count)->(1 .. 10);
+    is $n, 10, "in scalar context, a pushed run gives a scalar sink's result";
+    $n = $class->new(sub { $_ * 2 })->(1 .. 10);
+    is $n, 10, 'and otherwise how many came out, as in v0.2.0';
+
+    is [$class->new(first_value)->()], [undef],
+        'a scalar sink with no values gives one undef';
+    is from_arrayref([]) | first_value, undef, 'and so from a chain';
+    is $class->new(count)->(),          0,     'count of nothing is 0';
+    is +(from_arrayref([1, 2]) | count) + 10, 12,
+        'a chain in parentheses, in an expression';
+    like dies { my $x = from_arrayref([1, 2]) | count + 10 },
+        qr( \A Expected\ a\ stage\ or\ a\ sink\ on\ the\ right )x,
+        'and without them, | binding loosest, a clear error';
+};
+
+subtest 'Chains (D14, D23)' => sub {
+    my $trim  = stage { s( \A \s+ | \s+ \z )()xgr };
+    my $loud  = stage { uc };
+    my $clean = $trim | $loud;
+    isa_ok $clean, [$class], 'a chain of stages is a pipeline';
+    is [$clean->(' a ', 'b ')], [qw(A B)], 'called as one';
+    is from_arrayref([' a', 'b ']) | $clean | to_arrayref, [qw(A B)],
+        'and spliced into a chain';
+    is [@{ from_arrayref([1, 2]) | stage { $_ * 2 } }], [2, 4],
+        '@{} drains a chain';
+
+    my $counted = $clean | count;
+    is scalar $counted->(' a', 'b'), 2, 'a chain of stages can end in a sink';
+
+    like dies {
+        my $x = sub { 1 }
+            | $loud
+    }, qr( \A Expected\ a\ source, )x,
+        'a plain code reference on the left croaks';
+
+    {
+        no Ekorn::Pipeline::Operators;
+        like dies { my $x = from_arrayref([1]) | $loud },
+            qr( \A Expected\ use\ Ekorn::Pipeline::Operators\ in\ scope )x,
+            '| croaks where Operators is not in force (Q23)';
     }
-    is {
-        map { ($_ => Ekorn::Pipeline::is_stage($made{$_})) } keys %made
-    },
+    is [@{ from_arrayref([1]) | $loud }], [1], 'and works again where it is';
+};
+
+subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
+    sub {
+        my $plain    = sub { $_ * 2 };
+        my $pipeline = $class->new($plain);
+        my $stage    = ($pipeline->stages)[0];
+        isa_ok $stage, ['Ekorn::Pipeline::Stage'],
+        'a code reference given to new is made a Stage';
+        ref_is $stage->code, $plain, 'of the code given, kept as it is';
+        is [$pipeline->(1, 2)], [2, 4], 'and run as it is';
+
+        my %made = (
+            stage  => stage { $_ },
+            gather => Ekorn::Pipeline::Gather::gather(sub {
+                sub { $_ }
+            }),
+            sink   => count,
+            source => source {
+                sub { () }
+            },
+            pipeline => $pipeline,
+            iterator => $pipeline->iterator(sub { () }),
+        );
+        for my $type (sort keys %made) {
+            isa_ok $made{$type}, ['Ekorn::Pipeline::Element'], "a $type";
+        }
+        is {
+            map { ($_ => Ekorn::Pipeline::is_stage($made{$_})) } keys %made
+        },
         {
             stage    => T(),
             gather   => T(),
@@ -284,24 +469,34 @@ subtest "Ekorn's types are Elements" => sub {
             source   => F(),
             iterator => F(),
         },
-        'each says whether it goes where a stage goes';
-    ok Ekorn::Pipeline::is_stage($plain), 'as a code reference does';
+        'each goes where a stage goes by its role methods';
+        ok Ekorn::Pipeline::is_stage($plain), 'as a code reference does';
 
-    like dies { $class->new($made{source}) },
+        like dies { $class->new($made{source}) },
         qr( \A Expected\ stage\ \#1\ to\ be\ a\ stage,\ not\ a\ source )x,
         'a source given as a stage croaks';
-    like dies { $class->new->iterator($pipeline) },
+        like dies { $class->new->iterator($pipeline) },
         qr( \A Expected\ a\ code\ reference )x,
         'and a pipeline given as a source';
-};
+        like dies { $class->new->iterator(count) },
+        qr( \A Expected\ a\ code\ reference )x,
+        'and a sink';
+
+        my $both = bless {}, 'My::Both';
+        like dies { $class->new($both) },
+        qr( \A Expected\ stage\ \#1 .* as_stage\ and\ as_scalar )x,
+        "a part offering both a stage's method and a sink's croaks";
+    };
 
 # A package outside Ekorn's namespace, standing for DBIx::Squirrel: a
-# source of rows that knows its columns, and a stage that asks the run's
-# source for them. It uses Ekorn as it is: nothing subclassed or wrapped.
+# table of rows, read from as a source that gives its columns as the
+# run's context, and stages and a sink of its own. It loads nothing of
+# Ekorn's for its parts; only its | needs Operators' functions.
 package My::Table {
-    use Ekorn::Pipeline;
-    use Ekorn::Pipeline::Operators;
-    use overload '|' => \&Ekorn::Pipeline::Operators::chain;
+    use Ekorn::Pipeline::Operators qw();
+    use overload
+        '|'   => \&Ekorn::Pipeline::Operators::chain,
+        '@{}' => \&Ekorn::Pipeline::Operators::drain;
 
 
     sub new ($class, $columns, @rows) {
@@ -309,50 +504,72 @@ package My::Table {
     }
 
 
-    sub columns ($self) {
-        return @{ $self->{columns} };
-    }
-
-
-    sub for_run ($self) {
+    sub as_source ($self) {
         my $i = 0;
         return (
             sub () { $i < @{ $self->{rows} } ? $self->{rows}[$i++] : () },
             sub ($how) { push @{ $self->{log} }, $how },
+            {columns => [@{ $self->{columns} }]},    # this run's
         );
     }
 
 
     sub column ($name) {
         return sub ($row) {
-            my @columns = Ekorn::Pipeline::run_source()->columns;
-            my($at) = grep { $columns[$_] eq $name } 0 .. $#columns;
+            my $columns = Ekorn::Pipeline::run_context()->{columns};
+            my($at) = grep { $columns->[$_] eq $name } 0 .. $#$columns;
             return $row->[$at];
         };
     }
 }
 
-subtest 'A package delivers parts, using Ekorn as it is (Q21)' => sub {
-    my $people
+package My::Both {    ## no critic (Modules::ProhibitMultiplePackages)
+
+
+    sub as_stage ($self) {
+        return sub { $_ }
+    }
+
+
+    sub as_scalar ($self) {
+        return (sub { }, sub { 0 });
+    }
+}
+
+subtest 'A package delivers parts, using Ekorn as it is (D1, D5, D7, D24)' =>
+    sub {
+        my $people
         = My::Table->new([qw(id name)], [1, 'Ann'], [2, 'Bo'], [3, 'Cy']);
 
-    is [drain($class->new(My::Table::column('name'))->iterator($people))],
+        is [drain_all($class->new(My::Table::column('name'))->iterator($people))],
         [qw(Ann Bo Cy)],
-        'its stage asks its source for the columns';
-    is $people->{log}, ['done'], 'its source is told how the run ended';
+        'its stage asks the run for its columns';
+        is $people->{log}, ['done'], 'its source is told how the run ended';
 
-    is $people | My::Table::column('name') | take(2) | to_array, [qw(Ann Bo)],
+        is $people | My::Table::column('name') | take(2) | to_arrayref,
+        [qw(Ann Bo)],
         "with |, composed with Ekorn's parts";
-    is $people->{log}, ['done', 'stopped'], 'told stopped by take(2)';
+        is $people->{log},      ['done', 'stopped'], 'told stopped by take(2)';
+        is scalar @{ $people }, 3,                   '@{} drains it';
 
-    my $inner = $class->new(My::Table::column('id'))->iterator($people);
-    is [
-        drain(
-            $class->new(sub { [$_, scalar Ekorn::Pipeline::run_source()] })
+        my $inner = $class->new(My::Table::column('id'))->iterator($people);
+        is [
+            drain_all(
+                $class->new(sub { [$_, Ekorn::Pipeline::run_context()->{columns}] })
                 ->iterator($inner))
         ],
-        [[1, exact_ref($inner)], [2, exact_ref($inner)], [3, exact_ref($inner)]],
-        "in a pipeline pulled from another, a stage sees its own run's source";
-};
+        [map { [$_, [qw(id name)]] } 1 .. 3],
+        'behind an iterator, a stage sees the context of the run inside it';
+
+        my $context_of = $class->new(sub { Ekorn::Pipeline::run_context() });
+        my @contexts   = map { $context_of->iterator($people)->() } 1 .. 2;
+        ok $contexts[0] != $contexts[1], 'each run has its own';
+
+        my($pushed) = $class->new(sub {
+            $class->new(
+                sub { defined Ekorn::Pipeline::run_context() ? 'some' : 'none' })->($_);
+        })->iterator($people)->();
+        is $pushed, 'none', 'a run pushed inside a stage has none of its own';
+    };
 
 done_testing;

@@ -416,8 +416,11 @@ say Ekorn::Pipeline->new(first_value)->iterator(counter(1, 1))->();  # 1, then s
 use Ekorn::Pipeline::Operators;
 ```
 
-Loading it gives Ekorn's sources, stages, gathers and chains `|`,
-`|=` and `@{}`. They're a shorthand for the commonest shapes, not the
+It puts `|`, `|=` and `@{}` in force for Ekorn's sources, stages,
+gathers and chains, for the rest of the scope it's used in; `no
+Ekorn::Pipeline::Operators` takes them out again. Written where
+they're not in force, they croak: "Expected use
+Ekorn::Pipeline::Operators in scope". They're a shorthand for the commonest shapes, not the
 whole of Ekorn: a pipeline made with `new` can have stages after a
 sink, give a list as a list, and, pulled with `iterator`, be a source
 that gives a sink's result, none of which a chain can.

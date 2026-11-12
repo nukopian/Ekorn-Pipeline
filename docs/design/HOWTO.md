@@ -244,7 +244,8 @@ sink this way when the reading must finish before what follows starts.
 
 ### Join a source, stages and a sink with |
 
-With Ekorn::Pipeline::Operators loaded, the types join with `|`:
+With `use Ekorn::Pipeline::Operators` in scope, the types join with
+`|`:
 
 ```perl
 use Ekorn::Pipeline::Operators;

@@ -12,30 +12,39 @@ use namespace::clean;
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a sink made afresh for each run by the set-up given, which
-# returns its step and its end. With list => 1, its result is a list,
-# which an operator gives as an array reference.
+# returns its step, its flush, giving its result, and, optionally, its
+# end. Its result is one value, as_scalar, unless list => 1 is given,
+# when it's a list, as_list.
 sub new ($class, $setup, %option) {
     croakf 'Expected a code reference' unless is_coderef($setup);
+    my $into
+        = $option{list}
+        ? 'Ekorn::Pipeline::Sink::List'
+        : 'Ekorn::Pipeline::Sink::Scalar';
     return bless {
         setup => $setup,
-        list  => !!$option{list},
         call  => sub { croakf 'Expected a sink to be run in a pipeline' },
-    }, $class;
+    }, $into;
 }
 
+# A sink whose result is one value.
+package Ekorn::Pipeline::Sink::Scalar {    ## no critic (Modules::ProhibitMultiplePackages)
+    use parent -norequire, 'Ekorn::Pipeline::Sink';
 
-# Return the step and the end of a new run.
-sub for_run ($self) {
-    my @made = $self->{setup}->();
-    croakf 'Expected the set-up of a sink to return a code reference and an end'
-        unless @made == 2 && is_coderef($made[0]) && is_coderef($made[1]);
-    return @made;
+
+    sub as_scalar ($self) {
+        return $self->{setup}->();
+    }
 }
 
+# A sink whose result is a list.
+package Ekorn::Pipeline::Sink::List {    ## no critic (Modules::ProhibitMultiplePackages)
+    use parent -norequire, 'Ekorn::Pipeline::Sink';
 
-# Return true if the sink's result is a list, rather than one value.
-sub gives_list ($self) {
-    return $self->{list};
+
+    sub as_list ($self) {
+        return $self->{setup}->();
+    }
 }
 
 1;

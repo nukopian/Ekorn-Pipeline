@@ -6,31 +6,33 @@ use parent 'Ekorn::Pipeline::Element';
 
 use namespace::clean;
 
-# Return an iterator, calling $next for each value, whose run $finish
-# ends, told how it ended.
-sub new ($class, $next, $finish) {
-    return bless {call => $next, finish => $finish}, $class;
+# Return an iterator, calling $next for each value, whose run $end_run
+# ends from outside, and $context is the context its run's source gave.
+sub new ($class, $next, $end_run, $context = undef) {
+    return bless {call => $next, end_run => $end_run, context => $context}, $class;
 }
 
 
-# End the run, if it hasn't ended, telling its parts how: "stopped",
-# unless told otherwise.
-sub finish ($self, $how = 'stopped') {
-    $self->{finish}->($how);
+# End the run, if it hasn't ended, as from outside: each part is told
+# how from where it stands, and nothing more is handed out.
+sub finish ($self) {
+    $self->{end_run}->();
     return;
 }
 
 
-# An iterator is a source, so it can't go where a stage goes.
-sub goes_as_stage ($self) {
-    return 0;
+# An iterator is a source: of the values its run gives, the run ended
+# from outside when the run reading it ends, passing on its context.
+sub as_source ($self) {
+    my $next = $self->{call};
+    return (sub () { $next->() }, sub ($how) { $self->finish }, $self->{context});
 }
 
 
-# An iterator let go ends its run, as stopped.
+# An iterator let go ends its run.
 sub DESTROY ($self) {
     local $@ = undef;
-    $self->{finish}->('stopped') if $self->{finish};
+    $self->{end_run}->() if $self->{end_run};
     return;
 }
 

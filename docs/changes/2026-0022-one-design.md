@@ -26,7 +26,9 @@ dying during a die warns, naming the end. D28 settled: an
 abandoned iterator ends its run. D8 and D9 moved into the design as
 its Q23 and Q24. D29 settled: DBIx-Squirrel's CI
 tests against `pipeline-experimental`. D30 settled: Ekorn::Pipeline
-doesn't re-export `pipeline`.
+doesn't re-export `pipeline`. D31 settled: DBIx::Squirrel keeps
+re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
+lexically.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -260,6 +262,17 @@ D19 to D25 came from the third cold review, settled by Iain on
   design's Q17, 2026-0021's D7)? No, Iain decided on 2026-11-12, as
   recommended: `pipeline` is a word, and words live in Factories only
   (principle 4), so there's one place to import it from.
+- [x] **D31.** Does DBIx::Squirrel keep exporting Ekorn's functions as
+  they are (the design's Q20)? Yes, for now, Iain decided on
+  2026-11-12, as recommended: as plain re-exports, so its users' code
+  keeps working. It's DBIx-Squirrel's to revisit.
+- [x] **D32.** Is `|` opt-in for the whole program, or only for the code
+  that loads Operators (the design's Q23, D8)? Lexically, Iain decided
+  on 2026-11-12, if it could be done, and it can: `use
+  Ekorn::Pipeline::Operators` marks its scope in `%^H`, and `chain` and
+  `drain` croak where the hints of the line using them don't have it.
+  So `|` written outside a scope that asked for it croaks rather than
+  quietly ORing two addresses. Design 9, 17.11.
 
 ## The plan
 
@@ -471,6 +484,34 @@ without an empty prototype; and three drifts section 10.2 missed, now
 listed. The open questions are tidied: Q3, Q4, Q8, Q9, Q12 and Q13
 settled by decisions since, beside Q2, Q5 and Q21, and Q14 and Q18
 restated.
+
+### Reconciled, 2026-11-12
+
+The prototype was brought up to every settled decision, so that the
+code, the design and IMPLEMENTATION.md agree: the role methods (D5,
+D13, D19); a flush and an end for every part (D6, D12); the source's
+end first (D11); a run ending when nothing in it can act (D15, D22);
+the verdicts (D16, D20); a context for each run (D7, D24); scalar
+context (D17); `to_arrayref`, and a list sink croaking at the end of a
+chain (D10); a scalar sink always giving one value (D25); a warning
+naming the end that died (D27); chains of stages and `drain` (D14,
+D23); and `|` in force lexically (D32). `t/15-proofs.t` is rewritten
+to the settled design, and three earlier test files change only where
+v0.3.0 changes what they checked. IMPLEMENTATION.md is rewritten whole,
+every example run. The design gains section 20, the knock-on effects
+on every other document, for the plan it's split into.
+
+Building it found one thing: `|` binds more loosely than `+`, so
+`$src | count + 10` is `$src | (count + 10)` whatever `count`'s
+prototype; the design had said an empty prototype made it read as
+`($src | count) + 10`. Section 9 now says to parenthesise, and the
+empty prototype only makes `count + 10` read as a call and a sum.
+
+Left as they are, as the design says they're built when it's split
+into items: names per class, `pipeline` in Ekorn::Pipeline, and Pipes'
+`pipeline_class`; and v0.2.0's wording of two messages, listed in
+section 20 to revise. Q24 is still open, so an iterator given to a
+second run still gives nothing.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
