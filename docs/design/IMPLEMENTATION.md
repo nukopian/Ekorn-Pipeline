@@ -192,7 +192,7 @@ role Ekorn's can (section 4.2).
 |---|---|---|
 | `Ekorn::Pipeline` | core | the pipeline class; `new`, `iterator`, `stages`, `named`, `pipeline`; the run loop, flushes and ends; `ending()`, `run_context()`, `is_stage` |
 | `Ekorn::Pipeline::Element` | core | the base of every type: a hash, called as a code reference |
-| `Ekorn::Pipeline::Iterator` | core | what `iterator` returns: called for each value; a source to another run; ends its run when finished or let go |
+| `Ekorn::Pipeline::Iterator` | core | what `iterator` returns: called for each value; a source to another run; ends its run when finished or let go; says how its run ended, with `ended` |
 | `Ekorn::Pipeline::Stop` | core | `Stop(...)`, and `throw` |
 | `Ekorn::Pipeline::Gather` | core | `gather {...}`: a stage made for a run, with a flush and, optionally, an end |
 | `Ekorn::Pipeline::Errors` | core | `croakf`, and `@INTERNAL`, the packages Carp looks past |
@@ -232,6 +232,8 @@ And beside them:
 - **A stage may ask** `Ekorn::Pipeline::ending()`, true while a flush
   runs and its values go on, and `Ekorn::Pipeline::run_context()`, the
   context its run's source gave.
+- **The caller may ask** an iterator `ended`: nothing while its run
+  goes, then `done`, `stopped` or `died` (D34).
 
 The core asks Ekorn's classes only to splice a pipeline, to read a
 gather's block, which may return a pipeline as its step (as v0.2.0's
@@ -310,7 +312,8 @@ from it.
         |     value: the source done, every flush called, and every
         |     value waiting past the last stage (D15). Each end is then
         |     called once, the source's first, then the stages', first
-        |     stage first (D11), told how from where it stands.
+        |     stage first (D11), told how from where it stands; and
+        |     $next->ended says how, for the caller (D34).
         v
   the run has ended; what's still waiting is handed out
 ```
@@ -393,7 +396,11 @@ When the run ends, `$finish` decides each verdict, once:
 - **the run died:** every end is told `died`;
 - **otherwise:** the source is `done` if `$source_done` is set, else
   `stopped`; each stage is `done` if its flag in `@input_done` is set,
-  else `stopped`.
+  else `stopped`;
+- **and for the caller,** `$ended`, which the iterator's `ended`
+  returns: `died` if the run died, else the source's verdict. It's
+  undefined until then, and becomes `died` if an end dies as the run
+  finishes.
 
 So the design's rule, `done` if its input ran out and `stopped` if it
 was cut short, is "was this part's flag set before the run ended?"
@@ -462,12 +469,20 @@ from where it stands, and what was still to be handed out is dropped.
 ```perl
 my $next = Ekorn::Pipeline->new(stage {uc})->iterator(noisy(qw(a b c)));
 say $next->();
+say $next->ended // 'still going';
 $next->finish;
 say scalar(my @rest = $next->());
+say $next->ended;
 # A
+# still going
 # source: stopped
 # 0
+# stopped
 ```
+
+`ended` tells the caller what each part's end was told about the
+source: here, that the reading was cut short. Read to the end, it
+would say `done`; had anything died, `died`.
 
 ```perl
 {
