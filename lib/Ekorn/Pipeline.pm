@@ -440,7 +440,14 @@ sub _iterator ($stages, $names, $source) {
         }
         return;
     };
-    return Ekorn::Pipeline::Iterator->new($next, $finish);
+    # Ended from outside, by the iterator's finish or as it's let go, the
+    # run also stops: nothing more is pulled, and nothing waiting goes on.
+    my $end_run = sub ($how) {
+        ($done, $next_end, @todo) = (1, scalar @stages);
+        $finish->($how);
+        return;
+    };
+    return Ekorn::Pipeline::Iterator->new($next, $end_run);
 }
 
 1;

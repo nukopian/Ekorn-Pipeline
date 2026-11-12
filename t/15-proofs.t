@@ -171,8 +171,10 @@ subtest 'An end that dies (Q6)' => sub {
         like dies { drain($class->new($fails, spy_sink)->iterator(spy_source(1))) },
             qr( Full )x;
         is \@log,
-            ['source set-up', 'sink set-up', 'pull', 'pull', 'sink died',
-                'source died'];
+            [
+                'source set-up', 'sink set-up', 'pull', 'pull', 'sink died',
+                'source died',
+            ];
     };
 };
 
@@ -229,6 +231,16 @@ subtest '19.2 A complete pipeline as a source' => sub {
         }
         is \@log, ['source set-up', 'pull', 'source stopped'],
             'let go after one pull';
+    };
+
+    subtest 'ended by finish, it stops' => sub {
+        @log = ();
+        my $next = $class->new(stage { uc })->iterator(spy_source(qw(a b c)));
+        is [$next->()], ['A'];
+        $next->finish;
+        is [$next->()], [], 'nothing more is handed out';
+        is \@log, ['source set-up', 'pull', 'source stopped'],
+            'and nothing more pulled';
     };
 
     subtest 'with |, a chain of a complete pipeline is a result' => sub {
