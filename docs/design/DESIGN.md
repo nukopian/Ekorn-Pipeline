@@ -957,7 +957,6 @@ Settled questions keep their numbers, listed after the open ones.
 
 | | Question | Whose | Recommended |
 |---|---|---|---|
-| **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | DBIx-Squirrel to confirm | Yes: Ekorn's side is settled by D4 and D15 |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | |
@@ -968,6 +967,8 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
 | **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
+| **Q23** | Is `\|` opt-in for the whole program, or only for the code that loads Operators (section 9; 2026-0022's D8)? Overloading belongs to a class, so loading Operators anywhere gives Ekorn's types `\|` everywhere, against principle 1 and 17.11's reason. Where it isn't loaded at all, `$src \| $stage` silently ORs two addresses. | Iain | Lexical: `use Ekorn::Pipeline::Operators` marks its scope in `%^H`, and `chain` checks the caller's hints, croaking "`\|` needs `use Ekorn::Pipeline::Operators` in this scope" where it's not in force. It's cheap, and turns the silent OR into an error wherever Operators is loaded in the program. The alternative is to say plainly that it's for the program |
+| **Q24** | How is a sink's result had as a source that can run more than once (2026-0022's D9)? An iterator is one run: given to a second run, it gives nothing, with no error; a chain from a source to a sink is a result, not a source. | Iain | A method making a Source of a pipeline and a source, `$pipeline->source_of($source)`, whose `as_source` makes a fresh iterator for each run, passing on its context; name open. And an Iterator given to a second run croaks, rather than give nothing |
 
 ### 16.2 Settled
 
@@ -979,6 +980,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
 | **Q5** | Where does the source's end run among the ends? | D11: first |
 | **Q6** | An end that dies during a die? | D27: a warning, naming the end, and the first error kept (section 5.4) |
+| **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | D28: yes; DBIx-Squirrel, which keeps its iterator in a field, is told when it reviews the design |
 | **Q8** | What is a sink? | D6 and D12, and section 4.2: made for a run, holding back every value, its flush giving its result; usually last |
 | **Q9** | `stage(\&trim)`: wrap, never bless? | D4: a Stage holds the code given, untouched |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |

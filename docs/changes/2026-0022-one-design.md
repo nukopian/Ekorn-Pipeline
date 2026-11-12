@@ -22,7 +22,9 @@ for a part whose input ran out; set-ups when the run starts; ends
 wait, nothing run early; chains of stages; no context in a pushed
 run; a scalar sink always gives one value. D26 settled: the stream
 concept applied to functions is what Ekorn is for. D27 settled: an end
-dying during a die warns, naming the end.
+dying during a die warns, naming the end. D28 settled: an
+abandoned iterator ends its run. D8 and D9 moved into the design as
+its Q23 and Q24.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -120,12 +122,11 @@ The design's own open questions are numbered Q1 and on, in its section
   given it. It settles Q21. The design's 4.4, 12.7 and 17.16.
 - [ ] **D8.** Is `|` opt-in for the program, or for the code that
   loads Operators? From S4: overloading belongs to a class, so loading
-  Operators gives `|` everywhere. Saying so plainly is the
-  recommendation.
+  Operators gives `|` everywhere. Moved into the design as its Q23, at
+  Iain's request, where it's discussed and recommended.
 - [ ] **D9.** How is a sink's result had as a source that can run more
   than once? From S5: an Iterator is one run, and gives nothing to a
-  second. A Source made from a pipeline and a source, making an
-  iterator for each run, is the direction.
+  second. Moved into the design as its Q24, at Iain's request.
 - [x] **D10.** What does `to_array` give from `|`? Nothing: it
   croaks, Iain decided on 2026-11-12, as its list can't be given where
   one scalar must be. `to_arrayref` gives an array reference of every
@@ -242,6 +243,12 @@ D19 to D25 came from the third cold review, settled by Iain on
   Iain decided on 2026-11-12, as recommended. Why: a second error must
   not hide the first, which is the one that ended the run, and the
   warning is no use if it doesn't say which end failed. Design 5.4.
+- [x] **D28.** Does `iterator` return an Iterator whose `DESTROY`
+  ends an abandoned run (the design's Q7)? Yes, Iain decided on
+  2026-11-12, as recommended: an iterator read only in part, and let
+  go, closes what its run opened, with no call to remember. Ekorn's side
+  was built with D4 and D15; DBIx-Squirrel, which keeps its iterator
+  in a field, is told when it reviews the design. Design 5.5, 17.10.
 
 ## The plan
 
