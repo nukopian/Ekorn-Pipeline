@@ -34,7 +34,7 @@ sub code ($self) {
 
 
 # Return the stage's step for a new run: its code, as it is.
-sub as_stage ($self) {
+sub ekorn_stage ($self) {
     return $self->{call};
 }
 

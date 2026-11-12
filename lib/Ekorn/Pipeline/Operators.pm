@@ -83,7 +83,7 @@ sub drain ($source, @) {
 
 
 sub _is_source ($thing) {
-    return !!(blessed($thing) && $thing->can('as_source'));
+    return !!(blessed($thing) && $thing->can('ekorn_source'));
 }
 
 

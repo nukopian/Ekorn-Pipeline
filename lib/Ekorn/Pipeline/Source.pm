@@ -26,7 +26,7 @@ sub new ($class, $setup) {
 
 # Return what the set-up returns for a new run: the step, and
 # optionally the end and a context.
-sub as_source ($self) {
+sub ekorn_source ($self) {
     return $self->{setup}->();
 }
 

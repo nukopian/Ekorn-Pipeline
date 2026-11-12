@@ -14,22 +14,25 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a sink made afresh for each run by the set-up given, which
 # returns its step, its flush, giving its result, and, optionally, its
-# end. A sink's result is a list, offered by as_list; new_scalar makes
-# one whose result is one value, offered by as_scalar. Called with
+# end. A sink's result is a list, offered by ekorn_sink; new_scalar makes
+# one whose result is one value, offered by ekorn_sink_scalar. Called with
 # values, a sink pushes them through a fresh sink of its set-up, as a
 # pipeline of the one sink would, and gives its result: the closure
 # holds the set-up, not the sink, so it works however long it's kept.
 sub new ($class, $setup) {
-    return _made($class->can('as_list') ? $class : 'Ekorn::Pipeline::Sink::List',
-        $setup);
+    return _made(
+        $class->can('ekorn_sink') ? $class : 'Ekorn::Pipeline::Sink::List',
+        $setup,
+    );
 }
 
 
 # Return a sink, as new does, whose result is one value.
 sub new_scalar ($class, $setup) {
     return _made(
-        $class->can('as_scalar') ? $class : 'Ekorn::Pipeline::Sink::Scalar',
-        $setup);
+        $class->can('ekorn_sink_scalar') ? $class : 'Ekorn::Pipeline::Sink::Scalar',
+        $setup,
+    );
 }
 
 
@@ -48,7 +51,7 @@ package Ekorn::Pipeline::Sink::Scalar {    ## no critic (Modules::ProhibitMultip
     use parent -norequire, 'Ekorn::Pipeline::Sink';
 
 
-    sub as_scalar ($self) {
+    sub ekorn_sink_scalar ($self) {
         return $self->{setup}->();
     }
 }
@@ -58,7 +61,7 @@ package Ekorn::Pipeline::Sink::List {    ## no critic (Modules::ProhibitMultiple
     use parent -norequire, 'Ekorn::Pipeline::Sink';
 
 
-    sub as_list ($self) {
+    sub ekorn_sink ($self) {
         return $self->{setup}->();
     }
 }

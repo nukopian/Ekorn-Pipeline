@@ -47,7 +47,7 @@ sub finish ($self) {
 
 # An iterator is a source: of the values its run gives, the run ended
 # from outside when the run reading it ends, passing on its context.
-sub as_source ($self) {
+sub ekorn_source ($self) {
     croakf
         'Expected a source with values still to give: an iterator is one run, and this one is spent'
         if $self->{spent}->();

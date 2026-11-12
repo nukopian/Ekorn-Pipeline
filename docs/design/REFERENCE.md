@@ -522,11 +522,13 @@ the start of a run, and returns closures sharing that run's state:
 
 | Method | Makes it | Returns |
 |---|---|---|
-| `as_source` | a source, given to `iterator` or starting a chain | its step, called with nothing for the next value, or an empty list at the end; optionally its end, told how the run ended; and optionally a context, anything its stages may want to know about this run |
-| `as_stage` | a stage with state for the run | its step, called with each value, returning a list; optionally its flush, called when its input runs out; and optionally its end |
-| `as_scalar`, `as_list` | a sink, giving one value or a list | its step, called with each value, its return ignored; its flush, giving the result; and optionally its end |
+| `ekorn_source` | a source, given to `iterator` or starting a chain | its step, called with nothing for the next value, or an empty list at the end; optionally its end, told how the run ended; and optionally a context, anything its stages may want to know about this run |
+| `ekorn_stage` | a stage with state for the run | its step, called with each value, returning a list; optionally its flush, called when its input runs out; and optionally its end |
+| `ekorn_sink_scalar`, `ekorn_sink` | a sink, giving one value or a list | its step, called with each value, its return ignored; its flush, giving the result; and optionally its end |
 
-One object can offer `as_source` and one of the others, as a table can
+The methods are named for Ekorn, so an object of yours with a method
+of its own such as `as_list` is never taken for a part. One object can
+offer `ekorn_source` and one of the others, as a table can
 be read from and written to. A plain code reference is a source or a
 stage, wherever it's given, with no end. None of these needs your
 package to load Ekorn.
@@ -534,7 +536,7 @@ package to load Ekorn.
 ```perl
 package My::Rows;
 
-sub as_source ($self) {
+sub ekorn_source ($self) {
     my $sth = $self->{sth};
     $sth->execute;                                  # this run's
     return (
@@ -565,10 +567,13 @@ sub pluck ($name) {
 ### `|` for your sources
 
 To let your users start a chain with your source, overload `|`, and
-`@{}`, with Ekorn's own functions:
+`@{}`, with Ekorn's own functions. Load Operators with an empty import
+list, which defines them without putting the operators in force in
+your own scope; without loading it, `|` dies with "Undefined
+subroutine" until something else does:
 
 ```perl
-use Ekorn::Pipeline::Operators;
+use Ekorn::Pipeline::Operators ();
 use overload
     '|'   => \&Ekorn::Pipeline::Operators::chain,
     '@{}' => \&Ekorn::Pipeline::Operators::drain;
@@ -608,8 +613,8 @@ Wording to be settled when the code is written. One for each:
 - a word given something other than a block;
 - a set-up that doesn't return what its role needs: a step, and the
   flush, end or context it may have;
-- an object offering more than one of `as_stage`, `as_scalar` and
-  `as_list`;
+- an object offering more than one of `ekorn_stage`, `ekorn_sink_scalar` and
+  `ekorn_sink`;
 - a chain with `|` ending in a sink that gives a list, such as
   `to_array`;
 - an end that died while the run was already dying (a warning,

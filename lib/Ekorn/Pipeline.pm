@@ -41,24 +41,25 @@ sub is_stage ($thing) {
 sub is_sink ($thing) {
     ($thing) = ($thing->stages)[-1] if $thing isa 'Ekorn::Pipeline';
     return !!0                      unless blessed($thing);
-    return 'scalar'                 if $thing->can('as_scalar');
-    return 'list'                   if $thing->can('as_list');
+    return 'scalar'                 if $thing->can('ekorn_sink_scalar');
+    return 'list'                   if $thing->can('ekorn_sink');
     return !!0;
 }
 
 
 # Return the role method that what's given offers for a stage's place,
-# as_stage, as_scalar or as_list, or nothing if it offers none.
+# ekorn_stage, ekorn_sink_scalar or ekorn_sink, or nothing if it offers none.
 sub _stage_role ($thing) {
     return unless blessed($thing);
-    my @roles = grep { $thing->can($_) } qw(as_stage as_scalar as_list);
+    my @roles
+        = grep { $thing->can($_) } qw(ekorn_stage ekorn_sink_scalar ekorn_sink);
     return $roles[0];
 }
 
 
 # Return true if what's given offers a source's role method.
 sub _is_source ($thing) {
-    return !!(blessed($thing) && $thing->can('as_source'));
+    return !!(blessed($thing) && $thing->can('ekorn_source'));
 }
 
 
@@ -76,10 +77,10 @@ sub _element ($stage) {
 sub _check_stage ($stage, $n) {
     my @roles
         = blessed($stage)
-        ? grep { $stage->can($_) } qw(as_stage as_scalar as_list)
+        ? grep { $stage->can($_) } qw(ekorn_stage ekorn_sink_scalar ekorn_sink)
         : ();
     croakf
-        'Expected stage #%d to offer one of as_stage, as_scalar and as_list, not %s',
+        'Expected stage #%d to offer one of ekorn_stage, ekorn_sink_scalar and ekorn_sink, not %s',
         $n,
         join ' and ', @roles
         if @roles > 1;
@@ -280,11 +281,11 @@ sub run_context () {
 
 
 # Return the step, the end and the context of a run of $source: from
-# its as_source, if it offers one; a code reference is its own step,
+# its ekorn_source, if it offers one; a code reference is its own step,
 # with no end or context.
 sub _source_run ($source) {
     return ($source) unless _is_source($source);
-    my($step, $end, $context) = $source->as_source;
+    my($step, $end, $context) = $source->ekorn_source;
     croakf
         'Expected the source to return a code reference, and optionally an end and a context'
         unless is_coderef($step) && _code_or_none($end);
@@ -350,7 +351,7 @@ sub _make_run ($stages, $names, $run) {
         my $role = _stage_role($stage) // '';
         my($step, $flush, $end);
         if ($stage isa 'Ekorn::Pipeline::Gather') {
-            my @made = $stage->as_stage;
+            my @made = $stage->ekorn_stage;
             my($inner, $inner_names)
                 = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
             croakf
@@ -366,7 +367,7 @@ sub _make_run ($stages, $names, $run) {
                 $step = sub ($value) { $value };
             }
         }
-        elsif ($role eq 'as_scalar' || $role eq 'as_list') {
+        elsif ($role eq 'ekorn_sink_scalar' || $role eq 'ekorn_sink') {
             ($step, $flush, $end) = $stage->$role;
             croakf
                 'Expected sink #%s to return a code reference, a flush, and optionally an end',
@@ -379,10 +380,10 @@ sub _make_run ($stages, $names, $run) {
             my($each, $result) = ($step, $flush);
             $step  = sub ($value) { $each->($value);    return };
             $flush = sub () { my @result = $result->(); return $result[0] }
-                if $role eq 'as_scalar';
+                if $role eq 'ekorn_sink_scalar';
         }
-        elsif ($role eq 'as_stage') {
-            ($step, $flush, $end) = $stage->as_stage;
+        elsif ($role eq 'ekorn_stage') {
+            ($step, $flush, $end) = $stage->ekorn_stage;
             croakf
                 'Expected stage #%s to return a code reference, and optionally a flush and an end',
                 $name
@@ -395,7 +396,7 @@ sub _make_run ($stages, $names, $run) {
         push @{ $run->{names} },   $name;
         push @{ $run->{flushes} }, $flush;
         push @{ $run->{ends} },    $end;
-        push @{ $run->{sinks} },   $role eq 'as_scalar' || $role eq 'as_list';
+        push @{ $run->{sinks} }, $role eq 'ekorn_sink_scalar' || $role eq 'ekorn_sink';
     }
     return;
 }

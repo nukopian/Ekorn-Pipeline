@@ -171,8 +171,8 @@ say from_arrayref(\@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count
        +--------------+-------------+-------------+                     |
        |              |             |             |                     |
      Stage         Source         Sink         Gather <-----------------+
-   as_stage:     as_source:   as_scalar or    as_stage:
-   its code      a set-up     as_list:        a set-up
+   ekorn_stage:     ekorn_source:   ekorn_sink_scalar or    ekorn_stage:
+   its code      a set-up     ekorn_sink:        a set-up
                               a set-up
        |              |             |             |
        +--------------+------+------+-------------+
@@ -215,9 +215,9 @@ needs the code to load Ekorn:
 
 | Role | Method | Returns |
 |---|---|---|
-| **Source** | `as_source` | its step, called with nothing, giving the next value or values, or an empty list at the end; optionally its end, told how the run ended; optionally a context for the run |
-| **Stage made for a run** | `as_stage` | its step, called with each value, returning a list; optionally its flush, called when its input runs out, its values going on; optionally its end |
-| **Sink** | `as_scalar` or `as_list` | its step, called with each value, its return ignored; its flush, giving its result, one value for `as_scalar`, `undef` if it has none; optionally its end |
+| **Source** | `ekorn_source` | its step, called with nothing, giving the next value or values, or an empty list at the end; optionally its end, told how the run ended; optionally a context for the run |
+| **Stage made for a run** | `ekorn_stage` | its step, called with each value, returning a list; optionally its flush, called when its input runs out, its values going on; optionally its end |
+| **Sink** | `ekorn_sink_scalar` or `ekorn_sink` | its step, called with each value, its return ignored; its flush, giving its result, one value for `ekorn_sink_scalar`, `undef` if it has none; optionally its end |
 
 And beside them:
 
@@ -227,7 +227,7 @@ And beside them:
 - **`is_sink`** says whether a part is a sink, `'scalar'` or `'list'`,
   or false; a pipeline by the sink it ends in (D43).
 - **`is_stage`** takes a code reference, a pipeline, or anything
-  offering `as_stage`, `as_scalar` or `as_list`. A part offering more
+  offering `ekorn_stage`, `ekorn_sink_scalar` or `ekorn_sink`. A part offering more
   than one of those three croaks when given to `new`, as they'd be
   called in the same place.
 - **A stop** is an exception `isa Ekorn::Pipeline::Stop`.
@@ -252,11 +252,11 @@ as nothing else holds it.
 
 ```
 Ekorn::Pipeline::Element          call, &{}
-  ├─ Ekorn::Pipeline::Stage       as_stage: its code
-  ├─ Ekorn::Pipeline::Gather      as_stage: its block's step, flush and end
-  ├─ Ekorn::Pipeline::Sink        ::Scalar, as_scalar; ::List, as_list
-  ├─ Ekorn::Pipeline::Source      as_source
-  ├─ Ekorn::Pipeline::Iterator    as_source: a run already
+  ├─ Ekorn::Pipeline::Stage       ekorn_stage: its code
+  ├─ Ekorn::Pipeline::Gather      ekorn_stage: its block's step, flush and end
+  ├─ Ekorn::Pipeline::Sink        ::Scalar, ekorn_sink_scalar; ::List, ekorn_sink
+  ├─ Ekorn::Pipeline::Source      ekorn_source
+  ├─ Ekorn::Pipeline::Iterator    ekorn_source: a run already
   └─ Ekorn::Pipeline              a list of stages: call pushes values
 ```
 
@@ -288,7 +288,7 @@ from it.
   $pipeline->iterator($source)
         |
         |  1. Set up, as the run starts (D21)
-        |     the source: as_source, if it offers one; a code
+        |     the source: ekorn_source, if it offers one; a code
         |       reference is its own step
         |     the stages, in order: each by its role method; a gather
         |       by its block; a code reference as it is
@@ -515,7 +515,7 @@ Called with values, a pipeline pushes them through. In list context it
 returns what comes out; in scalar context, how many, unless its last
 stage is a scalar sink, when it gives that sink's result (D17).
 `iterator($source)` pulls instead: `$source` is a code reference, or
-anything offering `as_source`, an iterator included. `stages` returns
+anything offering `ekorn_source`, an iterator included. `stages` returns
 the stages, to splice into another pipeline.
 
 A pipeline holds only what it was made of, so one pipeline can run any
@@ -540,10 +540,10 @@ package; until that's built, see section 10.2.
 ### 6.2 Ekorn::Pipeline::Iterator
 
 What `iterator` returns: an Element, called as `$next->()`, with
-`finish` and `DESTROY` (section 5.5). Its `as_source` makes it a
+`finish` and `DESTROY` (section 5.5). Its `ekorn_source` makes it a
 source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8). Once it's spent, having
-handed out all it will, been finished, or died, its `as_source`
+handed out all it will, been finished, or died, its `ekorn_source`
 croaks rather than give nothing (D41); an iterator whose run has ended
 with values still to give, such as a list sink's, isn't spent until
 they've gone. As a source, it has `|` and `@{}`, once Operators is
@@ -771,10 +771,11 @@ This is the pattern DBIx::Squirrel follows, and any package that hands
 out values can: deliver parts that offer Ekorn's role methods, and let
 users run them in Ekorn's pipelines, with Ekorn's parts and their own.
 Nothing of Ekorn's is subclassed or wrapped. A source needs nothing of
-Ekorn's loaded; the sink in 7.5 uses Ekorn's `sink` word, for
-brevity, where a class with `as_scalar` would need nothing either; and
-the overloads in 7.4 name Operators' functions, which Perl fills in
-once a user loads Operators.
+Ekorn's loaded; the sink in 7.5 uses Ekorn's `sink_scalar` word, for
+brevity, where a class with `ekorn_sink_scalar` would need nothing
+either; and the overloads in 7.4 load Operators, whose functions they
+name. The role methods are named for Ekorn (D49), so an object with
+an ordinary method such as `as_list` is never taken for a part.
 
 The example below is a stand-in for DBIx::Squirrel, with an in-memory
 table where it would have a statement, so it runs without a database.
@@ -783,7 +784,7 @@ My::Rows` block adds to the class.
 
 | Here | In DBIx::Squirrel | The protocol it keeps |
 |---|---|---|
-| `My::Rows`, with `as_source` | a statement's rows (design 12.3) | a source, giving its columns as the run's context |
+| `My::Rows`, with `ekorn_source` | a statement's rows (design 12.3) | a source, giving its columns as the run's context |
 | `column($name)` | `pluck`, `as_hash` (design 12.7) | a stage, asking `run_context()` |
 | `insert_into($table)` | `insert_into` (design 12.4) | a sink |
 | `each_row($rows, @stages)` | `iterate`, and the like | a function taking stages |
@@ -791,7 +792,7 @@ My::Rows` block adds to the class.
 
 ### 7.1 A source of its own, that knows something
 
-`as_source` starts a run, as executing a statement would, and returns
+`ekorn_source` starts a run, as executing a statement would, and returns
 its step, its end, which finishes it, and a context, what its stages
 may need to know about this run:
 
@@ -799,7 +800,7 @@ may need to know about this run:
 package My::Rows {
     sub new ($class, $columns, @rows) { bless {columns => $columns, rows => \@rows}, $class }
 
-    sub as_source ($self) {
+    sub ekorn_source ($self) {
         my $i = 0;    # the run's position, as a statement's cursor
         return (
             sub ()     { $i < @{ $self->{rows} } ? $self->{rows}[ $i++ ] : () },
@@ -876,13 +877,15 @@ rows.
 ### 7.4 `|` and `@{}` for its own sources
 
 Operators gives `|` to Ekorn's own types. A package's class gets it by
-overloading `|` and `@{}` with Operators' `chain` and `drain`. They're
-in force where the line using them was compiled with `use
+overloading `|` and `@{}` with Operators' `chain` and `drain`, loading
+Operators with an empty import list, which defines them without putting
+the operators in force in the package's own scope. They're in force
+where the line using them was compiled with `use
 Ekorn::Pipeline::Operators`, as section 2's is:
 
 ```perl
 package My::Rows {
-    use Ekorn::Pipeline::Operators qw();
+    use Ekorn::Pipeline::Operators ();
     use overload
         '|'   => \&Ekorn::Pipeline::Operators::chain,
         '@{}' => \&Ekorn::Pipeline::Operators::drain;
@@ -902,7 +905,7 @@ say scalar @{$people};
 ### 7.5 A sink of its own
 
 A sink is made with `sink {...}`, or as a class of the package's own
-offering `as_scalar` or `as_list`. Its flush gives its result, and its
+offering `ekorn_sink_scalar` or `ekorn_sink`. Its flush gives its result, and its
 end, told how the run ended, commits or rolls back:
 
 ```perl
@@ -975,13 +978,13 @@ are built:
 
 | Message | When |
 |---|---|
-| `Expected stage #%d to be a stage, not a source` | a part offering only `as_source`, given to `new` as a stage |
-| `Expected stage #%d to offer one of as_stage, as_scalar and as_list, not %s` | a part offering more than one |
-| `Expected the source to return a code reference, and optionally an end and a context` | `as_source` returns anything else |
-| `Expected stage #%s to return a code reference, and optionally a flush and an end` | `as_stage` returns anything else |
-| `Expected sink #%s to return a code reference, a flush, and optionally an end` | `as_scalar` or `as_list` returns anything else |
+| `Expected stage #%d to be a stage, not a source` | a part offering only `ekorn_source`, given to `new` as a stage |
+| `Expected stage #%d to offer one of ekorn_stage, ekorn_sink_scalar and ekorn_sink, not %s` | a part offering more than one |
+| `Expected the source to return a code reference, and optionally an end and a context` | `ekorn_source` returns anything else |
+| `Expected stage #%s to return a code reference, and optionally a flush and an end` | `ekorn_stage` returns anything else |
+| `Expected sink #%s to return a code reference, a flush, and optionally an end` | `ekorn_sink_scalar` or `ekorn_sink` returns anything else |
 | `Expected a source to be read through iterator` | a source called as a code reference |
-| `Expected no stop in a set-up, as the run has nothing yet to stop` | a stop thrown from a set-up: a gather's block, `as_source`, or a role method |
+| `Expected no stop in a set-up, as the run has nothing yet to stop` | a stop thrown from a set-up: a gather's block, `ekorn_source`, or a role method |
 | `Expected no stop in an end, as the run has ended` | a stop thrown from an end, inside "Pipeline end of ... failed", or the warning when the run is already dying |
 | `Expected a source with values still to give: an iterator is one run, and this one is spent` | a spent iterator given as a source |
 | `Expected a source, or a stage made with a word, on the left of \|` | `chain` given anything else on its left |
@@ -1015,7 +1018,7 @@ valid, as v0.3.0 changes.
 | Sinks and context | `to_arrayref`, and `to_array` croaking at the end of a chain; scalar context; a scalar sink of nothing; precedence | D10, D17, D25 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
-| A package delivers parts, using Ekorn as it is | section 7's pattern: `as_source` with a context, `run_context()` behind an iterator, each run's own, none in a pushed run; `chain` and `drain` | D1, D5, D7, D24 |
+| A package delivers parts, using Ekorn as it is | section 7's pattern: `ekorn_source` with a context, `run_context()` behind an iterator, each run's own, none in a pushed run; `chain` and `drain` | D1, D5, D7, D24 |
 
 ## 10. Design and implementation, side by side
 

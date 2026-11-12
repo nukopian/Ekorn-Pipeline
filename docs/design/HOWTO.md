@@ -282,12 +282,12 @@ let them run them in Ekorn's pipelines, with Ekorn's parts and their
 own. Your parts say what they can be by their methods, and needn't
 load Ekorn to say it:
 
-1. **`as_source`, for what you read.** It starts a run, and returns
+1. **`ekorn_source`, for what you read.** It starts a run, and returns
    its step, its end, closing what it opened, and a context, what your
    stages may need to know about the run:
 
    ```perl
-   sub as_source ($self) {
+   sub ekorn_source ($self) {
        my $sth = $self->{sth};
        $sth->execute;
        return (sub () { $sth->fetchrow_arrayref // () }, sub ($how) { $sth->finish },
@@ -295,7 +295,7 @@ load Ekorn to say it:
    }
    ```
 
-2. **`as_scalar` or `as_list`, for what you write.** A sink's end is
+2. **`ekorn_sink_scalar` or `ekorn_sink`, for what you write.** A sink's end is
    told how the run ended, so it can commit only when the run is
    `done`.
 3. **Stages for what only you know,** asking

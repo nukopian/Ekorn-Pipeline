@@ -664,9 +664,14 @@ subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
         qr( \A Expected\ a\ code\ reference )x,
         'and a sink';
 
+        my $bind = bless [2], 'My::Set';
+        ok !Ekorn::Pipeline::is_stage($bind),
+        'an object with an as_list method of its own is no stage (D49)';
+        is [$class->new(sub { $_ * 2 })->($bind->[0])], [4];
+
         my $both = bless {}, 'My::Both';
         like dies { $class->new($both) },
-        qr( \A Expected\ stage\ \#1 .* as_stage\ and\ as_scalar )x,
+        qr( \A Expected\ stage\ \#1 .* ekorn_stage\ and\ ekorn_sink_scalar )x,
         "a part offering both a stage's method and a sink's croaks";
     };
 
@@ -686,7 +691,7 @@ package My::Table {
     }
 
 
-    sub as_source ($self) {
+    sub ekorn_source ($self) {
         my $i = 0;
         return (
             sub () { $i < @{ $self->{rows} } ? $self->{rows}[$i++] : () },
@@ -705,15 +710,19 @@ package My::Table {
     }
 }
 
+package My::Set {    ## no critic (Modules::ProhibitMultiplePackages)
+    sub as_list ($self) { return @$self }
+}
+
 package My::Both {    ## no critic (Modules::ProhibitMultiplePackages)
 
 
-    sub as_stage ($self) {
+    sub ekorn_stage ($self) {
         return sub { $_ }
     }
 
 
-    sub as_scalar ($self) {
+    sub ekorn_sink_scalar ($self) {
         return (sub { }, sub { 0 });
     }
 }

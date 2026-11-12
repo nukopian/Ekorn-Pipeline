@@ -41,7 +41,8 @@ does what its role means. D43 settled: `is_sink`. D44 settled: DBIx::Squirrel's 
 offers `as_source`, as the design's 12.3 sets out. D45 to D47 settled, from the fourth
 cold review: `ended` the last part's verdict; a context describes the
 source; lists first, `sink` and `sink_scalar`. D48 settled: `ended`
-says whether the source was read to its end, revising D45.
+says whether the source was read to its end, revising D45. D49 settled: the role methods are named
+for Ekorn.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -369,6 +370,12 @@ D19 to D25 came from the third cold review, settled by Iain on
   context is the statement's columns; its own stages are run by an
   Ekorn iterator whose source it hands on; and one run of a handle at
   a time. "If DBIx-Squirrel has an issue, we will re-visit the design."
+  Amended by Iain in DBIx-Squirrel's session, 2026-11-12, from its
+  review: the columns are named as `fetchrow_hashref` keys them,
+  `$sth->{FetchHashKeyName}`, read before the first fetch; and an
+  active handle is finished and executed again, as DBIx::Squirrel's
+  iterator does today, croaking only when another of its iterators is
+  part-way through it.
 - [x] **D45.** What does `ended` tell the caller (the design's Q28)?
   The verdict of the run's last part, Iain decided on 2026-11-12, as
   recommended: whether the result is complete. A complete
@@ -404,6 +411,17 @@ D19 to D25 came from the third cold review, settled by Iain on
   was `done`, though cut short. "Complete" has two meanings; only
   "were there more values than I got?" is well defined. Built. Design
   5.5, 17.23.
+- [x] **D49.** How is a part told from any object offering a method of
+  the same name (the design's Q31, from DBIx-Squirrel's review)? By
+  role methods named for Ekorn, Iain decided on 2026-11-12, choosing
+  the first of three options: `ekorn_source`, `ekorn_stage`,
+  `ekorn_sink` for a list sink, and `ekorn_sink_scalar`, mirroring the
+  words, in place of D5's `as_source`, `as_stage`, `as_list` and
+  `as_scalar`. Why: DBIx::Squirrel separates a statement's stages from
+  its bind values with `is_stage`, and a bind value whose class had an
+  `as_list` method was taken for a sink, and died. Weighed: the `as_`
+  names with a marker method; Perl's `DOES`. Built, with a test.
+  Design 4.4, 17.24.
 
 ## The plan
 
@@ -705,6 +723,24 @@ ec0f200e27bb25f81a8deebc0dc6b9786018bee0, after a message saying its
 task 2 is replaced and task 1 overtaken). What it finds in Ekorn's design comes back as
 messages; Iain approves both designs together, before either is split
 into items.
+
+### DBIx-Squirrel's first findings, 2026-11-12
+
+DBIx-Squirrel's review began with four messages (DBIx-Squirrel
+b2b3c9c76d4656b50982bec49c4ce2b29b282a30), and the news that 25 of its
+26 test files pass against Ekorn's prototype, the other failing only
+on v0.3.0's intended changes to gathers. What came of each:
+
+- **An ordinary object taken for a sink:** a bind value with an
+  `as_list` method passed `is_stage`. D49 renames the role methods.
+- **`|` before Operators is loaded** died with "Undefined subroutine".
+  The design's 12.3, the reference and IMPLEMENTATION.md's 7.4 now
+  have a package load Operators with an empty import list.
+- **`result_number` and `result_original`,** the rest of its Context:
+  Iain decided, in its session, that it keeps both on its own side. The
+  design's section 12 now names them.
+- **12.3's columns and active handles:** Iain's amendments, made in its
+  session, are written into 12.3 and D44.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
