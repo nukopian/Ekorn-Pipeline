@@ -243,7 +243,7 @@ wrapping anything of it (principles 2 and 3; the list settled by D5 to D7, D25 a
 | **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `first_value` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
-| **A run's context** | the third value `as_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (Q29) |
+| **A run's context** | the third value `as_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (D46) |
 
 One thing in a stage's place is Ekorn's own, not a protocol: a
 gather's block may return a pipeline as its step, whose stages are made
@@ -429,15 +429,16 @@ goes, which is prompt for a lexical iterator. During global
 destruction its order isn't guaranteed, so an end mustn't rely on
 other objects then.
 
-**The caller asks how it ended** (2026-0022's D34, settling Q25):
+**The caller asks how it ended** (2026-0022's D34 and D45):
 `$next->ended` gives nothing while the run is going, and, once it has
-ended, `done` if the source's values ran out, `stopped` if the reading
-was cut short, by a stop or from outside, or `died` if anything in it
-died, an end included. So a caller can tell a complete result from one
-`take(5)` cut short, which the values alone don't show. It's the run's
-verdict as the source sees it, beside the verdict each part is told.
-A pushed run leaves no object to ask; a caller who wants to know pulls
-with `iterator`.
+ended, the verdict of the run's last part, which is whether the result
+the caller got is complete: `done` if the last part's input ran out, so
+a complete `first_value`, which stops the run once it has its answer,
+is `done`; `stopped` if it was cut short, as by `take(5)` last, or if
+`finish` dropped values still to be handed out; and `died` if anything
+in the run died, an end included. With no stages, it's the source's
+verdict. A pushed run leaves no object to ask; a caller who wants to
+know pulls with `iterator`.
 
 ### 5.6 What `ending` means
 
@@ -462,7 +463,7 @@ made by its constructor, a class method that takes only real things
 | `Ekorn::Pipeline::Stage` | `new($code)` | settled (Q9, D4); wraps the code given, never blesses it (**Q9**); a run calls the code as it is |
 | `Ekorn::Pipeline::Gather` | `new($setup)` | as `gather` makes today, now an Element |
 | `Ekorn::Pipeline::Source` | `new($setup)` | settled (D5, D7); `$setup` returns the step, and, optionally, the end and a context |
-| `Ekorn::Pipeline::Sink` | `new($setup)` | settled (D6, D12; a list sink, Q30); `$setup` returns the step, the flush, giving the result, and, optionally, the end |
+| `Ekorn::Pipeline::Sink` | `new($setup)`, `new_scalar($setup)` | settled (D6, D12, D47): `new` makes a list sink, offering `as_list`, and `new_scalar` a scalar sink, offering `as_scalar`; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
 
 And one more class method, which, with `named`, is all that reads
 names (settled in 2026-0021 as a class method taking the package, and
@@ -490,7 +491,8 @@ constructor (settled, 2026-0021):
 | `stage {...}` | a Stage | the stage itself, called with each value |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
-| `sink {...}` | a Sink | a set-up, returning the step, the flush, giving the result, and, optionally, the end |
+| `sink {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
+| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value (D47) |
 
 The rule for the blocks: **a word for something made afresh for each
 run takes a set-up; `stage` takes the stage itself.** A source with
@@ -500,7 +502,7 @@ source, as today.
 ```perl
 my $upper = stage { uc };
 
-my $count = sink {
+my $count = sink_scalar {
     my $n = 0;
     return (sub ($value) { $n++ }, sub () { $n });    # its step and its result
 };
@@ -865,7 +867,7 @@ back if not, so a run that dies after it inserts nothing:
 
 ```perl
 sub insert_into ($dbh, $table) {
-    return sink {
+    return sink_scalar {
         my $sth = $dbh->prepare(...);
         my $n   = 0;
         $dbh->begin_work;
@@ -942,6 +944,9 @@ sub pluck ($name) {
 
 - **Each run has its own,** so two runs of one statement at once each
   see their own columns.
+- **It describes the source, not the values** (D46): a stage that
+  reshapes rows, before `pluck`, doesn't change the columns `pluck`
+  reads.
 - **An iterator used as a source passes on the context of the run
   inside it,** so `pluck` sees the statement's columns behind a
   pipeline between them.
@@ -1056,15 +1061,9 @@ Settled questions keep their numbers, listed after the open ones.
 
 ### 16.1 Open
 
-From the fourth cold review, 2026-11-12. Any other question that
-arises, from a review, from DBIx-Squirrel, or from building, is added
-here, with whose it is and a recommendation.
-
-| | Question | Whose | Recommended |
-|---|---|---|---|
-| **Q28** | What does `ended` tell the caller? It gives the source's verdict, so `first_value`, stopping the run once it has its answer, reports `stopped` for a complete result, as a `take(5)` cutting the read short does; and `finish` after a list sink's result, with values still undelivered, reports `done`. It was built for "is my result complete?" | Iain | The verdict of the run's last part: `done` when the last part's input ran out, so a complete `first_value` is `done` and `take(5)` last is `stopped`; `stopped` when `finish` drops values still to be handed out; `died` as now. With no stages, the source's verdict |
-| **Q29** | Context passed through an iterator describes the original source, whatever the stages did to its rows, which can mislead `pluck` as D24 said a pushed run would. What does a context describe? | Iain | The run's source, not the values: say so in 4.4 and the reference, so a stage that reshapes rows knows `pluck` after it is reading the source's columns. A way for a pipeline to replace or drop the context waits until a need is found |
-| **Q30** | How is a list sink declared with a word, or with the Sink class? Only `Sink->new($setup, list => 1)` does it, which the design never settled; without it, a user can't write a `to_hash`-like sink | Iain | Keep the constructor's option, `Ekorn::Pipeline::Sink->new($setup, list => 1)`, and add a word, `list_sink {...}`, beside `sink {...}`, in Factories |
+None, since 2026-11-12. A question that arises, from a review, from
+DBIx-Squirrel, or from building, is added here as Q31 and on, with
+whose it is and a recommendation.
 
 ### 16.2 Settled
 
@@ -1075,6 +1074,9 @@ here, with whose it is and a recommendation.
 | **Q26** | What does each type do when called directly? | D42: what its role means: a Sink pushes the values it's given through itself and gives its result, so a sink can be tested on its own; a Source croaks; Stage, Pipeline, Iterator and Gather as they were (principle 6) |
 | **Q27** | Should Ekorn export `is_sink`? | D43: yes, on request, beside `is_stage`: `'scalar'`, `'list'`, or false; a pipeline by the sink it ends in |
 | **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, nothing while it goes, then `done`, `stopped` or `died`, as the source sees it; for iterators only (section 5.5) |
+| **Q28** | What does `ended` tell the caller? | D45: the verdict of the run's last part, whether the result is complete: a complete `first_value` is `done`, `take(5)` last `stopped`, and `finish` dropping undelivered values `stopped`; with no stages, the source's (section 5.5) |
+| **Q29** | What does a context describe? | D46: the run's source, not the values: a stage that reshapes rows doesn't change it, so a stage after it reading the context reads the source's (4.4, 12.7); a way to replace it waits until a need is found |
+| **Q30** | How is a list sink declared? | D47: lists first: `Sink->new` and `sink {...}` make a list sink, and `Sink->new_scalar` and `sink_scalar {...}` a scalar one, scalars being the second-class citizen; a chain ends only in a scalar sink (D10), so a sink written to end one is a `sink_scalar` |
 | **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
@@ -1576,6 +1578,29 @@ Weighed and set aside:
 - **`is_sink` giving 1 or 2,** for a scalar or a list sink. Both true,
   as `'scalar'` and `'list'` are, but `is_sink($x) eq 'list'` reads
   better at the call.
+
+### 17.23 `ended` is the last part's verdict; lists first
+
+(Sections 5.5, 6.1, 6.2; Iain, 2026-11-12, 2026-0022's D45 to D47, from
+the fourth cold review.)
+
+`ended` gives the verdict of the run's last part, as that's what says
+whether the caller's result is complete. Weighed and set aside: the
+source's verdict, which D34 first built, as it called a complete
+`first_value` `stopped`, the same as `take(5)` cutting a read short,
+and called a run `done` though `finish` had dropped values the caller
+never got.
+
+A context describes the run's source, not the values. Weighed and set
+aside: a pipeline replacing or dropping it, until a need is found.
+
+A sink's result is a list unless it says otherwise: `sink {...}` and
+`Sink->new` make a list sink, and `sink_scalar {...}` and
+`Sink->new_scalar` a scalar one. Weighed and set aside: a scalar sink
+by default, with `list_sink {...}` and a `list => 1` option, as the
+review recommended; Iain put lists first, scalars being the
+second-class citizen. A `|` chain still ends only in a scalar sink
+(D10), so a sink written to end one is a `sink_scalar`.
 
 ## 18. Where each roadmap item lands
 

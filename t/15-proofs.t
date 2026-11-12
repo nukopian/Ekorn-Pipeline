@@ -11,7 +11,7 @@ use Test2::Plugin::NoWarnings;
 use Carp       qw(croak);
 use File::Temp qw(tempdir);
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink gather);
+use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink    qw();
 use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_arrayref to_file);
@@ -41,18 +41,15 @@ sub spy_source (@values) {
 # A list sink giving every value, logging its set-up and how its run
 # ended.
 sub spy_sink () {
-    return Ekorn::Pipeline::Sink->new(
-        sub {
-            push @log, 'sink set-up';
-            my @all;
-            return (
-                sub ($value) { push @all, $value },
-                sub () { @all },
-                sub ($how) { push @log, "sink $how" },
-            );
-        },
-        list => 1,
-    );
+    return sink {
+        push @log, 'sink set-up';
+        my @all;
+        return (
+            sub ($value) { push @all, $value },
+            sub () { @all },
+            sub ($how) { push @log, "sink $how" },
+        );
+    };
 }
 
 # A sink keeping its values only if the run is done, as a transaction
@@ -468,6 +465,43 @@ subtest 'A part called directly (D42, D43)' => sub {
     ok !Ekorn::Pipeline::is_sink($_), 'not a sink'
         for stage { $_ }, sub { $_ }, $class->new,
         $class->new(count, stage { $_ }), 'count';
+};
+
+subtest "ended is the last part's verdict (D45)" => sub {
+    my $next = $class->new(first_value)->iterator(from_arrayref([1, 2, 3]));
+    $next->();
+    is $next->ended, 'done',
+        'a complete first_value is done, though the source was cut short';
+
+    $next
+        = $class->new(sub { $_ }, take(2))->iterator(from_arrayref([1, 2, 3]));
+    my @two = drain_all($next);
+    is $next->ended, 'stopped', 'take(2) last cut the result short: stopped';
+
+    $next = $class->new(to_array)->iterator(from_arrayref([1, 2, 3]));
+    $next->();
+    is $next->ended, 'done', 'a list sink, its result ready, is done';
+    $next->finish;
+    is $next->ended, 'stopped',
+        'but finished with its values undelivered, stopped';
+};
+
+subtest 'A list sink by default; sink_scalar for one value (D47)' => sub {
+    my $list = sink {
+        my @all;
+        (sub ($v) { push @all, $v }, sub () { @all })
+    };
+    my $scalar = sink_scalar {
+        my $n = 0;
+        (sub ($v) { $n++ }, sub () { $n })
+    };
+    is Ekorn::Pipeline::is_sink($list), 'list', 'sink {...} makes a list sink';
+    is Ekorn::Pipeline::is_sink($scalar), 'scalar',
+        'sink_scalar {...} a scalar sink';
+    is [$list->(1, 2)], [1, 2], 'called, it gives its list';
+    is from_arrayref([1, 2]) | $scalar, 2,
+        'and only a scalar sink ends a chain';
+    like dies { my $x = from_arrayref([1, 2]) | $list }, qr( not\ a\ list )x;
 };
 
 subtest 'Fixes from the fourth review' => sub {

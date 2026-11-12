@@ -178,11 +178,11 @@ when the run is `done`, so a run that dies, even after the sink, leaves
 the old file:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(sink);
+use Ekorn::Pipeline::Factories qw(sink_scalar);
 use File::Temp qw(tempfile);
 
 sub save_to ($path) {
-    return sink {
+    return sink_scalar {
         my($fh, $tmp) = tempfile();
         my $n = 0;
         return (

@@ -20,7 +20,7 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a sink giving how many values there were.
 sub count : prototype() () {
-    return Ekorn::Pipeline::Sink->new(sub {
+    return Ekorn::Pipeline::Sink->new_scalar(sub {
         my $n = 0;
         return (sub ($value) { $n++ }, sub () { $n });
     });
@@ -30,7 +30,7 @@ sub count : prototype() () {
 # Return a sink giving the first value, stopping the run there; undef if
 # there was none.
 sub first_value : prototype() () {
-    return Ekorn::Pipeline::Sink->new(sub {
+    return Ekorn::Pipeline::Sink->new_scalar(sub {
         my @first;
         return (
             sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
@@ -42,13 +42,10 @@ sub first_value : prototype() () {
 
 # Return a sink giving every value, as a list.
 sub to_array : prototype() () {
-    return Ekorn::Pipeline::Sink->new(
-        sub {
-            my @all;
-            return (sub ($value) { push @all, $value }, sub () { @all });
-        },
-        list => 1,
-    );
+    return Ekorn::Pipeline::Sink->new(sub {
+        my @all;
+        return (sub ($value) { push @all, $value }, sub () { @all });
+    });
 }
 
 
@@ -56,7 +53,7 @@ sub to_array : prototype() () {
 # given, with each pushed onto it, or a new one.
 sub to_arrayref : prototype(;$) ($array = undef) {
     croakf 'Expected an array reference' if defined $array && !is_arrayref($array);
-    return Ekorn::Pipeline::Sink->new(sub {
+    return Ekorn::Pipeline::Sink->new_scalar(sub {
         my $into = $array // [];
         return (sub ($value) { push @$into, $value }, sub () { $into });
     });
@@ -66,7 +63,7 @@ sub to_arrayref : prototype(;$) ($array = undef) {
 # Return a sink writing each value to the file, followed by $/, giving
 # how many; the file is opened as the run starts, and closed as it ends.
 sub to_file ($path) {
-    return Ekorn::Pipeline::Sink->new(sub {
+    return Ekorn::Pipeline::Sink->new_scalar(sub {
         # Open for the run, and closed by its end.
         open my $fh, '>', $path    ## no critic (InputOutput::RequireBriefOpen)
             or croakf q(Can't write %s: %s), $path, $!;

@@ -158,10 +158,10 @@ how from where it stands, `stopped` if its input hadn't run out, so
 code reference, `$next->()`, as before.
 
 `$next->finish` ends its run sooner, the same way. And
-`$next->ended` says how its run ended: nothing while it goes, then
-`done` if the values ran out, `stopped` if the reading was cut short,
-by a stop such as `take(5)`'s or by `finish`, or `died`. So a caller
-can tell a complete result from one cut short.
+`$next->ended` says whether the result was complete: nothing while the
+run goes, then `done` if its last part's input ran out, as a complete
+`first_value`'s does, `stopped` if it was cut short, as by `take(5)`
+last or by `finish` dropping values, or `died`.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,
@@ -185,7 +185,8 @@ exported by default.
 | `stage {...}` | a Stage | the stage itself |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
-| `sink {...}` | a Sink | a set-up, returning the step, the flush, giving the result, and, optionally, the end |
+| `sink {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
+| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value |
 
 ### pipeline
 
@@ -283,15 +284,20 @@ reference is a source, as `iterator` has always taken.
 sink { SET-UP }
 ```
 
+```perl
+sink_scalar { SET-UP }
+```
+
 Returns a Sink, made for each run, usually the last in a pipeline.
 Its set-up returns its step, called with each value, whose return is
-ignored; its flush, called when its input runs out, giving its result,
-one value or a list; and, optionally, its end, told how the run ended
-once it has. Last, the result is all the run gives; anywhere else, it goes on
+ignored; its flush, called when its input runs out, giving its result;
+and, optionally, its end, told how the run ended once it has. A sink
+made with `sink` gives a list; one made with `sink_scalar` gives one
+value, and is what ends a `|` chain. Last, the result is all the run gives; anywhere else, it goes on
 through the stages after it.
 
 ```perl
-my $longest = sink {
+my $longest = sink_scalar {
     my $max;
     return (
         sub ($s) { $max = $s if length $s > length($max // '') },

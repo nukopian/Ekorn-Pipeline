@@ -60,7 +60,7 @@ ended: `noisy`, a source, and `noisy_count`, a sink.
 ```perl
 use v5.36;
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink gather);
+use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_arrayref to_file);
@@ -93,7 +93,7 @@ sub noisy (@values) {
 
 # A sink counting its values, saying how its run ended.
 sub noisy_count ($label) {
-    return sink {
+    return sink_scalar {
         my $n = 0;
         return (sub ($value) { $n++ }, sub () {$n}, sub ($how) { say "$label: $how" });
     };
@@ -482,8 +482,8 @@ say $next->ended;
 # stopped
 ```
 
-`ended` tells the caller what each part's end was told about the
-source: here, that the reading was cut short. Read to the end, it
+`ended` tells the caller whether the result is complete, as the run's
+last part was told: here, that it was cut short. Read to the end, it
 would say `done`; had anything died, `died`.
 
 ```perl
@@ -546,11 +546,14 @@ with values still to give, such as a list sink's, isn't spent until
 they've gone. As a source, it has `|` and `@{}`, once Operators is
 loaded, as Ekorn's other sources have.
 
-`ended` tells its caller how its run ended: nothing while it goes, and
-then `done` if the source's values ran out, `stopped` if the reading
-was cut short, or `died` if anything in it died, an end included
-(D34). `$finish` decides it as the run ends, from `$source_done`
-(section 5.3), or `died`:
+`ended` tells its caller whether its result is complete: nothing while
+the run goes, then the verdict of its last part, `done` if that part's
+input ran out, `stopped` if it was cut short, or if `finish` dropped
+values still to be handed out, and `died` if anything in it died, an
+end included (D34, D45). `$finish` decides it as the run ends, from
+the last stage's flag in `@input_done`, or `$source_done` with no
+stages (section 5.3); `$end_run` makes it `stopped` if it dropped
+values:
 
 ```perl
 my $all  = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_arrayref(\@tracks));
@@ -567,7 +570,8 @@ say $all->ended, ' ', $some->ended;    # done stopped
 | `stage {...}` | `Ekorn::Pipeline::Stage->new($code)` | the stage itself, called with each value |
 | `gather {...}` | `Ekorn::Pipeline::Gather->new($setup)` | a set-up, returning the step, or a pipeline, and optionally a flush and an end |
 | `source {...}` | `Ekorn::Pipeline::Source->new($setup)` | a set-up, returning the step, and optionally an end and a context |
-| `sink {...}` | `Ekorn::Pipeline::Sink->new($setup)` | a set-up, returning the step, the flush, giving one value, and optionally an end; `Sink->new($setup, list => 1)` makes a list sink |
+| `sink {...}` | `Ekorn::Pipeline::Sink->new($setup)` | a set-up, returning the step, the flush, giving a list, and optionally an end |
+| `sink_scalar {...}` | `Ekorn::Pipeline::Sink->new_scalar($setup)` | the same, the flush giving one value (D47) |
 
 A set-up declares the run's state with `my`, so two runs of one source
 don't share a position, or a filehandle:
@@ -588,7 +592,7 @@ transaction would be, even when it's a stage after the sink that dies:
 
 ```perl
 my @saved;
-my $save = sink {
+my $save = sink_scalar {
     my @pending;
     return (
         sub ($row) { push @pending, $row },
@@ -901,10 +905,10 @@ end, told how the run ended, commits or rolls back:
 
 ```perl
 package My::Rows {
-    use Ekorn::Pipeline::Factories qw(sink);
+    use Ekorn::Pipeline::Factories qw(sink_scalar);
 
     sub insert_into ($table) {
-        return sink {
+        return sink_scalar {
             my @pending;    # as a transaction begun
             return (
                 sub ($row) { push @pending, $row },
@@ -948,7 +952,7 @@ while that happens is a warning naming it, and the first error is
 kept:
 
 ```perl
-my $fails = sink {
+my $fails = sink_scalar {
     return (sub ($value) { die "First\n" }, sub () {0}, sub ($how) { die "Second\n" });
 };
 local $SIG{__WARN__} = sub ($warning) { print $warning =~ s( \ at\ \S+\ line\ \d+ )( at LINE)xr };
@@ -1040,11 +1044,12 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.3 | how each part is told the run ended (D20) | built |
 | 5.4 | a flush and an end (D6, D12); a run ends when nothing can act (D15, D22); the source's end first (D11); an end dying during a die warns, naming it (D27); stops from a source, a flush, an end (D16) | built |
 | 5.5 | an abandoned iterator ends its run (D28); `finish` takes no verdict, and drops what's left | built |
-| 5.5 | the caller asks how the run ended, `$next->ended` (D34) | built |
+| 5.5 | the caller asks how the run ended, `$next->ended`: the last part's verdict (D34, D45) | built |
+| 4.4, 12.7 | a context describes the run's source, not the values (D46) | built |
 | 5.6 | `ending()`, true while a flush runs and its values go on | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes | built: Sink's roles by its subclasses, Scalar and List |
 | 6.1 | `pipeline_in` (D37) | not built |
-| 6.2 | the words | built, differs: no `pipeline` in Factories; no word for a list sink, which `Sink->new($setup, list => 1)` makes |
+| 6.2 | the words, `sink` for a list sink and `sink_scalar` for a scalar one (D47) | built, differs: no `pipeline` in Factories |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
@@ -1071,8 +1076,6 @@ Status: **built** as the design says; **built, differs**, with how;
 | `to_file` in paragraph mode writes a blank line after each record | 8.3 says `$/` | say so, or change it |
 | An end's error from `DESTROY` is a warning, "(in cleanup)", as Perl gives every error in a destructor | 5.4: thrown | say so: a run ended as its iterator is let go can't throw |
 | Ends run during global destruction, in no set order | 5.5 warns of it | nothing |
-| `ended` gives the source's verdict: a complete `first_value` is `stopped`, and `finish` dropping a list sink's undelivered values is `done` | Q28 recommends the last part's verdict | settle Q28 |
-| A list sink is declared only by `Sink->new($setup, list => 1)`; there's no word | Q30 recommends `list_sink {...}` too | settle Q30 |
 
 ## 11. Known gaps
 

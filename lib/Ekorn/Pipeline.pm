@@ -434,15 +434,23 @@ sub _iterator ($stages, $names, $source) {
     # without waiting here. Once the source is done, the flushes are called
     # in order, from the first not called or passed over by a stop.
     my(
-        @todo,  $done, $source_done, %flushed, @input_done, $finished, $outside,
-        $ended, $spent,
+        @todo,  $done,  $source_done, %flushed, @input_done, $finished, $outside,
+        $ended, $spent, $dropped,
     );
     my $next_flush = 0;
     # How the run ended, as its caller asks: as the source sees it, or
     # "died" if anything died, an end included.
     my $finish = sub ($died) {
         return if $finished++;
-        $ended = $died ? 'died' : $source_done ? 'done' : 'stopped';
+        # The verdict of the run's last part, or of its source, if it has
+        # no stages; "stopped" if it was ended from outside with values
+        # still to be handed out.
+        $ended
+            = $died           ? 'died'
+            : $dropped        ? 'stopped'
+            : !@stages        ? ($source_done ? 'done' : 'stopped')
+            : $input_done[-1] ? 'done'
+            :                   'stopped';
         my @calls;
         push @calls, ['the source', $source_end, $source_done ? 'done' : 'stopped']
             if $source_end;
@@ -600,8 +608,10 @@ sub _iterator ($stages, $names, $source) {
     # run stops: nothing more is pulled, and nothing waiting goes on.
     my $end_run = sub () {
         $outside = 1;
+        $dropped = 1 if @todo && ($ended // '') ne 'died';
         ($done, $next_flush, @todo) = (1, scalar @stages);
         $finish->(0);
+        $ended = 'stopped' if $dropped;
         return;
     };
     return Ekorn::Pipeline::Iterator->new(

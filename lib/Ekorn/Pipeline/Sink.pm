@@ -14,23 +14,28 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a sink made afresh for each run by the set-up given, which
 # returns its step, its flush, giving its result, and, optionally, its
-# end. Its result is one value, as_scalar, unless list => 1 is given,
-# when it's a list, as_list. Called with values, it pushes them through
-# itself, as a pipeline of the one sink would, and gives its result.
-sub new ($class, $setup, %option) {
+# end. A sink's result is a list, offered by as_list; new_scalar makes
+# one whose result is one value, offered by as_scalar. Called with
+# values, a sink pushes them through a fresh sink of its set-up, as a
+# pipeline of the one sink would, and gives its result: the closure
+# holds the set-up, not the sink, so it works however long it's kept.
+sub new ($class, $setup) {
+    return _made('Ekorn::Pipeline::Sink::List', $setup);
+}
+
+
+# Return a sink, as new does, whose result is one value.
+sub new_scalar ($class, $setup) {
+    return _made('Ekorn::Pipeline::Sink::Scalar', $setup);
+}
+
+
+sub _made ($into, $setup) {
     croakf 'Expected a code reference' unless is_coderef($setup);
-    my $into
-        = $option{list}
-        ? 'Ekorn::Pipeline::Sink::List'
-        : 'Ekorn::Pipeline::Sink::Scalar';
-    # Called, a sink of the same set-up takes the values: the closure
-    # holds the set-up, not the sink, so it works however long it's kept.
-    my $list = !!$option{list};
     return bless {
         setup => $setup,
         call  => sub (@values) {
-            my $sink = Ekorn::Pipeline::Sink->new($setup, list => $list);
-            return Ekorn::Pipeline->new($sink)->(@values);
+            return Ekorn::Pipeline->new(_made($into, $setup))->(@values);
         },
     }, $into;
 }

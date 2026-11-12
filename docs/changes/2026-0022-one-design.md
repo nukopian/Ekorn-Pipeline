@@ -38,7 +38,9 @@ where it holds. D40 settled: a pipeline's name in its
 stages' errors joins v0.3.0. D41 settled: a spent iterator croaks
 as a source; a reusable source of a sink's result dropped. D42 settled: each type, called directly,
 does what its role means. D43 settled: `is_sink`. D44 settled: DBIx::Squirrel's iterator
-offers `as_source`, as the design's 12.3 sets out.
+offers `as_source`, as the design's 12.3 sets out. D45 to D47 settled, from the fourth
+cold review: `ended` the last part's verdict; a context describes the
+source; lists first, `sink` and `sink_scalar`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -366,6 +368,28 @@ D19 to D25 came from the third cold review, settled by Iain on
   context is the statement's columns; its own stages are run by an
   Ekorn iterator whose source it hands on; and one run of a handle at
   a time. "If DBIx-Squirrel has an issue, we will re-visit the design."
+- [x] **D45.** What does `ended` tell the caller (the design's Q28)?
+  The verdict of the run's last part, Iain decided on 2026-11-12, as
+  recommended: whether the result is complete. A complete
+  `first_value` is `done`, though it stopped the source; `take(5)`
+  last is `stopped`; `finish` dropping values still to be handed out
+  is `stopped`; with no stages, the source's verdict. Why: D34 gave the
+  source's verdict, which called a complete `first_value` `stopped`,
+  like a truncation. Built. Design 5.5, 17.23.
+- [x] **D46.** What does a run's context describe (the design's Q29)?
+  The run's source, not the values, Iain decided on 2026-11-12, as
+  recommended: a stage that reshapes rows doesn't change it. A way to
+  replace or drop it waits until a need is found. Design 4.4, 12.7.
+- [x] **D47.** How is a list sink declared (the design's Q30)? Lists
+  first, Iain decided on 2026-11-12, against the recommendation of a
+  scalar default with `list_sink {...}`: "scalars are the
+  second-class citizen". `Ekorn::Pipeline::Sink->new` and `sink {...}`
+  make a list sink, offering `as_list`; `Sink->new_scalar` and
+  `sink_scalar {...}` a scalar one, offering `as_scalar`. A `|` chain
+  still ends only in a scalar sink (D10), so a sink written to end one
+  is a `sink_scalar`. Built; `count`, `first_value`, `to_arrayref` and
+  `to_file` are made with `new_scalar`, and the examples' sinks of one
+  value with `sink_scalar`. Design 6.1, 6.2, 17.23.
 
 ## The plan
 
