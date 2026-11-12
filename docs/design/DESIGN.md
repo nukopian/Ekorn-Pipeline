@@ -136,7 +136,18 @@ How they relate:
   inheritance between them.
 - **A pipeline with a source in front is a source.**
   `$pipeline->iterator($source)` already makes one: pulled, it gives
-  the values that come out of the stages.
+  the values that come out of the stages. Ending in a sink, it gives
+  the sink's result, so it can feed another pipeline:
+
+  ```perl
+  my $artists = Ekorn::Pipeline->new(stage { $_->{artist} }, to_array)
+      ->iterator(from_arrayref(\@tracks));
+  my $next = Ekorn::Pipeline->new(take(2))->iterator($artists);
+  ```
+
+  The first pull runs the inner pipeline to its end, as its sink holds
+  back every value, so its source and sink are told `done` then, and a
+  later stop or die in the outer run doesn't reach them.
 - **A gather is a stage** whose state lasts a run, with an end that can
   let out what it held.
 - **A sink is a stage that holds back every value,** and lets out its
@@ -454,7 +465,9 @@ run had enough; the source and stages before it are told `stopped`.
 ## 9. Operators (2026-0018)
 
 An opt-in layer, Ekorn::Pipeline::Operators, on the typed objects of
-section 6 only:
+section 6 only. It's a shorthand for the commonest shapes, not the
+whole model: what it can't say, a pipeline made with `new`, pulled
+with `iterator`, can, as the points below show.
 
 ```perl
 my $clean = $trim | $lowercase | $dedupe;               # Stage | Stage: a pipeline
@@ -480,6 +493,11 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   in a sink has already run: what `|` gives is the result, not a part
   that more can be joined to. In a pipeline made with `new`, or
   spliced as a stage, a sink can have stages after it.
+- **A chain from a source to a sink is a result, not a source.**
+  `$src | count` is a number, at once: `|` is for getting the answer
+  in one expression, and giving a source instead would make
+  `my $n = $src | count` an object to drain. For a source that gives
+  a sink's result, use `iterator` (section 4.2).
 - A pipeline made with `new` gets no operators: only the chains `|`
   makes, and the typed objects, do.
 

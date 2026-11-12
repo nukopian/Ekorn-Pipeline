@@ -395,13 +395,17 @@ say Ekorn::Pipeline->new(first_value)->iterator(counter(1, 1))->();  # 1, then s
 use Ekorn::Pipeline::Operators;
 ```
 
-Loading it gives the types `|`, `|=` and `@{}`:
+Loading it gives the types `|`, `|=` and `@{}`. They're a shorthand
+for the commonest shapes, not the whole of Ekorn: a pipeline made with
+`new` can have stages after a sink, give a list as a list, take plain
+code references as stages, and, pulled with `iterator`, be a source
+that gives a sink's result, none of which a chain can.
 
 | Written | Gives |
 |---|---|
 | `$stage \| $stage` | a pipeline of both |
 | `$source \| $stage` | a source: the source's values, through the stage |
-| `$source \| ... \| $sink` | the sink's result, at once |
+| `$source \| ... \| $sink` | the sink's result, at once, not a source; for a source of the result, use `iterator` |
 | `$pipeline \|= $stage` | adds a stage, in place |
 | `@{ $source }` | every value the source gives |
 
