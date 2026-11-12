@@ -30,7 +30,8 @@ doesn't re-export `pipeline`. D31 settled: DBIx::Squirrel keeps
 re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
 lexically. D33 settled: a pipeline holds no
 source. D34 settled: the caller asks an
-iterator how its run ended.
+iterator how its run ended. Q26, what each type does when called
+directly, is open in the design.
 
 **Origin:** roadmap, added 2026-11-11
 
