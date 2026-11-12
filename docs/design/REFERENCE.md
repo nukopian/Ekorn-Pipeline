@@ -39,7 +39,7 @@ subclass, go, as does Pipes' `pipeline_class`.
   a list, such as every value, for a list sink, which, asked for one
   value, gives its list as an array reference. Usually the last stage,
   when its result is what the run gives; anywhere else, its result
-  goes on through the stages after it. Made with `sink` or `sink_scalar`, or ready-made, such as `count`.
+  goes on through the stages after it. Made with `sink` or `sink_scalar`, or ready-made, such as `count_items`.
 - **Made for a run:** made afresh at the start of each run, by a
   set-up block, so that each run has state of its own. Gathers,
   sources and sinks can be.
@@ -51,7 +51,7 @@ subclass, go, as does Pipes' `pipeline_class`.
 - **Word:** a short function that makes one of the types, such as
   `pipeline` or `source {...}`, from Ekorn::Pipeline::Factories.
 - **Ready-made part:** a stage, source or sink with a job of its own,
-  such as `take(5)`, `from_file($path)` or `count`.
+  such as `take(5)`, `from_file($path)` or `count_items`.
 
 ## Runs and how they end
 
@@ -111,10 +111,10 @@ A stop ends the stream early for what's before it, and normally for
 what's after it. So in
 
 ```perl
-my $n = Ekorn::Pipeline->new(take(5), count)->iterator($lines)->();
+my $n = Ekorn::Pipeline->new(take(5), count_items)->iterator($lines)->();
 ```
 
-`$lines` is told `stopped`, and closes its file, and `count`, after
+`$lines` is told `stopped`, and closes its file, and `count_items`, after
 `take(5)`, is told `done`, and gives 5.
 
 ### Flushes and ends
@@ -375,7 +375,7 @@ while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
 ## Sinks: Ekorn::Pipeline::Sinks
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(count to_array first_item);
+use Ekorn::Pipeline::Sinks qw(count_items to_array first_item);
 ```
 
 Ready-made sinks, usually given last in a pipeline. Nothing is
@@ -390,11 +390,11 @@ source: what one reads, the other writes.
 |---|---|---|
 | `all_items` | every item, as a list | no |
 | `first_item` | the first item, or `undef` if none | yes |
-| `only_item` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
+| `single_item` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
 | `last_item` | the last item | no |
 | `any_item(sub {...})` | true at the first item the sub is true of, or false | yes, when true |
 | `every_item(sub {...})` | false at the first item the sub is false of, or true | yes, when false |
-| `count` | how many items there were | no |
+| `count_items` | how many items there were | no |
 | `fold($init, sub {...})` | a running total of any kind, from `$init` | no |
 | `joined($separator)` | the items joined into one string | no |
 | `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
@@ -408,7 +408,7 @@ source: what one reads, the other writes.
 
 Asked for one value, in scalar context or at the end of a `|` chain,
 a sink giving a list gives it as an array reference; for how many,
-use `count`:
+use `count_items`:
 
 ```perl
 my @titles = $pipeline->(@books);    # with all_items last: every title
@@ -416,7 +416,7 @@ my $titles = $pipeline->(@books);    # every title, as an array reference
 ```
 
 An array reference is true even when it's empty, so test for no items
-with `@$titles`, or use `count`.
+with `@$titles`, or use `count_items`.
 
 `all_items` shares its name with a check Test2::V0 exports: in a test
 using both, call one by its full name.
@@ -441,7 +441,7 @@ A sink that stops the pull early is told `done`: it decided the run
 had enough. The source and the stages before it are told `stopped`.
 
 ```perl
-say Ekorn::Pipeline->new(count)->(1 .. 10);                          # 10
+say Ekorn::Pipeline->new(count_items)->(1 .. 10);                          # 10
 say Ekorn::Pipeline->new(first_item)->iterator(counter(1, 1))->();  # 1, then stops
 ```
 
@@ -485,12 +485,12 @@ with `Ekorn::Pipeline::Operators::chain`, and `@{}` with
 expression in parentheses.
 
 An operator gives one scalar, so a chain ending in a sink gives one
-value: a scalar sink's, such as `count`'s, or a list sink's list, such
+value: a scalar sink's, such as `count_items`'s, or a list sink's list, such
 as `all_items`'s, as an array reference. Nothing can be chained after
 a sink: a chain ending in one has already run, and gives its result.
 
 ```perl
-my $n      = $source | count;                  # a number
+my $n      = $source | count_items;                  # a number
 my $titles = $source | all_items;              # an array reference
 my @titles = @{ $source | all_items };         # a list
 ```
@@ -522,7 +522,7 @@ reference to it. So:
   the second time: "Expected a source with values still to give".
 - **Only a source has it.** On a stage, or a chain of stages, Perl
   says "Not an ARRAY reference"; a chain ending in a sink is already
-  its result, so `@{ $source | count }` dereferences a number.
+  its result, so `@{ $source | count_items }` dereferences a number.
 - **`@{ $source | all_items }` is Perl's own dereference,** of the
   array reference the sink gave.
 
@@ -533,7 +533,7 @@ What to write, by what's wanted:
 | every value, as a reference | `my $all = $source \| all_items` | `my @all = $source \| all_items`, one element |
 | every value, as a list | `my @all = @{ $source \| all_items }`, or `@{$source}` | |
 | the first value | `$source \| first_item`, reading one | `$source->[0]`, reading them all |
-| how many | `$source \| count` | `scalar @$source`, keeping every value to count them |
+| how many | `$source \| count_items` | `scalar @$source`, keeping every value to count them |
 | the first few | `$source \| take(5) \| all_items` | `(@$source)[0 .. 4]`, reading them all |
 | every value, added to your array | `$source \| to_arrayref(\@mine)` | `push @mine, @$source` |
 | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |

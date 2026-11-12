@@ -142,9 +142,9 @@ A sink takes every value and turns them into its result, here a
 single value. Given last, its result is what the run gives:
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(count fold joined);
+use Ekorn::Pipeline::Sinks qw(count_items fold joined);
 
-say tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count);              # 3
+say tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);              # 3
 say tracks(sub { $_->{plays} }, fold(0, sub { $_[0] + $_[1] }));          # 36800
 say tracks(sub { $_->{artist} }, joined(', '));                           # Abba, Abba, Blur, Blur, Blur, Cream
 ```
@@ -252,16 +252,16 @@ With `use Ekorn::Pipeline::Operators` in scope, the types join with
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Factories qw(stage);
 use Ekorn::Pipeline::Sources   qw(from_arrayref);
-use Ekorn::Pipeline::Sinks     qw(all_items count);
+use Ekorn::Pipeline::Sinks     qw(all_items count_items);
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-say from_arrayref(\@tracks) | $blur | count;                                   # 3
+say from_arrayref(\@tracks) | $blur | count_items;                                   # 3
 my $titles = from_arrayref(\@tracks) | $blur | stage { $_->{title} } | all_items;
 say join ', ', @$titles;                                                       # Girls & Boys, Parklife, Country House
 ```
 
-A chain ends in one value, as `|` gives one: `count`'s number, or, from
+A chain ends in one value, as `|` gives one: `count_items`'s number, or, from
 a sink giving a list, such as `all_items`, the list as an array
 reference. So `my @titles = ... | all_items` would get one element,
 the reference; write `my @titles = @{ ... | all_items }`.
@@ -279,7 +279,7 @@ ready-made one. `sub { ... } | sub { ... }` isn't an error in Perl:
 it's a bitwise OR of two addresses, and gives a meaningless number.
 And `|` binds more loosely than `.`, so put a chain in parentheses
 inside a string: `say 'Blur: ' . (from_arrayref(\@tracks) | $blur |
-count)`.
+count_items)`.
 
 ### Get every value, or only what you need
 
@@ -287,7 +287,7 @@ End a chain in the sink that says what you want, and it reads only
 what that needs:
 
 ```perl
-use Ekorn::Pipeline::Sinks        qw(all_items count first_item to_arrayref);
+use Ekorn::Pipeline::Sinks        qw(all_items count_items first_item to_arrayref);
 use Ekorn::Pipeline::Stages::Flow qw(take);
 
 my $hits = from_arrayref(\@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
@@ -297,7 +297,7 @@ say join ', ', @$all;                  # Dancing Queen, Girls & Boys, Sunshine o
 my @all = @{ $hits | all_items };      # a list
 say scalar @all;                       # 3
 say $hits | first_item;                # Dancing Queen
-say $hits | count;                     # 3
+say $hits | count_items;                     # 3
 say join ', ', @{ $hits | take(2) | all_items };    # Dancing Queen, Girls & Boys
 
 my @mine = ('Waterloo');
@@ -330,7 +330,7 @@ say join ', ', @titles;                # Dancing Queen, Girls & Boys, Sunshine o
 Each use reads the source again, from its start to its end, however
 little you take: `$hits->[0]` reads every track to give the first, and
 `scalar @$hits` keeps every title to count them. `for (@$hits)` reads
-them all before the loop starts. Use `first_item`, `count`, `take` or
+them all before the loop starts. Use `first_item`, `count_items`, `take` or
 an iterator instead, as above. `@{}` is only for sources; in
 `@{ $hits | all_items }` the braces are Perl's own, dereferencing the
 array reference `all_items` gave.

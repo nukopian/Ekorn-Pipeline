@@ -15,7 +15,7 @@ use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
-    count       first_item only_item to_array
+    count_items first_item single_item to_array
     to_arrayref to_file);
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Stages::Flow;
@@ -158,10 +158,10 @@ subtest '19.1 A source joined directly to a sink' => sub {
     subtest 'both forms agree' => sub {
         @log = ();
         my $by_iterator
-            = ($class->new(count)->iterator(spy_source(1, 2, 3))->())[0];
+            = ($class->new(count_items)->iterator(spy_source(1, 2, 3))->())[0];
         my @iterator_log = @log;
         @log = ();
-        my $by_operator = spy_source(1, 2, 3) | count;
+        my $by_operator = spy_source(1, 2, 3) | count_items;
         is $by_operator, $by_iterator,   'the same result';
         is \@log,        \@iterator_log, 'the same ends';
     };
@@ -271,8 +271,11 @@ subtest 'How each part is told the run ended (D16, D20)' => sub {
             };
         };
         @log = ();
-        is [drain_all($class->new(count, $stopper->())->iterator(spy_source(1, 2)))
-        ], [2];
+        is [
+            drain_all(
+                $class->new(count_items, $stopper->())->iterator(spy_source(1, 2)))
+            ],
+            [2];
         is $log[-1], 'stopper done', 'given the one value a sink gives';
         @log = ();
         is [
@@ -342,7 +345,7 @@ subtest '19.2 A complete pipeline as a source' => sub {
     };
 
     subtest 'a result of one value is a source of one value' => sub {
-        my $counted = $class->new(count)->iterator(spy_source(qw(a b c)));
+        my $counted = $class->new(count_items)->iterator(spy_source(qw(a b c)));
         is [drain_all($class->new->iterator($counted))], [3];
     };
 
@@ -447,8 +450,8 @@ subtest 'A spent iterator is no source for another run (D41)' => sub {
 };
 
 subtest 'A part called directly (D42, D43)' => sub {
-    is count->(1, 2, 3), 3, 'a sink called with values gives its result';
-    my $n = count->(1 .. 4);
+    is count_items->(1, 2, 3), 3, 'a sink called with values gives its result';
+    my $n = count_items->(1 .. 4);
     is $n,                 4,      'in scalar context too';
     is [to_array->(1, 2)], [1, 2], 'a list sink gives its list';
     is first_item->(),     undef,  'and a scalar sink of nothing, undef';
@@ -460,13 +463,15 @@ subtest 'A part called directly (D42, D43)' => sub {
         qr( \A Expected\ a\ source\ to\ be\ read\ through\ iterator )x,
         'a source called directly croaks';
 
-    is Ekorn::Pipeline::is_sink(count),    'scalar', 'is_sink: a scalar sink';
-    is Ekorn::Pipeline::is_sink(to_array), 'list',   'a list sink';
-    is Ekorn::Pipeline::is_sink($class->new(stage { $_ }, count)), 'scalar',
+    is Ekorn::Pipeline::is_sink(count_items), 'scalar',
+        'is_sink: a scalar sink';
+    is Ekorn::Pipeline::is_sink(to_array), 'list', 'a list sink';
+    is Ekorn::Pipeline::is_sink($class->new(stage { $_ }, count_items)),
+        'scalar',
         'a pipeline, by the sink it ends in';
     ok !Ekorn::Pipeline::is_sink($_), 'not a sink'
         for stage { $_ }, sub { $_ }, $class->new,
-        $class->new(count, stage { $_ }), 'count';
+        $class->new(count_items, stage { $_ }), 'count';
 };
 
 subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
@@ -557,7 +562,7 @@ subtest 'Fixes from the fourth review' => sub {
     },
         qr( \A Expected\ a\ source, )x, 'a pipeline made with new has no |';
 
-    my $counting = \&{ count() };
+    my $counting = \&{ count_items() };
     is $counting->(1, 2, 3), 3, "a sink's code reference outlives the sink";
 };
 
@@ -568,15 +573,15 @@ subtest 'Sinks named for what they give (D50)' => sub {
         'all_items gives every item, as a list';
     is [Ekorn::Pipeline::Sinks::all_items()->(1, 2)], [to_array->(1, 2)],
         'as the container sink to_array does';
-    is only_item->(7), 7,     'only_item gives the one item';
-    is only_item->(),  undef, 'or undef, given none';
+    is single_item->(7), 7,     'single_item gives the one item';
+    is single_item->(),  undef, 'or undef, given none';
     my $first;
-    my $warnings = warnings { $first = only_item->(7, 8, 9) };
+    my $warnings = warnings { $first = single_item->(7, 8, 9) };
     is $first,            7, 'given more, it gives the first';
     is scalar @$warnings, 1, 'and warns, once';
     like $warnings->[0], qr( \A Expected\ only\ one\ item )x;
-    is from_arrayref([9]) | only_item, 9, 'it ends a chain';
-    is first_item->(3, 4),             3, 'first_item gives the first';
+    is from_arrayref([9]) | single_item, 9, 'it ends a chain';
+    is first_item->(3, 4),               3, 'first_item gives the first';
 };
 
 subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
@@ -591,7 +596,7 @@ subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
         'your array, if given one';
     is \@mine, [0, 1, 2], 'filled';
 
-    my $n = $class->new(count)->(1 .. 10);
+    my $n = $class->new(count_items)->(1 .. 10);
     is $n, 10, "in scalar context, a pushed run gives a scalar sink's result";
     my $all = $class->new(sub { $_ * 2 }, to_array)->(1 .. 3);
     is $all, [2, 4, 6], "and a list sink's list, as an array reference";
@@ -603,10 +608,10 @@ subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
     is [$class->new(first_item)->()], [undef],
         'a scalar sink with no values gives one undef';
     is from_arrayref([]) | first_item, undef, 'and so from a chain';
-    is $class->new(count)->(),         0,     'count of nothing is 0';
-    is +(from_arrayref([1, 2]) | count) + 10, 12,
+    is $class->new(count_items)->(),   0,     'count of nothing is 0';
+    is +(from_arrayref([1, 2]) | count_items) + 10, 12,
         'a chain in parentheses, in an expression';
-    like dies { my $x = from_arrayref([1, 2]) | count + 10 },
+    like dies { my $x = from_arrayref([1, 2]) | count_items + 10 },
         qr( \A Expected\ a\ stage\ or\ a\ sink\ on\ the\ right )x,
         'and without them, | binding loosest, a clear error';
 };
@@ -622,7 +627,7 @@ subtest 'Chains (D14, D23)' => sub {
     is [@{ from_arrayref([1, 2]) | stage { $_ * 2 } }], [2, 4],
         '@{} drains a chain';
 
-    my $counted = $clean | count;
+    my $counted = $clean | count_items;
     is scalar $counted->(' a', 'b'), 2, 'a chain of stages can end in a sink';
 
     like dies {
@@ -655,7 +660,7 @@ subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
             gather => Ekorn::Pipeline::Gather::gather(sub {
                 sub { $_ }
             }),
-            sink   => count,
+            sink   => count_items,
             source => source {
                 sub { () }
             },
@@ -685,7 +690,7 @@ subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
         like dies { $class->new->iterator($pipeline) },
         qr( \A Expected\ a\ code\ reference )x,
         'and a pipeline given as a source';
-        like dies { $class->new->iterator(count) },
+        like dies { $class->new->iterator(count_items) },
         qr( \A Expected\ a\ code\ reference )x,
         'and a sink';
 

@@ -178,7 +178,7 @@ The message, whole:
 `Ekorn::Pipeline::Sinks`, with names that can't clash with Perl's or
 List::Util's: `to_array`, `to_arrayref`, `to_fh`, `to_file`,
 `to_hash` and `to_hashref`, the counterparts of 2026-0016's `from_`
-sources, and `group_by`, `count`, `first_value`, `last_value`,
+sources, and `group_by`, `count_items`, `first_value`, `last_value`,
 `any_value`, `every_value`, `fold`, `joined` and `for_each`; those that can, stop the pull
 early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
 message, and the type DBIx-Squirrel 2026-0012, a database as a sink,
@@ -191,7 +191,7 @@ The message, whole:
 **Added:** 2026-11-10. **Size:** S (2).
 **Depends on:** 2026-0016, 2026-0017
 
-`Ekorn::Pipeline::Operators`: `$src | take(10) | count`, on the typed
+`Ekorn::Pipeline::Operators`: `$src | take(10) | count_items`, on the typed
 objects of 2026-0015 and the chains `|` makes, never on a pipeline
 made with `new`. An operator returns one scalar, so a sink gives an
 array reference, or `@{}` drains a source. Between two plain code

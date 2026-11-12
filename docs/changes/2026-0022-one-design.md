@@ -46,7 +46,8 @@ for Ekorn. D50 settled: sinks named for what they
 give, and containers. D51 settled: a list sink asked for one value
 gives its list as an array reference, revising D10 and D47. D52
 settled: `@{}` stays, explained in detail, and the docs lead with a
-sink.
+sink. D53 settled: `count` renamed `count_items`, and `only_item`
+`single_item`, revising D50's names.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -485,6 +486,18 @@ D19 to D25 came from the third cold review, settled by Iain on
   makes, an iterator croaking the second time, a stage's and a
   count's errors, and the how-to's examples, run after its data.
   No code changes. Design 9, 16, 17.27.
+- [x] **D53.** Are `count` and `only_item` named well? No: they're
+  `count_items` and `single_item`, Iain decided on 2026-11-12, revising
+  D50's names, nothing else about either changing. `count_items`
+  completes the family named for what they give, as D50 kept `count`
+  for being "what it is, not what we're putting the result in", which
+  `count_items` still is, where `to_count` wasn't; a bare `count` is a
+  word a caller's own sub, or another module's, may already have; and
+  beside `count_into(\$n)`, the tap, the second word says which is
+  which. `single_item` echoes DBIx::Squirrel's `single`, the iterator
+  method it replaces. Neither has been released, so no user's code
+  changes. Built: renamed in Sinks, with its tests. Design 8.3 and the
+  new 17.28; the names throughout.
 
 ## The plan
 

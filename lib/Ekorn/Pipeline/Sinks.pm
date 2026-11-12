@@ -11,17 +11,18 @@ use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
 our @EXPORT_OK
-    = qw(all_items count first_item only_item to_array to_arrayref to_file);
+    = qw(all_items count_items first_item single_item to_array to_arrayref
+        to_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Each sink taking no arguments has an empty prototype, so that
-# `count + 0` reads as `count() + 0`, not `count(+0)`. A chain inside a
+# `count_items + 0` reads as `count_items() + 0`, not `count_items(+0)`. A chain inside a
 # larger expression still needs parentheses, as | binds loosest.
 
 # Return a sink giving how many values there were.
-sub count : prototype() () {
+sub count_items : prototype() () {
     return Ekorn::Pipeline::Sink->new_scalar(sub {
         my $n = 0;
         return (sub ($value) { $n++ }, sub () { $n });
@@ -29,8 +30,8 @@ sub count : prototype() () {
 }
 
 
-# The sinks named for what they give: all_items, first_item, only_item
-# and count. The container sinks, named for where the items go, are the
+# The sinks named for what they give: all_items, first_item, single_item
+# and count_items. The container sinks, named for where the items go, are the
 # to_ sinks below.
 
 # Return a sink giving every item, as a list.
@@ -45,7 +46,7 @@ sub all_items : prototype() () {
 # Return a sink giving the one item, asserting it's the only one: at a
 # second, it warns and stops the run, giving the first; undef if there
 # was none.
-sub only_item : prototype() () {
+sub single_item : prototype() () {
     return Ekorn::Pipeline::Sink->new_scalar(sub {
         my @only;
         return (
