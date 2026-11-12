@@ -51,6 +51,11 @@ sub chain ($before, $after, $swapped = undef, @) {
     ($before, $after) = ($after, $before) if $swapped;
     croakf 'Expected a source, or a stage made with a word, on the left of |'
         unless blessed($before) && (_is_source($before) || is_stage($before));
+    # A pipeline made with new has no operators, though Perl swaps the
+    # sides to call one for a typed part on its right.
+    croakf 'Expected a source, or a stage made with a word, on the left of |'
+        if $before isa 'Ekorn::Pipeline'
+        && !($before isa 'Ekorn::Pipeline::Operators::Stages');
     croakf 'Expected a stage or a sink on the right of |' unless is_stage($after);
     unless (_is_source($before)) {
         return Ekorn::Pipeline::Operators::Stages->new($before, $after);
@@ -117,9 +122,16 @@ package Ekorn::Pipeline::Operators::Stages {    ## no critic (Modules::ProhibitM
     use overload '|' => \&Ekorn::Pipeline::Operators::chain, fallback => 1;
 }
 
-# Loading this module gives Ekorn's sources | and @{}, and its stages,
-# gathers and sinks |, and only then.
+# Loading this module gives Ekorn's sources and iterators | and @{},
+# and its stages, gathers and sinks |, and only then.
 package Ekorn::Pipeline::Source {    ## no critic (Modules::ProhibitMultiplePackages)
+    use overload
+        '|'      => \&Ekorn::Pipeline::Operators::chain,
+        '@{}'    => \&Ekorn::Pipeline::Operators::drain,
+        fallback => 1;
+}
+
+package Ekorn::Pipeline::Iterator {    ## no critic (Modules::ProhibitMultiplePackages)
     use overload
         '|'      => \&Ekorn::Pipeline::Operators::chain,
         '@{}'    => \&Ekorn::Pipeline::Operators::drain,

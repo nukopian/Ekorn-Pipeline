@@ -2,10 +2,9 @@
 
 **Status:** a draft for review, roadmap 2026-0022, with
 [DESIGN.md](DESIGN.md). These are the sections `docs/REFERENCE.md`
-would gain or change, written as they'd read there. None of the code
-in them runs yet: it shows what's proposed. Where a section depends on
-an open question in the design, a note in brackets says which;
-those notes go before anything is merged.
+would gain or change, written as they'd read there. The code in them
+is the design's; IMPLEMENTATION.md says what the prototype on
+`pipeline-experimental` runs, and where it differs.
 
 What changes in the reference as a whole:
 
@@ -117,7 +116,7 @@ my $n = Ekorn::Pipeline->new(take(5), count)->iterator($lines)->();
 `$lines` is told `stopped`, and closes its file, and `count`, after
 `take(5)`, is told `done`, and gives 5.
 
-### What an end does
+### Flushes and ends
 
 A flush, a gather's or a sink's, is called once its input runs out
 normally: when the values ran out, after a stop in a stage before it,
@@ -286,9 +285,9 @@ sink { SET-UP }
 
 Returns a Sink, made for each run, usually the last in a pipeline.
 Its set-up returns its step, called with each value, whose return is
-ignored; its result, called when its input runs out, giving one value
-or a list; and, optionally, its end, told how the run ended once it
-has. Last, the result is all the run gives; anywhere else, it goes on
+ignored; its flush, called when its input runs out, giving its result,
+one value or a list; and, optionally, its end, told how the run ended
+once it has. Last, the result is all the run gives; anywhere else, it goes on
 through the stages after it.
 
 ```perl

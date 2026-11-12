@@ -320,10 +320,11 @@ sub _end_all ($ends, $dying) {
             }
         }
     }
-    return       unless defined $error;
-    croak $error if is_ref($error);
+    return unless defined $error;
+    # A stop from an end is an error like any other: the run has ended.
+    croak $error if is_ref($error) && !($error isa 'Ekorn::Pipeline::Stop');
     my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
-    my $message = $error =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
+    my $message = "$error" =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
     die "Pipeline end of $failed failed$at:\n$message\n";
 }
 
@@ -402,8 +403,9 @@ sub _make_run ($stages, $names, $run) {
 # died; else "done" if its input ran out, and "stopped" if not.
 sub _iterator ($stages, $names, $source) {
     my %run = (stages => [], names => [], flushes => [], ends => [], sinks => []);
-    my($pull, $source_end, $context) = _source_run($source);
+    my($pull, $source_end, $context);
     try {
+        ($pull, $source_end, $context) = _source_run($source);
         _make_run($stages, $names, \%run);
     }
     catch ($e) {
@@ -415,6 +417,9 @@ sub _iterator ($stages, $names, $source) {
             ],
             1,
         );
+        # A set-up runs before the run has values, so has nothing to stop.
+        croakf 'Expected no stop in a set-up, as the run has nothing yet to stop'
+            if $e isa 'Ekorn::Pipeline::Stop';
         croak $e if is_ref($e);
         die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
     }
@@ -601,7 +606,8 @@ sub _iterator ($stages, $names, $source) {
     };
     return Ekorn::Pipeline::Iterator->new(
         $next, $end_run, $context,
-        sub () { $ended }, sub () { $spent || $outside },
+        sub () { $ended },
+        sub () { $spent || $outside || ($ended // '') eq 'died' },
     );
 }
 1;

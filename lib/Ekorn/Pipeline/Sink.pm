@@ -4,8 +4,6 @@ package Ekorn::Pipeline::Sink;
 
 use parent 'Ekorn::Pipeline::Element';
 
-use experimental            qw(builtin);
-use builtin                 qw(weaken);
 use Ref::Util               qw(is_coderef);
 use Ekorn::Pipeline         qw();
 use Ekorn::Pipeline::Errors qw(croakf);
@@ -25,12 +23,16 @@ sub new ($class, $setup, %option) {
         = $option{list}
         ? 'Ekorn::Pipeline::Sink::List'
         : 'Ekorn::Pipeline::Sink::Scalar';
-    my $self = bless {setup => $setup}, $into;
-    # Weak, as the sink holds this closure, and mustn't hold itself.
-    my $sink = $self;
-    weaken $sink;
-    $self->{call} = sub (@values) { return Ekorn::Pipeline->new($sink)->(@values) };
-    return $self;
+    # Called, a sink of the same set-up takes the values: the closure
+    # holds the set-up, not the sink, so it works however long it's kept.
+    my $list = !!$option{list};
+    return bless {
+        setup => $setup,
+        call  => sub (@values) {
+            my $sink = Ekorn::Pipeline::Sink->new($setup, list => $list);
+            return Ekorn::Pipeline->new($sink)->(@values);
+        },
+    }, $into;
 }
 
 # A sink whose result is one value.

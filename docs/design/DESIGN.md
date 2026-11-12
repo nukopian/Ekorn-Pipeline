@@ -1,12 +1,12 @@
 # Ekorn::Pipeline and DBIx::Squirrel: one design
 
-**Status:** a draft for review, roadmap 2026-0022. Nothing here is
-decided until Iain approves it. Where it says "settled", it means
-decided earlier and carried in; where it says "proposed", it's this
-design's suggestion; open questions are numbered **Q1** and on, and
-listed together in section 16. Section 17 gives the reasons for each
-settled decision, and what was weighed against it. Section 19 says how
-the design is proved, by experimental code, before it's approved.
+**Status:** a draft for review, roadmap 2026-0022, awaiting Iain's
+approval as a whole. Its questions, numbered **Q1** and on, are all
+settled, each by a decision in 2026-0022's record, D1 and on; section
+16 lists them, open ones first, should more arise. Section 17 gives the
+reasons for each settled decision, and what was weighed against it.
+Section 19 says how the design is proved, by experimental code, before
+it's approved.
 
 **Read with:** [REFERENCE.md](REFERENCE.md) and [HOWTO.md](HOWTO.md)
 in this folder, drafts of the sections the reference and the how-to
@@ -83,9 +83,9 @@ it is, as any other package would.
 
 ## 3. Principles
 
-These were settled before this document, except where it says
-"proposed". Every part of the design below follows from them, and
-section 17 gives the reasons for each.
+All are settled, those before this document and those settled with
+it, each marked with its decision. Every part of the design below
+follows from them, and section 17 gives the reasons for each.
 
 1. **Opt-in, in layers.** The core is extended only as far as the
    layers above need. Each layer comes in a module of its own, so
@@ -98,7 +98,8 @@ section 17 gives the reasons for each.
    protocols, and runs them in Ekorn's own pipelines. It subclasses,
    wraps and remakes nothing of Ekorn's, and Ekorn changes nothing for
    it.
-3. **Ekorn's contract is its protocols** (proposed). What other
+3. **Ekorn's contract is its protocols** (settled with principle 2,
+   the protocols by D5 to D7). What other
    packages rely on is section 4.4: what a stage, a source, a sink and
    a stop are, what being made for a run means, and what a stage may
    ask about its run. Ekorn's classes, words and ready-made parts are
@@ -118,7 +119,8 @@ section 17 gives the reasons for each.
    is an object of a class built on Ekorn::Pipeline::Element: a hash
    holding what it was made with, overloading `&{}`, so it's called as
    a code reference wherever one is. A plain code reference given to
-   a pipeline is made a Stage, so a pipeline is made of Elements.
+   a pipeline is made a Stage, so a pipeline is made of Elements, or
+   of a package's own parts offering role methods, kept as they are.
    `is_stage` takes a plain code reference, a pipeline, or anything
    offering `as_stage`, `as_scalar` or `as_list` (section 4.4), so
    every function taking stages today takes the new types unchanged,
@@ -197,7 +199,7 @@ How they relate:
   can let out what it held, and, optionally, an end told how the run
   ended. It's what `as_stage` offers (section 5.4).
 - **A sink is a stage that holds back every value,** and lets out its
-  result when its input runs out (proposed, **Q8**): one value, such as a count, or
+  result when its input runs out (settled, Q8): one value, such as a count, or
   a list, such as every value. So it's a flatMap of the whole stream,
   shaped as a gather is. It's usually last, and then its result is
   what the run gives: pushed values in, the result out; or, pulled
@@ -231,7 +233,7 @@ closed however the pull ends.
 ### 4.4 The protocols: Ekorn's contract with other packages
 
 A package that keeps these works with Ekorn, without subclassing or
-wrapping anything of it (principles 2 and 3; the list proposed):
+wrapping anything of it (principles 2 and 3; the list settled by D5 to D7, D25 and D43):
 
 | Protocol | The contract |
 |---|---|
@@ -241,7 +243,12 @@ wrapping anything of it (principles 2 and 3; the list proposed):
 | **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `first_value` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
-| **A run's context** | the third value `as_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it |
+| **A run's context** | the third value `as_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (Q29) |
+
+One thing in a stage's place is Ekorn's own, not a protocol: a
+gather's block may return a pipeline as its step, whose stages are made
+in its place, as in v0.2.0 (2026-0007). A package's own `as_stage`
+returns a step, a code reference, not a pipeline.
 
 These are what Ekorn versions, and what DBIx::Squirrel's range on
 Ekorn's version protects. Everything else a package needs, it gets as
@@ -278,7 +285,7 @@ sub batches_of ($size) {
 }
 ```
 
-**Proposed:** sources and sinks are made for a run the same way, with
+**Settled (Q4, D5):** sources and sinks are made for a run the same way, with
 the words `source` and `sink` (section 6). Each block is a set-up,
 returning a step, a sink's flush, and an end, and, for a source,
 optionally a context (section 5.4):
@@ -313,7 +320,7 @@ pull, for an iterator used as a source to pass on (section 12.7).
 ### 5.3 How a run ends
 
 A run ends in one of three ways, and each part of it is told which,
-**from where it stands** (proposed, **Q3**). What each word means to
+**from where it stands** (settled, Q3, D20). What each word means to
 the part told it:
 
 - **`died`:** the run died, anywhere, before it ended. A sink rolls
@@ -334,7 +341,8 @@ So, for the commonest runs:
 |---|---|---|
 | ran out of values | `done` | `done` |
 | was stopped by a stage | `stopped`, if it still had values to come; `done` if its input had run out | `done` |
-| had a stage or an end die | `died` | `died` |
+| had a stage, a flush, the source or a set-up die | `died` | `died` |
+| had an end die, as it ended | the ends before it keep their verdict; those after it are told `died` (5.4) | the same |
 | was ended from outside | `stopped`, for each part whose input hadn't run out; `done` for the rest | the same |
 
 That's how a stop works already. After a stop, the stages after the
@@ -366,7 +374,7 @@ input was cut short, or the run died first. It isn't told how the run
 ended, as the run hasn't. A scalar sink's flush gives one value,
 `undef` if it has none (D25).
 
-**An end** (proposed, **Q4**):
+**An end** (settled, Q4, D6, D11, D15):
 
 - **always runs, once, when the run has ended,** however it ended. A
   run has ended as soon as nothing in it can still act on a value
@@ -402,14 +410,18 @@ An iterator nobody finishes, such as `my($first) = $next->()` and
 then nothing more, never runs out and is never stopped. Its source's
 file would stay open until the program ends.
 
-**Proposed (Q7):** `iterator` returns an Ekorn::Pipeline::Iterator,
+**Settled (Q7, D28):** `iterator` returns an Ekorn::Pipeline::Iterator,
 an Element (still called as `$next->()`, so nothing changes for its
 callers), whose `DESTROY` ends the run, if it hasn't ended already,
 telling each part how from where it stands: `stopped` if its input
 hadn't run out, `done` if it had (section 5.3). Its `finish` method
 ends the run the same way, sooner, and takes no verdict of its own; a
 run ended either way hands out nothing more, and what was still to be
-handed out is dropped (D22). A run that ended by itself (section 5.4),
+handed out is dropped (D22). Called from inside one of its own
+run's stages, `finish` ends the run there and then: every end runs,
+while that stage is still running, and no later stage sees the value in
+flight. So an end can't rely on the stage that finished the run having
+returned. A run that ended by itself (section 5.4),
 with values still to hand out, such as a list sink's result, hands
 them out as it's pulled: its ends have run, but its iterator hasn't
 finished. Perl calls `DESTROY` when the last reference
@@ -447,10 +459,10 @@ made by its constructor, a class method that takes only real things
 |---|---|---|
 | `Ekorn::Pipeline::Element` | (none) | the base: `call` and `&{}`. Each class offers the role methods of section 4.4 for what it can be |
 | `Ekorn::Pipeline` | `new(@stages)` | settled; strict: no names; makes a Stage of each plain code reference, and `stages` returns the Elements |
-| `Ekorn::Pipeline::Stage` | `new($code)` | proposed; wraps the code given, never blesses it (**Q9**); a run calls the code as it is |
+| `Ekorn::Pipeline::Stage` | `new($code)` | settled (Q9, D4); wraps the code given, never blesses it (**Q9**); a run calls the code as it is |
 | `Ekorn::Pipeline::Gather` | `new($setup)` | as `gather` makes today, now an Element |
-| `Ekorn::Pipeline::Source` | `new($setup)` | proposed; `$setup` returns the step, and, optionally, the end and a context |
-| `Ekorn::Pipeline::Sink` | `new($setup)` | proposed; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
+| `Ekorn::Pipeline::Source` | `new($setup)` | settled (D5, D7); `$setup` returns the step, and, optionally, the end and a context |
+| `Ekorn::Pipeline::Sink` | `new($setup)` | settled (D6, D12; a list sink, Q30); `$setup` returns the step, the flush, giving the result, and, optionally, the end |
 
 And one more class method, which, with `named`, is all that reads
 names (settled in 2026-0021 as a class method taking the package, and
@@ -544,12 +556,12 @@ again (Q11, 2026-0022's D35). A pipeline holds no source anyway
 
 ## 8. Ready-made parts
 
-### 8.1 Stages (settled; one change proposed)
+### 8.1 Stages (settled, with one change, Q12)
 
 `take`, `drop`, `take_while`, `drop_while`, `batch`, `collect`,
 `peek`, `count_into`, `dump_to`, in Ekorn::Pipeline::Stages::*.
 
-Proposed: each returns an `Ekorn::Pipeline::Stage` (or Gather) object
+Settled (Q12, D4): each returns an `Ekorn::Pipeline::Stage` (or Gather) object
 rather than a plain code reference, so they work with the operators of
 section 9. They're Elements (principle 6), called as code references,
 so everything that calls them, or takes them with `is_stage`, works as
@@ -714,7 +726,7 @@ Settled in 2026-0010's record:
   a statement's stages included.
 - `import_into($package, ...)` lets a module add to it for its caller.
 
-Proposed: DBIx::Squirrel's Sugar keeps its own helpers, for checking a
+Settled with principle 2: DBIx::Squirrel's Sugar keeps its own helpers, for checking a
 name and installing a function, rather than calling Ekorn's, so
 neither depends on the other's internals.
 
@@ -743,12 +755,12 @@ so errors are reported at the caller's line.
 
 ### 11.2 DBIx::Squirrel
 
-Proposed: no module of DBIx::Squirrel's subclasses or wraps one of
+Settled (principle 2): no module of DBIx::Squirrel's subclasses or wraps one of
 Ekorn's (principle 2). Its modules are its own, delivering parts:
 
-| Module | Today | Proposed |
+| Module | Today | In this design |
 |---|---|---|
-| `DBIx::Squirrel::Pipeline`, `::Pipes`, `::Stop`, `::Gather`, `::Stages::Flow`, `::Batch`, `::Taps` | facades over Ekorn's: subclasses, and re-exports | no subclasses; whether it keeps re-exporting Ekorn's functions as they are is **Q20** |
+| `DBIx::Squirrel::Pipeline`, `::Pipes`, `::Stop`, `::Gather`, `::Stages::Flow`, `::Batch`, `::Taps` | facades over Ekorn's: subclasses, and re-exports | no subclasses; it keeps re-exporting Ekorn's functions as they are, for now (D31) |
 | `DBIx::Squirrel::Iterator` | statements' rows, through a pipeline of its own class | a Source (section 12.3), run in Ekorn's pipelines |
 | `DBIx::Squirrel::Stages::Rows` | `pluck`, `as_hash`, through Context | stages of its own, finding their columns with `run_context()` (section 12.7) |
 | `DBIx::Squirrel::Sinks` | (new) | `insert_into` (its 2026-0012), a Sink |
@@ -800,8 +812,8 @@ Its users compose its parts with Ekorn's, and nothing in the result
 knows which package made which part:
 
 ```perl
-my $names = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($sth->source);
-my $n     = $sth->source | stage { [$_->{id}, $_->{name}] } | insert_into($archive, 'people');
+my $names = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($sth->iterate);
+my $n     = $sth->iterate | stage { [$_->{id}, $_->{name}] } | insert_into($archive, 'people');
 ```
 
 ### 12.3 Its iterator as a source
@@ -839,7 +851,9 @@ it, the design is revisited:
   pluck('name') | take(5) | to_arrayref` reads as it should; Context
   becomes a thin layer over `run_context()` and `ending()`; and
   providing the source loads nothing of Ekorn's, only running its own
-  stages does.
+  stages does. Its overloads of `|` and `@{}` name Operators'
+  functions without loading Operators: the references Perl takes are
+  filled in once a user loads it, as they must to write `|`.
 
 ### 12.4 A database as a sink
 
@@ -871,8 +885,14 @@ commit, and what it gives back are DBIx-Squirrel's questions.
 
 DBIx::Squirrel::Sugar defines databases and statements, as now. It
 names no pipelines: its users name them with Ekorn's Sugar or `named`,
-and a statement's stages can use those names, resolved by Ekorn's
-`pipeline` in the user's package.
+and a statement's stages can use those names, resolved with
+`Ekorn::Pipeline->pipeline_in($package, ...)`, where `$package` is
+the user's, the one that used DBIx::Squirrel::Sugar: called from
+DBIx::Squirrel's own code, Ekorn's `pipeline` would look in
+DBIx::Squirrel's package (principle 5). A name used in a definition
+made as the program compiles must be defined before it, by Ekorn's
+Sugar or a `BEGIN` block; one defined later, with `named` as the
+program runs, isn't there yet.
 
 A statement's definition can name pipelines by string (Q15; Iain,
 2026-11-12, 2026-0022's D36), written as a chain of names, which reads
@@ -893,14 +913,14 @@ this in when it reviews the design.
 Its users write `use DBIx::Squirrel::Stop` and the like today, and get
 Ekorn's functions through its facades. It can keep giving them, as
 plain re-exports of Ekorn's functions, unchanged, or point its users
-to Ekorn's own modules (**Q20**). Either way, a user can mix the two
+to Ekorn's own modules; for now, it keeps them (D31). Either way, a user can mix the two
 freely, as the functions are the same.
 
 ### 12.7 A stage that needs to know its source
 
 `pluck('name')` needs the statement's column names. Today Context gives
 them, because DBIx::Squirrel runs the pipeline. When a user joins
-`$sth->source | pluck('name')` themselves, DBIx::Squirrel runs
+`$sth->iterate | pluck('name')` themselves, DBIx::Squirrel runs
 nothing. This is the one place its parts need more than they're given.
 
 Settled (Iain, 2026-11-12, 2026-0022's D7): **a source gives a context
@@ -973,6 +993,9 @@ before. A v0.2.x from `develop` in the meantime only fixes.
 | Gather, and the canned stages made with it, become Elements | `ref` and `is_coderef` change: an object, called as a code reference |
 | `stages` returns Elements: a code reference given comes back as a Stage of it | code comparing them with what it gave |
 | A pushed run in scalar context gives a scalar sink's result, when one is last (D17) | no: no v0.2.0 pipeline has a sink |
+| `is_stage` takes objects offering a role method, not only code references and pipelines (D13) | no, unless code relied on such objects being refused |
+| `Stage->new` refuses Ekorn's own types, such as a gather (Q9) | no: new |
+| A Source called directly croaks; a Sink called with values gives its result (D42) | no: new |
 | Stage, Source, Sink, Factories, Sources, Sinks, Sugar, Operators | no: new modules |
 | `pipeline` and `named`, names per package | no: new, unreleased |
 | Canned stages returning objects | `ref` changes from `CODE` (**Q12**) |
@@ -1033,9 +1056,15 @@ Settled questions keep their numbers, listed after the open ones.
 
 ### 16.1 Open
 
-None, since 2026-11-12. A question that arises, from a review, from
-DBIx-Squirrel, or from building, is added here as Q28 and on, with
-whose it is and a recommendation.
+From the fourth cold review, 2026-11-12. Any other question that
+arises, from a review, from DBIx-Squirrel, or from building, is added
+here, with whose it is and a recommendation.
+
+| | Question | Whose | Recommended |
+|---|---|---|---|
+| **Q28** | What does `ended` tell the caller? It gives the source's verdict, so `first_value`, stopping the run once it has its answer, reports `stopped` for a complete result, as a `take(5)` cutting the read short does; and `finish` after a list sink's result, with values still undelivered, reports `done`. It was built for "is my result complete?" | Iain | The verdict of the run's last part: `done` when the last part's input ran out, so a complete `first_value` is `done` and `take(5)` last is `stopped`; `stopped` when `finish` drops values still to be handed out; `died` as now. With no stages, the source's verdict |
+| **Q29** | Context passed through an iterator describes the original source, whatever the stages did to its rows, which can mislead `pluck` as D24 said a pushed run would. What does a context describe? | Iain | The run's source, not the values: say so in 4.4 and the reference, so a stage that reshapes rows knows `pluck` after it is reading the source's columns. A way for a pipeline to replace or drop the context waits until a need is found |
+| **Q30** | How is a list sink declared with a word, or with the Sink class? Only `Sink->new($setup, list => 1)` does it, which the design never settled; without it, a user can't write a `to_hash`-like sink | Iain | Keep the constructor's option, `Ekorn::Pipeline::Sink->new($setup, list => 1)`, and add a word, `list_sink {...}`, beside `sink {...}`, in Factories |
 
 ### 16.2 Settled
 
@@ -1565,7 +1594,7 @@ Weighed and set aside:
 | Ekorn 2026-0020, `pipeline` through a subclass | 14 | undone: `pipeline` moves to Factories, names are per package, and `pipeline_class` goes (17.3, 17.4) |
 | Ekorn 2026-0021, Factories | 6.2 | as its record |
 | DBIx-Squirrel 2026-0003, add-on distributions | 8 | those needing no database may move here |
-| DBIx-Squirrel 2026-0009, export `pipeline` | 12.6 | Ekorn's, re-exported as it is, if at all (**Q20**) |
+| DBIx-Squirrel 2026-0009, export `pipeline` | 12.6 | Ekorn's, re-exported as it is (D31) |
 | DBIx-Squirrel 2026-0010, Sugar's `pipeline` key | 12.5 | not needed: Ekorn's Sugar names pipelines its statements can use |
 | DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | not needed: its Sugar keeps its own |
 | DBIx-Squirrel 2026-0012, `insert_into` | 12.4 | needs Sink and ends |
@@ -1645,13 +1674,13 @@ run, without the ends of either reaching the other:
 
 ### 19.3 What the proofs need built
 
-The least of each part they use: the lifecycle (section 5), with
-`for_run`, the ends and `DESTROY`; the Source and Sink classes, and
-the words `source`, `sink` and `stage`; `from_file`, `to_file`,
-`to_array`, `count` and `first_value`; and `|` between a source, a
-stage and a sink. (As built, before 2026-0022's D5 to D7 and D10:
-`for_run` is now one method per role, and `|` ends in `to_arrayref`,
-not `to_array`.) Built in that order, as section 15 has it.
+The least of each part they use: the lifecycle (section 5), with the
+role methods, the flushes and ends, and `DESTROY`; the Source and Sink
+classes, and the words `source`, `sink` and `stage`; `from_file`,
+`to_file`, `to_arrayref`, `count` and `first_value`; and `|` between a
+source, a stage and a sink. Built in that order, as section 15 has
+it; the prototype has since taken in every settled decision, as
+IMPLEMENTATION.md says.
 
 ## 20. Knock-on effects on other documents
 
@@ -1708,13 +1737,16 @@ design is approved and split (roadmap 2026-0022).
   - "What Ekorn-Pipeline is for" says it in D26's terms, and the test
     of any feature with it;
   - the factories rule says `pipeline` lives in Factories only (D30);
+  - "Keep the switch in view" and "The version says what DBIx-Squirrel
+    can take" call a gather's end its "end function": a flush, now
+    (D12);
   - "The version says what DBIx-Squirrel can take" moves to the v0.3.0
     range when it ships, and its list of the names DBIx::Squirrel
     imports gains any it takes.
-- **ROADMAP.md:** the items this design replaces or rewrites, 2026-0010
-  and 2026-0013, which joins v0.3.0 (D40), to 2026-0021, give way to
-  those it's split into, and
-  2026-0022 ships.
+- **ROADMAP.md:** the items this design replaces or rewrites give way
+  to those it's split into, and 2026-0022 ships: 2026-0010, and 2026-0014
+  to 2026-0021; 2026-0013 joins v0.3.0 (D40), and 2026-0019 stays an
+  idea (D38).
 - **The change records:** 2026-0011, 2026-0020 and 2026-0021 are
   finished, saying what this design undid or moved; 2026-0010's, for
   Sugar, is revisited for names per package.
@@ -1734,7 +1766,7 @@ design is approved and split (roadmap 2026-0022).
 Told by a task in its `TODO.md` when the design is approved, and
 again when v0.3.0 is ready; designed in its own session:
 
-- **Its code:** its statements offer `as_source`, with their columns as
+- **Its code:** its iterators offer `as_source` (D44), with their columns as
   the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
   `insert_into` is a sink with a flush and an end; its facades go or
   stay as plain re-exports, as it chooses (D31).

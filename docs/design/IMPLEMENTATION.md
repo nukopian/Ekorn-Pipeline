@@ -540,10 +540,11 @@ What `iterator` returns: an Element, called as `$next->()`, with
 `finish` and `DESTROY` (section 5.5). Its `as_source` makes it a
 source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8). Once it's spent, having
-handed out all it will, or been finished, its `as_source` croaks
-rather than give nothing (D41); an iterator whose run has ended with
-values still to give, such as a list sink's, isn't spent until they've
-gone.
+handed out all it will, been finished, or died, its `as_source`
+croaks rather than give nothing (D41); an iterator whose run has ended
+with values still to give, such as a list sink's, isn't spent until
+they've gone. As a source, it has `|` and `@{}`, once Operators is
+loaded, as Ekorn's other sources have.
 
 `ended` tells its caller how its run ended: nothing while it goes, and
 then `done` if the source's values ran out, `stopped` if the reading
@@ -614,10 +615,12 @@ A Stage wraps the code given and never blesses it; it refuses one of
 Ekorn's own types, as a gather made a Stage would run per value.
 
 Called directly, each type does what its role means (D42). A Sink
-called with values pushes them through itself, as a pipeline of the one
-sink would, and gives its result, so a sink can be tested on its own. A
-Source called directly croaks, as a run of its own would never be
-ended:
+called with values pushes them through a fresh sink of its set-up, as
+a pipeline of the one sink would, and gives its result, so a sink can
+be tested on its own; the closure holds the set-up, not the sink, so a
+code reference taken from a sink keeps working after the sink has
+gone. A Source called directly croaks, as a run of its own would never
+be ended:
 
 ```perl
 say count->(1, 2, 3);                      # 3
@@ -761,8 +764,11 @@ as plain subs, such as `take_while`, are still plain subs.
 This is the pattern DBIx::Squirrel follows, and any package that hands
 out values can: deliver parts that offer Ekorn's role methods, and let
 users run them in Ekorn's pipelines, with Ekorn's parts and their own.
-Nothing of Ekorn's is subclassed or wrapped, and the parts need nothing
-of Ekorn's loaded.
+Nothing of Ekorn's is subclassed or wrapped. A source needs nothing of
+Ekorn's loaded; the sink in 7.5 uses Ekorn's `sink` word, for
+brevity, where a class with `as_scalar` would need nothing either; and
+the overloads in 7.4 name Operators' functions, which Perl fills in
+once a user loads Operators.
 
 The example below is a stand-in for DBIx::Squirrel, with an in-memory
 table where it would have a statement, so it runs without a database.
@@ -969,6 +975,7 @@ are built:
 | `Expected stage #%s to return a code reference, and optionally a flush and an end` | `as_stage` returns anything else |
 | `Expected sink #%s to return a code reference, a flush, and optionally an end` | `as_scalar` or `as_list` returns anything else |
 | `Expected a source to be read through iterator` | a source called as a code reference |
+| `Expected no stop in a set-up, as the run has nothing yet to stop` | a stop thrown from a set-up: a gather's block, `as_source`, or a role method |
 | `Expected a source with values still to give: an iterator is one run, and this one is spent` | a spent iterator given as a source |
 | `Expected a source, or a stage made with a word, on the left of \|` | `chain` given anything else on its left |
 | `Expected a stage or a sink on the right of \|` | `chain` given what can't go where a stage goes |
@@ -997,6 +1004,7 @@ valid, as v0.3.0 changes.
 | The caller asks how the run ended | `ended`: nothing while it goes; `done`, `stopped`, `died` | 5.5, D34 |
 | A spent iterator is no source for another run | read in part, it goes on; spent or finished, it croaks; ended with values still to give, it gives them | 4.2, D41 |
 | A part called directly | a sink gives its result, tested on its own; a source croaks; `is_sink` | D42, D43 |
+| Fixes from the fourth review | a stop from an end or a set-up an error, not a raw stop; an iterator chaining and draining; a spent or died iterator refused; a pipeline made with `new` with no `\|`; a sink's code reference outliving it | D16, D23, D32, D41, D42 |
 | Sinks and context | `to_arrayref`, and `to_array` croaking at the end of a chain; scalar context; a scalar sink of nothing; precedence | D10, D17, D25 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
@@ -1063,6 +1071,8 @@ Status: **built** as the design says; **built, differs**, with how;
 | `to_file` in paragraph mode writes a blank line after each record | 8.3 says `$/` | say so, or change it |
 | An end's error from `DESTROY` is a warning, "(in cleanup)", as Perl gives every error in a destructor | 5.4: thrown | say so: a run ended as its iterator is let go can't throw |
 | Ends run during global destruction, in no set order | 5.5 warns of it | nothing |
+| `ended` gives the source's verdict: a complete `first_value` is `stopped`, and `finish` dropping a list sink's undelivered values is `done` | Q28 recommends the last part's verdict | settle Q28 |
+| A list sink is declared only by `Sink->new($setup, list => 1)`; there's no word | Q30 recommends `list_sink {...}` too | settle Q30 |
 
 ## 11. Known gaps
 

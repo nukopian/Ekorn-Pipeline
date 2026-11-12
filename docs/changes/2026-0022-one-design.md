@@ -604,7 +604,7 @@ Left as they are, as the design says they're built when it's split
 into items: names per class, `pipeline` in Ekorn::Pipeline, and Pipes'
 `pipeline_class`; and v0.2.0's wording of two messages, listed in
 section 20 to revise. Q24 is still open, so an iterator given to a
-second run still gives nothing.
+second run still gives nothing. (Since settled as D41: a spent iterator croaks.)
 
 Writing IMPLEMENTATION.md's section 5.3, on how the code keeps track
 of who's done, found a gap in D20: at a stop, nothing was marked, so a
@@ -613,6 +613,29 @@ stage after a sink, stopping on the last value the sink gave, was told
 more to come from upstream, each stage up to it is marked `done` until
 one still has a value waiting, or a flush before it still to come;
 `t/15-proofs.t` tests both sides.
+
+### The fourth cold review, 2026-11-12
+
+A fourth fresh reviewer, after D19 to D44, found the design and the
+implementation mostly coherent, and better than at the third review:
+the structural problems it had raised gone, its own findings edge
+paths and leftover wording; all 31 runnable examples printing what they
+say. It found five bugs, where the code broke a settled decision, now
+fixed and tested: a stop from an end, or a set-up, escaped as a raw
+stop, which could quietly stop a run around it (D16); iterators, being
+sources, had no `|` or `@{}`, so `|` silently ORed (D32); an iterator
+that died wasn't spent (D41); a pipeline made with `new` chained when
+the right side was typed (section 9); and a sink's code reference died
+with the sink, as the sink held itself weakly (D42). Stale wording is
+fixed: "proposed" labels in a settled design, `$sth->source` after
+D44, 5.3's table against D11, 12.5's lookup, which needs `pipeline_in`
+with the user's package, "without loading Ekorn" against the
+examples, the drafts' status notes, section 20's roadmap bullet, and
+section 13's missing rows. Two behaviours are stated in the design: a
+gather's pipeline as its step is Ekorn's own, not a protocol; and
+`finish` from inside a stage runs every end while that stage is still
+running. Three questions are opened, Q28 to Q30: what `ended` tells
+the caller, what a context describes, and how a list sink is declared.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

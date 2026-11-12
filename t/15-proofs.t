@@ -470,6 +470,41 @@ subtest 'A part called directly (D42, D43)' => sub {
         $class->new(count, stage { $_ }), 'count';
 };
 
+subtest 'Fixes from the fourth review' => sub {
+    my $stops_at_end = sink {
+        return (sub ($value) { return }, sub () { 1 }, sub ($how) { Stop() });
+    };
+    like dies { $class->new($stops_at_end)->(1) },
+        qr( \A Pipeline\ end\ of\ stage\ \#1\ failed )x,
+        'a stop from an end is an error, not a raw stop (D16)';
+    my $outer = $class->new(sub { $class->new($stops_at_end)->($_) });
+    ok dies { $outer->(1) }, "and so can't quietly stop a run around it";
+
+    my $stops_at_setup = gather { Stop() };
+    like dies { $class->new($stops_at_setup)->(1) },
+        qr( \A Expected\ no\ stop\ in\ a\ set-up )x, 'nor can a stop from a set-up';
+
+    my $next = $class->new->iterator(from_arrayref([1, 2]));
+    is [@{ $next | stage { $_ * 10 } }], [10, 20],
+        'an iterator chains, and drains, as a source';
+    like dies {
+        my @x = @{ $next | sub { $_ } }
+    }, qr( spent )x, 'and, spent, croaks when the chain runs';
+
+    my $dies = $class->new(sub { die "No\n" })->iterator(from_arrayref([1]));
+    ok dies { $dies->() };
+    like dies { $class->new->iterator($dies) }, qr( spent )x,
+        'an iterator that died is spent, as a source';
+
+    like dies {
+        my $x = $class->new(sub { $_ }) | stage { $_ }
+    },
+        qr( \A Expected\ a\ source, )x, 'a pipeline made with new has no |';
+
+    my $counting = \&{ count() };
+    is $counting->(1, 2, 3), 3, "a sink's code reference outlives the sink";
+};
+
 subtest 'Sinks and context (D10, D17, D25)' => sub {
     like dies { from_arrayref([1, 2]) | to_array },
         qr( \A Expected\ a\ sink\ giving\ one\ value .* use\ to_arrayref )x,
