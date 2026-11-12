@@ -436,7 +436,13 @@ D19 to D25 came from the third cold review, settled by Iain on
   value but forgot to limit it to one value". Built: `first_value`
   renamed, `all_items` and `only_item` added, with tests; `all_items`
   is also the name of a Test2::V0 check, so a test using both calls one
-  by its full name. Design 8.3, 17.25.
+  by its full name. Design 8.3, 17.25. `every_item` in place of
+  `all_items` was considered, and Iain kept `all_items` the same day:
+  `every_item(sub {...})` is the test paired with `any_item`, as
+  List::Util has `any` and `all`, and JavaScript `some` and `every`;
+  "all" is the items together, "every" each in turn; and the clash
+  with Test2::V0 is "only a problem in test harness", not a reason to
+  name a public sink.
 
 ## The plan
 
