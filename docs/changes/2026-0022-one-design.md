@@ -20,7 +20,8 @@ in scalar context. D18 settled: the operators stay. D19 to D25
 settled, from the third cold review: one stage-place method; `done`
 for a part whose input ran out; set-ups when the run starts; ends
 wait, nothing run early; chains of stages; no context in a pushed
-run; a scalar sink always gives one value.
+run; a scalar sink always gives one value. D26 settled: the stream
+concept applied to functions is what Ekorn is for.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -224,6 +225,17 @@ D19 to D25 came from the third cold review, settled by Iain on
   `undef`, as its flush always gives one. So a result of one value is
   a source of one value, and scalar context (D17) gives `undef`, not
   nought. Design 4.4, 5.4.
+
+- [x] **D26.** Do sources, sinks and operators belong in Ekorn (the
+  design's Q1)? Yes, Iain decided on 2026-11-12: "a more complete and
+  coherent design is emerging", the stream concept applied to
+  functions, which has "an elegant symmetry", and he wants to run with
+  it. Any function that hands out values is a source; stages carry the
+  values, a sink consumes them, and the pipeline is where they meet,
+  either way round: a function taking its caller's stages, or a caller
+  pulling a function's values through a pipeline of their own. It
+  stays opt-in. The design's section 2, and the roadmap's 2026-0016 and
+  0017, no longer a change of scope to weigh.
 
 ## The plan
 

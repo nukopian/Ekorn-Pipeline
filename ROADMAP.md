@@ -177,8 +177,8 @@ The message, whole:
 exported by default. Those
 needing CPAN, such as JSON or CSV, go in add-on distributions of
 Ekorn's, as they need no database. Layer 2 of DBIx-Squirrel's message.
-A change of scope, toward a stream library, to weigh against the
-README's pitch.
+In scope: the stream concept applied to functions, as Iain decided on
+2026-11-12 (2026-0022's D26).
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 
@@ -193,7 +193,7 @@ sources, and `group_by`, `count`, `first_value`, `last_value`,
 `any_value`, `every_value`, `fold`, `joined` and `for_each`; those that can, stop the pull
 early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
 message, and the type DBIx-Squirrel 2026-0012, a database as a sink,
-`insert_into`, depends on. A change of scope, as 2026-0016 is.
+`insert_into`, depends on. In scope, as 2026-0016 is.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 

@@ -63,10 +63,16 @@ author needn't write an option for every use, and its caller needn't
 write loops and flags around the call. The test of any feature: does
 it let callers do more without authors writing more?
 
-The plans below go further, toward a small library of streams:
-sources that make values, sinks that consume them, and an operator to
-join them. That's a change of scope, and the first question for Iain
-is whether it's wanted (**Q1**). The design keeps it opt-in, so that
+The plans below go further: **the stream concept, applied to
+functions.** Any function that hands out values is a source, which a
+pipeline can take its values from; stages carry them; and a sink
+consumes them and gives a result, as the caller wants it. A function
+and a pipeline meet either way round: the function takes its caller's
+stages, as the README describes, or the caller pulls the function's
+values through a pipeline of their own. Sources, stages and sinks are
+three roles of one idea, the pipeline the one place they meet, and
+`|` draws it left to right. Iain decided on 2026-11-12 that this is
+what Ekorn is for (**Q1**, 2026-0022's D26). It stays opt-in, so that
 someone using only stages sees no change.
 
 DBIx::Squirrel is Ekorn's first user: a wrapper of the DBI whose
@@ -951,7 +957,6 @@ Settled questions keep their numbers, listed after the open ones.
 
 | | Question | Whose | Recommended |
 |---|---|---|---|
-| **Q1** | Do sources, sinks and operators belong in Ekorn, a step toward a stream library beyond the README's pitch? | Iain | Yes, opt-in, as the pull is what makes stages safe for files and databases; the operators stay (2026-0022's D18); the README says so in a section of its own |
 | **Q6** | An end that dies during a die: warn, naming the end, keeping the first error? | Ekorn | Yes; section 5.4 states it so |
 | **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | DBIx-Squirrel to confirm | Yes: Ekorn's side is settled by D4 and D15 |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
@@ -969,6 +974,7 @@ Settled questions keep their numbers, listed after the open ones.
 
 | | Question | Settled by |
 |---|---|---|
+| **Q1** | Do sources, sinks and operators belong in Ekorn? | D26: yes, the stream concept applied to functions, which Iain wants to run with; opt-in; the operators stay (D18); the README says so in a section of its own |
 | **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
