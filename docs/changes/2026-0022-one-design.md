@@ -33,7 +33,8 @@ source. D34 settled: the caller asks an
 iterator how its run ended. Q26, what each type does when called
 directly, is open in the design. D35 settled: named sources, Q11,
 dropped. Q14, DBIx-Squirrel's, has a suggested
-answer for its review.
+answer for its review. D36 settled: a statement's definition
+names pipelines by string, as a chain of names.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -297,6 +298,14 @@ D19 to D25 came from the third cold review, settled by Iain on
   2026-0012): now, or later? Neither: dropped, Iain decided on
   2026-11-12. If there's a need, it'll be found again. The idea leaves
   the roadmap with it. Design 7.
+- [x] **D36.** Can a statement's definition in DBIx::Squirrel's Sugar
+  name a pipeline by a string (the design's Q15)? Yes, Iain decided on
+  2026-11-12, written as a chain of names, `clean => trim => 'top5'`:
+  "name1 => name2 => name3 => ... has a beautiful ring to it", reading
+  as the values' path. `=>` quotes only the bareword on its left, so
+  the last name is quoted, or followed by another `=>` or a stage. How
+  a name is told from the rest of a definition is DBIx-Squirrel's to
+  design, taking this in when it reviews. Design 12.5.
 
 ## The plan
 
