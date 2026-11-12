@@ -42,7 +42,8 @@ offers `as_source`, as the design's 12.3 sets out. D45 to D47 settled, from the 
 cold review: `ended` the last part's verdict; a context describes the
 source; lists first, `sink` and `sink_scalar`. D48 settled: `ended`
 says whether the source was read to its end, revising D45. D49 settled: the role methods are named
-for Ekorn.
+for Ekorn. D50 settled: sinks named for what they
+give, and containers.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -422,6 +423,20 @@ D19 to D25 came from the third cold review, settled by Iain on
   `as_list` method was taken for a sink, and died. Weighed: the `as_`
   names with a marker method; Perl's `DOES`. Built, with a test.
   Design 4.4, 17.24.
+- [x] **D50.** How are sinks named (from DBIx-Squirrel's design, where
+  its iterator's `all`, `single` and `count` give way to Ekorn's
+  sinks)? In two families, Iain decided on 2026-11-12: sinks named for
+  what they give, "item" replacing "value", `all_items`, `first_item`,
+  `only_item`, `last_item`, `any_item`, `every_item`, with `count`
+  keeping its name, "that's what it is, not what we're putting the
+  result in"; and container sinks, named for where the items go, the
+  `to_` sinks, which stay. `all_items` and `to_array` give the same,
+  each in its family. `only_item` warns at a second item, giving the
+  first, rather than croak, "for those situations where you want one
+  value but forgot to limit it to one value". Built: `first_value`
+  renamed, `all_items` and `only_item` added, with tests; `all_items`
+  is also the name of a Test2::V0 check, so a test using both calls one
+  by its full name. Design 8.3, 17.25.
 
 ## The plan
 
@@ -741,6 +756,17 @@ on v0.3.0's intended changes to gathers. What came of each:
   design's section 12 now names them.
 - **12.3's columns and active handles:** Iain's amendments, made in its
   session, are written into 12.3 and D44.
+
+### DBIx-Squirrel's design, its sinks, 2026-11-12
+
+Two more messages from DBIx-Squirrel (DBIx-Squirrel
+a1e2fcbbd53340fb1bbb95f5787ac9110b103d86 and
+a3358e87d12681f6a8a63753150a53036d306de0), read and removed: its
+iterator's `all`, `single` and `count` give way to Ekorn's sinks, which
+became D50; and `insert_into`, its 2026-0012, is dropped for result
+sinks of its own design, so the design's 12.4 keeps it only as an
+example of a package's sink, not planned, and 11.2, 12.2, 18 and 20.2
+say so.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

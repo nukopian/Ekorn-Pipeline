@@ -243,7 +243,7 @@ wrapping anything of it (principles 2 and 3; the list settled by D5 to D7, D25 a
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
 | **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `ekorn_source`, to be read from, returning its step, and, optionally, its end and a context; `ekorn_stage`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `ekorn_sink_scalar` or `ekorn_sink`, at most one of them, returning its step, its flush, and, optionally, an end. A stage and a sink go in the same place, so an object offers at most one of `ekorn_stage`, `ekorn_sink_scalar` and `ekorn_sink`, which is checked when the pipeline is made; `ekorn_source` can go with any of them (D19). The role it's given in decides which is called, so one object can be read from and written to. A code reference offers none, and takes the role it's given in, with no flush or end |
-| **Sink** | an object with `ekorn_sink_scalar`, its result one value, or `ekorn_sink`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `first_value` with no values (D25) (sections 5.4, 9) |
+| **Sink** | an object with `ekorn_sink_scalar`, its result one value, or `ekorn_sink`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `first_item` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
 | **A run's context** | the third value `ekorn_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (D46) |
@@ -375,7 +375,7 @@ and a flush, so it keeps its shape.
 
 **A flush** (D6, D12) is called once its part's input runs out
 normally: the values ran out, a stop came in a stage before it, or,
-for a sink, the sink stopped the run itself, as `first_value` does
+for a sink, the sink stopped the run itself, as `first_item` does
 (D16). A gather that stops the run isn't flushed, as in v0.2.0. What a
 flush returns goes on through the stages after it, and `ending()` is
 true while it runs and while its values go on. It isn't called if the
@@ -445,7 +445,7 @@ other objects then.
 been finished or died, so it's said once, and doesn't change. Then it
 says whether the source was read to its end: `done` if it was;
 `stopped` if the reading was cut short, by a stop anywhere, such as
-`take(5)`'s or `first_value`'s, or from outside, or if `finish`
+`take(5)`'s or `first_item`'s, or from outside, or if `finish`
 dropped values still to be handed out; and `died` if anything in the
 run died, an end included. So it answers "were there more values than
 I got?", which the values alone don't show. A `take(2)` over exactly
@@ -609,27 +609,37 @@ array or a hash, a filehandle or a file. A pair is a two-element array,
 
 ### 8.3 Sinks: Ekorn::Pipeline::Sinks (2026-0017)
 
-Each `to_` sink is the counterpart of a `from_` source, so what one
-reads, the other writes. The rest have names that can't clash with
-Perl's built-ins or List::Util's. Nothing exported by default.
+Two families (2026-0022's D50): sinks named for what they give, an
+item being a value, and container sinks, named for where the items
+go, each `to_` sink the counterpart of a `from_` source, so what one
+reads, the other writes. Nothing exported by default.
 
-| Sink | Gives | Stops the pull early? |
-|---|---|---|
-| `to_array` | every value, as a list (`ekorn_sink`) | no |
-| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every value: your array, with each pushed onto it, or a new one (`ekorn_sink_scalar`) | no |
-| `to_fh($fh)` | prints each value to your filehandle, followed by `$/`; gives how many | no; you close it |
-| `to_file($path)` | writes each value to the file, followed by `$/`; gives how many | no; its end closes the file |
-| `to_hash` | every pair's key and value, as a list to assign to a hash (`ekorn_sink`) | no |
-| `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one (`ekorn_sink_scalar`) | no |
-| `group_by(sub {...})` | a hash of arrays | no |
-| `count` | how many values there were | no |
-| `first_value` | the first value | yes |
-| `last_value` | the last value | no |
-| `any_value(sub {...})` | true at the first value the sub is true of | yes |
-| `every_value(sub {...})` | false at the first value the sub is false of | yes |
-| `fold($init, sub {...})` | a running total, of any kind | no |
-| `joined($separator)` | the values joined into one string | no |
-| `for_each(sub {...})` | calls the sub with each value; gives how many | no |
+**Named for what they give:**
+
+| Sink | Gives | Role | Stops the pull early? |
+|---|---|---|---|
+| `all_items` | every item, as a list | list | no |
+| `first_item` | the first item; `undef` if none | scalar | yes |
+| `only_item` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | scalar | at a second |
+| `last_item` | the last item | scalar | no |
+| `any_item(sub {...})` | true at the first item the sub is true of | scalar | yes |
+| `every_item(sub {...})` | false at the first item the sub is false of | scalar | yes |
+| `count` | how many items there were: it's what it is, not where it's put | scalar | no |
+| `fold($init, sub {...})` | a running total, of any kind | scalar | no |
+| `joined($separator)` | the items joined into one string | scalar | no |
+| `group_by(sub {...})` | a hash of arrays | scalar | no |
+| `for_each(sub {...})` | calls the sub with each item; gives how many | scalar | no |
+
+**Containers, named for where the items go:**
+
+| Sink | Gives | Role | Stops the pull early? |
+|---|---|---|---|
+| `to_array` | every item, as a list: the same as `all_items`, named as a container | list | no |
+| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every item: your array, with each pushed onto it, or a new one; what ends a `\|` chain wanting every item (D10) | scalar | no |
+| `to_fh($fh)` | prints each item to your filehandle, followed by `$/`; gives how many | scalar | no; you close it |
+| `to_file($path)` | writes each item to the file, followed by `$/`; gives how many | scalar | no; its end closes the file |
+| `to_hash` | every pair's key and value, as a list to assign to a hash | list | no |
+| `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one | scalar | no |
 
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
@@ -779,7 +789,7 @@ Ekorn's (principle 2). Its modules are its own, delivering parts:
 | `DBIx::Squirrel::Pipeline`, `::Pipes`, `::Stop`, `::Gather`, `::Stages::Flow`, `::Batch`, `::Taps` | facades over Ekorn's: subclasses, and re-exports | no subclasses; it keeps re-exporting Ekorn's functions as they are, for now (D31) |
 | `DBIx::Squirrel::Iterator` | statements' rows, through a pipeline of its own class | a Source (section 12.3), run in Ekorn's pipelines |
 | `DBIx::Squirrel::Stages::Rows` | `pluck`, `as_hash`, through Context | stages of its own, finding their columns with `run_context()` (section 12.7) |
-| `DBIx::Squirrel::Sinks` | (new) | `insert_into` (its 2026-0012), a Sink |
+| `DBIx::Squirrel::Sinks` | (new) | result sinks, collecting rows into its result objects, of its own design; `insert_into` (its 2026-0012) not planned |
 | `DBIx::Squirrel::Sugar` | databases, statements | as now, its statements' stages able to use Ekorn's names; no `pipeline` key |
 
 ## 12. DBIx::Squirrel: a user of Ekorn
@@ -829,7 +839,7 @@ knows which package made which part:
 
 ```perl
 my $names = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($sth->iterate);
-my $n     = $sth->iterate | stage { [$_->{id}, $_->{name}] } | insert_into($archive, 'people');
+my $one   = $sth->iterate(@binds) | pluck('name') | only_item;
 ```
 
 ### 12.3 Its iterator as a source
@@ -892,9 +902,12 @@ solves them on its own side, `result_original` from its source, as the
 row it fetched last, and `result_number` only where its own iterator
 runs the stages. Nothing is asked of Ekorn.
 
-### 12.4 A database as a sink
+### 12.4 A database as a sink: an example, not planned
 
-`insert_into($dbh, $table)`, in DBIx::Squirrel::Sinks (its 2026-0012):
+Not planned: DBIx-Squirrel dropped its 2026-0012 on 2026-11-12, at
+Iain's decision, for result sinks of its own design, collecting rows
+into its result objects. Kept as an example of a package's own sink,
+told how the run ended, as `insert_into($dbh, $table)` would be:
 its set-up prepares the INSERT and begins a transaction; its step
 executes it for each value; its result is how many rows went in; and
 its end, once the run has ended, commits if it's `done`, and rolls
@@ -1367,7 +1380,7 @@ The sources are named for what they take, `from_array`,
 reference, a filehandle or a path goes in, and the family reads as
 one. The `to_` sinks are their counterparts, named for where the values
 go, so a value read with one is written with the other. The other
-sinks are `first_value`, `any_value`, `joined` and the like: each
+sinks are `first_item`, `any_item`, `joined` and the like: each
 avoids a built-in (`join`, `each`, `keys`) or a List::Util
 function many import (`first`, `any`, `all`, `pairs`, `sum`,
 `reduce`). And nothing is exported by default, so a ready-made part
@@ -1669,6 +1682,33 @@ Weighed and set aside:
   `DOES('Ekorn::Pipeline::Role::Sink')`. Correct, but obscure, and
   every package would override `DOES` to say it.
 
+### 17.25 Sinks named for what they give, and containers
+
+(Section 8.3; Iain, 2026-11-12, 2026-0022's D50, from DBIx-Squirrel's
+design, where its iterator's `all`, `single` and `count` give way to
+sinks.) Two families: sinks named for what they give, `all_items`,
+`first_item`, `only_item`, `last_item`, `any_item`, `every_item`,
+`count` and the rest, "item" replacing "value"; and container sinks,
+named for where the items go, the `to_` sinks. `all_items` and
+`to_array` give the same, each named for its family. `only_item`
+warns at a second item, and stops, giving the first: for when one item
+was meant, and the caller forgot to limit it to one.
+
+Weighed and set aside:
+
+- **`to_scalar`, `to_array` and `to_arrayref` for those jobs,** as
+  DBIx-Squirrel first asked. "Wrongly named": a sink of one value is
+  named for what it gives, not for a container it isn't.
+- **`count` renamed `to_count`.** "That's what it is, not what we're
+  putting the result in."
+- **`only_item` croaking at a second.** A warning catches the forgotten
+  limit without failing a run that otherwise works.
+- **One of `all_items` and `to_array` dropped.** Each belongs to its
+  family; `to_array` is still a valid container sink.
+
+`all_items` shares its name with a check Test2::V0 exports, so a test
+file using both calls one by its full name.
+
 ## 18. Where each roadmap item lands
 
 | Item | Section | In this design |
@@ -1689,7 +1729,7 @@ Weighed and set aside:
 | DBIx-Squirrel 2026-0009, export `pipeline` | 12.6 | Ekorn's, re-exported as it is (D31) |
 | DBIx-Squirrel 2026-0010, Sugar's `pipeline` key | 12.5 | not needed: Ekorn's Sugar names pipelines its statements can use |
 | DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | not needed: its Sugar keeps its own |
-| DBIx-Squirrel 2026-0012, `insert_into` | 12.4 | needs Sink and ends |
+| DBIx-Squirrel 2026-0012, `insert_into` | 12.4 | dropped by DBIx-Squirrel; kept as an example |
 
 When the design is split into items, the proofs of section 19 go with
 them as tests, in the Done when of each item they rest on: the
@@ -1725,7 +1765,7 @@ It proves the ends of section 5, with nothing else in the run:
   last line has no newline gains one, as `to_file` writes `$/` after
   each record.
 - **Both files are closed, once each, however the run ends:** run
-  out, both are told `done`; with `first_value` as the sink, the
+  out, both are told `done`; with `first_item` as the sink, the
   source is told `stopped` after one record, and the sink `done`; when
   the sink dies on a record, both are told `died`, and the error is
   thrown again; when it can't be set up, such as when `b.txt` can't be
@@ -1769,7 +1809,7 @@ run, without the ends of either reaching the other:
 The least of each part they use: the lifecycle (section 5), with the
 role methods, the flushes and ends, and `DESTROY`; the Source and Sink
 classes, and the words `source`, `sink` and `stage`; `from_file`,
-`to_file`, `to_arrayref`, `count` and `first_value`; and `|` between a
+`to_file`, `to_arrayref`, `count` and `first_item`; and `|` between a
 source, a stage and a sink. Built in that order, as section 15 has
 it; the prototype has since taken in every settled decision, as
 IMPLEMENTATION.md says.
@@ -1860,7 +1900,9 @@ again when v0.3.0 is ready; designed in its own session:
 
 - **Its code:** its iterators offer `ekorn_source` (D44), with their columns as
   the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
-  `insert_into` is a sink with a flush and an end; its facades go or
+  its result sinks are sinks of its own design; its iterator's `all`,
+  `single` and `count` give way to Ekorn's `all_items`, `only_item`
+  and `count` (D50); its facades go or
   stay as plain re-exports, as it chooses (D31).
 - **Its docs:** its README, reference and how-to for the above, and
   for `|` from its statements.

@@ -63,7 +63,7 @@ use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
-use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_arrayref to_file);
+use Ekorn::Pipeline::Sinks   qw(count first_item to_array to_arrayref to_file);
 use Ekorn::Pipeline::Stages::Flow;    # take and drop
 use File::Temp qw(tempdir);
 
@@ -161,7 +161,7 @@ say from_arrayref(\@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count
   Operators (| @{})              Sources, Sinks                 Stages::Flow, ::Batch,
   in force where it's            ready-made parts               ::Taps: ready-made
   used: chains of sources        (from_file, to_file,           stages (take, batch,
-  and of stages                   count, first_value...)         peek...)
+  and of stages                   count, first_item...)         peek...)
        |                                 |                              |
        +--------------+------------------+                              |
                       |                                                 |
@@ -202,7 +202,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Sink`, `::Sink::Scalar`, `::Sink::List` | 1 | a sink made for each run, from a set-up, giving one value or a list |
 | `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink`, `sink_scalar`, `gather` |
 | `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
-| `Ekorn::Pipeline::Sinks` | 2 | `count`, `first_value`, `to_array`, `to_arrayref`, `to_file` |
+| `Ekorn::Pipeline::Sinks` | 2 | `all_items`, `first_item`, `only_item`, `count`; `to_array`, `to_arrayref`, `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
 | `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | `take`, `drop`, `take_while`, `drop_while`; `batch`, `collect`; `peek`, `count_into`, `dump_to` |
 
@@ -665,8 +665,10 @@ while (my($line) = $next->()) { say $line }
 
 | Sink | Role | Gives |
 |---|---|---|
+| `all_items` | list | every item, as a list |
+| `only_item` | scalar | the one item; `undef` if none; at a second, a warning, and the run stops, giving the first |
 | `count` | scalar | how many values there were |
-| `first_value` | scalar | the first value, stopping the run there; `undef` if there were none |
+| `first_item` | scalar | the first value, stopping the run there; `undef` if there were none |
 | `to_array` | list | every value, as a list |
 | `to_arrayref`, `to_arrayref(\@array)` | scalar | an array reference of every value: your array, filled, or a new one |
 | `to_file($path)` | scalar | writes each value, then `$/`, giving how many; opened as the run starts, closed as it ends |
@@ -1006,7 +1008,7 @@ valid, as v0.3.0 changes.
 
 | Subtest | Proves | Design |
 |---|---|---|
-| 19.1, six subtests | a source joined directly to a sink: the copy; the ends, the source's first; `first_value`'s stop; a sink that can't be set up, or dies; both forms agreeing | 19.1, 5.3, 5.4, D11 |
+| 19.1, six subtests | a source joined directly to a sink: the copy; the ends, the source's first; `first_item`'s stop; a sink that can't be set up, or dies; both forms agreeing | 19.1, 5.3, 5.4, D11 |
 | A sink commits only if the whole run went through | a stage dying after it; the source's end dying first; a pulled sink committing as its result is ready | D6, D11, D15 |
 | An end that dies | the warning naming it; the rest told `died` | 5.4, D27 |
 | How each part is told the run ended | `done` for input that ran out; a source that stops; ended from outside | 5.3, D16, D20, D22 |
@@ -1059,7 +1061,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
-| 8.3 | sinks | built: `count`, `first_value`, `to_array`, `to_arrayref`, `to_file`. Not built: `to_fh`, `to_hash`, `to_hashref`, `group_by`, `last_value`, `any_value`, `every_value`, `fold`, `joined`, `for_each` |
+| 8.3 | sinks, in two families (D50) | built: `all_items`, `first_item`, `only_item`, `count`, `to_array`, `to_arrayref`, `to_file`. Not built: `last_item`, `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh`, `to_hash`, `to_hashref` |
 | 9 | chains from a source or a stage (D14, D23); a list sink croaking at the end (D10); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
 | 10 | Sugar | not built |

@@ -13,8 +13,10 @@ use File::Temp qw(tempdir);
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Sink    qw();
-use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_arrayref to_file);
+use Ekorn::Pipeline::Sink  qw();
+use Ekorn::Pipeline::Sinks qw(
+    count       first_item only_item to_array
+    to_arrayref to_file);
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Stages::Flow;
 use Ekorn::Pipeline::Stop;
@@ -121,13 +123,13 @@ subtest '19.1 A source joined directly to a sink' => sub {
             ];
     };
 
-    subtest 'stopped by first_value: the source stopped, after one value' =>
+    subtest 'stopped by first_item: the source stopped, after one value' =>
         sub {
             @log = ();
-            my($first) = $class->new(first_value)->iterator(spy_source(1, 2, 3))->();
+            my($first) = $class->new(first_item)->iterator(spy_source(1, 2, 3))->();
             is $first, 1;
             is \@log,  ['source set-up', 'pull', 'source stopped'];
-            is spy_source(7, 8) | first_value, 7, 'and with |';
+            is spy_source(7, 8) | first_item, 7, 'and with |';
         };
 
     subtest "a sink that can't be set up: the source told died" => sub {
@@ -449,7 +451,7 @@ subtest 'A part called directly (D42, D43)' => sub {
     my $n = count->(1 .. 4);
     is $n,                 4,      'in scalar context too';
     is [to_array->(1, 2)], [1, 2], 'a list sink gives its list';
-    is first_value->(),    undef,  'and a scalar sink of nothing, undef';
+    is first_item->(),     undef,  'and a scalar sink of nothing, undef';
     @log = ();
     is [spy_sink->(5)], [5],                'so a sink is tested on its own';
     is \@log, ['sink set-up', 'sink done'], 'its end told how its run ended';
@@ -468,12 +470,12 @@ subtest 'A part called directly (D42, D43)' => sub {
 };
 
 subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
-    my $next = $class->new(first_value)->iterator(from_arrayref([1, 2, 3]));
+    my $next = $class->new(first_item)->iterator(from_arrayref([1, 2, 3]));
     is [$next->()],  [1];
     is $next->ended, undef, 'nothing until the iterator has given all it will';
     is [$next->()],  [];
     is $next->ended, 'stopped',
-        'first_value stopped the source: there were more';
+        'first_item stopped the source: there were more';
 
     $next
         = $class->new(take(2), sub { $_ })->iterator(from_arrayref([1, 2, 3]));
@@ -559,6 +561,24 @@ subtest 'Fixes from the fourth review' => sub {
     is $counting->(1, 2, 3), 3, "a sink's code reference outlives the sink";
 };
 
+# Test2::V0 exports a check named all_items, so the sink is called by
+# its full name here.
+subtest 'Sinks named for what they give (D50)' => sub {
+    is [Ekorn::Pipeline::Sinks::all_items()->(1, 2)], [1, 2],
+        'all_items gives every item, as a list';
+    is [Ekorn::Pipeline::Sinks::all_items()->(1, 2)], [to_array->(1, 2)],
+        'as the container sink to_array does';
+    is only_item->(7), 7,     'only_item gives the one item';
+    is only_item->(),  undef, 'or undef, given none';
+    my $first;
+    my $warnings = warnings { $first = only_item->(7, 8, 9) };
+    is $first,            7, 'given more, it gives the first';
+    is scalar @$warnings, 1, 'and warns, once';
+    like $warnings->[0], qr( \A Expected\ only\ one\ item )x;
+    is from_arrayref([9]) | only_item, 9, 'it ends a chain';
+    is first_item->(3, 4),             3, 'first_item gives the first';
+};
+
 subtest 'Sinks and context (D10, D17, D25)' => sub {
     like dies { from_arrayref([1, 2]) | to_array },
         qr( \A Expected\ a\ sink\ giving\ one\ value .* use\ to_arrayref )x,
@@ -575,10 +595,10 @@ subtest 'Sinks and context (D10, D17, D25)' => sub {
     $n = $class->new(sub { $_ * 2 })->(1 .. 10);
     is $n, 10, 'and otherwise how many came out, as in v0.2.0';
 
-    is [$class->new(first_value)->()], [undef],
+    is [$class->new(first_item)->()], [undef],
         'a scalar sink with no values gives one undef';
-    is from_arrayref([]) | first_value, undef, 'and so from a chain';
-    is $class->new(count)->(),          0,     'count of nothing is 0';
+    is from_arrayref([]) | first_item, undef, 'and so from a chain';
+    is $class->new(count)->(),         0,     'count of nothing is 0';
     is +(from_arrayref([1, 2]) | count) + 10, 12,
         'a chain in parentheses, in an expression';
     like dies { my $x = from_arrayref([1, 2]) | count + 10 },

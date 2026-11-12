@@ -2,6 +2,7 @@ use v5.36;
 
 package Ekorn::Pipeline::Sinks;
 
+use Carp                    qw();
 use Exporter                qw(import);
 use Ref::Util               qw(is_arrayref);
 use Ekorn::Pipeline::Errors qw(croakf);
@@ -9,7 +10,8 @@ use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK = qw(count first_value to_array to_arrayref to_file);
+our @EXPORT_OK
+    = qw(all_items count first_item only_item to_array to_arrayref to_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
@@ -27,9 +29,43 @@ sub count : prototype() () {
 }
 
 
-# Return a sink giving the first value, stopping the run there; undef if
+# The sinks named for what they give: all_items, first_item, only_item
+# and count. The container sinks, named for where the items go, are the
+# to_ sinks below.
+
+# Return a sink giving every item, as a list.
+sub all_items : prototype() () {
+    return Ekorn::Pipeline::Sink->new(sub {
+        my @all;
+        return (sub ($item) { push @all, $item }, sub () { @all });
+    });
+}
+
+
+# Return a sink giving the one item, asserting it's the only one: at a
+# second, it warns and stops the run, giving the first; undef if there
+# was none.
+sub only_item : prototype() () {
+    return Ekorn::Pipeline::Sink->new_scalar(sub {
+        my @only;
+        return (
+            sub ($item) {
+                if (@only) {
+                    Carp::carp 'Expected only one item, but there were more';
+                    Ekorn::Pipeline::Stop->throw;
+                }
+                @only = ($item);
+                return;
+            },
+            sub () { @only },
+        );
+    });
+}
+
+
+# Return a sink giving the first item, stopping the run there; undef if
 # there was none.
-sub first_value : prototype() () {
+sub first_item : prototype() () {
     return Ekorn::Pipeline::Sink->new_scalar(sub {
         my @first;
         return (

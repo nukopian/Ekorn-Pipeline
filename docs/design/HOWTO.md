@@ -157,9 +157,9 @@ reading a file or a database reads no further:
 
 ```perl
 use Ekorn::Pipeline::Sources qw(from_arrayref);
-use Ekorn::Pipeline::Sinks   qw(first_value);
+use Ekorn::Pipeline::Sinks   qw(first_item);
 
-my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, first_value)
+my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, first_item)
     ->iterator(from_arrayref(\@tracks))->();
 say $first_hit->{title};    # Dancing Queen: the rest aren't read
 ```

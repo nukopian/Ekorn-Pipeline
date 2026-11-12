@@ -120,7 +120,7 @@ my $n = Ekorn::Pipeline->new(take(5), count)->iterator($lines)->();
 
 A flush, a gather's or a sink's, is called once its input runs out
 normally: when the values ran out, after a stop in a stage before it,
-or, for a sink, when the sink stopped the run, as `first_value` does.
+or, for a sink, when the sink stopped the run, as `first_item` does.
 What it returns goes on through the stages after it, and while it
 runs, and they do, [`ending`](#ending) is true. A scalar sink's flush
 gives one value, `undef` if it has none. It isn't told how the run ended, as the
@@ -161,7 +161,7 @@ code reference, `$next->()`, as before.
 `$next->ended` says whether the source was read to its end: nothing
 until the iterator has given all it will, been finished or died; then
 `done` if it was, `stopped` if a stop anywhere, such as `take(5)`'s or
-`first_value`'s, or `finish`, cut the reading short, or `finish`
+`first_item`'s, or `finish`, cut the reading short, or `finish`
 dropped values still to be handed out, and `died` if anything died.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
@@ -373,32 +373,39 @@ while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
 ## Sinks: Ekorn::Pipeline::Sinks
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(count to_array first_value);
+use Ekorn::Pipeline::Sinks qw(count to_array first_item);
 ```
 
 Ready-made sinks, usually given last in a pipeline. Nothing is
-exported by default. Each `to_` sink is the counterpart of a `from_` source: what
-one reads, the other writes. The rest have names that can't clash with
-Perl's built-ins or List::Util's, which is why they're `first_value`
-and `joined`, not `first` and `join`.
+exported by default. They come in two families. Those named for what
+they give, an item being a value, have names that can't clash with
+Perl's built-ins or List::Util's, which is why they're `first_item`
+and `joined`, not `first` and `join`. The containers, named for where
+the items go, are the `to_` sinks, each the counterpart of a `from_`
+source: what one reads, the other writes.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `to_array` | every value, as a list | no |
-| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every value: your array, with each pushed onto it, or a new one | no |
-| `to_fh($fh)` | prints each value to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
-| `to_file($path)` | writes each value to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
+| `all_items` | every item, as a list | no |
+| `first_item` | the first item, or `undef` if none | yes |
+| `only_item` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
+| `last_item` | the last item | no |
+| `any_item(sub {...})` | true at the first item the sub is true of, or false | yes, when true |
+| `every_item(sub {...})` | false at the first item the sub is false of, or true | yes, when false |
+| `count` | how many items there were | no |
+| `fold($init, sub {...})` | a running total of any kind, from `$init` | no |
+| `joined($separator)` | the items joined into one string | no |
+| `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
+| `for_each(sub {...})` | calls the sub with each item, and gives how many | no |
+| `to_array` | every item, as a list, as `all_items` gives | no |
+| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every item: your array, with each pushed onto it, or a new one | no |
+| `to_fh($fh)` | prints each item to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
+| `to_file($path)` | writes each item to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
 | `to_hash` | every pair's key and value, as a list to assign to a hash | no |
 | `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one | no |
-| `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
-| `count` | how many values there were | no |
-| `first_value` | the first value | yes |
-| `last_value` | the last value | no |
-| `any_value(sub {...})` | true at the first value the sub is true of, or false | yes, when true |
-| `every_value(sub {...})` | false at the first value the sub is false of, or true | yes, when false |
-| `fold($init, sub {...})` | a running total of any kind, from `$init` | no |
-| `joined($separator)` | the values joined into one string | no |
-| `for_each(sub {...})` | calls the sub with each value, and gives how many | no |
+
+`all_items` shares its name with a check Test2::V0 exports: in a test
+using both, call one by its full name.
 
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
@@ -421,7 +428,7 @@ had enough. The source and the stages before it are told `stopped`.
 
 ```perl
 say Ekorn::Pipeline->new(count)->(1 .. 10);                          # 10
-say Ekorn::Pipeline->new(first_value)->iterator(counter(1, 1))->();  # 1, then stops
+say Ekorn::Pipeline->new(first_item)->iterator(counter(1, 1))->();  # 1, then stops
 ```
 
 ## Operators: Ekorn::Pipeline::Operators
