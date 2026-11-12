@@ -9,7 +9,7 @@ use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK = qw(all_items count_items first_item single_item to_file);
+our @EXPORT_OK = qw(keep_all count_items keep_first keep_single to_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
@@ -27,12 +27,12 @@ sub count_items : prototype() () {
 }
 
 
-# The sinks named for what they give: all_items, first_item, single_item
+# The sinks named for what they give: keep_all, keep_first, keep_single
 # and count_items. The container sink, named for where the items go, is
 # to_file, below.
 
 # Return a sink giving every item, as a list.
-sub all_items : prototype() () {
+sub keep_all : prototype() () {
     return Ekorn::Pipeline::Sink->new(sub {
         my @all;
         return (sub ($item) { push @all, $item }, sub () { @all });
@@ -43,7 +43,7 @@ sub all_items : prototype() () {
 # Return a sink giving the one item, asserting it's the only one: at a
 # second, it warns and stops the run, giving the first; undef if there
 # was none.
-sub single_item : prototype() () {
+sub keep_single : prototype() () {
     return Ekorn::Pipeline::Sink->new_scalar(sub {
         my @only;
         return (
@@ -63,7 +63,7 @@ sub single_item : prototype() () {
 
 # Return a sink giving the first item, stopping the run there; undef if
 # there was none.
-sub first_item : prototype() () {
+sub keep_first : prototype() () {
     return Ekorn::Pipeline::Sink->new_scalar(sub {
         my @first;
         return (

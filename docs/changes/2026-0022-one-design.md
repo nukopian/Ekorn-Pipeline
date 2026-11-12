@@ -48,7 +48,9 @@ gives its list as an array reference, revising D10 and D47. D52
 settled: `@{}` stays, explained in detail, and the docs lead with a
 sink. D53 settled: `count` renamed `count_items`, and `only_item`
 `single_item`, revising D50's names. D54 settled: no containers for
-arrays and hashes; `to_fh` and `to_file` stay.
+arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
+`all_items`, `first_item` and `single_item` renamed `keep_all`,
+`keep_first` and `keep_single`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -513,6 +515,15 @@ D19 to D25 came from the third cold review, settled by Iain on
   `to_arrayref` removed from Sinks, the tests using `all_items` in
   their place, with Test2::V0's check of that name left out. Design
   8.3, 17.12, 17.25, 17.26, 19 and the new 17.29.
+- [x] **D55.** Are `all_items`, `first_item` and `single_item` named
+  well? They're `keep_all`, `keep_first` and `keep_single`, Iain
+  decided on 2026-11-12, nothing else about them changing. Each name
+  says what the sink keeps of what reaches it, which is what it gives.
+  `keep_all` no longer clashes with Test2::V0's `all_items` check, so
+  the tests import Test2::V0 plainly again, and the advice to leave
+  the check out goes. `count_items` keeps its name; `last_item`, not
+  built, is still to be named. Unreleased. Built: renamed in Sinks,
+  with its tests. Design 8.3 and the new 17.30; the names throughout.
 
 ## The plan
 

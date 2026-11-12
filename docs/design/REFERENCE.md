@@ -121,7 +121,7 @@ my $n = Ekorn::Pipeline->new(take(5), count_items)->iterator($lines)->();
 
 A flush, a gather's or a sink's, is called once its input runs out
 normally: when the values ran out, after a stop in a stage before it,
-or, for a sink, when the sink stopped the run, as `first_item` does.
+or, for a sink, when the sink stopped the run, as `keep_first` does.
 What it returns goes on through the stages after it, and while it
 runs, and they do, [`ending`](#ending) is true. A scalar sink's flush
 gives one value, `undef` if it has none. It isn't told how the run ended, as the
@@ -162,7 +162,7 @@ code reference, `$next->()`, as before.
 `$next->ended` says whether the source was read to its end: nothing
 until the iterator has given all it will, been finished or died; then
 `done` if it was, `stopped` if a stop anywhere, such as `take(5)`'s or
-`first_item`'s, or `finish`, cut the reading short, or `finish`
+`keep_first`'s, or `finish`, cut the reading short, or `finish`
 dropped values still to be handed out, and `died` if anything died.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
@@ -375,22 +375,22 @@ while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
 ## Sinks: Ekorn::Pipeline::Sinks
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(all_items count_items first_item);
+use Ekorn::Pipeline::Sinks qw(keep_all count_items keep_first);
 ```
 
 Ready-made sinks, usually given last in a pipeline. Nothing is
 exported by default. They come in two families. Those named for what
 they give, an item being a value, have names that can't clash with
-Perl's built-ins or List::Util's, which is why they're `first_item`
+Perl's built-ins or List::Util's, which is why they're `keep_first`
 and `joined`, not `first` and `join`. The containers, named for where
 the items go, are the `to_` sinks, each the counterpart of a `from_`
 source: what one reads, the other writes.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `all_items` | every item, as a list | no |
-| `first_item` | the first item, or `undef` if none | yes |
-| `single_item` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
+| `keep_all` | every item, as a list | no |
+| `keep_first` | the first item, or `undef` if none | yes |
+| `keep_single` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
 | `last_item` | the last item | no |
 | `any_item(sub {...})` | true at the first item the sub is true of, or false | yes, when true |
 | `every_item(sub {...})` | false at the first item the sub is false of, or true | yes, when false |
@@ -407,15 +407,12 @@ a sink giving a list gives it as an array reference; for how many,
 use `count_items`:
 
 ```perl
-my @titles = $pipeline->(@books);    # with all_items last: every title
+my @titles = $pipeline->(@books);    # with keep_all last: every title
 my $titles = $pipeline->(@books);    # every title, as an array reference
 ```
 
 An array reference is true even when it's empty, so test for no items
 with `@$titles`, or use `count_items`.
-
-`all_items` shares its name with a check Test2::V0 exports: in a test
-using the sink, leave the check out, with `use Test2::V0 qw(!all_items)`.
 
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
@@ -425,8 +422,8 @@ the other:
 my $copied = Ekorn::Pipeline->new(to_file('copy.txt'))->iterator(from_file('original.txt'))->();
 ```
 
-There's no sink for an array or a hash: `all_items` gives every item,
-and `push @mine, @{ $source | all_items }` adds them to your array. A
+There's no sink for an array or a hash: `keep_all` gives every item,
+and `push @mine, @{ $source | keep_all }` adds them to your array. A
 hash is assigned from a list of keys and values, so to key values by
 something of their own, give each one's key and value from a stage:
 
@@ -439,7 +436,7 @@ had enough. The source and the stages before it are told `stopped`.
 
 ```perl
 say Ekorn::Pipeline->new(count_items)->(1 .. 10);                          # 10
-say Ekorn::Pipeline->new(first_item)->iterator(counter(1, 1))->();  # 1, then stops
+say Ekorn::Pipeline->new(keep_first)->iterator(counter(1, 1))->();  # 1, then stops
 ```
 
 ## Operators: Ekorn::Pipeline::Operators
@@ -483,17 +480,17 @@ expression in parentheses.
 
 An operator gives one scalar, so a chain ending in a sink gives one
 value: a scalar sink's, such as `count_items`'s, or a list sink's list, such
-as `all_items`'s, as an array reference. Nothing can be chained after
+as `keep_all`'s, as an array reference. Nothing can be chained after
 a sink: a chain ending in one has already run, and gives its result.
 
 ```perl
 my $n      = $source | count_items;                  # a number
-my $titles = $source | all_items;              # an array reference
-my @titles = @{ $source | all_items };         # a list
+my $titles = $source | keep_all;              # an array reference
+my @titles = @{ $source | keep_all };         # a list
 ```
 
 As `|` gives one value, a list assignment from a chain gets one
-element: `my @titles = $source | all_items` is the array reference
+element: `my @titles = $source | keep_all` is the array reference
 alone. Dereference it, as above.
 
 Keep a chain's result, even one run for what its sink does:
@@ -520,24 +517,24 @@ reference to it. So:
 - **Only a source has it.** On a stage, or a chain of stages, Perl
   says "Not an ARRAY reference"; a chain ending in a sink is already
   its result, so `@{ $source | count_items }` dereferences a number.
-- **`@{ $source | all_items }` is Perl's own dereference,** of the
+- **`@{ $source | keep_all }` is Perl's own dereference,** of the
   array reference the sink gave.
 
 What to write, by what's wanted:
 
 | Wanted | Write | Rather than |
 |---|---|---|
-| every value, as a reference | `my $all = $source \| all_items` | `my @all = $source \| all_items`, one element |
-| every value, as a list | `my @all = @{ $source \| all_items }`, or `@{$source}` | |
-| the first value | `$source \| first_item`, reading one | `$source->[0]`, reading them all |
+| every value, as a reference | `my $all = $source \| keep_all` | `my @all = $source \| keep_all`, one element |
+| every value, as a list | `my @all = @{ $source \| keep_all }`, or `@{$source}` | |
+| the first value | `$source \| keep_first`, reading one | `$source->[0]`, reading them all |
 | how many | `$source \| count_items` | `scalar @$source`, keeping every value to count them |
-| the first few | `$source \| take(5) \| all_items` | `(@$source)[0 .. 4]`, reading them all |
-| every value, added to your array | `push @mine, @{ $source \| all_items }` | |
+| the first few | `$source \| take(5) \| keep_all` | `(@$source)[0 .. 4]`, reading them all |
+| every value, added to your array | `push @mine, @{ $source \| keep_all }` | |
 | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |
 
 ```perl
 my @all   = @{$source};                                      # every value
-my $first = $source | first_item;                            # the first, reading only one
+my $first = $source | keep_first;                            # the first, reading only one
 my $next  = Ekorn::Pipeline->new->iterator($source);
 while (my ($value) = $next->()) { say $value }               # each, as it comes
 ```

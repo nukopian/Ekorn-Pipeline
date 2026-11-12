@@ -63,7 +63,7 @@ use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
-use Ekorn::Pipeline::Sinks   qw(all_items count_items first_item to_file);
+use Ekorn::Pipeline::Sinks   qw(keep_all count_items keep_first to_file);
 use Ekorn::Pipeline::Stages::Flow;    # take and drop
 use File::Temp qw(tempdir);
 
@@ -161,7 +161,7 @@ say from_arrayref(\@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count
   Operators (| @{})              Sources, Sinks                 Stages::Flow, ::Batch,
   in force where it's            ready-made parts               ::Taps: ready-made
   used: chains of sources        (from_file, to_file,           stages (take, batch,
-  and of stages                   count_items, first_item...)         peek...)
+  and of stages                   count_items, keep_first...)         peek...)
        |                                 |                              |
        +--------------+------------------+                              |
                       |                                                 |
@@ -202,7 +202,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Sink`, `::Sink::Scalar`, `::Sink::List` | 1 | a sink made for each run, from a set-up, giving one value or a list |
 | `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink`, `sink_scalar`, `gather` |
 | `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
-| `Ekorn::Pipeline::Sinks` | 2 | `all_items`, `first_item`, `single_item`, `count_items`; `to_file` |
+| `Ekorn::Pipeline::Sinks` | 2 | `keep_all`, `keep_first`, `keep_single`, `count_items`; `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
 | `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | `take`, `drop`, `take_while`, `drop_while`; `batch`, `collect`; `peek`, `count_into`, `dump_to` |
 
@@ -452,7 +452,7 @@ waiting for `take` as it stopped, and `take`, cut short, would be
   handed out, so a sink committing on `done` commits then:
 
 ```perl
-my $next = Ekorn::Pipeline->new(all_items)->iterator(noisy(qw(a b c)));
+my $next = Ekorn::Pipeline->new(keep_all)->iterator(noisy(qw(a b c)));
 say $next->();
 say $next->();
 # source: done
@@ -610,11 +610,11 @@ say "saved: @saved";                                                        # sa
 ```
 
 A sink can go anywhere: its result goes on through the stages after
-it. `all_items` passes on what it holds, once it has it all, and
+it. `keep_all` passes on what it holds, once it has it all, and
 `count_items` one number:
 
 ```perl
-say join ', ', Ekorn::Pipeline->new(all_items, stage {uc})->(qw(a b));    # A, B
+say join ', ', Ekorn::Pipeline->new(keep_all, stage {uc})->(qw(a b));    # A, B
 say Ekorn::Pipeline->new(count_items, sub {"$_ tracks"})->(@tracks);            # 6 tracks
 ```
 
@@ -631,7 +631,7 @@ be ended:
 
 ```perl
 say count_items->(1, 2, 3);                      # 3
-say join ', ', all_items->(qw(a b));       # a, b
+say join ', ', keep_all->(qw(a b));       # a, b
 eval { from_arrayref([1])->() };
 print $@ =~ s( \ at\ \S+\ line\ \d+ )( at LINE)xr;
 # Expected a source to be read through iterator at LINE.
@@ -666,10 +666,10 @@ while (my($line) = $next->()) { say $line }
 
 | Sink | Role | Gives |
 |---|---|---|
-| `all_items` | list | every item, as a list |
-| `single_item` | scalar | the one item; `undef` if none; at a second, a warning, and the run stops, giving the first |
+| `keep_all` | list | every item, as a list |
+| `keep_single` | scalar | the one item; `undef` if none; at a second, a warning, and the run stops, giving the first |
 | `count_items` | scalar | how many values there were |
-| `first_item` | scalar | the first value, stopping the run there; `undef` if there were none |
+| `keep_first` | scalar | the first value, stopping the run there; `undef` if there were none |
 | `to_file($path)` | scalar | writes each value, then `$/`, giving how many; opened as the run starts, closed as it ends |
 
 The sinks taking no arguments have an empty prototype, so `count_items + 0`
@@ -707,7 +707,7 @@ gives Ekorn's sources `|` and `@{}`, and its stages, gathers and sinks
 ```perl
 my $titles = from_arrayref(\@tracks) | stage { $_->{title} };
 say $titles | count_items;                                        # 6
-say join ', ', @{ $titles | take(2) | all_items };          # Dancing Queen, Knowing Me, Knowing You
+say join ', ', @{ $titles | take(2) | keep_all };          # Dancing Queen, Knowing Me, Knowing You
 
 my $clean = stage { s( \A \s+ | \s+ \z )()xgr } | stage {uc};
 say join ',', $clean->(' a ', 'b ');                        # A,B
@@ -715,7 +715,7 @@ say join ',', @{ from_arrayref([' c']) | $clean };          # C
 ```
 
 In the first `@{...}`, the braces are Perl's own, dereferencing the
-array reference `all_items` gave (D51). In the last, they're `drain`:
+array reference `keep_all` gave (D51). In the last, they're `drain`:
 `@{}` on a source, a chain from one included, calls it, and it makes
 an iterator of the source, an empty pipeline's, collects every value
 into a new array, and returns a reference to it for Perl to
@@ -748,7 +748,7 @@ the inner one ends in a sink, it gives the sink's result, and, nothing
 following the sink, its run ends as the result is ready:
 
 ```perl
-my $lines = Ekorn::Pipeline->new(stage {uc}, all_items)->iterator(noisy(qw(a b c)));
+my $lines = Ekorn::Pipeline->new(stage {uc}, keep_all)->iterator(noisy(qw(a b c)));
 my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
 while (my($line) = $next->()) { say $line }
 # source: done
@@ -906,7 +906,7 @@ package My::Rows {
 
 ```perl
 my $people = My::Rows->new([qw(id name)], [1, 'Ann'], [2, 'Bo'], [3, 'Cy']);
-say join ', ', @{ $people | My::Rows::column('name') | take(2) | all_items };
+say join ', ', @{ $people | My::Rows::column('name') | take(2) | keep_all };
 say scalar @{$people};
 # rows: stopped
 # Ann, Bo
@@ -1017,7 +1017,7 @@ valid, as v0.3.0 changes.
 
 | Subtest | Proves | Design |
 |---|---|---|
-| 19.1, six subtests | a source joined directly to a sink: the copy; the ends, the source's first; `first_item`'s stop; a sink that can't be set up, or dies; both forms agreeing | 19.1, 5.3, 5.4, D11 |
+| 19.1, six subtests | a source joined directly to a sink: the copy; the ends, the source's first; `keep_first`'s stop; a sink that can't be set up, or dies; both forms agreeing | 19.1, 5.3, 5.4, D11 |
 | A sink commits only if the whole run went through | a stage dying after it; the source's end dying first; a pulled sink committing as its result is ready | D6, D11, D15 |
 | An end that dies | the warning naming it; the rest told `died` | 5.4, D27 |
 | How each part is told the run ended | `done` for input that ran out; a source that stops; ended from outside | 5.3, D16, D20, D22 |
@@ -1070,7 +1070,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
-| 8.3 | sinks, in two families (D50, D53, D54) | built: `all_items`, `first_item`, `single_item`, `count_items`, `to_file`. Not built: `last_item`, `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh` |
+| 8.3 | sinks, in two families (D50, D53, D54, D55) | built: `keep_all`, `keep_first`, `keep_single`, `count_items`, `to_file`. Not built: `last_item`, `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh` |
 | 9 | chains from a source or a stage (D14, D23); a list sink at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
 | 10 | Sugar | not built |

@@ -184,7 +184,7 @@ How they relate:
   the sink's result, so it can feed another pipeline:
 
   ```perl
-  my $artists = Ekorn::Pipeline->new(stage { $_->{artist} }, all_items)
+  my $artists = Ekorn::Pipeline->new(stage { $_->{artist} }, keep_all)
       ->iterator(from_arrayref(\@tracks));
   my $next = Ekorn::Pipeline->new(take(2))->iterator($artists);
   ```
@@ -205,7 +205,7 @@ How they relate:
   what the run gives: pushed values in, the result out; or, pulled
   from a source, an iterator that hands out the result. Anywhere else,
   its result goes on through the stages after it, as a gather's does:
-  `all_items` there passes on the same values, once it has them all,
+  `keep_all` there passes on the same values, once it has them all,
   and `count_items` passes on one number. Nothing has to follow a sink, and
   nothing is forbidden to.
 - **A stop** ends the run from inside a stage; the values it carries
@@ -220,7 +220,7 @@ A pipeline runs two ways (settled):
   context it gives what its last stage says, if that's a sink: a
   scalar sink's result, so `my $n = $p->(@values)` with `count_items` last is
   the count (2026-0022's D17); or a list sink's list, as an array
-  reference, so with `all_items` last it's every item (D51). Otherwise
+  reference, so with `keep_all` last it's every item (D51). Otherwise
   it gives how many came out, as in v0.2.0. So a sink given last says
   what comes back, whatever the context, and counting is `count_items`'s job.
   A sink giving one value says so, with `sink_scalar`: one written with
@@ -245,7 +245,7 @@ wrapping anything of it (principles 2 and 3; the list settled by D5 to D7, D25 a
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
 | **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `ekorn_source`, to be read from, returning its step, and, optionally, its end and a context; `ekorn_stage`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `ekorn_sink_scalar` or `ekorn_sink`, at most one of them, returning its step, its flush, and, optionally, an end. A stage and a sink go in the same place, so an object offers at most one of `ekorn_stage`, `ekorn_sink_scalar` and `ekorn_sink`, which is checked when the pipeline is made; `ekorn_source` can go with any of them (D19). The role it's given in decides which is called, so one object can be read from and written to. A code reference offers none, and takes the role it's given in, with no flush or end |
-| **Sink** | an object with `ekorn_sink_scalar`, its result one value, or `ekorn_sink`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `first_item` with no values (D25) (sections 5.4, 9) |
+| **Sink** | an object with `ekorn_sink_scalar`, its result one value, or `ekorn_sink`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `keep_first` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
 | **A run's context** | the third value `ekorn_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (D46) |
@@ -377,7 +377,7 @@ and a flush, so it keeps its shape.
 
 **A flush** (D6, D12) is called once its part's input runs out
 normally: the values ran out, a stop came in a stage before it, or,
-for a sink, the sink stopped the run itself, as `first_item` does
+for a sink, the sink stopped the run itself, as `keep_first` does
 (D16). A gather that stops the run isn't flushed, as in v0.2.0. What a
 flush returns goes on through the stages after it, and `ending()` is
 true while it runs and while its values go on. It isn't called if the
@@ -447,7 +447,7 @@ other objects then.
 been finished or died, so it's said once, and doesn't change. Then it
 says whether the source was read to its end: `done` if it was;
 `stopped` if the reading was cut short, by a stop anywhere, such as
-`take(5)`'s or `first_item`'s, or from outside, or if `finish`
+`take(5)`'s or `keep_first`'s, or from outside, or if `finish`
 dropped values still to be handed out; and `died` if anything in the
 run died, an end included. So it answers "were there more values than
 I got?", which the values alone don't show. A `take(2)` over exactly
@@ -621,9 +621,9 @@ reads, the other writes. Nothing exported by default.
 
 | Sink | Gives | Role | Stops the pull early? |
 |---|---|---|---|
-| `all_items` | every item, as a list | list | no |
-| `first_item` | the first item; `undef` if none | scalar | yes |
-| `single_item` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | scalar | at a second |
+| `keep_all` | every item, as a list | list | no |
+| `keep_first` | the first item; `undef` if none | scalar | yes |
+| `keep_single` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | scalar | at a second |
 | `last_item` | the last item | scalar | no |
 | `any_item(sub {...})` | true at the first item the sub is true of | scalar | yes |
 | `every_item(sub {...})` | false at the first item the sub is false of | scalar | yes |
@@ -643,9 +643,9 @@ reads, the other writes. Nothing exported by default.
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
 the other. There are no containers for arrays and hashes (D54):
-`all_items` gives every item, and a hash is assigned from a list of
+`keep_all` gives every item, and a hash is assigned from a list of
 keys and values, which a stage can give, `stage { ($_->{id}, $_) }`,
-with `all_items` last: `my %by_id = @{ $src | stage { ($_->{id}, $_) } | all_items }`.
+with `keep_all` last: `my %by_id = @{ $src | stage { ($_->{id}, $_) } | keep_all }`.
 
 A sink that stops early is told `done`, as the stage that decided the
 run had enough; the source and stages before it are told `stopped`.
@@ -663,7 +663,7 @@ to right; other syntax may be explored beside it (2026-0022's D18).
 my $clean = $trim | $lowercase | $dedupe;               # Stage | Stage: a chain of stages
 my $names = $src | take(10) | stage { $_->{name} };    # Source | Stage: a source
 my $n     = $src | stage { $_->{name} } | count_items;       # Source | ... | Sink: the result
-my $names = $src | take(10) | all_items;                # ... | list sink: every item, as an array reference
+my $names = $src | take(10) | keep_all;                # ... | list sink: every item, as an array reference
 my @names = @{ $src | take(10) };                       # @{}: every item, read through, with no sink
 ```
 
@@ -702,9 +702,9 @@ my @names = @{ $src | take(10) };                       # @{}: every item, read 
 - **An operator returns one scalar,** so a chain ending in a sink
   gives one value, as a run asked for one value in scalar context does
   (D51): a scalar sink's result, or a list sink's list as an array
-  reference, so `$rows | all_items` is every row. So a list assignment from a
-  chain gets one element, the reference: `my @rows = $src | all_items`
-  is a trap, and `my @rows = @{ $src | all_items }` what was meant.
+  reference, so `$rows | keep_all` is every row. So a list assignment from a
+  chain gets one element, the reference: `my @rows = $src | keep_all`
+  is a trap, and `my @rows = @{ $src | keep_all }` what was meant.
 - **`@{}` reads a source through, with no sink** (D52). It looks like
   a dereference, but a source holds no array to dereference. Perl lets
   a class say what `@{ $object }` means, with a function that returns
@@ -723,7 +723,7 @@ my @names = @{ $src | take(10) };                       # @{}: every item, read 
     nothing to read, and Perl says "Not an ARRAY reference"; and a
     chain ending in a sink has already given its result, so
     `@{ $src | count_items }` dereferences a number;
-  - **in `@{ $src | all_items }`, the braces are Perl's own,**
+  - **in `@{ $src | keep_all }`, the braces are Perl's own,**
     dereferencing the array reference the sink gave, not `drain`.
 
   It stays as the shortest way to say "every value", but the docs
@@ -732,12 +732,12 @@ my @names = @{ $src | take(10) };                       # @{}: every item, read 
 
   | Wanted | Write | Rather than |
   |---|---|---|
-  | every item, as a reference | `my $all = $src \| all_items` | `my @all = $src \| all_items`, one element, the reference |
-  | every item, as a list | `my @all = @{ $src \| all_items }`, or `@{$src}` | |
-  | the first item | `$src \| first_item`, reading one | `$src->[0]`, reading them all |
+  | every item, as a reference | `my $all = $src \| keep_all` | `my @all = $src \| keep_all`, one element, the reference |
+  | every item, as a list | `my @all = @{ $src \| keep_all }`, or `@{$src}` | |
+  | the first item | `$src \| keep_first`, reading one | `$src->[0]`, reading them all |
   | how many | `$src \| count_items` | `scalar @$src`, keeping every value to count them |
-  | the first few | `$src \| take(5) \| all_items` | `(@$src)[0 .. 4]`, reading them all |
-  | every item, added to your array | `push @mine, @{ $src \| all_items }` | |
+  | the first few | `$src \| take(5) \| keep_all` | `(@$src)[0 .. 4]`, reading them all |
+  | every item, added to your array | `push @mine, @{ $src \| keep_all }` | |
   | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($src)`, then `while (my ($item) = $next->()) {...}` | `for (@$src) {...}`, reading them all first |
 - **Keep a chain's result,** even when the chain is run for what its
   sink does, such as `to_file`: `my $copied = $src | to_file($path)`.
@@ -880,7 +880,7 @@ knows which package made which part:
 
 ```perl
 my $names = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($sth->iterate);
-my $one   = $sth->iterate(@binds) | pluck('name') | single_item;
+my $one   = $sth->iterate(@binds) | pluck('name') | keep_single;
 ```
 
 ### 12.3 Its iterator as a source
@@ -922,7 +922,7 @@ it, the design is revisited:
 - **What follows:** `next`, `all`, `reset`, `single` and `count` are
   rebuilt over the same source; `|` and `@{}` come from overloading
   with Operators' `chain` and `drain`, so `$sth->iterate(@binds) |
-  pluck('name') | take(5) | all_items` reads as it should; Context
+  pluck('name') | take(5) | keep_all` reads as it should; Context
   becomes a thin layer over `run_context()` and `ending()`; and
   providing the source loads nothing of Ekorn's, only running its own
   stages does. Its overloads of `|` and `@{}` name Operators'
@@ -1380,7 +1380,7 @@ Weighed and set aside:
 - **A sink must be last,** with an error for a sink given anywhere
   else, and no stages, or `|`, after it. A sink's result is values,
   and the stages after it can take them as they take any others:
-  `all_items` passes on what it holds, `count_items` one number. A rule
+  `keep_all` passes on what it holds, `count_items` one number. A rule
   would forbid that for nothing, and need an error, and a check
   wherever pipelines are spliced or names expanded. `|` can't follow a
   sink anyway, for its own reason (section 9).
@@ -1424,7 +1424,7 @@ reference, a filehandle or a path goes in, and the family reads as
 one. The `to_` sinks, `to_fh` and `to_file`, are their counterparts
 for a filehandle and a file, named for where the values go, so a value
 read with one is written with the other. The other
-sinks are `first_item`, `any_item`, `joined` and the like: each
+sinks are `keep_first`, `any_item`, `joined` and the like: each
 avoids a built-in (`join`, `each`, `keys`) or a List::Util
 function many import (`first`, `any`, `all`, `pairs`, `sum`,
 `reduce`). And nothing is exported by default, so a ready-made part
@@ -1439,7 +1439,7 @@ Weighed and set aside:
   for what they take.
 - **`into(\@array)`,** for pushing onto your array. `to_arrayref`
   said the same, and paired with `from_arrayref`, until D54 dropped
-  it: `push @mine, @{ $src | all_items }` does it.
+  it: `push @mine, @{ $src | keep_all }` does it.
 - **`to_array` croaking at the end of `|`,** as D10 first settled,
   because its name would say a list and the result be a reference.
   D51 revised it: every list sink, asked for one value, gives its list
@@ -1448,7 +1448,7 @@ Weighed and set aside:
 - **`to_hash(sub {...})`, keying each value by what a sub gives.** It
   wouldn't be the counterpart of `from_hash`, which gives pairs.
   Since D54 there's no `to_hash` either: a stage giving a key and a
-  value, then `all_items`, makes the list a hash is assigned from.
+  value, then `keep_all`, makes the list a hash is assigned from.
 
 ### 17.13 Ekorn's types are Elements
 
@@ -1733,11 +1733,13 @@ Weighed and set aside:
 
 (Section 8.3; Iain, 2026-11-12, 2026-0022's D50, from DBIx-Squirrel's
 design, where its iterator's `all`, `single` and `count` give way to
-sinks.) Two families: sinks named for what they give, `all_items`,
-`first_item`, `single_item`, `last_item`, `any_item`, `every_item`,
-`count_items` and the rest, "item" replacing "value"; and container sinks,
+sinks.) Two families: sinks named for what they give, `keep_all`,
+`keep_first`, `keep_single`, `last_item`, `any_item`, `every_item`,
+`count_items` and the rest, "item" replacing "value" (D55 since
+renamed three, as `keep_all`, `keep_first` and `keep_single`, 17.30);
+and container sinks,
 named for where the items go, the `to_` sinks, now `to_fh` and
-`to_file` (D54, 17.29). `single_item`
+`to_file` (D54, 17.29). `keep_single`
 warns at a second item, and stops, giving the first: for when one item
 was meant, and the caller forgot to limit it to one.
 D53 renamed two of them, `count` to `count_items` and `only_item` to
@@ -1750,16 +1752,15 @@ Weighed and set aside:
   named for what it gives, not for a container it isn't.
 - **`to_count`, for counting.** "That's what it is, not what we're
   putting the result in."
-- **`single_item` croaking at a second.** A warning catches the forgotten
+- **`keep_single` croaking at a second.** A warning catches the forgotten
   limit without failing a run that otherwise works.
 
-`all_items` shares its name with a check Test2::V0 exports, so a test
-file using the sink leaves the check out: `use Test2::V0
-qw(!all_items)`. **`every_item` in place of
-`all_items`,** which would avoid that, was weighed and set aside:
+**`every_item` in place of `all_items`,** which would have avoided a
+clash with a check Test2::V0 exports, was weighed and set aside:
 `every_item(sub {...})` is the test paired with `any_item`, as
 List::Util has `any` and `all`; "all" is the items together, "every"
-each in turn; and the clash is "only a problem in test harness".
+each in turn; and the clash was "only a problem in test harness".
+`keep_all` (D55) has none.
 
 ### 17.26 A list sink asked for one value gives a reference
 
@@ -1767,7 +1768,7 @@ each in turn; and the clash is "only a problem in test harness".
 DBIx-Squirrel's design, its Q22.) A sink given last says what comes
 back, whatever the context. In scalar context, and at the end of a
 `|` chain, which asks for one value too, a list sink gives its list
-as an array reference: `my $rows = $p->(@values)` with `all_items`
+as an array reference: `my $rows = $p->(@values)` with `keep_all`
 last is every item, not how many. Counting is `count_items`'s job. A
 pipeline with no sink still gives how many came out, as in v0.2.0
 (D17). This revises D47, under which a list sink gave its count, and
@@ -1780,7 +1781,7 @@ array reference always is, so testing for none takes `@$rows`, or
 Weighed and set aside:
 
 - **A list sink giving its count,** as D47 had it, as Perl's lists
-  do. A quiet trap: `my $rows = ... all_items` gave a number.
+  do. A quiet trap: `my $rows = ... keep_all` gave a number.
 - **`to_array` alone still croaking at the end of `|`,** as D10 had
   it, its name saying a list. Every list sink is asked for one value
   the same way, and an exception for one sink is a surprise of its
@@ -1803,7 +1804,7 @@ an array that isn't there, so the docs explain it in detail, as
 section 9 does: what Perl's overloading of `@{}` is, that each use is
 a run of its own, reading the source to its end, and what that costs
 in `$src->[0]`, `scalar @$src` and `for (@$src)`. And they lead with a
-chain ending in a sink, `| all_items`, `| first_item`, `| count_items`,
+chain ending in a sink, `| keep_all`, `| keep_first`, `| count_items`,
 showing the alternatives by what's wanted, as DBIx-Squirrel's design
 now does, so the two read alike.
 
@@ -1813,7 +1814,7 @@ Weighed and set aside:
   part of the protocol, a package's own source class overloading it
   with `drain`; explained, it's not a trap.
 - **A `drain` sink, so a chain could end `| drain`,** as Iain asked
-  after. `all_items` is that sink, named for what it gives; `drain` is
+  after. `keep_all` is that sink, named for what it gives; `drain` is
   the overload's function, which takes the chain, and isn't exported.
 
 Found writing it: a chain run for its sink's effect, written as a
@@ -1821,7 +1822,7 @@ statement of its own, makes Perl warn of a useless `|` in void
 context, at compile time, before any overload is called. The docs say
 to keep the result.
 
-### 17.28 `count_items` and `single_item`
+### 17.28 `count_items` and `keep_single`
 
 (Section 8.3; Iain, 2026-11-12, 2026-0022's D53.) `count` is renamed
 `count_items`, and `only_item` is renamed `single_item`, revising D50's names;
@@ -1831,7 +1832,8 @@ putting the result in", as D50 kept `count` for. A bare `count` is a
 word a caller's own sub, or another module's, may already have. And
 beside the tap `count_into(\$n)`, the second word says which is the
 tap and which the sink. `single_item` echoes `single`, the
-DBIx::Squirrel iterator method it replaces.
+DBIx::Squirrel iterator method it replaces. (D55 has since renamed it
+`keep_single`, 17.30.)
 
 Weighed and set aside:
 
@@ -1843,25 +1845,35 @@ Weighed and set aside:
 
 (Section 8.3; Iain, 2026-11-12, 2026-0022's D54.) `to_array`,
 `to_arrayref`, `to_hash` and `to_hashref` are dropped, leaving `to_fh`
-and `to_file` as the containers. Since D51, `all_items` gives every
+and `to_file` as the containers. Since D51, `keep_all` gives every
 item as an array reference wherever one value is asked for, so
-`to_array` gave the same as `all_items`, and `to_arrayref` the same as
+`to_array` gave the same as `keep_all`, and `to_arrayref` the same as
 either at the end of a chain: three names for one result. Only
 `to_arrayref(\@mine)` and `to_hashref(\%mine)`, filling a container
 you hand them, did more, and Perl already does that beside the call:
-`push @mine, @{ $src | all_items }`. A hash is assigned from a list of
+`push @mine, @{ $src | keep_all }`. A hash is assigned from a list of
 keys and values, which a stage gives: `my %by_id = @{ $src | stage {
-($_->{id}, $_) } | all_items }`. The question 17.26 left, how
+($_->{id}, $_) } | keep_all }`. The question 17.26 left, how
 `to_hash` would give a hash reference, goes with it.
 
 Weighed and set aside:
 
-- **Keeping `to_array` beside `all_items`,** each in its family, as
+- **Keeping `to_array` beside `keep_all`,** each in its family, as
   D50 had it. Since D51 they're the same sink under two names, and a
   reader has to learn they are.
 - **Keeping only `to_arrayref(\@mine)`,** for filling your array.
   `push` says it as plainly, and the sink would be a container sink
   only when given an argument.
+
+### 17.30 `keep_all`, `keep_first` and `keep_single`
+
+(Section 8.3; Iain, 2026-11-12, 2026-0022's D55.) `all_items` is
+renamed `keep_all`, `first_item` `keep_first`, and `single_item`
+`keep_single`; nothing else about them changes. Each name now says
+what the sink keeps of what reaches it, which is what it gives.
+`keep_all` no longer shares its name with Test2::V0's `all_items`
+check, so a test imports both with no more said. `count_items` keeps
+its name, and `last_item`, not built, is still to be named.
 
 ## 18. Where each roadmap item lands
 
@@ -1919,7 +1931,7 @@ It proves the ends of section 5, with nothing else in the run:
   last line has no newline gains one, as `to_file` writes `$/` after
   each record.
 - **Both files are closed, once each, however the run ends:** run
-  out, both are told `done`; with `first_item` as the sink, the
+  out, both are told `done`; with `keep_first` as the sink, the
   source is told `stopped` after one record, and the sink `done`; when
   the sink dies on a record, both are told `died`, and the error is
   thrown again; when it can't be set up, such as when `b.txt` can't be
@@ -1931,7 +1943,7 @@ It proves the ends of section 5, with nothing else in the run:
 ### 19.2 A complete pipeline as a source
 
 ```perl
-my $lines = Ekorn::Pipeline->new(stage { uc }, all_items)->iterator(from_file('a.txt'));
+my $lines = Ekorn::Pipeline->new(stage { uc }, keep_all)->iterator(from_file('a.txt'));
 my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
 ```
 
@@ -1951,7 +1963,7 @@ run, without the ends of either reaching the other:
   the inner sink, the first pull gives the count, and the next an
   empty list.
 - **Without a sink, the inner run is pulled only as needed:** with
-  `all_items` taken out, `take(2)` reads two lines of `a.txt`, and the
+  `keep_all` taken out, `take(2)` reads two lines of `a.txt`, and the
   inner source is told `stopped`. So it's the sink that makes the
   inner run read everything first.
 - **Abandoned, it ends:** the outer iterator let go after one pull
@@ -1963,7 +1975,7 @@ run, without the ends of either reaching the other:
 The least of each part they use: the lifecycle (section 5), with the
 role methods, the flushes and ends, and `DESTROY`; the Source and Sink
 classes, and the words `source`, `sink` and `stage`; `from_file`,
-`to_file`, `all_items`, `count_items` and `first_item`; and `|` between a
+`to_file`, `keep_all`, `count_items` and `keep_first`; and `|` between a
 source, a stage and a sink. Built in that order, as section 15 has
 it; the prototype has since taken in every settled decision, as
 IMPLEMENTATION.md says.
@@ -2055,7 +2067,7 @@ again when v0.3.0 is ready; designed in its own session:
 - **Its code:** its iterators offer `ekorn_source` (D44), with their columns as
   the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
   its result sinks are sinks of its own design; its iterator's `all`,
-  `single` and `count` give way to Ekorn's `all_items`, `single_item`
+  `single` and `count` give way to Ekorn's `keep_all`, `keep_single`
   and `count_items` (D50), a list sink last giving an array reference in
   scalar context (D51), its Q22; its facades go or
   stay as plain re-exports, as it chooses (D31).
