@@ -208,7 +208,8 @@ wrapping anything of it (principles 2 and 3; the list proposed):
 | **Made for a run** | an object offering a role by a method the core calls at the start of each run, returning its step and its end (section 5.2): `as_source`, to be read from; `as_stage`, to pass values through; or, to be a sink, `as_scalar` or `as_list`, at most one of them. The role it's given in decides which is called, so one object can offer several. A code reference offers none, and takes the role it's given in, with no end |
 | **Sink** | an object with `as_scalar`, its result one value, or `as_list`, its result a list, returning its step, whose return is ignored, its result, called when its input runs out, and, optionally, its end, called when the run has ended, told how (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
-| **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from an end (section 5.6); and, if **Q21** is settled so, the run's source |
+| **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from an end (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
+| **A run's context** | the third value `as_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it |
 
 These are what Ekorn versions, and what DBIx::Squirrel's range on
 Ekorn's version protects. Everything else a package needs, it gets as
@@ -506,12 +507,12 @@ Perl's built-ins or List::Util's. Nothing exported by default.
 
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
-| `to_array` | every value, as a list | no |
-| `to_arrayref(\@array)` | pushes each value onto your array; gives how many | no |
+| `to_array` | every value, as a list (`as_list`) | no |
+| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every value: your array, with each pushed onto it, or a new one (`as_scalar`) | no |
 | `to_fh($fh)` | prints each value to your filehandle, followed by `$/`; gives how many | no; you close it |
 | `to_file($path)` | writes each value to the file, followed by `$/`; gives how many | no; its end closes the file |
-| `to_hash` | every pair's key and value, as a list to assign to a hash | no |
-| `to_hashref(\%hash)` | puts every pair into your hash; gives how many | no |
+| `to_hash` | every pair's key and value, as a list to assign to a hash (`as_list`) | no |
+| `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one (`as_scalar`) | no |
 | `group_by(sub {...})` | a hash of arrays | no |
 | `count` | how many values there were | no |
 | `first_value` | the first value | yes |
@@ -552,11 +553,12 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   plain code references, `|` silently ORs their addresses. The docs
   must say loudly: in a chain, every stage is a `stage {...}`, or a
   ready-made part, which section 8.1 makes objects.
-- **An operator returns one scalar.** A sink that gives one value, such
-  as `count`, gives it from a chain as it is. A sink that gives a list,
-  such as `to_array` or `to_hash`, gives it from a chain as a
-  reference, to an array or a hash, as one scalar must; or `@{}`
-  drains a chain without a sink.
+- **An operator returns one scalar,** so only a scalar sink, one with
+  `as_scalar`, can end a chain, and its result is what `|` gives. A
+  list sink, such as `to_array` or `to_hash`, croaks there, as its list
+  can't be given: its scalar counterpart, `to_arrayref` or
+  `to_hashref`, gives the same as a reference, saying so in its name.
+  Or `@{}` drains a chain without a sink.
 - **Nothing can be chained after a sink.** Not because a sink must be
   last, which it needn't be (section 4.2), but because a chain ending
   in a sink has already run: what `|` gives is the result, not a part
@@ -641,7 +643,7 @@ Ekorn's (principle 2). Its modules are its own, delivering parts:
 |---|---|---|
 | `DBIx::Squirrel::Pipeline`, `::Pipes`, `::Stop`, `::Gather`, `::Stages::Flow`, `::Batch`, `::Taps` | facades over Ekorn's: subclasses, and re-exports | no subclasses; whether it keeps re-exporting Ekorn's functions as they are is **Q20** |
 | `DBIx::Squirrel::Iterator` | statements' rows, through a pipeline of its own class | a Source (section 12.3), run in Ekorn's pipelines |
-| `DBIx::Squirrel::Stages::Rows` | `pluck`, `as_hash`, through Context | stages of its own, finding their columns as **Q21** settles (section 12.7) |
+| `DBIx::Squirrel::Stages::Rows` | `pluck`, `as_hash`, through Context | stages of its own, finding their columns with `run_context()` (section 12.7) |
 | `DBIx::Squirrel::Sinks` | (new) | `insert_into` (its 2026-0012), a Sink |
 | `DBIx::Squirrel::Sugar` | databases, statements | as now, its statements' stages able to use Ekorn's names; no `pipeline` key |
 
@@ -757,19 +759,39 @@ freely, as the functions are the same.
 `pluck('name')` needs the statement's column names. Today Context gives
 them, because DBIx::Squirrel runs the pipeline. When a user joins
 `$sth->source | pluck('name')` themselves, DBIx::Squirrel runs
-nothing. This is the one place its parts need more than they're given
-(**Q21**):
+nothing. This is the one place its parts need more than they're given.
 
-- **A stage may ask for its run's source,** as it asks `ending()`, and
-  a source offers what it knows, such as its columns. It's generic: a
-  CSV source could offer its header the same way. With pipelines
-  inside pipelines, a stage sees the source of its own run.
-  Recommended: it's a protocol any provider can use, so Ekorn adding
-  it is no change made for one package.
-- **The values carry it:** rows come out as objects that know their
-  columns. That changes what users get as rows.
-- **The stage is given it:** `pluck($sth, 'name')`. Clumsy, and it
-  repeats what the source already knows.
+Settled (Iain, 2026-11-12, 2026-0022's D7): **a source gives a context
+for each run, and a stage asks for it.** `as_source` may return a
+third value, after its step and its end, anything the source knows
+about this run; a stage calls `Ekorn::Pipeline::run_context()` for it,
+as it calls `ending()`. A statement's set-up executes it, and gives
+`{columns => [...]}`:
+
+```perl
+sub pluck ($name) {
+    return sub ($row) {
+        my $columns = Ekorn::Pipeline::run_context()->{columns};
+        my($at) = grep { $columns->[$_] eq $name } 0 .. $#$columns;
+        return $row->[$at];
+    };
+}
+```
+
+- **Each run has its own,** so two runs of one statement at once each
+  see their own columns.
+- **An iterator used as a source passes on the context of the run
+  inside it,** so `pluck` sees the statement's columns behind a
+  pipeline between them.
+- **A pushed run has none,** and `run_context()` gives nothing; nor
+  does a run whose source gives none.
+- **It's generic:** a CSV source could give its header the same way,
+  and no provider needs more of Ekorn than this function.
+
+Weighed and set aside (17.16): asking for the source object itself,
+which every run shares; values that carry it, as rows that know their
+columns, which changes what users get; and the stage given it,
+`pluck($sth, 'name')`, which repeats what the source knows.
 
 ### 12.8 What could bite
 
@@ -851,7 +873,7 @@ pipeline_in (6.1)
 DBIx-Squirrel:
   core lifecycle + Source    -> its iterator as a source (12.3)
   core lifecycle + Sink      -> insert_into (12.4)
-  a stage asking its source  -> pluck and as_hash as parts (12.7, Q21)
+  a run's context            -> pluck and as_hash as parts (12.7)
 ```
 
 `pipeline` moving to Factories needs only `pipeline_in`, so it can come
@@ -883,7 +905,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q18** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
-| **Q21** | How does a stage that needs to know about its source, such as `pluck`, which needs a statement's column names, find it out (section 12.7)? | Ekorn | A stage may ask for its run's source, as it asks `ending()`, and a source offers what it knows: a protocol any provider can use |
+| **Q21** | How does a stage that needs to know about its source, such as `pluck`, find it out (section 12.7)? | Ekorn | Settled by 2026-0022's D7: the source gives a context for each run, and the stage asks `run_context()` |
 | **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
 
 ## 17. Decisions, and what was weighed
@@ -1118,6 +1140,10 @@ Weighed and set aside:
   for what they take.
 - **`into(\@array)`,** for pushing onto your array. `to_arrayref`
   says the same, and pairs with `from_arrayref`.
+- **`to_array` giving an array reference from `|`,** as an operator
+  must give one scalar. The name would say a list and the result be a
+  reference; `to_arrayref` says what it gives, and `to_array` croaks
+  there (Iain, 2026-11-12, 2026-0022's D10).
 - **`to_hash(sub {...})`, keying each value by what a sub gives.** It
   wouldn't be the counterpart of `from_hash`, which gives pairs; a
   stage making pairs, then `to_hash`, does the same.
@@ -1194,6 +1220,25 @@ Weighed and set aside:
 What it costs: a pipeline ending in a sink, pulled as a source, keeps
 its own source open until its run ends, not only until its first
 value is given; its source is told the truth, a little later.
+
+### 17.16 A stage asks for its run's context
+
+(Section 12.7; Iain, 2026-11-12, 2026-0022's D7.) A source gives a
+context for each run, as the third value of `as_source`, and a stage
+asks `run_context()` for it.
+
+Weighed and set aside:
+
+- **The source object, from `run_source()`,** which the prototype
+  built. Every run of a source shares the object, so what's known per
+  run, such as a statement's columns after it's executed, had nowhere
+  of its own: two runs at once each saw the other's. Behind an
+  intermediate iterator a stage got the iterator, and in a pushed run
+  Ekorn's own closure: the cold review's S3.
+- **Values that carry it,** as rows that know their columns. It
+  changes what users get as rows.
+- **The stage given it,** `pluck($sth, 'name')`. Clumsy, and it repeats
+  what the source already knows.
 
 ## 18. Where each roadmap item lands
 
@@ -1293,4 +1338,6 @@ The least of each part they use: the lifecycle (section 5), with
 `for_run`, the ends and `DESTROY`; the Source and Sink classes, and
 the words `source`, `sink` and `stage`; `from_file`, `to_file`,
 `to_array`, `count` and `first_value`; and `|` between a source, a
-stage and a sink. Built in that order, as section 15 has it.
+stage and a sink. (As built, before 2026-0022's D5 to D7 and D10:
+`for_run` is now one method per role, and `|` ends in `to_arrayref`,
+not `to_array`.) Built in that order, as section 15 has it.

@@ -8,9 +8,10 @@ then. D3 settled: the design is proved by code in the core. D4
 settled: Ekorn's types are Elements. D5 settled: one method per role,
 `as_source`, `as_stage`, `as_scalar`, `as_list`. D6 settled: a sink's result is
 separate from its end, and every end waits for the run to end. D7
-open: what a stage asks about its run. D8 open: `|` opt-in for the
-program, or for the code. D9 open: a reusable source of a sink's
-result.
+settled: a source gives a context for each run, which a stage asks
+`run_context()` for. D8 open: `|` opt-in for the program, or for the
+code. D9 open: a reusable source of a sink's result. D10 settled:
+`to_arrayref` ends a chain, and `to_array` croaks there.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -93,10 +94,17 @@ The design's own open questions are numbered Q1 and on, in its section
   changes the design's 19.2: an outer run's stop or die now reaches the
   inner run's ends, as they wait for it. The design's 5.3, 5.4 and
   17.15.
-- [ ] **D7.** What does a stage ask, to know about its run? From S3:
-  `run_source()` gives the source object, shared by all its runs, not
-  the run. A context for the run, from the source's set-up, is the
-  direction. Q21 waits on it.
+- [x] **D7.** What does a stage ask, to know about its run? A context
+  for the run, Iain decided on 2026-11-12: `as_source` may return a
+  third value, after its step and its end, anything the source knows
+  about this run, such as a statement's columns; a stage asks for it
+  with `Ekorn::Pipeline::run_context()`. Each run has its own; an
+  iterator used as a source passes on the context of the run inside
+  it; a pushed run has none. Why: from the cold review's S3,
+  `run_source()` gave the source object, shared by every run, so two
+  runs at once saw each other's columns, and behind an iterator a
+  stage got the iterator. Weighed: values that carry it; the stage
+  given it. It settles Q21. The design's 4.4, 12.7 and 17.16.
 - [ ] **D8.** Is `|` opt-in for the program, or for the code that
   loads Operators? From S4: overloading belongs to a class, so loading
   Operators gives `|` everywhere. Saying so plainly is the
@@ -105,6 +113,15 @@ The design's own open questions are numbered Q1 and on, in its section
   than once? From S5: an Iterator is one run, and gives nothing to a
   second. A Source made from a pipeline and a source, making an
   iterator for each run, is the direction.
+- [x] **D10.** What does `to_array` give from `|`? Nothing: it
+  croaks, Iain decided on 2026-11-12, as its list can't be given where
+  one scalar must be. `to_arrayref` gives an array reference of every
+  value, of the array it's given, filled, or of a new one, and is what
+  ends a chain; `to_hash` and `to_hashref` likewise. Why: `to_array`
+  gave an array reference from `|`, its name saying one thing and its
+  result another, and `to_arrayref` pushed onto your array and gave how
+  many, which its name didn't say either. The design's 8.3, 9 and
+  17.12.
 
 ## The plan
 

@@ -237,8 +237,11 @@ source { SET-UP }
 
 Returns a Source made for each run. Its set-up returns its step,
 called with nothing, again and again, giving the next value or values,
-or an empty list when there are no more; and, optionally, its end,
-told how the run ended.
+or an empty list when there are no more; optionally, its end, told how
+the run ended; and, optionally, a context for the run, anything its
+stages may want to know, which they ask for with
+`Ekorn::Pipeline::run_context()`. With a context but no end, give
+`undef` for the end.
 
 ```perl
 sub up_to ($last) {
@@ -357,11 +360,11 @@ and `joined`, not `first` and `join`.
 | Sink | Gives | Stops the pull early? |
 |---|---|---|
 | `to_array` | every value, as a list | no |
-| `to_arrayref(\@array)` | pushes each value onto your array, and gives how many | no |
+| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every value: your array, with each pushed onto it, or a new one | no |
 | `to_fh($fh)` | prints each value to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
 | `to_file($path)` | writes each value to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
 | `to_hash` | every pair's key and value, as a list to assign to a hash | no |
-| `to_hashref(\%hash)` | puts every pair into your hash, and gives how many | no |
+| `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one | no |
 | `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
 | `count` | how many values there were | no |
 | `first_value` | the first value | yes |
@@ -425,17 +428,18 @@ code references, `|` is Perl's bitwise OR of their addresses: it gives
 a meaningless number, with no error. So write `stage { uc }` in a
 chain, never `sub { uc }`. A pipeline made with `new` has no operators.
 
-An operator gives one scalar. A sink that gives one value, such as
-`count`, gives it from a chain as it is. A sink that gives a list,
-such as `to_array` or `to_hash`, gives it from a chain as a reference,
-to an array or a hash; or `@{}` drains a chain without a sink.
+An operator gives one scalar, so a chain ends only in a sink giving
+one value, such as `count`, or a reference, such as `to_arrayref` or
+`to_hashref`. A sink giving a list, such as `to_array` or `to_hash`,
+croaks there: use its `ref` counterpart. Or `@{}` drains a chain
+without a sink.
 Nothing can be chained after a sink: a chain ending in one has already
 run, and gives its result.
 
 ```perl
-my $n      = $source | count;       # a number
-my $titles = $source | to_array;    # an array reference
-my @titles = @{ $source };          # a list
+my $n      = $source | count;          # a number
+my $titles = $source | to_arrayref;    # an array reference
+my @titles = @{ $source };             # a list
 ```
 
 ## Sugar: Ekorn::Pipeline::Sugar
@@ -535,6 +539,8 @@ Wording to be settled when the code is written. One for each:
 - a word given something other than a block;
 - a set-up that doesn't return a code reference for its step, and
   optionally one for its end;
+- a chain with `|` ending in a sink that gives a list, such as
+  `to_array`;
 - an end that died while the run was already dying (a warning)
   **[Q6]**;
 - `|` given something that isn't one of the types.

@@ -956,7 +956,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 10 | Sugar | not built |
 | 11.1 | the modules | built for those above; Sugar not built |
 | 12 | DBIx::Squirrel as a user of Ekorn | built, as a stand-in: section 7 |
-| 12.7, Q21 | a stage asks its run's source | built, as `run_source()` |
+| 12.7, Q21 | a stage asks for its run's context, `run_context()` (D7) | built, differs: `run_source()` gives the source object |
 | 13 | v0.3.0, on this branch until then | not code |
 | 14 | `pipeline`'s `import`, names per class and `pipeline_class` go | not built: all three are still there |
 | 17 | decisions | not code |
@@ -979,13 +979,12 @@ Each of these is for the design to take in, or the code to change.
 | `iterator` takes any object with `for_run`, not only code references | Q13 asks for `is_source` | settle Q13 so |
 | Operators' `chain` is public, for a class of sources of its own to overload `\|` with | 9, 12 don't say | add to 9 and 12 |
 | Set-ups run when the iterator is made, as a gather's always have, so `from_file` opens its file then, not at the first pull | not said | decide, in 5.2 |
-| `run_source()` names the protocol of Q21 | Q21 recommends it, unnamed | settle Q21, and the name |
-| `run_source()` is the closure over the values in a pushed run | not said | say so with Q21 |
 | What a sink's step returns goes on, as any stage's: a `sink {...}` whose step returns values is a stage made for a run, with an end that always runs | the draft reference says a sink's step's return is ignored | decide: ignore it, or say a sink is any stage made for a run |
 | A sink is told `stopped` only when its run is ended from outside: a stop after it can't come while the source has values, and one before it leaves it after the stop | 5.3's table puts "stages up to the one that stopped" with the source | say so in 5.3 |
 | One method, `for_run`, serves every role; D5 settled one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list`, not yet built. Meanwhile a part's role, source or stage, is decided by Ekorn's classes and by position, not by a protocol: a package's own blessed-code source given as a stage is taken for a sink, and crashes; its own sink under `\|` gives a chain, which never runs; its hash-based sink is refused; Ekorn's own Sink is taken as a source | principle 3 says the contract is the protocols | D5 |
 | A sink's end gives its result and is told `done` when its own stream ends, and the source's end runs when no end is left, so a stage dying after a sink leaves both told `done`, then the run dies | D6 settled: a sink's result separate from its end, and every end called once the run has ended | build D6 |
-| `run_source()` gives the source object, shared by every run of it, not the run: what's known per run, such as a statement's columns, can't be had per run; it's Ekorn's closure in a pushed run, undefined in ends called as the run finishes, and an intermediate iterator when there is one | Q21 | D7 |
+| `run_source()` gives the source object, shared by every run of it, not the run: what's known per run, such as a statement's columns, can't be had per run; it's Ekorn's closure in a pushed run, undefined in ends called as the run finishes, and an intermediate iterator when there is one | D7 settled: a context for each run, from `as_source`, asked for with `run_context()` | build D7 |
+| `\|` ending in `to_array` gives an array reference; `to_arrayref` and `to_hashref` aren't built | D10: `to_arrayref` gives an array reference, of your array or a new one, and `to_array` croaks at the end of a chain | build D10 |
 | Loading Operators gives every Source `\|`, everywhere in the program | principle 1 and 17.11 say opt-in | D8 |
 | An Iterator given as a source to a second run gives nothing, with no error: there's no reusable source of a sink's result | 4.2 and 9 point to `iterator` for one | D9 |
 | An error from a source's end is wrapped as a stage's failure when a sink is last, thrown as it is when there are no ends, and a warning from `DESTROY` | 5.4 says thrown | decide with D6 |
