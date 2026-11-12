@@ -961,8 +961,6 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | |
 | **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
-| **Q16** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
-| **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
@@ -985,6 +983,8 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q9** | `stage(\&trim)`: wrap, never bless? | D4: a Stage holds the code given, untouched |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
 | **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
+| **Q16** | DBIx::Squirrel's CI testing against Ekorn's `pipeline-experimental`? | D29: yes; `pipeline-experimental` is a sandbox, so testing against it costs nothing that matters; DBIx-Squirrel does it, told when it reviews the design |
+| **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | D30: no; `pipeline` is a word, in Factories only |
 | **Q21** | How does a stage find out about its source? | D7 and D24: the source's context for the run, from `run_context()` |
 
 ## 17. Decisions, and what was weighed

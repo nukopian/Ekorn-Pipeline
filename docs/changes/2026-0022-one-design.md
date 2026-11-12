@@ -24,7 +24,9 @@ run; a scalar sink always gives one value. D26 settled: the stream
 concept applied to functions is what Ekorn is for. D27 settled: an end
 dying during a die warns, naming the end. D28 settled: an
 abandoned iterator ends its run. D8 and D9 moved into the design as
-its Q23 and Q24.
+its Q23 and Q24. D29 settled: DBIx-Squirrel's CI
+tests against `pipeline-experimental`. D30 settled: Ekorn::Pipeline
+doesn't re-export `pipeline`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -249,6 +251,15 @@ D19 to D25 came from the third cold review, settled by Iain on
   go, closes what its run opened, with no call to remember. Ekorn's side
   was built with D4 and D15; DBIx-Squirrel, which keeps its iterator
   in a field, is told when it reviews the design. Design 5.5, 17.10.
+- [x] **D29.** Does DBIx-Squirrel's CI test against Ekorn's
+  `pipeline-experimental` (the design's Q16)? Yes, Iain decided on
+  2026-11-12: `pipeline-experimental` is a sandbox, so a CI run against
+  it costs nothing that matters, and finds where the two drift. It's
+  DBIx-Squirrel's to set up, told when it reviews the design.
+- [x] **D30.** Does Ekorn::Pipeline still re-export `pipeline` (the
+  design's Q17, 2026-0021's D7)? No, Iain decided on 2026-11-12, as
+  recommended: `pipeline` is a word, and words live in Factories only
+  (principle 4), so there's one place to import it from.
 
 ## The plan
 
