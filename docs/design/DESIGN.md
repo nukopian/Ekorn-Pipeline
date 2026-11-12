@@ -764,8 +764,8 @@ pipeline's name in its errors, if Iain wants it now.
 v0.3.0 is outside DBIx::Squirrel's range, `>= v0.2.0, < v0.3.0`, so it
 reaches DBIx::Squirrel's users only when DBIx::Squirrel moves the
 range, with a task handed to it as the release comes: it tests
-against v0.3.0, and, in the same change, drops its facades for Ekorn
-as it is (section 12). Until then, its users keep v0.2.x.
+against v0.3.0, and can drop its facades then, for Ekorn as it is
+(section 12), as it chooses. Until then, its users keep v0.2.x.
 
 ## 14. What's built already
 
