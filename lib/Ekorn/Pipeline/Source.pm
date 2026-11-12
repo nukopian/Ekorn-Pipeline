@@ -13,19 +13,13 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a source made afresh for each run by the set-up given, which
 # returns the source's step and, optionally, its end and a context for
-# the run. Called as a code reference outside a run, it makes one run
-# of its own, and steps it.
+# the run. Called directly, it croaks: a run of its own would never be
+# ended, so what it opened would stay open.
 sub new ($class, $setup) {
     croakf 'Expected a code reference' unless is_coderef($setup);
-    my $step;
     return bless {
         setup => $setup,
-        call  => sub {
-            $step //= ($setup->())[0];
-            croakf 'Expected the set-up of a source to return a code reference'
-                unless is_coderef($step);
-            return $step->();
-        },
+        call  => sub { croakf 'Expected a source to be read through iterator' },
     }, $class;
 }
 

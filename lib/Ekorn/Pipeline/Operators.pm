@@ -4,7 +4,7 @@ package Ekorn::Pipeline::Operators;
 
 use experimental            qw(builtin);
 use builtin                 qw(blessed);
-use Ekorn::Pipeline         qw(is_stage);
+use Ekorn::Pipeline         qw(is_sink is_stage);
 use Ekorn::Pipeline::Errors qw(croakf);
 use Ekorn::Pipeline::Gather qw();
 use Ekorn::Pipeline::Sink   qw();
@@ -56,10 +56,10 @@ sub chain ($before, $after, $swapped = undef, @) {
         return Ekorn::Pipeline::Operators::Stages->new($before, $after);
     }
     my($source, @stages) = _parts($before);
-    my $sink = _sink($after) // '';
+    my $sink = is_sink($after);
     croakf
         'Expected a sink giving one value at the end of |, not a list: use to_arrayref, not to_array'
-        if $sink eq 'as_list';
+        if $sink eq 'list';
     return _chain($source, @stages, $after) unless $sink;
     my($result) = Ekorn::Pipeline->new(@stages, $after)->iterator($source)->();
     return $result;
@@ -79,17 +79,6 @@ sub drain ($source, @) {
 
 sub _is_source ($thing) {
     return !!(blessed($thing) && $thing->can('as_source'));
-}
-
-
-# Return the sink's role method, if what's given is a sink, or a
-# pipeline whose last stage is one.
-sub _sink ($thing) {
-    ($thing) = ($thing->stages)[-1] if $thing isa 'Ekorn::Pipeline';
-    return                          unless blessed($thing);
-    return 'as_scalar'              if $thing->can('as_scalar');
-    return 'as_list'                if $thing->can('as_list');
-    return;
 }
 
 

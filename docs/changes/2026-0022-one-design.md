@@ -29,8 +29,7 @@ doesn't re-export `pipeline`. D31 settled: DBIx::Squirrel keeps
 re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
 lexically. D33 settled: a pipeline holds no
 source. D34 settled: the caller asks an
-iterator how its run ended. Q26, what each type does when called
-directly, is open in the design. D35 settled: named sources, Q11,
+iterator how its run ended. D35 settled: named sources, Q11,
 dropped. Q14, DBIx-Squirrel's, has a suggested
 answer for its review. D36 settled: a statement's definition
 names pipelines by string, as a chain of names. D37 settled: the name-reading class
@@ -38,7 +37,8 @@ method is `pipeline_in`. D38 settled: no strict `is_stage`, for
 now; `is_sink` is the design's Q27. D39 settled: the prototype is kept
 where it holds. D40 settled: a pipeline's name in its
 stages' errors joins v0.3.0. D41 settled: a spent iterator croaks
-as a source; a reusable source of a sink's result dropped.
+as a source; a reusable source of a sink's result dropped. D42 settled: each type, called directly,
+does what its role means. D43 settled: `is_sink`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -345,6 +345,20 @@ D19 to D25 came from the third cold review, settled by Iain on
   as a source, rather than give nothing. Being spent counts, not the
   run's having ended, so a list sink's result still flows (D22).
   Built, with `t/15-proofs.t` testing each case. Design 4.2, 17.21.
+- [x] **D42.** What does each type do when called directly (the
+  design's Q26)? What its role means, Iain decided on 2026-11-12, as
+  recommended: a Sink called with values pushes them through itself
+  and gives its result, as a pipeline of the one sink would, and "this
+  makes it testable": `is count->(1, 2, 3), 3`, with no source or
+  pipeline to set up. A Source called directly croaks, as a run of its
+  own would never be ended. Stage, Pipeline, Iterator and Gather are as
+  they were. Built. Design principle 6, 17.22.
+- [x] **D43.** Should Ekorn export `is_sink` (the design's Q27)? Yes, on
+  request, beside `is_stage`, Iain decided on 2026-11-12, as
+  recommended: `'scalar'` or `'list'`, both true, or false; a pipeline
+  by the sink it ends in. So a function taking its caller's stages can
+  honour a sink at their end. Built, and used by `|` and by scalar
+  context in place of their own checks. Design 11.1, 17.22.
 
 ## The plan
 

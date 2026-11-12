@@ -123,7 +123,14 @@ section 17 gives the reasons for each.
    offering `as_stage`, `as_scalar` or `as_list` (section 4.4), so
    every function taking stages today takes the new types unchanged,
    and a package's own parts too. Code that checks for a code reference by its
-   type, `ref` or Ref::Util's `is_coderef`, doesn't see one.
+   type, `ref` or Ref::Util's `is_coderef`, doesn't see one. Called
+   directly, each does what its role means (2026-0022's D42): a Stage
+   runs its code on one value; a Pipeline pushes the values it's
+   given; a Sink pushes the values it's given through itself and gives
+   its result, so `count->(1, 2, 3)` is 3, and a sink can be tested on
+   its own; an Iterator gives its next value; a Gather runs its set-up,
+   as in v0.2.0; and a Source croaks, as a run of its own would never
+   be ended.
 7. **State made for a run lives in lexicals.** Whatever needs fresh
    state for each run is written as `gather` is today: its block runs
    at the start of the run, declares the state with `my`, and returns
@@ -717,7 +724,7 @@ neither depends on the other's internals.
 
 | Module | Layer | Gives | Exports |
 |---|---|---|---|
-| `Ekorn::Pipeline` | core | the class; `new`, `pipeline_in`, `named`, `iterator`, `stages`; the lifecycle (section 5) | `is_stage` (and `is_source`, **Q13**) on request |
+| `Ekorn::Pipeline` | core | the class; `new`, `pipeline_in`, `named`, `iterator`, `stages`; the lifecycle (section 5) | `is_stage` and `is_sink` (D43) on request |
 | `Ekorn::Pipeline::Stop` | core | `Stop`, `throw` | `Stop` by default |
 | `Ekorn::Pipeline::Gather` | core | the Gather class; `gather` | `gather` by default |
 | `Ekorn::Pipeline::Errors` | core | `croakf`, `@INTERNAL` | `croakf` on request |
@@ -1027,8 +1034,6 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Whose | Recommended |
 |---|---|---|---|
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | Suggested for its review (section 12.3): the iterator offers `as_source`, its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, croaking if it's active |
-| **Q26** | What does each type do when called directly, as a code reference, outside a run (principle 6)? Today a Stage calls its code with one value; a Pipeline pushes the values it's given; an Iterator gives its next value; a Gather runs its set-up, as in v0.2.0; a Sink croaks; and a Source makes a run of its own, which is never ended, so what it opens stays open while the Source lives. | Iain | A Sink called with values pushes them through itself and gives its result, as a pipeline of that one sink would: `count->(1, 2, 3)` is 3, so a sink is usable on its own, and "consumes every value, and gives a result" says what calling it does. A Source called directly croaks, "Expected a source to be read through iterator", as a run that's never ended can't close what it opened. Stage, Pipeline, Iterator and Gather stay as they are. Principle 6 then says, type by type, what a call means |
-| **Q27** | Should Ekorn export `is_sink`, as it does `is_stage`, for a function taking its caller's stages to know whether they end in a sink, and which kind? | Iain | Yes, on request, beside `is_stage`: `'scalar'` for a part offering `as_scalar`, `'list'` for `as_list`, or a pipeline whose last stage is one; false otherwise. Both answers are true, and `is_sink($x) eq 'list'` reads better than a number. So DBIx::Squirrel's `iterate` could give a scalar sink's result rather than an iterator, as a pushed run does (D17). Ekorn already works it out for `\|` and D17 |
 
 ### 16.2 Settled
 
@@ -1036,6 +1041,8 @@ Settled questions keep their numbers, listed after the open ones.
 |---|---|---|
 | **Q1** | Do sources, sinks and operators belong in Ekorn? | D26: yes, the stream concept applied to functions, which Iain wants to run with; opt-in; the operators stay (D18); the README says so in a section of its own |
 | **Q24** | How is a complete pipeline, source to sink, kept as a reusable source of its result? And what of an iterator given to a second run? | D41: narrowed: a reusable source of a sink's result is dropped, as a few lines of `source {...}` make one, and it'll be found again if needed; and a spent iterator, one that has handed out all it will, or was finished, croaks when given as a source, rather than give nothing |
+| **Q26** | What does each type do when called directly? | D42: what its role means: a Sink pushes the values it's given through itself and gives its result, so a sink can be tested on its own; a Source croaks; Stage, Pipeline, Iterator and Gather as they were (principle 6) |
+| **Q27** | Should Ekorn export `is_sink`? | D43: yes, on request, beside `is_stage`: `'scalar'`, `'list'`, or false; a pipeline by the sink it ends in |
 | **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, nothing while it goes, then `done`, `stopped` or `died`, as the source sees it; for iterators only (section 5.5) |
 | **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
@@ -1515,6 +1522,28 @@ Weighed and set aside:
 - **Croaking whenever the run has ended.** A run can end with values
   still to hand out, such as a list sink's result (D22), which must
   still flow; so it's being spent, not ended, that counts.
+
+### 17.22 Each type, called directly, does what its role means
+
+(Principle 6; Iain, 2026-11-12, 2026-0022's D42 and D43.) A Sink
+called with values pushes them through itself and gives its result,
+and a Source called directly croaks. And `is_sink` says whether a part,
+or the pipeline it ends, is a sink, and which kind.
+
+Weighed and set aside:
+
+- **A Sink that croaks when called directly,** as the prototype first
+  had it. A sink consumes every value and gives a result; called with
+  values, that's what it does, and so it can be tested on its own,
+  `is count->(1, 2, 3), 3`, with no source or pipeline to set up.
+  Against it, a stage is called with one value, so a sink's call reads
+  like a stage's but acts as a pipeline's; the use outweighs it.
+- **A Source called directly making a run of its own,** as the
+  prototype first had it. The run is never ended, so a file it opened
+  stays open while the Source lives.
+- **`is_sink` giving 1 or 2,** for a scalar or a list sink. Both true,
+  as `'scalar'` and `'list'` are, but `is_sink($x) eq 'list'` reads
+  better at the call.
 
 ## 18. Where each roadmap item lands
 

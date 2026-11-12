@@ -20,7 +20,7 @@ use namespace::clean -except => 'import';
 
 our $VERSION = 'v0.2.0';
 
-our @EXPORT_OK = qw(is_stage pipeline);
+our @EXPORT_OK = qw(is_sink is_stage pipeline);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
@@ -32,6 +32,18 @@ sub is_stage ($thing) {
     return !!(is_coderef($thing)
         || $thing isa 'Ekorn::Pipeline'
         || _stage_role($thing));
+}
+
+
+# Return "scalar" if what's given is a sink giving one value, "list" if
+# it's a sink giving a list, or false otherwise; a pipeline, by the
+# sink it ends in.
+sub is_sink ($thing) {
+    ($thing) = ($thing->stages)[-1] if $thing isa 'Ekorn::Pipeline';
+    return !!0                      unless blessed($thing);
+    return 'scalar'                 if $thing->can('as_scalar');
+    return 'list'                   if $thing->can('as_list');
+    return !!0;
 }
 
 
@@ -100,8 +112,7 @@ sub new ($class, @given) {
         push @stages, _element($stage);
         push @names,  $n;
     }
-    my $scalar_sink
-        = @stages && blessed($stages[-1]) && $stages[-1]->can('as_scalar');
+    my $scalar_sink = @stages && is_sink($stages[-1]) eq 'scalar';
     return bless {
         stages => \@stages,
         names  => \@names,

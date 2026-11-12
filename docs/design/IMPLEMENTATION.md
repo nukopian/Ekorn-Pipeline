@@ -190,7 +190,7 @@ role Ekorn's can (section 4.2).
 
 | Module | Layer | What it holds |
 |---|---|---|
-| `Ekorn::Pipeline` | core | the pipeline class; `new`, `iterator`, `stages`, `named`, `pipeline`; the run loop, flushes and ends; `ending()`, `run_context()`, `is_stage` |
+| `Ekorn::Pipeline` | core | the pipeline class; `new`, `iterator`, `stages`, `named`, `pipeline`; the run loop, flushes and ends; `ending()`, `run_context()`, `is_stage`, `is_sink` |
 | `Ekorn::Pipeline::Element` | core | the base of every type: a hash, called as a code reference |
 | `Ekorn::Pipeline::Iterator` | core | what `iterator` returns: called for each value; a source to another run; ends its run when finished or let go; says how its run ended, with `ended` |
 | `Ekorn::Pipeline::Stop` | core | `Stop(...)`, and `throw` |
@@ -224,6 +224,8 @@ And beside them:
 - **A plain code reference** is a source or a stage, by where it's
   given, with no flush or end.
 - **A pipeline** given as a stage has its stages spliced in.
+- **`is_sink`** says whether a part is a sink, `'scalar'` or `'list'`,
+  or false; a pipeline by the sink it ends in (D43).
 - **`is_stage`** takes a code reference, a pipeline, or anything
   offering `as_stage`, `as_scalar` or `as_list`. A part offering more
   than one of those three croaks when given to `new`, as they'd be
@@ -609,9 +611,21 @@ say Ekorn::Pipeline->new(count, sub {"$_ tracks"})->(@tracks);            # 6 tr
 ```
 
 A Stage wraps the code given and never blesses it; it refuses one of
-Ekorn's own types, as a gather made a Stage would run per value. A
-Source called directly, outside a run, makes a run of its own and steps
-it, but that run is never ended. A Sink called directly croaks.
+Ekorn's own types, as a gather made a Stage would run per value.
+
+Called directly, each type does what its role means (D42). A Sink
+called with values pushes them through itself, as a pipeline of the one
+sink would, and gives its result, so a sink can be tested on its own. A
+Source called directly croaks, as a run of its own would never be
+ended:
+
+```perl
+say count->(1, 2, 3);                      # 3
+say join ', ', to_array->(qw(a b));        # a, b
+eval { from_arrayref([1])->() };
+print $@ =~ s( \ at\ \S+\ line\ \d+ )( at LINE)xr;
+# Expected a source to be read through iterator at LINE.
+```
 
 ### 6.4 Gather and Stop
 
@@ -954,7 +968,7 @@ are built:
 | `Expected the source to return a code reference, and optionally an end and a context` | `as_source` returns anything else |
 | `Expected stage #%s to return a code reference, and optionally a flush and an end` | `as_stage` returns anything else |
 | `Expected sink #%s to return a code reference, a flush, and optionally an end` | `as_scalar` or `as_list` returns anything else |
-| `Expected a sink to be run in a pipeline` | a sink called as a code reference |
+| `Expected a source to be read through iterator` | a source called as a code reference |
 | `Expected a source with values still to give: an iterator is one run, and this one is spent` | a spent iterator given as a source |
 | `Expected a source, or a stage made with a word, on the left of \|` | `chain` given anything else on its left |
 | `Expected a stage or a sink on the right of \|` | `chain` given what can't go where a stage goes |
@@ -982,6 +996,7 @@ valid, as v0.3.0 changes.
 | 19.2, eight subtests | a complete pipeline as a source; abandoned; finished, taking no verdict; finished from inside a stage | 19.2, 5.5, D15, D28 |
 | The caller asks how the run ended | `ended`: nothing while it goes; `done`, `stopped`, `died` | 5.5, D34 |
 | A spent iterator is no source for another run | read in part, it goes on; spent or finished, it croaks; ended with values still to give, it gives them | 4.2, D41 |
+| A part called directly | a sink gives its result, tested on its own; a source croaks; `is_sink` | D42, D43 |
 | Sinks and context | `to_arrayref`, and `to_array` croaking at the end of a chain; scalar context; a scalar sink of nothing; precedence | D10, D17, D25 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
@@ -1035,6 +1050,8 @@ Status: **built** as the design says; **built, differs**, with how;
 | 13 | a pipeline's name in its stages' errors joins v0.3.0 (D40) | not built |
 | 14 | `pipeline`'s `import`, names per class and `pipeline_class` go | not built: all three are still there |
 | 4.2 | a spent iterator croaks as a source (D41) | built |
+| 3, principle 6 | each type, called directly, does what its role means (D42) | built |
+| 11.1 | `is_sink`, on request (D43) | built |
 | 19 | the proofs | built: section 9 |
 
 ### 10.2 The code, where the design doesn't say, or says otherwise
@@ -1043,7 +1060,6 @@ Status: **built** as the design says; **built, differs**, with how;
 |---|---|---|
 | Names per class, `pipeline` exported from Ekorn::Pipeline with its own `import`, and Pipes' `pipeline_class` are still in the code | 7, 14, D30 say they go | built when the design is split into items |
 | `iterator`'s message for what isn't a source is still v0.2.0's "Expected a code reference", though it takes sources; a gather's is still "...and optionally an end function", though a gather may return a flush and an end | the reference draft's diagnostics | change with the messages, at v0.3.0 (the design's section 20) |
-| A Source called directly, outside a run, makes a run of its own, never ended | principle 6 says every type works as a code reference | say what it means for a source |
 | `to_file` in paragraph mode writes a blank line after each record | 8.3 says `$/` | say so, or change it |
 | An end's error from `DESTROY` is a warning, "(in cleanup)", as Perl gives every error in a destructor | 5.4: thrown | say so: a run ended as its iterator is let go can't throw |
 | Ends run during global destruction, in no set order | 5.5 warns of it | nothing |

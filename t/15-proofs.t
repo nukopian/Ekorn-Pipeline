@@ -447,6 +447,29 @@ subtest 'A spent iterator is no source for another run (D41)' => sub {
     is [drain_all($class->new->iterator($result))], [2], 'still gives them';
 };
 
+subtest 'A part called directly (D42, D43)' => sub {
+    is count->(1, 2, 3), 3, 'a sink called with values gives its result';
+    my $n = count->(1 .. 4);
+    is $n,                 4,      'in scalar context too';
+    is [to_array->(1, 2)], [1, 2], 'a list sink gives its list';
+    is first_value->(),    undef,  'and a scalar sink of nothing, undef';
+    @log = ();
+    is [spy_sink->(5)], [5],                'so a sink is tested on its own';
+    is \@log, ['sink set-up', 'sink done'], 'its end told how its run ended';
+
+    like dies { from_arrayref([1])->() },
+        qr( \A Expected\ a\ source\ to\ be\ read\ through\ iterator )x,
+        'a source called directly croaks';
+
+    is Ekorn::Pipeline::is_sink(count),    'scalar', 'is_sink: a scalar sink';
+    is Ekorn::Pipeline::is_sink(to_array), 'list',   'a list sink';
+    is Ekorn::Pipeline::is_sink($class->new(stage { $_ }, count)), 'scalar',
+        'a pipeline, by the sink it ends in';
+    ok !Ekorn::Pipeline::is_sink($_), 'not a sink'
+        for stage { $_ }, sub { $_ }, $class->new,
+        $class->new(count, stage { $_ }), 'count';
+};
+
 subtest 'Sinks and context (D10, D17, D25)' => sub {
     like dies { from_arrayref([1, 2]) | to_array },
         qr( \A Expected\ a\ sink\ giving\ one\ value .* use\ to_arrayref )x,

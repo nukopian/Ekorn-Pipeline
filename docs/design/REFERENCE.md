@@ -613,7 +613,7 @@ Wording to be settled when the code is written. One for each:
 
 | Module | By default | On request | Tags |
 |---|---|---|---|
-| `Ekorn::Pipeline` | nothing | `is_stage` | |
+| `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | each source | `:all` |
 | `Ekorn::Pipeline::Sinks` | nothing | each sink | `:all` |
