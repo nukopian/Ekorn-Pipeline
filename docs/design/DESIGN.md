@@ -803,9 +803,30 @@ dropped half-read finishes it too.
 
 How DBIx::Squirrel::Iterator becomes one is DBIx-Squirrel's to design
 (**Q14**). It's a hash-based object today, with `next`, `all`,
-`reset`, `single`, `count`, not a code reference, so it would either
-offer a Source (say `$it->source`) or become callable. Its `reset` is
-the set-up; its `_finish` the end.
+`reset`, `single`, `count`, holding a statement, its bind values and
+its caller's stages. Suggested, for its review:
+
+- **The iterator offers `as_source`,** as it's what users hold, from
+  `$sth->iterate(@binds, @stages)`, and it has all a run needs. Its
+  set-up executes the statement; its step fetches, in batches of 100
+  as now, from a buffer of this run's; its end finishes the handle;
+  and its context is `{columns => $sth->{NAME}, statement => $sth}`,
+  known once the statement has executed, as the run starts (D21).
+- **Its own stages, if it was given any, are run by Ekorn:** the raw
+  statement source through `Ekorn::Pipeline->new(@stages)->iterator`,
+  whose `as_source` it hands on. An iterator passes on the context of
+  the run inside it, so `pluck` sees the columns behind its stages.
+- **One run of a handle at a time:** a DBI statement handle can't have
+  two executions in progress, so `as_source` croaks if the handle is
+  already active, rather than prepare a fresh one; simpler, and
+  honest.
+- **What follows:** `next`, `all`, `reset`, `single` and `count` are
+  rebuilt over the same source; `|` and `@{}` come from overloading
+  with Operators' `chain` and `drain`, so `$sth->iterate(@binds) |
+  pluck('name') | take(5) | to_arrayref` reads as it should; Context
+  becomes a thin layer over `run_context()` and `ending()`; and
+  providing the source loads nothing of Ekorn's, only running its own
+  stages does.
 
 ### 12.4 A database as a sink
 
@@ -990,7 +1011,7 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Whose | Recommended |
 |---|---|---|---|
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
-| **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | |
+| **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | Suggested for its review (section 12.3): the iterator offers `as_source`, its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, croaking if it's active |
 | **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |

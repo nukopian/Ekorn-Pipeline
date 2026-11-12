@@ -32,7 +32,8 @@ lexically. D33 settled: a pipeline holds no
 source. D34 settled: the caller asks an
 iterator how its run ended. Q26, what each type does when called
 directly, is open in the design. D35 settled: named sources, Q11,
-dropped.
+dropped. Q14, DBIx-Squirrel's, has a suggested
+answer for its review.
 
 **Origin:** roadmap, added 2026-11-11
 
