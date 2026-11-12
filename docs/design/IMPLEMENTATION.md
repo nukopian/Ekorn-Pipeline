@@ -1014,7 +1014,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.5 | the caller asks how the run ended, `$next->ended` (D34) | built |
 | 5.6 | `ending()`, true while a flush runs and its values go on | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes | built: Sink's roles by its subclasses, Scalar and List |
-| 6.1 | `pipeline_in` (Q10) | not built |
+| 6.1 | `pipeline_in` (D37) | not built |
 | 6.2 | the words | built, differs: no `pipeline` in Factories; no word for a list sink, which `Sink->new($setup, list => 1)` makes |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |

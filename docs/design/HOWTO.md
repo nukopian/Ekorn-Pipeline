@@ -3,9 +3,9 @@
 **Status:** a draft for review, roadmap 2026-0022, with
 [DESIGN.md](DESIGN.md) and [REFERENCE.md](REFERENCE.md). These are the
 recipes `docs/HOWTO.md` would gain or change, written as they'd read
-there. None of the code in them runs yet. Notes in brackets, such as
-**[Q10]**, name the open question in the design a recipe depends on;
-they go before anything is merged.
+there. None of the code in them runs yet. Notes in brackets name the
+open question in the design a recipe depends on; they go before
+anything is merged.
 
 The examples follow on from the how-to's first section, The examples'
 data: `@tracks`, six tracks with an artist, a title and a number of

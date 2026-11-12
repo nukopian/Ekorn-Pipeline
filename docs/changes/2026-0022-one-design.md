@@ -34,7 +34,8 @@ iterator how its run ended. Q26, what each type does when called
 directly, is open in the design. D35 settled: named sources, Q11,
 dropped. Q14, DBIx-Squirrel's, has a suggested
 answer for its review. D36 settled: a statement's definition
-names pipelines by string, as a chain of names.
+names pipelines by string, as a chain of names. D37 settled: the name-reading class
+method is `pipeline_in`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -307,6 +308,13 @@ D19 to D25 came from the third cold review, settled by Iain on
   quotes; Perl allows the trailing `=>`, which adds nothing. How
   a name is told from the rest of a definition is DBIx-Squirrel's to
   design, taking this in when it reviews. Design 12.5.
+- [x] **D37.** The name-reading class method, `pipeline_in` or `new_in`
+  (the design's Q10, 2026-0021's D6)? `pipeline_in`, Iain decided on
+  2026-11-12, as recommended, once it was checked still to be needed:
+  Factories' `pipeline` and Ekorn's Sugar each look names up in a
+  package they're given, and a public method serves both, where a
+  private one would be reached into from another module. `new_in`
+  would read as `new` with an option. Design 6.1.
 
 ## The plan
 

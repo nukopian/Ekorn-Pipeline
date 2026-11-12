@@ -4,8 +4,8 @@
 [DESIGN.md](DESIGN.md). These are the sections `docs/REFERENCE.md`
 would gain or change, written as they'd read there. None of the code
 in them runs yet: it shows what's proposed. Where a section depends on
-an open question in the design, a note in brackets says which, such as
-**[Q10]**; those notes go before anything is merged.
+an open question in the design, a note in brackets says which;
+those notes go before anything is merged.
 
 What changes in the reference as a whole:
 
@@ -314,7 +314,7 @@ Ekorn::Pipeline->pipeline_in($package, @stages)
 Returns a new pipeline of its invocant's class, of `@stages`, each a
 code reference, a pipeline, or the name of one, looked up in
 `$package`, as [Named pipelines](#named-pipelines) explains. It's the only method that reads names, and it's what every
-`pipeline` word calls **[Q10]**.
+`pipeline` word calls.
 
 Call it from code the user calls directly, passing the user's package,
 as a word does with `scalar caller`. Code that passes stages through,

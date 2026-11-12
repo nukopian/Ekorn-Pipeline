@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 withdrawn: there are no `step` and `end`. D6 open: the class method's name. D7 open: whether Ekorn::Pipeline still exports `pipeline`.
+**Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 withdrawn: there are no `step` and `end`. D6 settled: `pipeline_in`. D7 settled: no.
 
 **Origin:** roadmap, added 2026-11-11, from Iain, reviewing 2026-0020:
 "`pipeline` IS behaving like a factory but the short keyword-like name
@@ -90,18 +90,20 @@ to pause its 2026-0009, which exports `pipeline`, until this is built
   2026-0015's to choose. Withdrawn on 2026-11-11: the design for
   2026-0022 has `source` and `sink` take a set-up returning closures,
   as `gather` does, so there are no `step` and `end` to export.
-- [ ] **D6.** What's the class method called? It makes a pipeline of
+- [x] **D6.** What's the class method called? It makes a pipeline of
   the stages given, names among them looked up in a package it's
   given. Options: `pipeline_in($package, @stages)`, the name
   2026-0011's D5 weighed for it, reading "a pipeline, in a package";
   or `new_in($package, @stages)`, reading as `new` with a package.
   Recommended: `pipeline_in`, as `new_in` suggests `new` with an
-  option, when it's the one place names are read.
-- [ ] **D7.** Does Ekorn::Pipeline still export `pipeline`, as a
+  option, when it's the one place names are read. Settled so by Iain on
+  2026-11-12, as the design's Q10, in 2026-0022's D37.
+- [x] **D7.** Does Ekorn::Pipeline still export `pipeline`, as a
   re-export of Factories', for code written against 2026-0011? Nothing
   has shipped, and DBIx-Squirrel, its only user, is paused, so
   recommended: no. One home for each word; a re-export from the class
-  would bring back the question of which class it makes.
+  would bring back the question of which class it makes. Settled so by
+  Iain on 2026-11-12, as the design's Q17, in 2026-0022's D30.
 
 ## The plan
 

@@ -444,8 +444,10 @@ made by its constructor, a class method that takes only real things
 | `Ekorn::Pipeline::Sink` | `new($setup)` | proposed; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
 
 And one more class method, which, with `named`, is all that reads
-names (settled in 2026-0021 as a class method taking the package; its
-name is **Q10**, here `pipeline_in`):
+names (settled in 2026-0021 as a class method taking the package, and
+named `pipeline_in` by 2026-0022's D37). It's what Factories'
+`pipeline` and Ekorn's Sugar call, each giving the package to look
+names up in:
 
 ```perl
 Ekorn::Pipeline->pipeline_in($package, @stages)
@@ -1022,7 +1024,6 @@ Settled questions keep their numbers, listed after the open ones.
 
 | | Question | Whose | Recommended |
 |---|---|---|---|
-| **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | Suggested for its review (section 12.3): the iterator offers `as_source`, its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, croaking if it's active |
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
@@ -1044,6 +1045,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | D28: yes; DBIx-Squirrel, which keeps its iterator in a field, is told when it reviews the design |
 | **Q8** | What is a sink? | D6 and D12, and section 4.2: made for a run, holding back every value, its flush giving its result; usually last |
 | **Q9** | `stage(\&trim)`: wrap, never bless? | D4: a Stage holds the code given, untouched |
+| **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | D37: `pipeline_in`, still needed by Factories' `pipeline` and Ekorn's Sugar; `new_in` would read as `new` with an option |
 | **Q11** | Named sources (2026-0012) now, or later? | D35: neither: dropped, with the roadmap idea; if there's a need, it'll be found again |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
 | **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
