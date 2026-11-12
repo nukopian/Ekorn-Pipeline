@@ -63,7 +63,7 @@ use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
-use Ekorn::Pipeline::Sinks   qw(all_items count_items first_item to_array to_arrayref to_file);
+use Ekorn::Pipeline::Sinks   qw(all_items count_items first_item to_file);
 use Ekorn::Pipeline::Stages::Flow;    # take and drop
 use File::Temp qw(tempdir);
 
@@ -202,7 +202,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Sink`, `::Sink::Scalar`, `::Sink::List` | 1 | a sink made for each run, from a set-up, giving one value or a list |
 | `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink`, `sink_scalar`, `gather` |
 | `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
-| `Ekorn::Pipeline::Sinks` | 2 | `all_items`, `first_item`, `single_item`, `count_items`; `to_array`, `to_arrayref`, `to_file` |
+| `Ekorn::Pipeline::Sinks` | 2 | `all_items`, `first_item`, `single_item`, `count_items`; `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
 | `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | `take`, `drop`, `take_while`, `drop_while`; `batch`, `collect`; `peek`, `count_into`, `dump_to` |
 
@@ -452,7 +452,7 @@ waiting for `take` as it stopped, and `take`, cut short, would be
   handed out, so a sink committing on `done` commits then:
 
 ```perl
-my $next = Ekorn::Pipeline->new(to_array)->iterator(noisy(qw(a b c)));
+my $next = Ekorn::Pipeline->new(all_items)->iterator(noisy(qw(a b c)));
 say $next->();
 say $next->();
 # source: done
@@ -610,11 +610,11 @@ say "saved: @saved";                                                        # sa
 ```
 
 A sink can go anywhere: its result goes on through the stages after
-it. `to_array` passes on what it holds, once it has it all, and
+it. `all_items` passes on what it holds, once it has it all, and
 `count_items` one number:
 
 ```perl
-say join ', ', Ekorn::Pipeline->new(to_array, stage {uc})->(qw(a b));    # A, B
+say join ', ', Ekorn::Pipeline->new(all_items, stage {uc})->(qw(a b));    # A, B
 say Ekorn::Pipeline->new(count_items, sub {"$_ tracks"})->(@tracks);            # 6 tracks
 ```
 
@@ -631,7 +631,7 @@ be ended:
 
 ```perl
 say count_items->(1, 2, 3);                      # 3
-say join ', ', to_array->(qw(a b));        # a, b
+say join ', ', all_items->(qw(a b));       # a, b
 eval { from_arrayref([1])->() };
 print $@ =~ s( \ at\ \S+\ line\ \d+ )( at LINE)xr;
 # Expected a source to be read through iterator at LINE.
@@ -670,8 +670,6 @@ while (my($line) = $next->()) { say $line }
 | `single_item` | scalar | the one item; `undef` if none; at a second, a warning, and the run stops, giving the first |
 | `count_items` | scalar | how many values there were |
 | `first_item` | scalar | the first value, stopping the run there; `undef` if there were none |
-| `to_array` | list | every value, as a list |
-| `to_arrayref`, `to_arrayref(\@array)` | scalar | an array reference of every value: your array, filled, or a new one |
 | `to_file($path)` | scalar | writes each value, then `$/`, giving how many; opened as the run starts, closed as it ends |
 
 The sinks taking no arguments have an empty prototype, so `count_items + 0`
@@ -750,7 +748,7 @@ the inner one ends in a sink, it gives the sink's result, and, nothing
 following the sink, its run ends as the result is ready:
 
 ```perl
-my $lines = Ekorn::Pipeline->new(stage {uc}, to_array)->iterator(noisy(qw(a b c)));
+my $lines = Ekorn::Pipeline->new(stage {uc}, all_items)->iterator(noisy(qw(a b c)));
 my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
 while (my($line) = $next->()) { say $line }
 # source: done
@@ -908,7 +906,7 @@ package My::Rows {
 
 ```perl
 my $people = My::Rows->new([qw(id name)], [1, 'Ann'], [2, 'Bo'], [3, 'Cy']);
-say join ', ', @{ $people | My::Rows::column('name') | take(2) | to_arrayref };
+say join ', ', @{ $people | My::Rows::column('name') | take(2) | all_items };
 say scalar @{$people};
 # rows: stopped
 # Ann, Bo
@@ -1028,7 +1026,7 @@ valid, as v0.3.0 changes.
 | A spent iterator is no source for another run | read in part, it goes on; spent or finished, it croaks; ended with values still to give, it gives them | 4.2, D41 |
 | A part called directly | a sink gives its result, tested on its own; a source croaks; `is_sink` | D42, D43 |
 | Fixes from the fourth review | a stop from an end or a set-up an error, not a raw stop; an iterator chaining and draining; a spent or died iterator refused; a pipeline made with `new` with no `\|`; a sink's code reference outliving it | D16, D23, D32, D41, D42 |
-| Sinks and context | a list sink's list as an array reference at the end of a chain and in scalar context, called directly too; `to_arrayref`; a scalar sink of nothing; precedence | D10, D17, D25, D51 |
+| Sinks and context | a list sink's list as an array reference at the end of a chain and in scalar context, called directly too; a scalar sink of nothing; precedence | D10, D17, D25, D51 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
 | A package delivers parts, using Ekorn as it is | section 7's pattern: `ekorn_source` with a context, `run_context()` behind an iterator, each run's own, none in a pushed run; `chain` and `drain` | D1, D5, D7, D24 |
@@ -1072,7 +1070,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
-| 8.3 | sinks, in two families (D50) | built: `all_items`, `first_item`, `single_item`, `count_items`, `to_array`, `to_arrayref`, `to_file`. Not built: `last_item`, `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh`, `to_hash`, `to_hashref` |
+| 8.3 | sinks, in two families (D50, D53, D54) | built: `all_items`, `first_item`, `single_item`, `count_items`, `to_file`. Not built: `last_item`, `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh` |
 | 9 | chains from a source or a stage (D14, D23); a list sink at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
 | 10 | Sugar | not built |

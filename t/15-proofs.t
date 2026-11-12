@@ -1,5 +1,7 @@
 use v5.36;
-use Test2::V0;
+# Test2::V0 exports a check named all_items, which the sink of that name
+# replaces here.
+use Test2::V0 qw(!all_items);
 use Test2::Plugin::NoWarnings;
 
 # The design's proofs (docs/design/DESIGN.md, section 19), and its
@@ -15,8 +17,8 @@ use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
-    count_items first_item single_item to_array
-    to_arrayref to_file);
+    all_items count_items first_item single_item
+    to_file);
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Stages::Flow;
 use Ekorn::Pipeline::Stop;
@@ -444,7 +446,7 @@ subtest 'A spent iterator is no source for another run (D41)' => sub {
     $finished->finish;
     ok dies { $class->new->iterator($finished) }, 'and so when finished';
 
-    my $result = $class->new(to_array)->iterator(from_arrayref([1, 2]));
+    my $result = $class->new(all_items)->iterator(from_arrayref([1, 2]));
     is [$result->()], [1], "a run that's ended with values still to give";
     is [drain_all($class->new->iterator($result))], [2], 'still gives them';
 };
@@ -452,9 +454,9 @@ subtest 'A spent iterator is no source for another run (D41)' => sub {
 subtest 'A part called directly (D42, D43)' => sub {
     is count_items->(1, 2, 3), 3, 'a sink called with values gives its result';
     my $n = count_items->(1 .. 4);
-    is $n,                 4,      'in scalar context too';
-    is [to_array->(1, 2)], [1, 2], 'a list sink gives its list';
-    is first_item->(),     undef,  'and a scalar sink of nothing, undef';
+    is $n,                  4,      'in scalar context too';
+    is [all_items->(1, 2)], [1, 2], 'a list sink gives its list';
+    is first_item->(),      undef,  'and a scalar sink of nothing, undef';
     @log = ();
     is [spy_sink->(5)], [5],                'so a sink is tested on its own';
     is \@log, ['sink set-up', 'sink done'], 'its end told how its run ended';
@@ -465,7 +467,7 @@ subtest 'A part called directly (D42, D43)' => sub {
 
     is Ekorn::Pipeline::is_sink(count_items), 'scalar',
         'is_sink: a scalar sink';
-    is Ekorn::Pipeline::is_sink(to_array), 'list', 'a list sink';
+    is Ekorn::Pipeline::is_sink(all_items), 'list', 'a list sink';
     is Ekorn::Pipeline::is_sink($class->new(stage { $_ }, count_items)),
         'scalar',
         'a pipeline, by the sink it ends in';
@@ -491,7 +493,7 @@ subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
     my @all = drain_all($next);
     is $next->ended, 'done', 'read to its end';
 
-    $next = $class->new(to_array)->iterator(from_arrayref([1, 2, 3]));
+    $next = $class->new(all_items)->iterator(from_arrayref([1, 2, 3]));
     $next->();
     is $next->ended, undef,
         'a list sink still handing out its result: nothing yet';
@@ -566,13 +568,9 @@ subtest 'Fixes from the fourth review' => sub {
     is $counting->(1, 2, 3), 3, "a sink's code reference outlives the sink";
 };
 
-# Test2::V0 exports a check named all_items, so the sink is called by
-# its full name here.
 subtest 'Sinks named for what they give (D50)' => sub {
-    is [Ekorn::Pipeline::Sinks::all_items()->(1, 2)], [1, 2],
+    is [all_items->(1, 2)], [1, 2],
         'all_items gives every item, as a list';
-    is [Ekorn::Pipeline::Sinks::all_items()->(1, 2)], [to_array->(1, 2)],
-        'as the container sink to_array does';
     is single_item->(7), 7,     'single_item gives the one item';
     is single_item->(),  undef, 'or undef, given none';
     my $first;
@@ -585,22 +583,16 @@ subtest 'Sinks named for what they give (D50)' => sub {
 };
 
 subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
-    is from_arrayref([1, 2]) | to_array, [1, 2],
+    is from_arrayref([1, 2]) | all_items, [1, 2],
         'a list sink at the end of a chain gives its list as an array reference';
-    is from_arrayref([]) | Ekorn::Pipeline::Sinks::all_items(), [],
+    is from_arrayref([]) | all_items, [],
         'an empty one, if there were none';
-    is from_arrayref([1, 2]) | to_arrayref, [1, 2],
-        'to_arrayref gives an array reference';
-    my @mine = (0);
-    ref_is from_arrayref([1, 2]) | to_arrayref(\@mine), \@mine,
-        'your array, if given one';
-    is \@mine, [0, 1, 2], 'filled';
 
     my $n = $class->new(count_items)->(1 .. 10);
     is $n, 10, "in scalar context, a pushed run gives a scalar sink's result";
-    my $all = $class->new(sub { $_ * 2 }, to_array)->(1 .. 3);
+    my $all = $class->new(sub { $_ * 2 }, all_items)->(1 .. 3);
     is $all, [2, 4, 6], "and a list sink's list, as an array reference";
-    $all = to_array->(1, 2);
+    $all = all_items->(1, 2);
     is $all, [1, 2], 'as a list sink called directly does';
     $n = $class->new(sub { $_ * 2 })->(1 .. 10);
     is $n, 10, 'and otherwise how many came out, as in v0.2.0';
@@ -622,7 +614,7 @@ subtest 'Chains (D14, D23)' => sub {
     my $clean = $trim | $loud;
     isa_ok $clean, [$class], 'a chain of stages is a pipeline';
     is [$clean->(' a ', 'b ')], [qw(A B)], 'called as one';
-    is from_arrayref([' a', 'b ']) | $clean | to_arrayref, [qw(A B)],
+    is from_arrayref([' a', 'b ']) | $clean | all_items, [qw(A B)],
         'and spliced into a chain';
     is [@{ from_arrayref([1, 2]) | stage { $_ * 2 } }], [2, 4],
         '@{} drains a chain';
@@ -767,7 +759,7 @@ subtest 'A package delivers parts, using Ekorn as it is (D1, D5, D7, D24)' =>
         'its stage asks the run for its columns';
         is $people->{log}, ['done'], 'its source is told how the run ended';
 
-        is $people | My::Table::column('name') | take(2) | to_arrayref,
+        is $people | My::Table::column('name') | take(2) | all_items,
         [qw(Ann Bo)],
         "with |, composed with Ekorn's parts";
         is $people->{log},      ['done', 'stopped'], 'told stopped by take(2)';

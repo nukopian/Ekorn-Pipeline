@@ -228,17 +228,17 @@ from it:
 
 ```perl
 use Ekorn::Pipeline::Sources qw(from_file);
-use Ekorn::Pipeline::Sinks   qw(to_array);
+use Ekorn::Pipeline::Sinks   qw(all_items);
 
-my $lines = Ekorn::Pipeline->new(sub { uc }, to_array)->iterator(from_file('setlist.txt'));
+my $lines = Ekorn::Pipeline->new(sub { uc }, all_items)->iterator(from_file('setlist.txt'));
 my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
 while (my($line) = $next->()) { say $line }
 # the first two lines, in capitals
 ```
 
-`to_array` holds back every line until there are no more, so the first
+`all_items` holds back every line until there are no more, so the first
 pull reads the whole file, and closes it, before the first line comes
-out. Without `to_array`, `take(2)` would read only two lines. Use a
+out. Without `all_items`, `take(2)` would read only two lines. Use a
 sink this way when the reading must finish before what follows starts.
 
 ## Chaining with | (new)
@@ -287,7 +287,7 @@ End a chain in the sink that says what you want, and it reads only
 what that needs:
 
 ```perl
-use Ekorn::Pipeline::Sinks        qw(all_items count_items first_item to_arrayref);
+use Ekorn::Pipeline::Sinks        qw(all_items count_items first_item);
 use Ekorn::Pipeline::Stages::Flow qw(take);
 
 my $hits = from_arrayref(\@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
@@ -301,7 +301,8 @@ say $hits | count_items;                     # 3
 say join ', ', @{ $hits | take(2) | all_items };    # Dancing Queen, Girls & Boys
 
 my @mine = ('Waterloo');
-say join ', ', @{ $hits | to_arrayref(\@mine) };    # Waterloo, Dancing Queen, Girls & Boys, Sunshine of Your Love
+push @mine, @{ $hits | all_items };
+say join ', ', @mine;                  # Waterloo, Dancing Queen, Girls & Boys, Sunshine of Your Love
 ```
 
 `$hits` is a source, so each chain from it is a run of its own, from

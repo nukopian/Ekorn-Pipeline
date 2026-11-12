@@ -4,15 +4,12 @@ package Ekorn::Pipeline::Sinks;
 
 use Carp                    qw();
 use Exporter                qw(import);
-use Ref::Util               qw(is_arrayref);
 use Ekorn::Pipeline::Errors qw(croakf);
 use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK
-    = qw(all_items count_items first_item single_item to_array to_arrayref
-        to_file);
+our @EXPORT_OK = qw(all_items count_items first_item single_item to_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
@@ -31,8 +28,8 @@ sub count_items : prototype() () {
 
 
 # The sinks named for what they give: all_items, first_item, single_item
-# and count_items. The container sinks, named for where the items go, are the
-# to_ sinks below.
+# and count_items. The container sink, named for where the items go, is
+# to_file, below.
 
 # Return a sink giving every item, as a list.
 sub all_items : prototype() () {
@@ -73,26 +70,6 @@ sub first_item : prototype() () {
             sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
             sub () { @first },
         );
-    });
-}
-
-
-# Return a sink giving every value, as a list.
-sub to_array : prototype() () {
-    return Ekorn::Pipeline::Sink->new(sub {
-        my @all;
-        return (sub ($value) { push @all, $value }, sub () { @all });
-    });
-}
-
-
-# Return a sink giving an array reference of every value: the array
-# given, with each pushed onto it, or a new one.
-sub to_arrayref : prototype(;$) ($array = undef) {
-    croakf 'Expected an array reference' if defined $array && !is_arrayref($array);
-    return Ekorn::Pipeline::Sink->new_scalar(sub {
-        my $into = $array // [];
-        return (sub ($value) { push @$into, $value }, sub () { $into });
     });
 }
 

@@ -375,7 +375,7 @@ while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
 ## Sinks: Ekorn::Pipeline::Sinks
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(count_items to_array first_item);
+use Ekorn::Pipeline::Sinks qw(all_items count_items first_item);
 ```
 
 Ready-made sinks, usually given last in a pipeline. Nothing is
@@ -399,12 +399,8 @@ source: what one reads, the other writes.
 | `joined($separator)` | the items joined into one string | no |
 | `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
 | `for_each(sub {...})` | calls the sub with each item, and gives how many | no |
-| `to_array` | every item, as a list, as `all_items` gives | no |
-| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every item: your array, with each pushed onto it, or a new one | no |
 | `to_fh($fh)` | prints each item to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
 | `to_file($path)` | writes each item to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
-| `to_hash` | every pair's key and value, as a list to assign to a hash | no |
-| `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one | no |
 
 Asked for one value, in scalar context or at the end of a `|` chain,
 a sink giving a list gives it as an array reference; for how many,
@@ -419,7 +415,7 @@ An array reference is true even when it's empty, so test for no items
 with `@$titles`, or use `count_items`.
 
 `all_items` shares its name with a check Test2::V0 exports: in a test
-using both, call one by its full name.
+using the sink, leave the check out, with `use Test2::V0 qw(!all_items)`.
 
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
@@ -429,12 +425,13 @@ the other:
 my $copied = Ekorn::Pipeline->new(to_file('copy.txt'))->iterator(from_file('original.txt'))->();
 ```
 
-`from_hash` and `from_hashref` give pairs, and `to_hash` and
-`to_hashref` take them. To key values by something of their own, make
-the pairs first:
+There's no sink for an array or a hash: `all_items` gives every item,
+and `push @mine, @{ $source | all_items }` adds them to your array. A
+hash is assigned from a list of keys and values, so to key values by
+something of their own, give each one's key and value from a stage:
 
 ```perl
-my %by_title = Ekorn::Pipeline->new(sub { [$_->{title}, $_] }, to_hash)->(@tracks);
+my %by_title = Ekorn::Pipeline->new(sub { ($_->{title}, $_) })->(@tracks);
 ```
 
 A sink that stops the pull early is told `done`: it decided the run
@@ -535,7 +532,7 @@ What to write, by what's wanted:
 | the first value | `$source \| first_item`, reading one | `$source->[0]`, reading them all |
 | how many | `$source \| count_items` | `scalar @$source`, keeping every value to count them |
 | the first few | `$source \| take(5) \| all_items` | `(@$source)[0 .. 4]`, reading them all |
-| every value, added to your array | `$source \| to_arrayref(\@mine)` | `push @mine, @$source` |
+| every value, added to your array | `push @mine, @{ $source \| all_items }` | |
 | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |
 
 ```perl

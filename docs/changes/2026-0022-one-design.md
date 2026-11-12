@@ -47,7 +47,8 @@ give, and containers. D51 settled: a list sink asked for one value
 gives its list as an array reference, revising D10 and D47. D52
 settled: `@{}` stays, explained in detail, and the docs lead with a
 sink. D53 settled: `count` renamed `count_items`, and `only_item`
-`single_item`, revising D50's names.
+`single_item`, revising D50's names. D54 settled: no containers for
+arrays and hashes; `to_fh` and `to_file` stay.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -498,6 +499,20 @@ D19 to D25 came from the third cold review, settled by Iain on
   method it replaces. Neither has been released, so no user's code
   changes. Built: renamed in Sinks, with its tests. Design 8.3 and the
   new 17.28; the names throughout.
+- [x] **D54.** Do the containers for arrays and hashes stay? No:
+  `to_array`, `to_arrayref`, `to_hash` and `to_hashref` are dropped,
+  Iain decided on 2026-11-12, revising D50's family of containers to
+  `to_fh` and `to_file`. Since D51, `all_items` gives every item as an
+  array reference wherever one value is asked for, so `to_array` was
+  `all_items` under another name, and `to_arrayref` the same at the end
+  of a chain. Filling your own array is `push @mine, @{ $src |
+  all_items }`, and a hash is assigned from the keys and values a stage
+  gives, so `to_hashref(\%mine)` and `to_hash` add nothing Perl lacks.
+  How `to_hash` would give a hash reference (D51) goes with it.
+  Neither container had been released. Built: `to_array` and
+  `to_arrayref` removed from Sinks, the tests using `all_items` in
+  their place, with Test2::V0's check of that name left out. Design
+  8.3, 17.12, 17.25, 17.26, 19 and the new 17.29.
 
 ## The plan
 
