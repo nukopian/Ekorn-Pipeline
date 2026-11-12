@@ -620,7 +620,22 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
     is $warnings->[0],
         "Expected only one item, but there were more at ${\ __FILE__ } line $line.\n",
         "at the caller's line";
-    is $next->ended, 'stopped', 'the run ended, reading no more';
+    is $next->ended, undef, 'the iterator still open';
+    is [$next->()],  [8],   'the value it looked at, not consumed';
+    is [$next->all], [9],   'and the rest after it';
+    is $next->ended, 'done';
+
+    $next     = $class->new->iterator(from_arrayref([7, 8]));
+    $warnings = warnings { $next->single };
+    is scalar @$warnings, 1,     q(a warning);
+    is $next->ended,      undef, 'the source read to its end, a value still held';
+    is [drain_all($class->new->iterator($next))], [8],
+        'which another run reading the iterator gets';
+    $next     = $class->new->iterator(from_arrayref([7, 8]));
+    $warnings = warnings { $next->single };
+    is scalar @$warnings, 1, q(a warning);
+    $next->finish;
+    is $next->ended, 'stopped', 'and finish drops, as it drops what is left';
     is [$class->new->iterator(from_arrayref([]))->single], [undef],
         'undef, if none';
 };

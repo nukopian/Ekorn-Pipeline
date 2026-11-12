@@ -1942,10 +1942,12 @@ still to come, as a list, or an array reference where one value is
 asked for, as `keep_all` does (D51). `$next->first` gives the next
 value, or `undef`, and ends the run, as `keep_first` does, so a source
 reads no more; without that, it would be `$next->()` under another
-name. `$next->single` gives the next value, or `undef`, and pulls one
-more to check: if there's another, it warns "Expected only one item,
-but there were more", as `keep_single` does, rather than croak, and
-ends the run.
+name. `$next->single` gives the next value, or `undef`, and looks one
+ahead to check: if there's another, it warns "Expected only one item,
+but there were more", as `keep_single` does, rather than croak. Its
+check doesn't consume (D60): the iterator holds the value it looked at,
+and stays open, so its next pull, `all`, or a run reading it, gives
+that value first, and `ended` says nothing until it has gone.
 
 Weighed and set aside:
 
@@ -1955,6 +1957,9 @@ Weighed and set aside:
   `$next->()`.
 - **`single` croaking at a second, or at none.** Iain chose the
   warning, as `keep_single` has it.
+- **`single` consuming the value it checks, and ending the run,** as
+  first built under D59. Iain: "I'd rather that single's check was
+  non-destructive".
 
 ## 18. Where each roadmap item lands
 

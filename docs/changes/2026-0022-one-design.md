@@ -54,7 +54,8 @@ arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
 `keep_last`, and built. D57 settled: `keep(N)`, a list sink of the
 first N items, stopping there. D58 settled: a `take` stage for every
 `keep` sink but `keep_all`. D59 settled: an iterator's `all`, `first`
-and `single`.
+and `single`. D60 settled: `single`'s check doesn't consume, revising
+D59.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -569,6 +570,16 @@ D19 to D25 came from the third cold review, settled by Iain on
   and warns "Expected only one item, but there were more" if there is
   one, rather than croak, as Iain chose, and finishes it. Built: in
   Iterator, with tests. Design 6.2 and 17.33.
+- [x] **D60.** Does `single`'s check consume the value it finds?
+  No, Iain decided on 2026-11-12, revising D59: "I'd rather that
+  single's check was non-destructive, i.e. was able to check if there
+  was another value without consuming it." So the iterator holds a
+  value looked at ahead, and hands it out first, to its next pull,
+  `all`, `first`, or a run reading the iterator; `single` no longer
+  finishes the iterator, which would drop it. While a value is held,
+  `ended` says nothing, as the iterator still has one to give, and an
+  iterator holding one isn't spent; `finish` drops it, so `ended` then
+  says `stopped`. Built: in Iterator, with tests. Design 6.2 and 17.33.
 
 ## The plan
 
