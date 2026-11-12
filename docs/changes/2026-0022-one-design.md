@@ -30,15 +30,15 @@ re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
 lexically. D33 settled: a pipeline holds no
 source. D34 settled: the caller asks an
 iterator how its run ended. D35 settled: named sources, Q11,
-dropped. Q14, DBIx-Squirrel's, has a suggested
-answer for its review. D36 settled: a statement's definition
+dropped. D36 settled: a statement's definition
 names pipelines by string, as a chain of names. D37 settled: the name-reading class
 method is `pipeline_in`. D38 settled: no strict `is_stage`, for
 now; `is_sink` is the design's Q27. D39 settled: the prototype is kept
 where it holds. D40 settled: a pipeline's name in its
 stages' errors joins v0.3.0. D41 settled: a spent iterator croaks
 as a source; a reusable source of a sink's result dropped. D42 settled: each type, called directly,
-does what its role means. D43 settled: `is_sink`.
+does what its role means. D43 settled: `is_sink`. D44 settled: DBIx::Squirrel's iterator
+offers `as_source`, as the design's 12.3 sets out.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -359,6 +359,13 @@ D19 to D25 came from the third cold review, settled by Iain on
   by the sink it ends in. So a function taking its caller's stages can
   honour a sink at their end. Built, and used by `|` and by scalar
   context in place of their own checks. Design 11.1, 17.22.
+- [x] **D44.** How does DBIx::Squirrel::Iterator offer `as_source` (the
+  design's Q14, DBIx-Squirrel's question)? As the design's 12.3 sets
+  out, Iain decided on 2026-11-12: its set-up executes the statement,
+  its step fetches in batches, its end finishes the handle, and its
+  context is the statement's columns; its own stages are run by an
+  Ekorn iterator whose source it hands on; and one run of a handle at
+  a time. "If DBIx-Squirrel has an issue, we will re-visit the design."
 
 ## The plan
 

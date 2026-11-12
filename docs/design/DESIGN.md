@@ -813,9 +813,11 @@ statement handle. With section 5, a statement's rows read through
 dropped half-read finishes it too.
 
 How DBIx::Squirrel::Iterator becomes one is DBIx-Squirrel's to design
-(**Q14**). It's a hash-based object today, with `next`, `all`,
+(Q14). It's a hash-based object today, with `next`, `all`,
 `reset`, `single`, `count`, holding a statement, its bind values and
-its caller's stages. Suggested, for its review:
+its caller's stages. Settled by Iain, 2026-11-12 (2026-0022's D44), as
+first suggested for its review; if DBIx-Squirrel finds a problem with
+it, the design is revisited:
 
 - **The iterator offers `as_source`,** as it's what users hold, from
   `$sth->iterate(@binds, @stages)`, and it has all a run needs. Its
@@ -1033,7 +1035,6 @@ Settled questions keep their numbers, listed after the open ones.
 
 | | Question | Whose | Recommended |
 |---|---|---|---|
-| **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | Suggested for its review (section 12.3): the iterator offers `as_source`, its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, croaking if it's active |
 
 ### 16.2 Settled
 
@@ -1056,6 +1057,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q11** | Named sources (2026-0012) now, or later? | D35: neither: dropped, with the roadmap idea; if there's a need, it'll be found again |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
 | **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
+| **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`? | D44: as section 12.3 sets out: its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time. If DBIx-Squirrel finds a problem, the design is revisited |
 | **Q15** | Can a statement's definition in DBIx::Squirrel's Sugar name a pipeline by a string? | D36: yes, written as a chain of names, each followed by `=>`, `clean => trim => top5 =>` (section 12.5); how a name is told from the rest is DBIx-Squirrel's to design |
 | **Q16** | DBIx::Squirrel's CI testing against Ekorn's `pipeline-experimental`? | D29: yes; `pipeline-experimental` is a sandbox, so testing against it costs nothing that matters; DBIx-Squirrel does it, told when it reviews the design |
 | **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | D30: no; `pipeline` is a word, in Factories only |
