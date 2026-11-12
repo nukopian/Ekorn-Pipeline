@@ -33,10 +33,11 @@ examples.
 - **Source:** something that gives values when it's pulled, called
   with nothing until it gives an empty list. Any code reference, or
   one made with `source`.
-- **Sink:** the last stage of a pipeline, which consumes every value
-  and gives its result, one value, such as a count, or a list, such as
-  every value. Made with `sink`, or
-  ready-made, such as `count`.
+- **Sink:** a stage that consumes every value and, at its end, gives
+  its result, one value, such as a count, or a list, such as every
+  value. Usually the last stage, when its result is what the run
+  gives; anywhere else, its result goes on through the stages after
+  it. Made with `sink`, or ready-made, such as `count`.
 - **Made for a run:** made afresh at the start of each run, by a
   set-up block, so that each run has state of its own. Gathers,
   sources and sinks can be.
@@ -254,10 +255,12 @@ reference is a source, as `iterator` has always taken.
 sink { SET-UP }
 ```
 
-Returns a Sink, to go last in a pipeline, made for each run. Its
-set-up returns its step, called with each value, whose return is
-ignored; and its end, told how the run ended, which, when `done`, gives
-the result: one value or a list, all the run gives **[Q8]**.
+Returns a Sink, a stage made for each run, usually the last in a
+pipeline. Its set-up returns its step, called with each value, whose
+return is ignored; and its end, told how the run ended, which, when
+`done`, gives the result: one value or a list. Last, the result is all
+the run gives; anywhere else, it goes on through the stages after it
+**[Q8]**.
 
 ```perl
 my $longest = sink {
@@ -338,8 +341,8 @@ while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
 use Ekorn::Pipeline::Sinks qw(count to_array first_value);
 ```
 
-Ready-made sinks, to go last in a pipeline. Nothing is exported by
-default. Each `to_` sink is the counterpart of a `from_` source: what
+Ready-made sinks, usually given last in a pipeline. Nothing is
+exported by default. Each `to_` sink is the counterpart of a `from_` source: what
 one reads, the other writes. The rest have names that can't clash with
 Perl's built-ins or List::Util's, which is why they're `first_value`
 and `joined`, not `first` and `join`.
@@ -414,7 +417,9 @@ chain, never `sub { uc }`. A pipeline made with `new` has no operators.
 An operator gives one scalar. A sink that gives one value, such as
 `count`, gives it from a chain as it is. A sink that gives a list,
 such as `to_array` or `to_hash`, gives it from a chain as a reference,
-to an array or a hash; or `@{}` drains a chain without a sink:
+to an array or a hash; or `@{}` drains a chain without a sink.
+Nothing can be chained after a sink: a chain ending in one has already
+run, and gives its result.
 
 ```perl
 my $n      = $source | count;       # a number
@@ -518,7 +523,6 @@ Wording to be settled when the code is written. One for each:
 - a word given something other than a block;
 - a set-up that doesn't return a code reference for its step, and
   optionally one for its end;
-- a sink not given last;
 - an end that died while the run was already dying (a warning)
   **[Q6]**;
 - `|` given something that isn't one of the types.

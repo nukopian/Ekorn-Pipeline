@@ -122,7 +122,7 @@ are values. A value never means "the end"; an empty list does.
 | **Gather** | a stage with state for the run, and an end that lets out what it held | one value | a list | `gather {...}`, `batch`, `collect` |
 | **Pipeline** | a list of stages, run in order | values (push), or a source (pull) | a list, or an iterator | `Ekorn::Pipeline->new` |
 | **Source** | gives values when pulled, until it gives none | nothing | the next value or values, or an empty list | a code reference given to `iterator` |
-| **Sink** | consumes every value, and gives its result: one value, or a list | (as the last stage) each value | nothing, until its end gives the result | nothing yet: a call in list context, `all`, `count` |
+| **Sink** | a stage that consumes every value, and gives its result at its end: one value, or a list | each value | nothing, until its end gives the result | nothing yet: a call in list context, `all`, `count` |
 | **Stop** | ends a run early, from inside a stage | values to carry on | (thrown) | `Stop(...)` |
 
 How they relate:
@@ -139,10 +139,16 @@ How they relate:
   the values that come out of the stages.
 - **A gather is a stage** whose state lasts a run, with an end that can
   let out what it held.
-- **A sink is the last stage of a pipeline,** whose end gives the
-  run's result (proposed, **Q8**): one value, such as a count, or a
-  list, such as every value. Pushed values in, the result out; or,
-  pulled from a source, an iterator that hands out the result.
+- **A sink is a stage that holds back every value,** and lets out its
+  result at its end (proposed, **Q8**): one value, such as a count, or
+  a list, such as every value. So it's a flatMap of the whole stream,
+  shaped as a gather is. It's usually last, and then its result is
+  what the run gives: pushed values in, the result out; or, pulled
+  from a source, an iterator that hands out the result. Anywhere else,
+  its result goes on through the stages after it, as a gather's does:
+  `to_array` there passes on the same values, once it has them all,
+  and `count` passes on one number. Nothing has to follow a sink, and
+  nothing is forbidden to.
 - **A stop** ends the run from inside a stage; the values it carries
   go on through the stages after it.
 
@@ -469,6 +475,11 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   such as `to_array` or `to_hash`, gives it from a chain as a
   reference, to an array or a hash, as one scalar must; or `@{}`
   drains a chain without a sink.
+- **Nothing can be chained after a sink.** Not because a sink must be
+  last, which it needn't be (section 4.2), but because a chain ending
+  in a sink has already run: what `|` gives is the result, not a part
+  that more can be joined to. In a pipeline made with `new`, or
+  spliced as a stage, a sink can have stages after it.
 - A pipeline made with `new` gets no operators: only the chains `|`
   makes, and the typed objects, do.
 
@@ -711,7 +722,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q5** | The source's end runs last, after every stage's? | Ekorn | Yes |
 | **Q6** | An end that dies during a die: warn, keeping the first error? | Ekorn | Yes, with a message saying which end |
 | **Q7** | `iterator` returns a blessed code reference whose `DESTROY` ends an abandoned run? | Ekorn, DBIx-Squirrel to confirm | Yes |
-| **Q8** | A sink is the last stage of a pipeline, made for a run, its end giving the result, one value or a list? | Ekorn | Yes |
+| **Q8** | A sink is a stage, made for a run, that holds back every value and gives its result at its end, one value or a list: usually last, its result going on through any stages after it? | Ekorn | Yes |
 | **Q9** | `stage(\&trim)`: wrap, never bless the sub given? | Ekorn | Always wrap |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
@@ -887,20 +898,30 @@ Weighed and set aside:
   way: the stages after it finish normally, and those up to it are cut
   off.
 
-### 17.9 A sink is the last stage of a pipeline
+### 17.9 A sink is a stage, usually the last
 
-(Section 4.2, **Q8**.)
+(Section 4.2, **Q8**.) A sink holds back every value and lets out its
+result at its end, so it's a flatMap of the whole stream, the same
+shape as a gather. What sets it apart is its end, which always runs
+and is told how the run ended (17.7), so it can roll back or close a
+file after a die, where a gather's end isn't called.
 
 Weighed and set aside:
 
-- **A sink as a gather that lets nothing through.** Close, but a
-  sink's end must always run, to roll back or close a file after a
-  die, which a gather's end doesn't (17.7).
+- **A sink is a gather.** The same shape, but a gather's end isn't
+  called after a die, or after a stop in a stage after it, and
+  changing that would change behaviour code relies on (17.7).
+- **A sink must be last,** with an error for a sink given anywhere
+  else, and no stages, or `|`, after it. A sink's result is values,
+  and the stages after it can take them as they take any others:
+  `to_array` passes on what it holds, `count` one number. A rule
+  would forbid that for nothing, and need an error, and a check
+  wherever pipelines are spliced or names expanded. `|` can't follow a
+  sink anyway, for its own reason (section 9).
 - **A sink as something outside the pipeline,** taking a source and
   returning a result. It would need a second way of running a
-  pipeline, where the last stage of one already gives push and pull
-  for free: pushed values in, the result out; pulled, an iterator of
-  the result.
+  pipeline, where a stage already gives push and pull for free:
+  pushed values in, the result out; pulled, an iterator of the result.
 
 ### 17.10 An abandoned iterator ends its run
 

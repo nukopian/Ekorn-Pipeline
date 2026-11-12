@@ -140,8 +140,8 @@ you're done with it, as Perl lets it go:
 
 ### Count, total or join, in one result
 
-A sink goes last, and turns every value into its result, here a single
-value:
+A sink takes every value and turns them into its result, here a
+single value. Given last, its result is what the run gives:
 
 ```perl
 use Ekorn::Pipeline::Sinks qw(count fold joined);
