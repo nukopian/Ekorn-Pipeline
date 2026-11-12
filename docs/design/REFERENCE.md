@@ -35,10 +35,11 @@ subclass, go, as does Pipes' `pipeline_class`.
   with nothing until it gives an empty list. Any code reference, or
   one made with `source`.
 - **Sink:** a part that consumes every value and, when they run out,
-  gives its result, a list, or one value for a scalar sink, one value, such as a count, or a list, such as every
-  value. Usually the last stage, when its result is what the run
-  gives; anywhere else, its result goes on through the stages after
-  it. Made with `sink` or `sink_scalar`, or ready-made, such as `count`.
+  gives its result: one value, such as a count, for a scalar sink, or
+  a list, such as every value, for a list sink, which, asked for one
+  value, gives its list as an array reference. Usually the last stage,
+  when its result is what the run gives; anywhere else, its result
+  goes on through the stages after it. Made with `sink` or `sink_scalar`, or ready-made, such as `count`.
 - **Made for a run:** made afresh at the start of each run, by a
   set-up block, so that each run has state of its own. Gathers,
   sources and sinks can be.
@@ -294,10 +295,11 @@ Its set-up returns its step, called with each value, whose return is
 ignored; its flush, called when its input runs out, giving its result;
 and, optionally, its end, told how the run ended once it has. A sink
 made with `sink` gives a list; one made with `sink_scalar` gives one
-value, and is what ends a `|` chain. Write a sink of one value with
-`sink_scalar`: one written with `sink`, in scalar context, gives 1, its
-count of results, not its value. Last, the result is all the run gives; anywhere else, it goes on
-through the stages after it.
+value. Asked for one value, in scalar context or at the end of a `|`
+chain, a list sink gives its list as an array reference, so write a
+sink of one value with `sink_scalar`: one written with `sink` would
+give its value in an array reference. Last, the result is all the run
+gives; anywhere else, it goes on through the stages after it.
 
 ```perl
 my $longest = sink_scalar {
@@ -404,6 +406,18 @@ source: what one reads, the other writes.
 | `to_hash` | every pair's key and value, as a list to assign to a hash | no |
 | `to_hashref`, `to_hashref(\%hash)` | a hash reference of every pair: your hash, with each put into it, or a new one | no |
 
+Asked for one value, in scalar context or at the end of a `|` chain,
+a sink giving a list gives it as an array reference; for how many,
+use `count`:
+
+```perl
+my @titles = $pipeline->(@books);    # with all_items last: every title
+my $titles = $pipeline->(@books);    # every title, as an array reference
+```
+
+An array reference is true even when it's empty, so test for no items
+with `@$titles`, or use `count`.
+
 `all_items` shares its name with a check Test2::V0 exports: in a test
 using both, call one by its full name.
 
@@ -470,17 +484,16 @@ with `Ekorn::Pipeline::Operators::chain`, and `@{}` with
 `|` binds more loosely than `.` and `+`, so put a chain inside a larger
 expression in parentheses.
 
-An operator gives one scalar, so a chain ends only in a sink giving
-one value, such as `count`, or a reference, such as `to_arrayref` or
-`to_hashref`. A sink giving a list, such as `to_array` or `to_hash`,
-croaks there: use its `ref` counterpart. Or `@{}` drains a chain
+An operator gives one scalar, so a chain ending in a sink gives one
+value: a scalar sink's, such as `count`'s, or a list sink's list, such
+as `all_items`'s, as an array reference. Or `@{}` drains a chain
 without a sink.
 Nothing can be chained after a sink: a chain ending in one has already
 run, and gives its result.
 
 ```perl
 my $n      = $source | count;          # a number
-my $titles = $source | to_arrayref;    # an array reference
+my $titles = $source | all_items;      # an array reference
 my @titles = @{ $source };             # a list
 ```
 
@@ -622,8 +635,6 @@ Wording to be settled when the code is written. One for each:
   flush, end or context it may have;
 - an object offering more than one of `ekorn_stage`, `ekorn_sink_scalar` and
   `ekorn_sink`;
-- a chain with `|` ending in a sink that gives a list, such as
-  `to_array`;
 - an end that died while the run was already dying (a warning,
   naming the end);
 - `|` started with something that isn't one of the types, or given

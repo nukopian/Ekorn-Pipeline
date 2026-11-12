@@ -521,9 +521,9 @@ subtest 'A list sink by default; sink_scalar for one value (D47)' => sub {
     is Ekorn::Pipeline::is_sink($scalar), 'scalar',
         'sink_scalar {...} a scalar sink';
     is [$list->(1, 2)], [1, 2], 'called, it gives its list';
-    is from_arrayref([1, 2]) | $scalar, 2,
-        'and only a scalar sink ends a chain';
-    like dies { my $x = from_arrayref([1, 2]) | $list }, qr( not\ a\ list )x;
+    is from_arrayref([1, 2]) | $scalar, 2, 'a scalar sink ends a chain';
+    is from_arrayref([1, 2]) | $list, [1, 2],
+        'and a list sink, giving its list as an array reference (D51)';
 };
 
 subtest 'Fixes from the fourth review' => sub {
@@ -579,10 +579,11 @@ subtest 'Sinks named for what they give (D50)' => sub {
     is first_item->(3, 4),             3, 'first_item gives the first';
 };
 
-subtest 'Sinks and context (D10, D17, D25)' => sub {
-    like dies { from_arrayref([1, 2]) | to_array },
-        qr( \A Expected\ a\ sink\ giving\ one\ value .* use\ to_arrayref )x,
-        'a list sink croaks at the end of a chain';
+subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
+    is from_arrayref([1, 2]) | to_array, [1, 2],
+        'a list sink at the end of a chain gives its list as an array reference';
+    is from_arrayref([]) | Ekorn::Pipeline::Sinks::all_items(), [],
+        'an empty one, if there were none';
     is from_arrayref([1, 2]) | to_arrayref, [1, 2],
         'to_arrayref gives an array reference';
     my @mine = (0);
@@ -592,6 +593,10 @@ subtest 'Sinks and context (D10, D17, D25)' => sub {
 
     my $n = $class->new(count)->(1 .. 10);
     is $n, 10, "in scalar context, a pushed run gives a scalar sink's result";
+    my $all = $class->new(sub { $_ * 2 }, to_array)->(1 .. 3);
+    is $all, [2, 4, 6], "and a list sink's list, as an array reference";
+    $all = to_array->(1, 2);
+    is $all, [1, 2], 'as a list sink called directly does';
     $n = $class->new(sub { $_ * 2 })->(1 .. 10);
     is $n, 10, 'and otherwise how many came out, as in v0.2.0';
 

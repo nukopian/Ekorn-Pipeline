@@ -43,7 +43,8 @@ cold review: `ended` the last part's verdict; a context describes the
 source; lists first, `sink` and `sink_scalar`. D48 settled: `ended`
 says whether the source was read to its end, revising D45. D49 settled: the role methods are named
 for Ekorn. D50 settled: sinks named for what they
-give, and containers.
+give, and containers. D51 settled: a list sink asked for one value
+gives its list as an array reference, revising D10 and D47.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -443,6 +444,24 @@ D19 to D25 came from the third cold review, settled by Iain on
   "all" is the items together, "every" each in turn; and the clash
   with Test2::V0 is "only a problem in test harness", not a reason to
   name a public sink.
+- [x] **D51.** What does a list sink give when one value is asked for
+  (the design's Q32, DBIx-Squirrel's Q22)? Its list, as an array
+  reference, Iain decided on 2026-11-12, his proposal, sent by
+  DBIx-Squirrel's session: "all_items as a scalar (when I have a count
+  sink) could be a reference?" A sink given last says what comes back,
+  whatever the context, and counting is `count`'s job. So in scalar
+  context `my $rows = $p->(@values)` with `all_items` last is every
+  item, where under D47 it was how many; and a `|` chain, asked for one
+  value too, ends in a list sink the same way, where under D10 it
+  croaked. `to_array` included: an exception for one list sink would
+  be a surprise of its own, and `to_arrayref` keeps its job, filling
+  the array you hand it. A pipeline with no sink still gives how many
+  (D17). Costs, documented: an empty result is true, so testing for
+  none takes `@$rows` or `count`; printing one shows `ARRAY(0x...)`.
+  How `to_hash` would give a hash reference waits until it's built.
+  Iain: "quite nice, too". Built: `Ekorn::Pipeline`'s call and
+  `Operators`' `chain`, the croak at a chain's end gone, with tests.
+  Design 4.3, 6.2, 8.3, 9, 13, 16, 17.12, 17.23, 17.25, 17.26, 20.
 
 ## The plan
 
@@ -773,6 +792,17 @@ became D50; and `insert_into`, its 2026-0012, is dropped for result
 sinks of its own design, so the design's 12.4 keeps it only as an
 example of a package's sink, not planned, and 11.2, 12.2, 18 and 20.2
 say so.
+
+### A list sink's one value, 2026-11-12
+
+A message from DBIx-Squirrel (DBIx-Squirrel
+9b11d961e061fbb6d7d127e6f8a99c17f2519858), read and removed: Iain's
+proposal that a list sink in scalar context give a reference, as
+DBIx::Squirrel's design has a sink given last say what comes back,
+which a list sink giving its count broke. It became D51, taking in
+the points its session found weighing it: the trap goes, `|` can end
+in `all_items`, an empty result is true, and `to_hash` would want a
+hash reference.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

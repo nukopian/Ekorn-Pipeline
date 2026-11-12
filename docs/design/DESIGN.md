@@ -217,13 +217,15 @@ A pipeline runs two ways (settled):
 
 - **Push:** called with values, `$p->(@values)`, it runs each through
   and returns what comes out. The values are the source. In scalar
-  context it gives how many came out, as in v0.2.0, unless its last
-  stage is a scalar sink, when it gives that sink's result:
-  `my $n = $p->(@values)` with `count` last is the count
-  (2026-0022's D17). A sink giving one value must say so, with
-  `sink_scalar`: one written with `sink {...}` is a list sink (D47),
-  and in scalar context gives how many results it had, 1, not its
-  value, as Perl's lists do.
+  context it gives what its last stage says, if that's a sink: a
+  scalar sink's result, so `my $n = $p->(@values)` with `count` last is
+  the count (2026-0022's D17); or a list sink's list, as an array
+  reference, so with `all_items` last it's every item (D51). Otherwise
+  it gives how many came out, as in v0.2.0. So a sink given last says
+  what comes back, whatever the context, and counting is `count`'s job.
+  A sink giving one value says so, with `sink_scalar`: one written with
+  `sink {...}` is a list sink (D47), and in scalar context gives its
+  one value in an array reference.
 - **Pull:** given a source, `$p->iterator($source)`, it returns an
   iterator that hands out one result per call, pulling from the source
   only as it needs. Once a stage stops, the source isn't called again.
@@ -505,7 +507,7 @@ constructor (settled, 2026-0021):
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
 | `sink {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
-| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value (D47). Use it for a sink of one value: one written with `sink {...}`, in scalar context, gives 1, its count of results, and can't end a `\|` chain |
+| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value (D47). Use it for a sink of one value: one written with `sink {...}`, in scalar context or at the end of a `\|` chain, gives its value in an array reference (D51) |
 
 The rule for the blocks: **a word for something made afresh for each
 run takes a set-up; `stage` takes the stage itself.** A source with
@@ -635,7 +637,7 @@ reads, the other writes. Nothing exported by default.
 | Sink | Gives | Role | Stops the pull early? |
 |---|---|---|---|
 | `to_array` | every item, as a list: the same as `all_items`, named as a container | list | no |
-| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every item: your array, with each pushed onto it, or a new one; what ends a `\|` chain wanting every item (D10) | scalar | no |
+| `to_arrayref`, `to_arrayref(\@array)` | an array reference of every item: your array, with each pushed onto it, or a new one (D10) | scalar | no |
 | `to_fh($fh)` | prints each item to your filehandle, followed by `$/`; gives how many | scalar | no; you close it |
 | `to_file($path)` | writes each item to the file, followed by `$/`; gives how many | scalar | no; its end closes the file |
 | `to_hash` | every pair's key and value, as a list to assign to a hash | list | no |
@@ -698,12 +700,14 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   plain code references, `|` silently ORs their addresses. The docs
   must say loudly: in a chain, every stage is a `stage {...}`, or a
   ready-made part, which section 8.1 makes objects.
-- **An operator returns one scalar,** so only a scalar sink, one with
-  `ekorn_sink_scalar`, can end a chain, and its result is what `|` gives. A
-  list sink, such as `to_array` or `to_hash`, croaks there, as its list
-  can't be given: its scalar counterpart, `to_arrayref` or
-  `to_hashref`, gives the same as a reference, saying so in its name.
-  Or `@{}` drains a chain without a sink.
+- **An operator returns one scalar,** so a chain ending in a sink
+  gives one value, as a run asked for one value in scalar context does
+  (D51): a scalar sink's result, or a list sink's list as an array
+  reference, so `$rows | all_items` is every row. `to_arrayref` and
+  `to_hashref` fill a container you hand them. Or `@{}` drains a chain
+  without a sink. (`to_hash`, a list of pairs, would more naturally
+  give a hash reference; how a list sink would say so is left until
+  it's built.)
 - **Nothing can be chained after a sink that ends a chain from a
   source.** Not because a sink must be last, which it needn't be
   (section 4.2), but because such a chain has already run: what `|`
@@ -1045,7 +1049,7 @@ before. A v0.2.x from `develop` in the meantime only fixes.
 | `iterator` returning an Iterator, an Element | no, unless code checks the type, with `ref` or `is_coderef` (**Q7**) |
 | Gather, and the canned stages made with it, become Elements | `ref` and `is_coderef` change: an object, called as a code reference |
 | `stages` returns Elements: a code reference given comes back as a Stage of it | code comparing them with what it gave |
-| A pushed run in scalar context gives a scalar sink's result, when one is last (D17) | no: no v0.2.0 pipeline has a sink |
+| A pushed run in scalar context gives a scalar sink's result, when one is last (D17), or a list sink's list, as an array reference (D51) | no: no v0.2.0 pipeline has a sink |
 | `is_stage` takes objects offering a role method, not only code references and pipelines (D13) | no, unless code relied on such objects being refused |
 | `Stage->new` refuses Ekorn's own types, such as a gather (Q9) | no: new |
 | A Source called directly croaks; a Sink called with values gives its result (D42) | no: new |
@@ -1110,7 +1114,7 @@ Settled questions keep their numbers, listed after the open ones.
 ### 16.1 Open
 
 None, since 2026-11-12. A question that arises, from a review, from
-DBIx-Squirrel, or from building, is added here as Q31 and on, with
+DBIx-Squirrel, or from building, is added here as Q33 and on, with
 whose it is and a recommendation.
 
 ### 16.2 Settled
@@ -1124,8 +1128,9 @@ whose it is and a recommendation.
 | **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, for iterators only; what it says, D48 (section 5.5) |
 | **Q28** | What does `ended` tell the caller? | D48, revising D45: whether the source was read to its end, `stopped` too if `finish` dropped values still to be handed out; said once the iterator has given all it will (section 5.5) |
 | **Q29** | What does a context describe? | D46: the run's source, not the values: a stage that reshapes rows doesn't change it, so a stage after it reading the context reads the source's (4.4, 12.7); a way to replace it waits until a need is found |
-| **Q30** | How is a list sink declared? | D47: lists first: `Sink->new` and `sink {...}` make a list sink, and `Sink->new_scalar` and `sink_scalar {...}` a scalar one, scalars being the second-class citizen; a chain ends only in a scalar sink (D10), so a sink written to end one is a `sink_scalar` |
+| **Q30** | How is a list sink declared? | D47: lists first: `Sink->new` and `sink {...}` make a list sink, and `Sink->new_scalar` and `sink_scalar {...}` a scalar one, scalars being the second-class citizen; asked for one value, a list sink gives its list as an array reference (D51) |
 | **Q31** | How is a part told from any object offering a method of the same name? | D49: the role methods are named for Ekorn, `ekorn_source`, `ekorn_stage`, `ekorn_sink`, `ekorn_sink_scalar` (17.24) |
+| **Q32** | What does a list sink give when one value is asked for? | D51: its list, as an array reference, in scalar context and at the end of a `\|` chain, revising D10 and D47; counting is `count`'s job (17.26) |
 | **Q2** | The lifecycle method's name? | D5: one method per role; their names, `ekorn_source`, `ekorn_stage`, `ekorn_sink` and `ekorn_sink_scalar`, by D49 |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
@@ -1395,10 +1400,11 @@ Weighed and set aside:
   for what they take.
 - **`into(\@array)`,** for pushing onto your array. `to_arrayref`
   says the same, and pairs with `from_arrayref`.
-- **`to_array` giving an array reference from `|`,** as an operator
-  must give one scalar. The name would say a list and the result be a
-  reference; `to_arrayref` says what it gives, and `to_array` croaks
-  there (Iain, 2026-11-12, 2026-0022's D10).
+- **`to_array` croaking at the end of `|`,** as D10 first settled,
+  because its name would say a list and the result be a reference.
+  D51 revised it: every list sink, asked for one value, gives its list
+  as an array reference, and an exception for one sink would be a
+  surprise of its own (17.26).
 - **`to_hash(sub {...})`, keying each value by what a sub gives.** It
   wouldn't be the counterpart of `from_hash`, which gives pairs; a
   stage making pairs, then `to_hash`, does the same.
@@ -1658,8 +1664,8 @@ A sink's result is a list unless it says otherwise: `sink {...}` and
 `Sink->new_scalar` a scalar one. Weighed and set aside: a scalar sink
 by default, with `list_sink {...}` and a `list => 1` option, as the
 review recommended; Iain put lists first, scalars being the
-second-class citizen. A `|` chain still ends only in a scalar sink
-(D10), so a sink written to end one is a `sink_scalar`.
+second-class citizen. Asked for one value, a list sink gives its list
+as an array reference (D51, 17.26).
 
 ### 17.24 The role methods are named for Ekorn
 
@@ -1707,7 +1713,43 @@ Weighed and set aside:
   family; `to_array` is still a valid container sink.
 
 `all_items` shares its name with a check Test2::V0 exports, so a test
-file using both calls one by its full name.
+file using both calls one by its full name. **`every_item` in place of
+`all_items`,** which would avoid that, was weighed and set aside:
+`every_item(sub {...})` is the test paired with `any_item`, as
+List::Util has `any` and `all`; "all" is the items together, "every"
+each in turn; and the clash is "only a problem in test harness".
+
+### 17.26 A list sink asked for one value gives a reference
+
+(Sections 4.3 and 9; Iain, 2026-11-12, 2026-0022's D51, from
+DBIx-Squirrel's design, its Q22.) A sink given last says what comes
+back, whatever the context. In scalar context, and at the end of a
+`|` chain, which asks for one value too, a list sink gives its list
+as an array reference: `my $rows = $p->(@values)` with `all_items`
+last is every item, not how many. Counting is `count`'s job. A
+pipeline with no sink still gives how many came out, as in v0.2.0
+(D17). This revises D47, under which a list sink gave its count, and
+D10, under which a list sink croaked at the end of a chain.
+
+It costs two things, both documented: an empty result is true, as an
+array reference always is, so testing for none takes `@$rows`, or
+`count`; and printing one shows `ARRAY(0x...)`, which isn't silent.
+
+Weighed and set aside:
+
+- **A list sink giving its count,** as D47 had it, as Perl's lists
+  do. A quiet trap: `my $rows = ... all_items` gave a number.
+- **`to_array` alone still croaking at the end of `|`,** as D10 had
+  it, its name saying a list. Every list sink is asked for one value
+  the same way, and an exception for one sink is a surprise of its
+  own; `to_arrayref` keeps its own job, filling the array you hand it.
+- **Croaking at a list sink in scalar context,** like `|` did. It
+  breaks what reads naturally, `my $rows = ...`, for no gain once a
+  reference is the obvious one value.
+
+How `to_hash`, whose items are pairs, would give a hash reference
+instead is left until it's built: a list sink would need a way to say
+what it gives when asked for one value.
 
 ## 18. Where each roadmap item lands
 
@@ -1841,7 +1883,7 @@ design is approved and split (roadmap 2026-0022).
   `xt/manuals.t` checks.
 - **Each module's POD:**
   - Ekorn::Pipeline: `new` making Stages, `stages` returning Elements,
-    scalar context (D17), `iterator` returning an Iterator (D28),
+    scalar context (D17, D51), `iterator` returning an Iterator (D28),
     `run_context()`, `ending()`'s meaning (D16); `pipeline`, its
     `import` and names per class gone;
   - Ekorn::Pipeline::Gather: an Element, not a code reference (D4); a
@@ -1902,7 +1944,8 @@ again when v0.3.0 is ready; designed in its own session:
   the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
   its result sinks are sinks of its own design; its iterator's `all`,
   `single` and `count` give way to Ekorn's `all_items`, `only_item`
-  and `count` (D50); its facades go or
+  and `count` (D50), a list sink last giving an array reference in
+  scalar context (D51), its Q22; its facades go or
   stay as plain re-exports, as it chooses (D31).
 - **Its docs:** its README, reference and how-to for the above, and
   for `|` from its statements.

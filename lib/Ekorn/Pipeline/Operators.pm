@@ -43,8 +43,8 @@ sub _check_in_force ($operator) {
 }
 
 # The | of two parts. From a source: with a scalar sink, the sink's
-# result, at once; with a stage, a chain, a source of the values through
-# it. From a stage: a chain of stages, a pipeline with |. A class of
+# result, at once; with a list sink, its list, as an array reference;
+# with a stage, a chain, a source of the values through it. From a stage: a chain of stages, a pipeline with |. A class of
 # sources of its own can overload | with this, to chain as Ekorn's do.
 sub chain ($before, $after, $swapped = undef, @) {
     _check_in_force('|');
@@ -62,12 +62,11 @@ sub chain ($before, $after, $swapped = undef, @) {
     }
     my($source, @stages) = _parts($before);
     my $sink = is_sink($after);
-    croakf
-        'Expected a sink giving one value at the end of |, not a list: use to_arrayref, not to_array'
-        if $sink eq 'list';
     return _chain($source, @stages, $after) unless $sink;
-    my($result) = Ekorn::Pipeline->new(@stages, $after)->iterator($source)->();
-    return $result;
+    my $next = Ekorn::Pipeline->new(@stages, $after)->iterator($source);
+    my @results;
+    while (my($result) = $next->()) { push @results, $result }
+    return $sink eq 'list' ? \@results : $results[0];
 }
 
 

@@ -113,7 +113,9 @@ sub new ($class, @given) {
         push @stages, _element($stage);
         push @names,  $n;
     }
-    my $scalar_sink = @stages && is_sink($stages[-1]) eq 'scalar';
+    # In scalar context, a run gives a scalar sink's result, a list
+    # sink's list as an array reference, or how many values came out.
+    my $sink = @stages ? is_sink($stages[-1]) : !!0;
     return bless {
         stages => \@stages,
         names  => \@names,
@@ -123,8 +125,10 @@ sub new ($class, @given) {
                 = _iterator(\@stages, \@names, sub { @values ? shift @values : () });
             my @results;
             while (my($result) = $next->()) { push @results, $result }
-            return @results if wantarray;
-            return $scalar_sink ? $results[0] : scalar @results;
+            return @results    if wantarray;
+            return $results[0] if $sink && $sink eq 'scalar';
+            return \@results   if $sink;
+            return scalar @results;
         },
     }, $class;
 }
