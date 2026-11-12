@@ -4,6 +4,7 @@ package Ekorn::Pipeline::Iterator;
 
 use parent 'Ekorn::Pipeline::Element';
 
+use Carp                    qw();
 use Ekorn::Pipeline::Errors qw(croakf);
 use namespace::clean;
 
@@ -42,6 +43,37 @@ sub ended ($self) {
 sub finish ($self) {
     $self->{end_run}->();
     return;
+}
+
+
+# Return the values still to be handed out, reading the run to its end:
+# as a list, or, asked for one value, an array reference of them.
+sub all ($self) {
+    my $next = $self->{call};
+    my @all;
+    while (my($value) = $next->()) { push @all, $value }
+    return wantarray ? @all : \@all;
+}
+
+
+# Return the next value, or undef if there's none, and end the run, so
+# nothing more is read.
+sub first ($self) {
+    my($value) = $self->{call}->();
+    $self->finish;
+    return $value;
+}
+
+
+# Return the next value, or undef if there's none, asserting it's the
+# only one: if there's another, warn. The run ends either way.
+sub single ($self) {
+    my $next = $self->{call};
+    my($value) = $next->();
+    Carp::carp 'Expected only one item, but there were more'
+        if my($more) = $next->();
+    $self->finish;
+    return $value;
 }
 
 

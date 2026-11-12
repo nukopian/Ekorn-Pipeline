@@ -53,7 +53,8 @@ arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
 `keep_first` and `keep_single`. D56 settled: `last_item` is
 `keep_last`, and built. D57 settled: `keep(N)`, a list sink of the
 first N items, stopping there. D58 settled: a `take` stage for every
-`keep` sink but `keep_all`.
+`keep` sink but `keep_all`. D59 settled: an iterator's `all`, `first`
+and `single`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -556,6 +557,18 @@ D19 to D25 came from the third cold review, settled by Iain on
   Not by default, as Flow is released and a new default export could
   replace a user's function. Built: in Flow, with its POD, tests, the
   published reference and README. Design 8.1 and 17.32.
+- [x] **D59.** Can the caller pull what's left of an iterator in one
+  call? Yes, Iain decided on 2026-11-12, asking for `all`, `first` and
+  `single` back: "I feel we lost the ability to pull the remaining
+  items, which I think is important." Ekorn's own Iterator has them,
+  not only DBIx::Squirrel's, as he chose. `all` gives the values still
+  to come, read to the end, and an array reference where one value is
+  asked for, as `keep_all` does; `first` gives the next value, or
+  `undef`, and finishes the iterator, as `keep_first` stops its run;
+  `single` gives the next value, or `undef`, pulling one more to check,
+  and warns "Expected only one item, but there were more" if there is
+  one, rather than croak, as Iain chose, and finishes it. Built: in
+  Iterator, with tests. Design 6.2 and 17.33.
 
 ## The plan
 

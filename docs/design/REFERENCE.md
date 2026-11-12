@@ -165,6 +165,20 @@ until the iterator has given all it will, been finished or died; then
 `keep_first`'s, or `finish`, cut the reading short, or `finish`
 dropped values still to be handed out, and `died` if anything died.
 
+Three methods pull what's left in one call:
+
+```perl
+my @rest  = $next->all;       # every value still to come; read to the end
+my $rest  = $next->all;       # the same, as an array reference
+my $first = $next->first;     # the next value, or undef; then the run ends
+my $one   = $next->single;    # the next value, or undef, warning if there's another; then the run ends
+```
+
+`all` reads the run to its end. `first` and `single` end it, as
+`finish` does, so nothing more is read; `single` pulls one value more
+to check there's no other, and warns "Expected only one item, but
+there were more" if there is, as `keep_single` does.
+
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,
 when the order of destruction isn't guaranteed, so an end mustn't rely

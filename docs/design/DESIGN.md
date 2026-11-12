@@ -1930,6 +1930,32 @@ Weighed and set aside:
   released, and a new default export could replace a function already
   in a user's package.
 
+### 17.33 An iterator's `all`, `first` and `single`
+
+(Section 6.2; Iain, 2026-11-12, 2026-0022's D59.) "I feel we lost the
+ability to pull the remaining items, which I think is important." An
+iterator has `all`, `first` and `single`, as DBIx::Squirrel's had
+before D50 gave its methods way to sinks; a sink says what a run gives,
+but an iterator part-read, or made by someone else, needs a way to take
+what's left. `$next->all` reads the run to its end, giving the values
+still to come, as a list, or an array reference where one value is
+asked for, as `keep_all` does (D51). `$next->first` gives the next
+value, or `undef`, and ends the run, as `keep_first` does, so a source
+reads no more; without that, it would be `$next->()` under another
+name. `$next->single` gives the next value, or `undef`, and pulls one
+more to check: if there's another, it warns "Expected only one item,
+but there were more", as `keep_single` does, rather than croak, and
+ends the run.
+
+Weighed and set aside:
+
+- **`all` giving how many, asked for one value,** as a sinkless run
+  does (D17). Every way of asking for every item gives a reference.
+- **`first` leaving the iterator open.** It would add nothing to
+  `$next->()`.
+- **`single` croaking at a second, or at none.** Iain chose the
+  warning, as `keep_single` has it.
+
 ## 18. Where each roadmap item lands
 
 | Item | Section | In this design |

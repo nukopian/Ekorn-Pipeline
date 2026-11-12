@@ -589,6 +589,42 @@ subtest 'Sinks named for what they give (D50)' => sub {
     is $next->ended, 'done', 'having read the source to its end';
 };
 
+subtest 'An iterator gives all, first or single (D59)' => sub {
+    my $next = $class->new(sub { $_ * 2 })->iterator(from_arrayref([1 .. 4]));
+    is [$next->()],  [2],       'pulled once';
+    is [$next->all], [4, 6, 8], 'all: the values still to come, as a list';
+    is $next->ended, 'done',    'read to its end';
+    is [$next->all], [],        'and none, once spent';
+    $next = $class->new->iterator(from_arrayref([1, 2]));
+    my $all = $next->all;
+    is $all, [1, 2], 'an array reference, asked for one value';
+    is $class->new->iterator(from_arrayref([]))->all, [], 'empty, if none';
+
+    $next = $class->new->iterator(from_arrayref([1, 2, 3]));
+    is [$next->first], [1],       'first: the next value';
+    is $next->ended,   'stopped', 'and the run ended, reading no more';
+    is [$next->()],    [],        'nothing after it';
+    is [$class->new->iterator(from_arrayref([]))->first], [undef],
+        'undef, if none';
+
+    $next = $class->new->iterator(from_arrayref([7]));
+    my $warnings = warnings { is $next->single, 7, 'single: the one value' };
+    is $warnings,    [],     'no warning, if it was the only one';
+    is $next->ended, 'done', 'the run read to its end';
+    $next = $class->new->iterator(from_arrayref([7, 8, 9]));
+    my $got;
+    my $line = __LINE__ + 1;
+    $warnings = warnings { $got = $next->single };
+    is $got,              7, 'the first, if there were more';
+    is scalar @$warnings, 1, 'and a warning, once';
+    is $warnings->[0],
+        "Expected only one item, but there were more at ${\ __FILE__ } line $line.\n",
+        "at the caller's line";
+    is $next->ended, 'stopped', 'the run ended, reading no more';
+    is [$class->new->iterator(from_arrayref([]))->single], [undef],
+        'undef, if none';
+};
+
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {
     is [keep(2)->(1 .. 5)], [1, 2], 'the first two, as a list';
     my $kept = keep(2)->(1 .. 5);

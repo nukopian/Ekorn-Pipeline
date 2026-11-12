@@ -541,7 +541,10 @@ package; until that's built, see section 10.2.
 ### 6.2 Ekorn::Pipeline::Iterator
 
 What `iterator` returns: an Element, called as `$next->()`, with
-`finish` and `DESTROY` (section 5.5). Its `ekorn_source` makes it a
+`finish` and `DESTROY` (section 5.5), and `all`, `first` and `single`
+(D59): the values still to come, as a list or an array reference; the
+next value, ending the run; and the next value, warning if there's
+another, ending the run. Its `ekorn_source` makes it a
 source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8). Once it's spent, having
 handed out all it will, been finished, or died, its `ekorn_source`
