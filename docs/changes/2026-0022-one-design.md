@@ -37,7 +37,8 @@ answer for its review. D36 settled: a statement's definition
 names pipelines by string, as a chain of names. D37 settled: the name-reading class
 method is `pipeline_in`. D38 settled: no strict `is_stage`, for
 now; `is_sink` is the design's Q27. D39 settled: the prototype is kept
-where it holds.
+where it holds. D40 settled: a pipeline's name in its
+stages' errors joins v0.3.0.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -328,6 +329,12 @@ D19 to D25 came from the third cold review, settled by Iain on
   2026-11-12, as recommended: each item the design is split into takes
   in its part of the prototype and finishes it, with its tests, its
   documentation, and coverage back to the floors. Design 19.
+- [x] **D40.** Does a pipeline's name in its stages' errors (roadmap
+  2026-0013) join v0.3.0 (the design's Q22)? Yes, Iain decided on
+  2026-11-12, as recommended: it changes a message, and v0.3.0 is the
+  release that may, the next a long way off. DBIx-Squirrel changes its
+  tests and its copies of the message with the task that moves its
+  range. Design 13, 18.
 
 ## The plan
 

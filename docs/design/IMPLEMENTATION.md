@@ -1026,6 +1026,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 12 | DBIx::Squirrel as a user of Ekorn | built, as a stand-in: section 7 |
 | 12.7 | a stage asks `run_context()` (D7, D24) | built |
 | 13 | v0.3.0, on this branch until then | not code |
+| 13 | a pipeline's name in its stages' errors joins v0.3.0 (D40) | not built |
 | 14 | `pipeline`'s `import`, names per class and `pipeline_class` go | not built: all three are still there |
 | 16 | Q24, a reusable source of a sink's result | not built: open |
 | 19 | the proofs | built: section 9 |

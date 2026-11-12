@@ -115,7 +115,8 @@ When a stage in a named pipeline dies, the message gives its place,
 such as `#2.3`, but not the pipeline's name, which would make it
 easier to find. A `name` getter, left free by 2026-0011's D3, would
 give it. It changes a message, so it's a v0.3.0, with a task for
-DBIx-Squirrel to change its tests and its copies of the message.
+DBIx-Squirrel to change its tests and its copies of the message. It
+joins v0.3.0, as Iain decided on 2026-11-12 (2026-0022's D40).
 Suggested in a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel
 60dd1af8f11b7661b4e47decadf9885d3e22a2d3).
 
