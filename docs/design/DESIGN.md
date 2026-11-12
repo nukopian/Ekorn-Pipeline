@@ -1033,8 +1033,9 @@ Settled questions keep their numbers, listed after the open ones.
 
 ### 16.1 Open
 
-| | Question | Whose | Recommended |
-|---|---|---|---|
+None, since 2026-11-12. A question that arises, from a review, from
+DBIx-Squirrel, or from building, is added here as Q28 and on, with
+whose it is and a recommendation.
 
 ### 16.2 Settled
 
