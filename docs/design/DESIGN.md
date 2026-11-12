@@ -525,9 +525,11 @@ classes' names to keep apart.
   that finds its stages with `is_stage` never takes a value such as
   `'clean'` for one.
 
-Proposed: **names are for pipelines only, for now.** A pipeline may end
-in a sink, and so can be named. Naming a source, a pipeline with a
-source in front, is roadmap idea 2026-0012, left for later (**Q11**).
+**Names are for pipelines only.** A pipeline may end in a sink, and so
+can be named. Naming a source, a pipeline with a source in front, was
+roadmap idea 2026-0012, dropped: if there's a need, it'll be found
+again (Q11, 2026-0022's D35). A pipeline holds no source anyway
+(D33).
 
 ## 8. Ready-made parts
 
@@ -988,7 +990,6 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Whose | Recommended |
 |---|---|---|---|
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
-| **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | |
 | **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
@@ -1011,6 +1012,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q7** | `iterator` returns an Iterator whose `DESTROY` ends an abandoned run? | D28: yes; DBIx-Squirrel, which keeps its iterator in a field, is told when it reviews the design |
 | **Q8** | What is a sink? | D6 and D12, and section 4.2: made for a run, holding back every value, its flush giving its result; usually last |
 | **Q9** | `stage(\&trim)`: wrap, never bless? | D4: a Stage holds the code given, untouched |
+| **Q11** | Named sources (2026-0012) now, or later? | D35: neither: dropped, with the roadmap idea; if there's a need, it'll be found again |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
 | **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `as_source` |
 | **Q16** | DBIx::Squirrel's CI testing against Ekorn's `pipeline-experimental`? | D29: yes; `pipeline-experimental` is a sandbox, so testing against it costs nothing that matters; DBIx-Squirrel does it, told when it reviews the design |
@@ -1461,7 +1463,7 @@ Weighed and set aside:
 |---|---|---|
 | Ekorn 2026-0010, Sugar | 10 | as its record, makes only Ekorn's |
 | Ekorn 2026-0011, `pipeline` and names | 6.2, 7 | names kept; `pipeline` moves |
-| Ekorn 2026-0012, a named source | 7 | later (**Q11**) |
+| Ekorn 2026-0012, a named source | 7 | dropped (D35) |
 | Ekorn 2026-0013, names in errors | 13 | may join v0.3.0 (**Q22**) |
 | Ekorn 2026-0014, the lifecycle | 5 | the core change everything that opens something rests on |
 | Ekorn 2026-0015, words for sources, stages and sinks | 6 | in Factories |
@@ -1616,7 +1618,7 @@ design is approved and split (roadmap 2026-0022).
     range when it ships, and its list of the names DBIx::Squirrel
     imports gains any it takes.
 - **ROADMAP.md:** the items this design replaces or rewrites, 2026-0010
-  and 2026-0012 to 2026-0021, give way to those it's split into, and
+  and 2026-0013 to 2026-0021, give way to those it's split into, and
   2026-0022 ships.
 - **The change records:** 2026-0011, 2026-0020 and 2026-0021 are
   finished, saying what this design undid or moved; 2026-0010's, for

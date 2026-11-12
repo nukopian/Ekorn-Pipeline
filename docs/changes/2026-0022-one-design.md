@@ -31,7 +31,8 @@ re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
 lexically. D33 settled: a pipeline holds no
 source. D34 settled: the caller asks an
 iterator how its run ended. Q26, what each type does when called
-directly, is open in the design.
+directly, is open in the design. D35 settled: named sources, Q11,
+dropped.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -291,6 +292,10 @@ D19 to D25 came from the third cold review, settled by Iain on
   `take(5)` cut short. Iterators only: a pushed run leaves no object to
   ask. Design 5.5, 17.20; built, with `t/15-proofs.t` testing each
   verdict.
+- [x] **D35.** Named sources (the design's Q11, roadmap idea
+  2026-0012): now, or later? Neither: dropped, Iain decided on
+  2026-11-12. If there's a need, it'll be found again. The idea leaves
+  the roadmap with it. Design 7.
 
 ## The plan
 

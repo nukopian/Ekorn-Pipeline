@@ -107,18 +107,6 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-### 2026-0012. A named pipeline with a source of its own
-
-**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0010
-
-A definition that starts with a source, a function making the values,
-as a statement makes its rows, so its function, called with no values,
-still has something to give, and takes stages as a pipeline given
-last: `recent(pipeline(take(5)))`. Moved from 2026-0010's D2, where a
-function and `pipeline(@stages)` were found to cover it for now, and
-how a source is told from a first stage, such as by a key,
-`recent => [source => sub {...}, @stages]`, is still to settle.
-
 ### 2026-0013. A named pipeline named in a stage's error
 
 **Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0011
