@@ -4,7 +4,7 @@
 [DESIGN.md](DESIGN.md) and [REFERENCE.md](REFERENCE.md). These are the
 recipes `docs/HOWTO.md` would gain or change, written as they'd read
 there. None of the code in them runs yet. Notes in brackets, such as
-**[Q7]**, name the open question in the design a recipe depends on;
+**[Q10]**, name the open question in the design a recipe depends on;
 they go before anything is merged.
 
 The examples follow on from the how-to's first section, The examples'
@@ -134,7 +134,6 @@ you're done with it, as Perl lets it go:
 # $next has gone, so the file is closed
 ```
 
-**[Q7]**
 
 ## Sinks: a result from many values (new)
 

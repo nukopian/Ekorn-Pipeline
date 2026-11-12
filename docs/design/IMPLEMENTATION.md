@@ -524,6 +524,20 @@ What `iterator` returns: an Element, called as `$next->()`, with
 source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8).
 
+`ended` tells its caller how its run ended: nothing while it goes, and
+then `done` if the source's values ran out, `stopped` if the reading
+was cut short, or `died` if anything in it died, an end included
+(D34). `$finish` decides it as the run ends, from `$source_done`
+(section 5.3), or `died`:
+
+```perl
+my $all  = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_arrayref(\@tracks));
+my $some = Ekorn::Pipeline->new(sub { $_->{title} }, take(2))->iterator(from_arrayref(\@tracks));
+my @all  = map { $all->() } 1 .. 7;
+my @some = map { $some->() } 1 .. 2;
+say $all->ended, ' ', $some->ended;    # done stopped
+```
+
 ### 6.3 Stage, Gather, Source and Sink, and the words
 
 | Word | Class | Its block |
@@ -946,6 +960,7 @@ valid, as v0.3.0 changes.
 | An end that dies | the warning naming it; the rest told `died` | 5.4, D27 |
 | How each part is told the run ended | `done` for input that ran out; a source that stops; ended from outside | 5.3, D16, D20, D22 |
 | 19.2, eight subtests | a complete pipeline as a source; abandoned; finished, taking no verdict; finished from inside a stage | 19.2, 5.5, D15, D28 |
+| The caller asks how the run ended | `ended`: nothing while it goes; `done`, `stopped`, `died` | 5.5, D34 |
 | Sinks and context | `to_arrayref`, and `to_array` croaking at the end of a chain; scalar context; a scalar sink of nothing; precedence | D10, D17, D25 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
@@ -981,6 +996,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.3 | how each part is told the run ended (D20) | built |
 | 5.4 | a flush and an end (D6, D12); a run ends when nothing can act (D15, D22); the source's end first (D11); an end dying during a die warns, naming it (D27); stops from a source, a flush, an end (D16) | built |
 | 5.5 | an abandoned iterator ends its run (D28); `finish` takes no verdict, and drops what's left | built |
+| 5.5 | the caller asks how the run ended, `$next->ended` (D34) | built |
 | 5.6 | `ending()`, true while a flush runs and its values go on | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes | built: Sink's roles by its subclasses, Scalar and List |
 | 6.1 | `pipeline_in` (Q10) | not built |

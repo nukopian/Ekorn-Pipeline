@@ -29,7 +29,8 @@ tests against `pipeline-experimental`. D30 settled: Ekorn::Pipeline
 doesn't re-export `pipeline`. D31 settled: DBIx::Squirrel keeps
 re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
 lexically. D33 settled: a pipeline holds no
-source.
+source. D34 settled: the caller asks an
+iterator how its run ended.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -280,6 +281,15 @@ D19 to D25 came from the third cold review, settled by Iain on
   pipeline is a list of stages, a sink among them, and a source is
   given as it runs; a source joined to a pipeline is a source, and the
   whole, kept, is Q24's. Design 4.2, 17.19.
+- [x] **D34.** Can the caller ask how a run ended (the design's Q25)?
+  Yes, Iain decided on 2026-11-12, as recommended, to be built at once:
+  `$next->ended` gives nothing while the run goes, then `done` if the
+  source's values ran out, `stopped` if the reading was cut short, or
+  `died` if anything in it died, an end included. Why: the caller saw a
+  die as an error, but couldn't tell a complete result from one
+  `take(5)` cut short. Iterators only: a pushed run leaves no object to
+  ask. Design 5.5, 17.20; built, with `t/15-proofs.t` testing each
+  verdict.
 
 ## The plan
 

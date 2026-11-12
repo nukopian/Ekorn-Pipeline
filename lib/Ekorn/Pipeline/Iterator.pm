@@ -7,9 +7,22 @@ use parent 'Ekorn::Pipeline::Element';
 use namespace::clean;
 
 # Return an iterator, calling $next for each value, whose run $end_run
-# ends from outside, and $context is the context its run's source gave.
-sub new ($class, $next, $end_run, $context = undef) {
-    return bless {call => $next, end_run => $end_run, context => $context}, $class;
+# ends from outside, $context is the context its run's source gave, and
+# $ended says how its run ended.
+sub new ($class, $next, $end_run, $context = undef, $ended = sub () { return })
+{
+    return
+        bless {call => $next, end_run => $end_run, context => $context,
+            ended => $ended},
+        $class;
+}
+
+
+# Return how the run ended: "done" if its source's values ran out,
+# "stopped" if the reading was cut short, by a stop or from outside,
+# and "died" if anything in it died; nothing while it's going.
+sub ended ($self) {
+    return $self->{ended}->();
 }
 
 

@@ -417,10 +417,14 @@ sub _iterator ($stages, $names, $source) {
     # stage returns on its own, as most are, carries on through the stages
     # without waiting here. Once the source is done, the flushes are called
     # in order, from the first not called or passed over by a stop.
-    my(@todo, $done, $source_done, %flushed, @input_done, $finished, $outside);
+    my(@todo, $done, $source_done, %flushed, @input_done, $finished, $outside,
+        $ended);
     my $next_flush = 0;
-    my $finish     = sub ($died) {
+    # How the run ended, as its caller asks: as the source sees it, or
+    # "died" if anything died, an end included.
+    my $finish = sub ($died) {
         return if $finished++;
+        $ended = $died ? 'died' : $source_done ? 'done' : 'stopped';
         my @calls;
         push @calls, ['the source', $source_end, $source_done ? 'done' : 'stopped']
             if $source_end;
@@ -430,7 +434,13 @@ sub _iterator ($stages, $names, $source) {
             ] }
             grep { $ends[$_] } 0 .. $#ends;
         local $running{context} = $context;
-        _end_all(\@calls, $died);
+        try {
+            _end_all(\@calls, $died);
+        }
+        catch ($e) {
+            $ended = 'died';
+            die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
+        }
         return;
     };
     # The index of the next flush to call, if any.
@@ -574,7 +584,8 @@ sub _iterator ($stages, $names, $source) {
         $finish->(0);
         return;
     };
-    return Ekorn::Pipeline::Iterator->new($next, $end_run, $context);
+    return Ekorn::Pipeline::Iterator->new($next, $end_run, $context,
+        sub () { $ended });
 }
 1;
 __END__

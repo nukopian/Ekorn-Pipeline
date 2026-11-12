@@ -408,6 +408,16 @@ goes, which is prompt for a lexical iterator. During global
 destruction its order isn't guaranteed, so an end mustn't rely on
 other objects then.
 
+**The caller asks how it ended** (2026-0022's D34, settling Q25):
+`$next->ended` gives nothing while the run is going, and, once it has
+ended, `done` if the source's values ran out, `stopped` if the reading
+was cut short, by a stop or from outside, or `died` if anything in it
+died, an end included. So a caller can tell a complete result from one
+`take(5)` cut short, which the values alone don't show. It's the run's
+verdict as the source sees it, beside the verdict each part is told.
+A pushed run leaves no object to ask; a caller who wants to know pulls
+with `iterator`.
+
 ### 5.6 What `ending` means
 
 `Ekorn::Pipeline::ending()` is true while the values going through
@@ -991,6 +1001,7 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Settled by |
 |---|---|---|
 | **Q1** | Do sources, sinks and operators belong in Ekorn? | D26: yes, the stream concept applied to functions, which Iain wants to run with; opt-in; the operators stay (D18); the README says so in a section of its own |
+| **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, nothing while it goes, then `done`, `stopped` or `died`, as the source sees it; for iterators only (section 5.5) |
 | **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
@@ -1426,6 +1437,22 @@ Weighed and set aside:
   source, be pushed values, or go where a stage goes, so it would be a
   source under a pipeline's name. The whole, kept, is Q24's: a source
   made of a pipeline and a source, beside Pipeline.
+
+### 17.20 The caller asks an iterator how its run ended
+
+(Section 5.5; Iain, 2026-11-12, 2026-0022's D34.) Only the parts were
+told how a run ended; the caller saw `died` as an error, but couldn't
+tell `done` from `stopped`, as an iterator just runs out either way.
+
+Weighed and set aside:
+
+- **Nothing for the caller,** leaving it to infer: a result cut short
+  by `take(5)` looks complete.
+- **A way for a pushed run to say,** too. `$p->(@values)` returns the
+  values, and has no object left to ask; a caller who wants to know
+  pulls instead.
+- **`how` or `how_ended`,** for the name. `ended` reads as a question,
+  `$next->ended eq 'stopped'`, and as false while the run goes.
 
 ## 18. Where each roadmap item lands
 

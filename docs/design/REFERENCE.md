@@ -5,7 +5,7 @@
 would gain or change, written as they'd read there. None of the code
 in them runs yet: it shows what's proposed. Where a section depends on
 an open question in the design, a note in brackets says which, such as
-**[Q7]**; those notes go before anything is merged.
+**[Q10]**; those notes go before anything is merged.
 
 What changes in the reference as a whole:
 
@@ -156,7 +156,13 @@ my($first) = Ekorn::Pipeline->new(sub { uc })->iterator($lines)->();
 ends its run when the last reference to it goes: each part is told
 how from where it stands, `stopped` if its input hadn't run out, so
 `$lines` closes its file there and then. An iterator is called as a
-code reference, `$next->()`, as before **[Q7]**.
+code reference, `$next->()`, as before.
+
+`$next->finish` ends its run sooner, the same way. And
+`$next->ended` says how its run ended: nothing while it goes, then
+`done` if the values ran out, `stopped` if the reading was cut short,
+by a stop such as `take(5)`'s or by `finish`, or `died`. So a caller
+can tell a complete result from one cut short.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,

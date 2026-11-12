@@ -265,8 +265,10 @@ subtest 'How each part is told the run ended (D16, D20)' => sub {
     subtest 'a stage stopping on the last value it will get is done' => sub {
         my $stopper = sub {
             return gather {
-                return (sub ($value) { Stop($value) }, undef,
-                    sub ($how) { push @log, "stopper $how" });
+                return (
+                    sub ($value) { Stop($value) }, undef,
+                    sub ($how) { push @log, "stopper $how" },
+                );
             };
         };
         @log = ();
@@ -394,6 +396,35 @@ subtest '19.2 A complete pipeline as a source' => sub {
             ['source set-up', 'pull', 'pull', 'source stopped', 'sink stopped'];
             undef $next;
         };
+};
+
+subtest 'The caller asks how the run ended (D34)' => sub {
+    my $next = $class->new(sub { $_ * 2 })->iterator(from_arrayref([1, 2]));
+    is $next->ended, undef, 'nothing while it goes';
+    my @values = drain_all($next);
+    is $next->ended, 'done', 'done when its values ran out';
+
+    $next = $class->new(take(1))->iterator(from_arrayref([1, 2, 3]));
+    $next->();
+    is $next->ended, 'stopped', 'stopped when take(1) cut the reading short';
+
+    $next = $class->new(sub { $_ })->iterator(from_arrayref([1, 2, 3]));
+    $next->();
+    $next->finish;
+    is $next->ended, 'stopped', 'stopped when finished early';
+
+    $next = $class->new(sub { die "No\n" })->iterator(from_arrayref([1]));
+    ok dies { $next->() };
+    is $next->ended, 'died', 'died when a stage died';
+
+    my $failing = source {
+        my @rest = (1);
+        return (sub () { @rest ? shift @rest : () },
+            sub ($how) { die "Can't close\n" });
+    };
+    $next = $class->new->iterator($failing);
+    ok dies { drain_all($next) };
+    is $next->ended, 'died', 'and when an end died';
 };
 
 subtest 'Sinks and context (D10, D17, D25)' => sub {
