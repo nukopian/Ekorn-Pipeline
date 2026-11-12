@@ -356,7 +356,81 @@ say 'result: ', join ', ', $next->();
 # result: 2
 ```
 
-### 5.3 When flushes and ends run
+### 5.3 The bookkeeping
+
+The verdicts of section 5.2 come from two flags and a pointer, kept by
+each run in `_iterator`, and one decision made when the run ends:
+
+- **`$source_done`,** set when the source returns an empty list, or
+  throws a stop of its own.
+- **`@input_done`,** a flag for each stage, set once the stage has had
+  all its input.
+- **`$next_flush`,** a pointer into the stages: every stage before it
+  has been passed by the flushes, or cut off by a stop.
+
+They're set in three places:
+
+- **As the flushes run.** Once the source is done, the flushes are
+  called in order, first stage first. Before the flush at stage *n*,
+  `$input_ran_out->(n)` marks every stage from `$next_flush` to *n*:
+  everything upstream of them has run out and been flushed, so their
+  input is complete. As the run ends normally, `$end_if_ended` marks
+  the rest, to the last stage.
+- **At a stop.** A stop at stage *n* means the source isn't pulled
+  again, and moves `$next_flush` to *n* + 1, or to *n* for a sink that
+  stopped the run itself, as its flush is still to come. Of the stages
+  it passes over, those whose input had run out are marked, by
+  `$input_ran_out_at_stop`: only once nothing more can come from
+  upstream, and only up to the first that still has a value waiting
+  for it, or a flush before it still to be called. The rest aren't:
+  their input was cut short. Nor is the source, unless it had already
+  run out.
+- **From outside.** `finish`, or an iterator let go, moves
+  `$next_flush` past the last stage, marking nothing more.
+
+When the run ends, `$finish` decides each verdict, once:
+
+- **the run died:** every end is told `died`;
+- **otherwise:** the source is `done` if `$source_done` is set, else
+  `stopped`; each stage is `done` if its flag in `@input_done` is set,
+  else `stopped`.
+
+So the design's rule, `done` if its input ran out and `stopped` if it
+was cut short, is "was this part's flag set before the run ended?"
+
+The second example of section 5.2, `take(2)` before the sink, goes so:
+
+| Step | What happens | `$source_done` | `@input_done`: take, after | `$next_flush` |
+|---|---|---|---|---|
+| pull 1 | 1 goes through `take` and `after` | no | no, no | 0 |
+| pull 2 | `take` passes 2 and throws a stop | no | no, no | 1, passing over `take` |
+| flush | `after`'s flush, its input complete | no | no, **yes** | 2 |
+| end | nothing can act: the run ends | no: `stopped` | `take` has no end; `after`: `done` | |
+
+And with the stop after the sink, as D20 has it, every part's input
+runs out first:
+
+```perl
+my $next = Ekorn::Pipeline->new(noisy_count('sink'), take(1))->iterator(noisy(1 .. 3));
+say 'result: ', join ', ', $next->();
+# source: done
+# sink: done
+# result: 3
+```
+
+| Step | What happens | `$source_done` | `@input_done`: sink, take | `$next_flush` |
+|---|---|---|---|---|
+| pulls 1 to 3 | each goes into the sink, which holds it | no | no, no | 0 |
+| pull 4 | an empty list: the source has run out | **yes** | no, no | 0 |
+| flush | the sink's, giving 3; its input is complete | yes | **yes**, no | 1 |
+| stop | `take(1)` passes 3 and throws a stop: nothing waits for it, and no flush comes before it | yes | yes, **yes** | 2 |
+| end | nothing can act: the run ends | yes: `done` | the sink: `done`; `take`: `done`, had it an end | |
+
+Had the sink given two values, the second would still have been
+waiting for `take` as it stopped, and `take`, cut short, would be
+`stopped`.
+
+### 5.4 When flushes and ends run
 
 - **A flush** is called once its part's input runs out normally: the
   values ran out, a stop came in a stage before it, or a sink stopped
@@ -379,7 +453,7 @@ say $next->();
   naming it, and the first error is kept. One that dies as the run ends
   normally is thrown, once the rest, told `died`, have run (section 8).
 
-### 5.4 Ending a run from outside
+### 5.5 Ending a run from outside
 
 An iterator not read to its end is ended by its `finish` method, which
 takes no verdict of its own, or as it's let go. Each part is told how
@@ -446,7 +520,7 @@ package; until that's built, see section 10.2.
 ### 6.2 Ekorn::Pipeline::Iterator
 
 What `iterator` returns: an Element, called as `$next->()`, with
-`finish` and `DESTROY` (section 5.4). Its `as_source` makes it a
+`finish` and `DESTROY` (section 5.5). Its `as_source` makes it a
 source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8).
 

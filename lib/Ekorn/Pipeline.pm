@@ -443,6 +443,17 @@ sub _iterator ($stages, $names, $source) {
         $input_done[$_] = 1 for $next_flush .. $upto;
         return;
     };
+    # At a stop at stage $n, with nothing more to come from upstream,
+    # every stage up to it whose input had run out: none of its values
+    # still waiting, and no flush before it still to be called.
+    my $input_ran_out_at_stop = sub ($n) {
+        for my $stage ($next_flush .. $n) {
+            last if grep { $_->[0] <= $stage } @todo;
+            last if grep { $flushes[$_] && !$flushed{$_} } $next_flush .. $stage - 1;
+            $input_done[$stage] = 1;
+        }
+        return;
+    };
     # End the run if nothing in it can still act on a value.
     my $end_if_ended = sub () {
         return if $finished || !$done || defined $flush_at->();
@@ -531,6 +542,7 @@ sub _iterator ($stages, $names, $source) {
                     # carries nothing. A sink that stops the run still
                     # gives its result.
                     my(undef, @values) = is_arrayref($e) ? @$e : ();
+                    $input_ran_out_at_stop->($n) if $done;
                     $done = 1;
                     my $from = $sinks[$n] && !$flushed{$n} ? $n : $n + 1;
                     $next_flush = $from if $next_flush < $from;

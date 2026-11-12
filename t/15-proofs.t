@@ -11,7 +11,7 @@ use Test2::Plugin::NoWarnings;
 use Carp       qw(croak);
 use File::Temp qw(tempdir);
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink);
+use Ekorn::Pipeline::Factories qw(stage source sink gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink    qw();
 use Ekorn::Pipeline::Sinks   qw(count first_value to_array to_arrayref to_file);
@@ -260,6 +260,25 @@ subtest 'How each part is told the run ended (D16, D20)' => sub {
                 'source done',   'sink done',
             ],
             'take(1) stops after the sink has had all its input';
+    };
+
+    subtest 'a stage stopping on the last value it will get is done' => sub {
+        my $stopper = sub {
+            return gather {
+                return (sub ($value) { Stop($value) }, undef,
+                    sub ($how) { push @log, "stopper $how" });
+            };
+        };
+        @log = ();
+        is [drain_all($class->new(count, $stopper->())->iterator(spy_source(1, 2)))
+        ], [2];
+        is $log[-1], 'stopper done', 'given the one value a sink gives';
+        @log = ();
+        is [
+            drain_all($class->new(spy_sink, $stopper->())->iterator(spy_source(1, 2)))
+        ], [1];
+        is $log[-1], 'stopper stopped',
+            'but stopped with another value still waiting for it';
     };
 
     subtest 'a source that stops has had enough, and is done' => sub {

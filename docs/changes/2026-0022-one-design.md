@@ -520,6 +520,14 @@ into items: names per class, `pipeline` in Ekorn::Pipeline, and Pipes'
 section 20 to revise. Q24 is still open, so an iterator given to a
 second run still gives nothing.
 
+Writing IMPLEMENTATION.md's section 5.3, on how the code keeps track
+of who's done, found a gap in D20: at a stop, nothing was marked, so a
+stage after a sink, stopping on the last value the sink gave, was told
+`stopped`, though its input had run out. Now, at a stop with nothing
+more to come from upstream, each stage up to it is marked `done` until
+one still has a value waiting, or a flush before it still to come;
+`t/15-proofs.t` tests both sides.
+
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
   placeholder POD; CI doesn't run on `pipeline-experimental`. Each item
