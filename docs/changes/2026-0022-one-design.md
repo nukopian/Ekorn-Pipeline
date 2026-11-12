@@ -28,7 +28,8 @@ its Q23 and Q24. D29 settled: DBIx-Squirrel's CI
 tests against `pipeline-experimental`. D30 settled: Ekorn::Pipeline
 doesn't re-export `pipeline`. D31 settled: DBIx::Squirrel keeps
 re-exporting Ekorn's functions, for now. D32 settled: `|` is in force
-lexically.
+lexically. D33 settled: a pipeline holds no
+source.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -273,6 +274,12 @@ D19 to D25 came from the third cold review, settled by Iain on
   `drain` croak where the hints of the line using them don't have it.
   So `|` written outside a scope that asked for it croaks rather than
   quietly ORing two addresses. Design 9, 17.11.
+- [x] **D33.** Can a pipeline start with a source, as well as end with
+  a sink? No, Iain decided on 2026-11-12: a source is a free-standing
+  concept, and a pipeline holding one would be coupled to it. A
+  pipeline is a list of stages, a sink among them, and a source is
+  given as it runs; a source joined to a pipeline is a source, and the
+  whole, kept, is Q24's. Design 4.2, 17.19.
 
 ## The plan
 

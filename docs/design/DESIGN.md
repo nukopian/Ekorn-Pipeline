@@ -145,7 +145,7 @@ are values. A value never means "the end"; an empty list does.
 |---|---|---|---|---|
 | **Stage** | turns one value into none, one or several | one value | a list | any code reference; `take(5)` |
 | **Gather** | a stage with state for the run, a flush that lets out what it held, and, optionally, an end told how the run ended | one value | a list | `gather {...}`, `batch`, `collect` |
-| **Pipeline** | a list of stages, run in order | values (push), or a source (pull) | a list, or an iterator | `Ekorn::Pipeline->new` |
+| **Pipeline** | a list of stages, run in order. A sink is a stage, so a pipeline can end in one; a source isn't, so it's given when the pipeline runs | values (push), or a source (pull) | a list, or an iterator | `Ekorn::Pipeline->new` |
 | **Source** | gives values when pulled, until it gives none | nothing | the next value or values, or an empty list | a code reference given to `iterator` |
 | **Sink** | consumes every value, and gives its result when they run out: one value, or a list | each value | nothing, until its result is given | nothing yet: a call in list context, `all`, `count` |
 | **Stop** | ends a run early, from inside a stage | values to carry on | (thrown) | `Stop(...)` |
@@ -159,7 +159,15 @@ How they relate:
   with a value, and an empty list means "drop this value". Each would
   misread the other's empty list, so they're two classes with no
   inheritance between them.
-- **A pipeline with a source in front is a source.**
+- **A pipeline holds no source** (2026-0022's D33). A source is a
+  concept of its own, and a pipeline holding one would be tied to it:
+  it couldn't run over another source, be pushed values, or be spliced
+  into another pipeline as a stage. So a source is given as the
+  pipeline runs, and one pipeline can run over any number of sources,
+  even at once.
+- **A pipeline with a source in front is a source.** Joined, they
+  make a new source, not a pipeline: a chain, `$src | $stage`, which
+  can be used again, or an iterator, one run.
   `$pipeline->iterator($source)` already makes one: pulled, it gives
   the values that come out of the stages. Ending in a sink, it gives
   the sink's result, so it can feed another pipeline:
@@ -976,7 +984,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | Iain | Not now: pipeline-last answers the need |
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
-| **Q24** | How is a sink's result had as a source that can run more than once (2026-0022's D9)? An iterator is one run: given to a second run, it gives nothing, with no error; a chain from a source to a sink is a result, not a source. | Iain | A method making a Source of a pipeline and a source, `$pipeline->source_of($source)`, whose `as_source` makes a fresh iterator for each run, passing on its context; name open. And an Iterator given to a second run croaks, rather than give nothing |
+| **Q24** | How is a complete pipeline, a source joined to stages and a sink, kept as a source of the sink's result that can run more than once (2026-0022's D9)? A pipeline holds no source (D33), so it's a source made of the two, beside Pipeline, not a kind of it. An iterator is one run: given to a second run, it gives nothing, with no error; and a chain from a source to a sink is a result, not a source. | Iain | A method making a Source of a pipeline and a source, `$pipeline->source_of($source)`, whose `as_source` makes a fresh iterator for each run, passing on its context; name open. And an Iterator given to a second run croaks, rather than give nothing |
 
 ### 16.2 Settled
 
@@ -1403,6 +1411,21 @@ Weighed and set aside:
 - **A scalar sink giving nothing when it has no value.** "A result of
   one value is a source of one value" would fail, and scalar context
   would give how many results there were, nought.
+
+### 17.19 A pipeline holds no source
+
+(Section 4.2; Iain, 2026-11-12, 2026-0022's D33.) A pipeline is a list
+of stages, a sink among them if it ends in one, and a source is given
+as it runs.
+
+Weighed and set aside:
+
+- **A pipeline that can start with a source,** and so hold the whole,
+  source to sink. A source is a free-standing concept, and holding one
+  would couple the pipeline to it: it couldn't run over another
+  source, be pushed values, or go where a stage goes, so it would be a
+  source under a pipeline's name. The whole, kept, is Q24's: a source
+  made of a pipeline and a source, beside Pipeline.
 
 ## 18. Where each roadmap item lands
 

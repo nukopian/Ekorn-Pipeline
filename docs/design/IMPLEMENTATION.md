@@ -900,6 +900,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 3, principle 8 | nothing that works today changes, but by v0.3.0's changes | built: every existing test passes; three changed with v0.3.0's changes (section 9) |
 | 4.2 | the six types; a sink usually last, its result going on | built: section 6.3 |
 | 4.2, 19.2 | a complete pipeline, pulled, is a source, its run ending as its result is ready | built: section 6.8 |
+| 4.2 | a pipeline holds no source; a source joined to one is a source (D33) | built: `new` refuses a source as a stage; a chain and an iterator are sources |
 | 4.3 | push and pull; a scalar sink's result in scalar context (D17) | built |
 | 4.4 | the protocols, by role methods (D5), with a context (D7); one stage-place method (D19); a scalar sink giving one value (D25) | built |
 | 5.2 | made for a run by role methods; set-ups as the run starts (D21) | built |
