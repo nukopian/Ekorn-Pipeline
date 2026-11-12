@@ -22,7 +22,7 @@ Where the recipes go:
 - **A new part, Sinks: a result from many values,** after Gathering
   values.
 - **A new part, Chaining with |,** after Sinks.
-- **Writing stages for others** gains "Build a distribution on Ekorn".
+- **Writing stages for others** gains "Deliver sources, sinks and stages for Ekorn".
 
 ## Writing a function that takes stages (changed recipes)
 
@@ -269,26 +269,27 @@ bitwise OR of two addresses, and gives a meaningless number.
 
 ## Writing stages for others (new recipe)
 
-### Build a distribution on Ekorn
+### Deliver sources, sinks and stages for Ekorn
 
-If your distribution gives its users pipelines of its own, as
-DBIx::Squirrel does:
+If your package hands out values, as DBIx::Squirrel hands out rows,
+use Ekorn as it is: give your users the parts only you can make, and
+let them run them in Ekorn's pipelines, with Ekorn's parts and their
+own.
 
-1. **Subclass Ekorn::Pipeline** where you change how your pipelines
-   behave. Your class inherits `new`, `pipeline_in` and `named`, each
-   making or naming your class.
-2. **Give your users words of their own,** in a module of yours, each
-   one line:
-
-   ```perl
-   sub pipeline (@stages) { My::Pipeline->pipeline_in(scalar caller, @stages) }
-   ```
-
-   and pass on Ekorn's words for the types you don't subclass.
-3. **If you use Ekorn::Pipeline::Pipes,** override `pipeline_class`,
-   so `pipe` and `tap` make your class.
-4. **Put Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
+1. **A source for what you read,** made with `source` if it opens
+   something, so it's closed however the run ends.
+2. **A sink for what you write,** made with `sink`, committing only
+   when the run is `done`.
+3. **Stages for what only you know** about your values.
+4. **Functions that take stages,** if you like, finding them with
+   `is_stage` and running them with `Ekorn::Pipeline->new(@stages)`.
+5. **Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
    reported at your users' lines.
 
-Names your users define through your class are yours: their
-`pipeline` finds yours and Ekorn's, and Ekorn's own never finds yours.
+Don't subclass Ekorn's classes, or make words of your own for its
+types: your users take those from Ekorn, and compose your parts with
+them:
+
+```perl
+my $next = Ekorn::Pipeline->new(take(5))->iterator(rows($sth));
+```

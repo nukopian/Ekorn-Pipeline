@@ -20,13 +20,15 @@ What changes in the reference as a whole:
   calls.
 - **New sections for Sources, Sinks, Operators and Sugar,** after the
   canned stages.
-- **A new section, Building on Ekorn,** for authors of distributions
-  such as DBIx::Squirrel, after Writing functions that take stages.
+- **A new section, Delivering parts for Ekorn,** for authors of
+  packages such as DBIx::Squirrel, after Writing functions that take
+  stages.
 - **Diagnostics, Exports and The modules** gain the new entries.
 
-Named pipelines, Named pipelines and subclasses, and `named` stay as
-they are now, with `pipeline` imported from Factories in their
-examples.
+Named pipelines and `named` go back to names per package, as
+2026-0011 had them, with `pipeline` imported from Factories in their
+examples. Named pipelines and subclasses, and pipeline through a
+subclass, go, as does Pipes' `pipeline_class`.
 
 ## Terms (additions)
 
@@ -284,9 +286,7 @@ Ekorn::Pipeline->pipeline_in($package, @stages)
 
 Returns a new pipeline of its invocant's class, of `@stages`, each a
 code reference, a pipeline, or the name of one, looked up in
-`$package`, for its invocant's class, as
-[Named pipelines and subclasses](#named-pipelines-and-subclasses)
-explains. It's the only method that reads names, and it's what every
+`$package`, as [Named pipelines](#named-pipelines) explains. It's the only method that reads names, and it's what every
 `pipeline` word calls **[Q10]**.
 
 Call it from code the user calls directly, passing the user's package,
@@ -409,8 +409,8 @@ that gives a sink's result, none of which a chain can.
 | `$pipeline \|= $stage` | adds a stage, in place |
 | `@{ $source }` | every value the source gives |
 
-A chain is of the class of its left-hand side, so a class built on
-Ekorn chains as its own.
+A part from another package, such as a DBIx::Squirrel source, chains
+with Ekorn's like any other, if it's one of the types.
 
 **Every part of a chain must be one of the types:** a Stage, Source,
 Sink or Gather, made with a word or ready-made. Between two plain
@@ -458,62 +458,63 @@ my @five = clean(@raw, pipeline(take(5)));
   in order.
 - A name, and a function of it already in the package, are checked as
   DBIx::Squirrel::Sugar checks them, with the same messages.
-- It makes Ekorn::Pipelines. A distribution built on Ekorn defines its
-  own, with its own class's `named`.
+- The names are Ekorn's, as `named`'s are, so they can be used
+  wherever stages go, a DBIx::Squirrel statement's included.
 
-## Building on Ekorn
+## Delivering parts for Ekorn
 
-For the author of a distribution built on Ekorn::Pipeline, such as
-DBIx::Squirrel, whose users get pipelines of its own class.
+For the author of a package that hands out values, such as
+DBIx::Squirrel, or a module reading CSV or JSON. Use Ekorn as it is:
+deliver sources, sinks and stages, and let your users run them in
+Ekorn's pipelines, with Ekorn's parts and their own. Don't subclass
+Ekorn's classes, or wrap its words.
 
-### Your own class
+### What you deliver
 
-Subclass Ekorn::Pipeline where you change how your pipelines behave:
+Each is one of Ekorn's protocols, and that's all it has to keep:
 
-```perl
-package My::Pipeline;
-use parent 'Ekorn::Pipeline';
-```
-
-It inherits `new`, `pipeline_in`, `named`, `iterator` and `stages`, and
-each makes or names your class. Names defined through your class are
-yours: your users' `pipeline` finds yours and Ekorn's; Ekorn's own
-never finds yours (see
-[Named pipelines and subclasses](#named-pipelines-and-subclasses)).
-
-### Your own words
-
-Give your users words that make your class, in a module of your own,
-one line each, as Ekorn::Pipeline::Factories does, and pass on
-Ekorn's words for the types you don't subclass:
+- **A source,** for whatever your package reads: a code reference
+  called with nothing, giving the next value or an empty list, or, if
+  it opens something, made with `source`, so its end closes it however
+  the run ends.
+- **A sink,** for whatever it writes, made with `sink`, its end told
+  how the run ended, to commit or roll back.
+- **Stages,** for what only your package knows how to do with its
+  values: code references, or made with `stage` or `gather`.
 
 ```perl
-package My::Factories;
-use Exporter qw(import);
-use Ekorn::Pipeline::Factories qw(stage gather source sink);
+package My::Rows;
+use Ekorn::Pipeline::Factories qw(source);
 
-our @EXPORT_OK = qw(pipeline stage gather source sink);
-
-sub pipeline (@stages) { My::Pipeline->pipeline_in(scalar caller, @stages) }
+sub rows ($sth) {
+    return source {
+        $sth->execute;
+        return (sub () { $sth->fetchrow_hashref // () }, sub ($how) { $sth->finish });
+    };
+}
 ```
 
-`scalar caller` is the user's package, as they call your word
-directly, so names are looked up where they wrote them.
+### Functions that take stages
 
-### Your own pipe and tap
-
-A class using Ekorn::Pipeline::Pipes makes Ekorn::Pipelines in `pipe`
-and `tap`, unless it says otherwise:
+A function of yours that runs its own values through its caller's
+stages finds them with `is_stage`, or takes a pipeline given last, and
+runs them with `new`, as any user of Ekorn does:
 
 ```perl
-sub pipeline_class ($self) { 'My::Pipeline' }
+sub each_row ($sth, @stages) {
+    return Ekorn::Pipeline->new(@stages)->iterator(rows($sth));
+}
 ```
 
-### Your own stop
+`new` reads no names: your caller turns them into pipelines with
+`pipeline`, where they wrote them.
 
-`Stop` throws an Ekorn::Pipeline::Stop. To throw a subclass of yours,
-give your users a `Stop` of your own: `sub Stop (@values) {
-My::Stop->throw(@values) }`.
+### Ekorn's functions, for your users
+
+You can export Ekorn's functions to your users, such as `Stop` or
+`take`, as they are, with Exporter, so they needn't `use` two
+packages. They're the same functions, so your users can mix yours and
+Ekorn's freely.
 
 ### Your errors
 
@@ -535,7 +536,7 @@ Wording to be settled when the code is written. One for each:
 
 | Module | By default | On request | Tags |
 |---|---|---|---|
-| `Ekorn::Pipeline` | nothing | `is_stage` (and `is_source` **[Q14]**) | |
+| `Ekorn::Pipeline` | nothing | `is_stage` (and `is_source` **[Q13]**) | |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | each source | `:all` |
 | `Ekorn::Pipeline::Sinks` | nothing | each sink | `:all` |

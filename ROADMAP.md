@@ -75,10 +75,8 @@ keyword-like functions that make Ekorn's types, starting with
 line over a class method, so the class keeps no `import` of its own.
 Why: `pipeline` is syntax, not behaviour, the first of a family
 2026-0015 adds to, and in the class it needed `import` tricks to make
-a subclass. DBIx::Squirrel's words go in DBIx::Squirrel::Factories.
-Done when the module, the class method, their tests and docs are in,
-with coverage above the floors, and DBIx-Squirrel has a message saying
-how to write its own. Two questions are open: see its
+a subclass. Done when the module, the class method, their tests and
+docs are in, with coverage above the floors. Two questions are open: see its
 [record](docs/changes/2026-0021-factories.md).
 
 ### 2026-0010. Named pipelines at compile time
@@ -162,7 +160,7 @@ start of each run, declares the run's state with `my`, and returns the
 step and the end as closures sharing it; the end always runs, and is
 told how the run ended. Each makes a blessed code reference, so it
 works wherever a code reference does, with a class method a subclass,
-such as DBIx::Squirrel's, can wrap. Layer 1 of DBIx-Squirrel's message;
+can wrap. Layer 1 of DBIx-Squirrel's message;
 the design, with the reasons for this shape, is in `docs/design/`
 (2026-0022).
 The message, whole:
@@ -210,8 +208,6 @@ array reference, or `@{}` drains a source. Between two plain code
 references, `|` silently ORs their addresses, so the docs must say
 loudly that every stage in a chain is a `stage {...}`. Layer 3 of
 DBIx-Squirrel's message.
-An operator makes the class of its operand, never a class it names,
-so DBIx::Squirrel's pipelines chain as its own (2026-0020).
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
 

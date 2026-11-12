@@ -60,30 +60,22 @@ both:
   that a module of stages outside Ekorn's namespace works with no more
   set up. A stage that turns out to need nothing of DBIx::Squirrel's
   belongs here.
-- **Ekorn::X is the ancestor of DBIx::Squirrel::X,** as Iain decided
-  on 2026-11-11: Ekorn::Pipeline is the pipeline without a database,
-  and DBIx::Squirrel::Pipeline its descendant, a subclass, as is any
-  DBIx::Squirrel module with an Ekorn analogue. So Ekorn never names
-  its own class where it makes something, but the class it was reached
-  through: a method makes its invocant's class, or asks a method a
-  subclass can override, such as Pipes' `pipeline_class`; an exported
-  function that makes something is a one-line wrapper over a class
-  method, as `Stop` is over `throw`, so a subclass can wrap its own.
+- **DBIx::Squirrel uses Ekorn as it is,** as Iain decided on
+  2026-11-12, as any other package would: it delivers sources, sinks
+  and stages that keep Ekorn's protocols, and runs them in Ekorn's own
+  pipelines. It subclasses, wraps and remakes nothing of Ekorn's, and
+  Ekorn changes nothing for it, adding only what any package could
+  use. Ekorn's contract with other packages is its protocols, not its
+  classes, so a change to a protocol is a v0.3.0. This replaces the
+  rule of 2026-11-11 that DBIx::Squirrel's modules were subclasses of
+  Ekorn's, which tied the two designs together; `docs/design/`
+  (roadmap 2026-0022), principle 2 and its 17.3, has why.
 - **Factories are words, and live in a module of words,** as Iain
   decided on 2026-11-11: a short, keyword-like function that makes one
   of Ekorn's types, such as `pipeline`, `source {...}` or `gather`, is
   syntax, not behaviour, so it goes in
   Ekorn::Pipeline::Factories, not in the class it makes. Each is one
-  line over a class method. DBIx::Squirrel's own words, making its
-  classes, go in DBIx::Squirrel::Factories. Record 2026-0021.
-  And the streams don't cross: what's made or named in DBIx::Squirrel's
-  namespace stays there. A subclass inherits from its ancestor, one
-  way, as named pipelines are; Ekorn never holds, finds or makes
-  DBIx::Squirrel's things on its behalf, so DBIx::Squirrel's Sugar
-  defines its own pipelines rather than handing them to Ekorn's. The
-  rule came from DBIx-Squirrel's task to have `pipeline` make its
-  subclass, record 2026-0020, which says how each planned item meets
-  it.
+  line over a class method. Record 2026-0021.
 - **Keep the switch in view.** The messages, the order stages run in,
   and what Stop and Gather do are DBIx-Squirrel's behaviour too. A
   change to them is a change DBIx-Squirrel will take on when it

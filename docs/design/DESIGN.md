@@ -44,7 +44,9 @@ DBIx-Squirrel, each designed on its own. The decisions were sound one
 at a time, but they kept turning out to bite later: one name registry
 for every class, Ekorn's Sugar making DBIx::Squirrel's pipelines, a
 facade's `import` losing `pipeline`, and `pipeline` itself living in
-the class. Each was found after it was built.
+the class. Each was found after it was built, and most came from tying
+DBIx::Squirrel to Ekorn's classes, which this design undoes (principle
+2).
 
 This document describes everything planned in both repositories as one
 design, so that its parts can be checked against each other before
@@ -69,7 +71,8 @@ someone using only stages sees no change.
 
 DBIx::Squirrel is Ekorn's first user: a wrapper of the DBI whose
 statements hand out rows through stages. It's where most of these
-ideas came from, and where they'll be tried first.
+ideas came from, and where they'll be tried first. It uses Ekorn as
+it is, as any other package would.
 
 ## 3. Principles
 
@@ -80,21 +83,23 @@ section 17 gives the reasons for each.
 1. **Opt-in, in layers.** The core is extended only as far as the
    layers above need. Each layer comes in a module of its own, so
    someone who never `use`s it sees no change.
-2. **Ekorn::X is the ancestor of DBIx::Squirrel::X.** Ekorn::Pipeline
-   is the pipeline without a database; DBIx::Squirrel::Pipeline is its
-   descendant, a subclass, and the same holds for every DBIx::Squirrel
-   module with an Ekorn analogue. So Ekorn never names its own class
-   where it makes something, but the class it was reached through.
-3. **The streams don't cross.** What's made or named in
-   DBIx::Squirrel's namespace stays there. DBIx::Squirrel inherits from
-   Ekorn, one way; Ekorn never holds, finds or makes DBIx::Squirrel's
-   things for it.
+2. **Other packages use Ekorn as it is** (settled by Iain, 2026-11-12). DBIx::Squirrel,
+   or any package that hands out values, is a user of Ekorn like any
+   other. It delivers sources, sinks and stages that keep Ekorn's
+   protocols, and runs them in Ekorn's own pipelines. It subclasses,
+   wraps and remakes nothing of Ekorn's, and Ekorn changes nothing for
+   it.
+3. **Ekorn's contract is its protocols** (proposed). What other
+   packages rely on is section 4.4: what a stage, a source, a sink and
+   a stop are, what being made for a run means, and what a stage may
+   ask about its run. Ekorn's classes, words and ready-made parts are
+   for its users, not for other packages to extend. Changing a
+   protocol is a v0.3.0.
 4. **Factories are words, in a module of words.** A short,
    keyword-like function that makes one of the types, such as
    `pipeline` or `source {...}`, is syntax, not behaviour. It lives in
    Ekorn::Pipeline::Factories, as one line over a class method, not in
-   the class it makes. DBIx::Squirrel's own words, making its classes,
-   live in DBIx::Squirrel::Factories.
+   the class it makes.
 5. **Names are resolved where the user writes them.** Only a word the
    user calls reads names, in the user's own package. `new` reads
    none, as it's called by code in between: Pipes, DBIx::Squirrel's
@@ -180,6 +185,25 @@ The pull is what makes a function that reads a file or a database read
 no more than its caller wants. Sources, sinks and their ends exist to
 make the pull safe as well as lazy: a file opened by a source is
 closed however the pull ends.
+
+### 4.4 The protocols: Ekorn's contract with other packages
+
+A package that keeps these works with Ekorn, without subclassing or
+wrapping anything of it (principles 2 and 3; the list proposed):
+
+| Protocol | The contract |
+|---|---|
+| **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
+| **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
+| **Made for a run** | an object with a method the core calls at the start of each run (**Q2**, `for_run`), returning its step and, optionally, its end (section 5.2) |
+| **Sink** | a stage made for a run, whose end is told `done`, `stopped` or `died` and, when `done`, gives the result (section 5.4) |
+| **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
+| **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from an end (section 5.6); and, if **Q21** is settled so, the run's source |
+
+These are what Ekorn versions, and what DBIx::Squirrel's range on
+Ekorn's version protects. Everything else a package needs, it gets as
+any user does: pipelines from `new`, words from Factories, ready-made
+parts from their modules.
 
 ## 5. Runs, and how they end
 
@@ -322,7 +346,9 @@ Ekorn::Pipeline->pipeline_in($package, @stages)
 ```
 
 It makes a pipeline of its invocant's class, with each name among the
-stages looked up in `$package`, for its invocant's class (section 7).
+stages looked up in `$package` (section 7). Methods make their
+invocant's class as a matter of course, so that a class can be
+subclassed, but nothing in this design rests on one being.
 
 ### 6.2 The words: Ekorn::Pipeline::Factories
 
@@ -372,20 +398,20 @@ there a source for a file's lines?" in another.
 
 ## 7. Names
 
-Settled in 2026-0011 and 2026-0020; carried in whole.
+Settled in 2026-0011. The names per class that 2026-0020 added are
+undone (17.3): with no package subclassing Ekorn, there are no other
+classes' names to keep apart.
 
 - **A name** is identifiers, as Perl's, joined by `::`: `clean`,
   `My::Module::clean`.
-- **Two things decide which pipeline a name means.** The package it's
-  in says whose it is: the package that called `named`, unless it's
-  qualified. The class it was defined through says who can find it.
+- **The package a name is in says whose it is:** the package that
+  called `named`, unless the name is qualified. So two modules can
+  each have a `clean`. Used unqualified, a name is looked up in the
+  package where it's written; qualified, it's found from anywhere.
 - **`named` defines one:** `Ekorn::Pipeline->named(clean => @stages)`
-  makes a pipeline of its invocant's class; `$p->named('clean')` names
-  one you have. A class can't define a name twice; naming the same
-  pipeline again is no mistake. A name can't be removed.
-- **A class sees its own names and its ancestors',** nearest first,
-  never a subclass's. A subclass can override an ancestor's name for
-  itself and its subclasses; the ancestor keeps its own.
+  makes a pipeline; `$p->named('clean')` names one you have. A name
+  can't be defined twice; naming the same pipeline again is no
+  mistake. A name can't be removed.
 - **A name is resolved when the pipeline is made,** and the pipeline
   it names is spliced in. A pipeline once made keeps what it found.
 - **Only `pipeline` (through `pipeline_in`) and `named` read names.**
@@ -479,9 +505,9 @@ my $n     = $src | stage { $_->{name} } | count;       # Source | ... | Sink: th
 my @names = @{ $src | take(10) };                       # @{} drains a source
 ```
 
-- **An operator makes the class of its operand,** never a class it
-  names (settled with 2026-0020's rule), so DBIx::Squirrel's chain as
-  its own.
+- **An operator works on any part that keeps the protocols** of
+  section 4.4 and is one of the typed objects, whichever package made
+  it, so a DBIx::Squirrel source chains with Ekorn's stages and sinks.
 - **Perl calls an overload only if one side is an object.** Between two
   plain code references, `|` silently ORs their addresses. The docs
   must say loudly: in a chain, every stage is a `stage {...}`, or a
@@ -528,15 +554,15 @@ Settled in 2026-0010's record:
   cycle croaks.
 - **Names and clashes are checked exactly as DBIx::Squirrel::Sugar
   does,** so one program using both reads alike.
-- **It makes only Ekorn::Pipelines.** DBIx::Squirrel's Sugar defines
-  its own pipelines, with `DBIx::Squirrel::Pipeline->named`, rather
-  than handing them to Ekorn's.
+- **It names the only pipelines there are, Ekorn's.** A package such
+  as DBIx::Squirrel names none of its own: its users name pipelines
+  with this Sugar, or `named`, and use the names wherever stages go,
+  a statement's stages included.
 - `import_into($package, ...)` lets a module add to it for its caller.
 
-Proposed: the helpers both Sugars need, which make nothing, such as
-checking a name, installing a function, and ordering definitions with
-a cycle check, are functions DBIx::Squirrel can call, in a module of
-their own (**Q13**). That's DBIx-Squirrel's 2026-0011.
+Proposed: DBIx::Squirrel's Sugar keeps its own helpers, for checking a
+name and installing a function, rather than calling Ekorn's, so
+neither depends on the other's internals.
 
 ## 11. The modules
 
@@ -544,11 +570,11 @@ their own (**Q13**). That's DBIx-Squirrel's 2026-0011.
 
 | Module | Layer | Gives | Exports |
 |---|---|---|---|
-| `Ekorn::Pipeline` | core | the class; `new`, `pipeline_in`, `named`, `iterator`, `stages`; the lifecycle (section 5) | `is_stage` (and `is_source`, **Q14**) on request |
+| `Ekorn::Pipeline` | core | the class; `new`, `pipeline_in`, `named`, `iterator`, `stages`; the lifecycle (section 5) | `is_stage` (and `is_source`, **Q13**) on request |
 | `Ekorn::Pipeline::Stop` | core | `Stop`, `throw` | `Stop` by default |
 | `Ekorn::Pipeline::Gather` | core | the Gather class; `gather` | `gather` by default |
 | `Ekorn::Pipeline::Errors` | core | `croakf`, `@INTERNAL` | `croakf` on request |
-| `Ekorn::Pipeline::Pipes` | core | `pipe`, `tap`, `pipeline_class` for a class of your own | none: a parent class |
+| `Ekorn::Pipeline::Pipes` | core | `pipe` and `tap`, for a class's objects to make pipelines with | none: a parent class |
 | `Ekorn::Pipeline::Stage`, `::Source`, `::Sink` | 1 | the classes | none |
 | `Ekorn::Pipeline::Factories` | 1 | the words | on request |
 | `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | canned stages | as now |
@@ -561,26 +587,23 @@ so errors are reported at the caller's line.
 
 ### 11.2 DBIx::Squirrel
 
-Its rule: `Ekorn::Pipeline::X` maps to `DBIx::Squirrel::X`. A facade
-subclasses where DBIx::Squirrel changes behaviour, and only re-exports
-where it doesn't.
+Proposed: no module of DBIx::Squirrel's subclasses or wraps one of
+Ekorn's (principle 2). Its modules are its own, delivering parts:
 
-| Module | Is | Today | Proposed |
-|---|---|---|---|
-| `DBIx::Squirrel::Pipeline` | subclass of Ekorn::Pipeline | facade, no code | unchanged: inherits `pipeline_in` and `named` |
-| `DBIx::Squirrel::Factories` | its words | (new) | `pipeline` making its class; the other words re-exported from Ekorn's, unless it subclasses their types |
-| `DBIx::Squirrel::Pipes` | subclass of Ekorn's Pipes | facade | overrides `pipeline_class`, so `$sth->pipe` makes its pipelines |
-| `DBIx::Squirrel::Stop` | subclass of Ekorn's Stop | exports Ekorn's `Stop`, which throws Ekorn's class | its own one-line `Stop`, if its subclass should be thrown |
-| `DBIx::Squirrel::Gather`, `::Stages::*` | re-exports | as now | as now, adding names it chooses |
-| `DBIx::Squirrel::Stages::Rows` | its own | `pluck`, `as_hash` | unchanged |
-| `DBIx::Squirrel::Iterator` | its own | statements' rows | a Source (section 12.3) |
-| `DBIx::Squirrel::Sinks` | its own | (new) | `insert_into` (its 2026-0012) |
-| `DBIx::Squirrel::Sugar` | its own | databases, statements | a `pipeline` key, defining its own (its 2026-0010) |
+| Module | Today | Proposed |
+|---|---|---|
+| `DBIx::Squirrel::Pipeline`, `::Pipes`, `::Stop`, `::Gather`, `::Stages::Flow`, `::Batch`, `::Taps` | facades over Ekorn's: subclasses, and re-exports | no subclasses; whether it keeps re-exporting Ekorn's functions as they are is **Q20** |
+| `DBIx::Squirrel::Iterator` | statements' rows, through a pipeline of its own class | a Source (section 12.3), run in Ekorn's pipelines |
+| `DBIx::Squirrel::Stages::Rows` | `pluck`, `as_hash`, through Context | stages of its own, finding their columns as **Q21** settles (section 12.7) |
+| `DBIx::Squirrel::Sinks` | (new) | `insert_into` (its 2026-0012), a Sink |
+| `DBIx::Squirrel::Sugar` | databases, statements | as now, its statements' stages able to use Ekorn's names; no `pipeline` key |
 
-## 12. DBIx::Squirrel on top
+## 12. DBIx::Squirrel: a user of Ekorn
 
 From DBIx::Squirrel's code on its `pipeline-experimental`, as read on
-2026-11-11.
+2026-11-11. Everything here is DBIx-Squirrel's to design; this section
+shows that it needs nothing of Ekorn beyond section 4.4's protocols
+and what any user has.
 
 ### 12.1 How it uses Ekorn today
 
@@ -600,20 +623,30 @@ From DBIx::Squirrel's code on its `pipeline-experimental`, as read on
   its own `install_sub` and `is_name`, and stores a statement's stages.
 - **Its errors** add Ekorn's `@INTERNAL` to its own `@CARP_NOT` list.
 
-### 12.2 Its words
+Of these, only the facade, the subclass `DBIx::Squirrel::Pipeline`
+with no code of its own, goes against principle 2. Everything else
+already uses Ekorn as any user would.
 
-`DBIx::Squirrel::Factories` gives its users `pipeline`, one line over
-the class method it inherits:
+### 12.2 What it delivers
+
+Three kinds of part, each one of section 4.4's protocols, and nothing
+else:
+
+- **Sources:** a statement's rows (12.3).
+- **Sinks:** a table to insert into (12.4).
+- **Stages that need its knowledge:** `pluck` and `as_hash` (12.7).
+
+And functions that take stages, `iterate` and the like, as any user of
+Ekorn writes: they find their stages with `is_stage`, and run them with
+`Ekorn::Pipeline->new(@stages)->iterator($source)`.
+
+Its users compose its parts with Ekorn's, and nothing in the result
+knows which package made which part:
 
 ```perl
-sub pipeline (@stages) { DBIx::Squirrel::Pipeline->pipeline_in(scalar caller, @stages) }
+my $names = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($sth->source);
+my $n     = $sth->source | stage { [$_->{id}, $_->{name}] } | insert_into($archive, 'people');
 ```
-
-So `$sth->iterate(pipeline('clean', take(5)))` makes a
-DBIx::Squirrel::Pipeline, finding `clean` among DBIx::Squirrel's names
-and Ekorn's, in the user's package. Words whose types it doesn't
-subclass, such as `stage` or `sink`, it re-exports from Ekorn's
-Factories (which words it offers is its choice, **Q15**).
 
 ### 12.3 Its iterator as a source
 
@@ -624,7 +657,7 @@ statement handle. With section 5, a statement's rows read through
 dropped half-read finishes it too.
 
 How DBIx::Squirrel::Iterator becomes one is DBIx-Squirrel's to design
-(**Q16**). It's a hash-based object today, with `next`, `all`,
+(**Q14**). It's a hash-based object today, with `next`, `all`,
 `reset`, `single`, `count`, not a code reference, so it would either
 offer a Source (say `$it->source`) or become callable. Its `reset` is
 the set-up; its `_finish` the end.
@@ -655,27 +688,56 @@ commit, and what it gives back are DBIx-Squirrel's questions.
 
 ### 12.5 Its Sugar
 
-A `pipeline` key in DBIx::Squirrel::Sugar (its 2026-0010) defines its
-own pipelines, qualifying names with its caller's package, with
-`DBIx::Squirrel::Pipeline->named`. Whether a statement's definition
-can name a pipeline by a string, and how that's told from anything
-else in a definition, is its question (**Q17**).
+DBIx::Squirrel::Sugar defines databases and statements, as now. It
+names no pipelines: its users name them with Ekorn's Sugar or `named`,
+and a statement's stages can use those names, resolved by Ekorn's
+`pipeline` in the user's package. Whether a statement's definition can
+name a pipeline by a string, and how that's told from anything else in
+a definition, is its question (**Q15**).
 
-### 12.6 What could bite
+### 12.6 What it gives its users
+
+Its users write `use DBIx::Squirrel::Stop` and the like today, and get
+Ekorn's functions through its facades. It can keep giving them, as
+plain re-exports of Ekorn's functions, unchanged, or point its users
+to Ekorn's own modules (**Q20**). Either way, a user can mix the two
+freely, as the functions are the same.
+
+### 12.7 A stage that needs to know its source
+
+`pluck('name')` needs the statement's column names. Today Context gives
+them, because DBIx::Squirrel runs the pipeline. When a user joins
+`$sth->source | pluck('name')` themselves, DBIx::Squirrel runs
+nothing. This is the one place its parts need more than they're given
+(**Q21**):
+
+- **A stage may ask for its run's source,** as it asks `ending()`, and
+  a source offers what it knows, such as its columns. It's generic: a
+  CSV source could offer its header the same way. With pipelines
+  inside pipelines, a stage sees the source of its own run.
+  Recommended: it's a protocol any provider can use, so Ekorn adding
+  it is no change made for one package.
+- **The values carry it:** rows come out as objects that know their
+  columns. That changes what users get as rows.
+- **The stage is given it:** `pluck($sth, 'name')`. Clumsy, and it
+  repeats what the source already knows.
+
+### 12.8 What could bite
 
 Found by reading both sides together; each has an answer above or a
 question below.
 
-- `$sth->pipe(...)` makes an Ekorn::Pipeline unless DBIx::Squirrel's
-  Pipes overrides `pipeline_class`.
-- `Stop` from DBIx::Squirrel::Stop throws Ekorn's class.
+- Code in DBIx::Squirrel, or its tests, that checks a pipeline `isa`
+  DBIx::Squirrel::Pipeline, which goes.
+- `Stop` from DBIx::Squirrel::Stop throws Ekorn's class already, so
+  catching it is unchanged.
 - If `iterator` returns an object (section 5.5), DBIx::Squirrel's
   `$self->{next}->()` keeps working, as it's still a code reference.
 - If the canned stages become objects (**Q12**), any test in
   DBIx::Squirrel comparing `ref` to `CODE` would fail.
 - Its CI installs Ekorn from CPAN, and runs only on `main` and
   `develop`, so it can't test against Ekorn's `pipeline-experimental`
-  yet (**Q18**).
+  yet (**Q16**).
 
 ## 13. Compatibility and versions
 
@@ -685,7 +747,7 @@ question below.
 | `gather` | unchanged | |
 | `iterator` returning a blessed code reference | no, unless code checks `ref` is `CODE` | v0.2.x (**Q7**) |
 | Stage, Source, Sink, Factories, Sources, Sinks, Sugar, Operators | no: new modules | v0.2.x |
-| `pipeline` and `named` | no: new, unreleased | v0.2.x |
+| `pipeline` and `named`, names per package | no: new, unreleased | v0.2.x |
 | Canned stages returning objects | `ref` changes from `CODE` | v0.2.x if accepted (**Q12**) |
 | A pipeline's name in its stages' errors (2026-0013) | messages change | v0.3.0 |
 | A strict `is_stage` by default (2026-0019) | behaviour changes | v0.3.0, not proposed |
@@ -701,8 +763,8 @@ this design is approved:
 | Built | In this design |
 |---|---|
 | `pipeline(...)`, exported by Ekorn::Pipeline, with an `import` of its own that makes it for a subclass (2026-0011, 2026-0020) | moves to Factories, over `pipeline_in`; Ekorn::Pipeline's own `import` goes (2026-0021) |
-| `named`, names per package and per class, inherited one way, overridable | kept as it is |
-| Pipes' `pipeline_class` | kept |
+| `named`, names per package and per class, inherited one way, overridable | names per package kept; per class goes, back to 2026-0011's (section 7) |
+| Pipes' `pipeline_class` | goes: no package needs `pipe` to make a class of its own |
 | The docs for all of it, and `Changes` | rewritten with the move |
 
 ## 15. The order things depend on
@@ -722,9 +784,9 @@ pipeline_in (6.1)
        -> Sugar (10)
 
 DBIx-Squirrel:
-  Factories' pipeline        -> its Factories (12.2), its Sugar key (12.5)
   core lifecycle + Source    -> its iterator as a source (12.3)
   core lifecycle + Sink      -> insert_into (12.4)
+  a stage asking its source  -> pluck and as_hash as parts (12.7, Q21)
 ```
 
 `pipeline` moving to Factories needs only `pipeline_in`, so it can come
@@ -748,15 +810,15 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
 | **Q12** | Canned stages return objects, changing their `ref`? | Iain, DBIx-Squirrel to check its tests | Yes, in a v0.2.x, said plainly in `Changes` |
-| **Q13** | Shared helpers for both Sugars: where, and named what? | Ekorn and DBIx-Squirrel | A module of functions in Ekorn, such as `Ekorn::Pipeline::Util` |
-| **Q14** | `is_source`, exported like `is_stage`? | Ekorn | Yes, if `iterator` must tell a Source from a code reference |
-| **Q15** | Which words DBIx::Squirrel::Factories offers? | DBIx-Squirrel | |
-| **Q16** | How DBIx::Squirrel::Iterator becomes a source? | DBIx-Squirrel | |
-| **Q17** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
-| **Q18** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
-| **Q19** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
-| **Q20** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
-| **Q21** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
+| **Q13** | `is_source`, exported like `is_stage`? | Ekorn | Yes, if `iterator` must tell a Source from a code reference |
+| **Q14** | How DBIx::Squirrel::Iterator becomes a source? | DBIx-Squirrel | |
+| **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
+| **Q16** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
+| **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
+| **Q18** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
+| **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
+| **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
+| **Q21** | How does a stage that needs to know about its source, such as `pluck`, which needs a statement's column names, find it out (section 12.7)? | Ekorn | A stage may ask for its run's source, as it asks `ending()`, and a source offers what it knows: a protocol any provider can use |
 
 ## 17. Decisions, and what was weighed
 
@@ -780,7 +842,7 @@ Weighed and set aside:
   through. A subclass with an `import` of its own, such as Exporter's,
   lost it, and needed `__PACKAGE__->SUPER::import('pipeline')` in a
   `BEGIN` block to get it back. A package could hold only one
-  `pipeline`. And `DBIx::Squirrel::Pipeline->pipeline(...)`, the call a
+  `pipeline`. And `My::Pipeline->pipeline(...)`, the call a
   factory looks like, read the class's name as a pipeline's.
 - **Ekorn::Pipeline::Sugar.** Its import list takes definitions,
   `use Ekorn::Pipeline::Sugar pipeline => {...}`, so `pipeline` would
@@ -789,10 +851,6 @@ Weighed and set aside:
   expressions as it runs.
 - **Ekorn::Pipeline::Blocks.** It names what some of the words take,
   not what they do, and `pipeline` takes no block.
-- **DBIx::Squirrel::Pipeline::Factories,** for DBIx::Squirrel's words.
-  Its modules map `Ekorn::Pipeline::X` to `DBIx::Squirrel::X`, so
-  DBIx::Squirrel::Factories keeps the pattern, where the longer name
-  would sit a level deeper than everything else.
 - **`Stop` among the words.** It throws a stop rather than making
   something to keep, so it stays in Ekorn::Pipeline::Stop.
 
@@ -823,42 +881,46 @@ Weighed and set aside:
   `pipeline('My::Pipeline', ...)`, where `My::Pipeline` is a valid
   qualified name.
 
-### 17.3 Names belong to a class, inherited one way
+### 17.3 Other packages use Ekorn as it is
 
-A name is kept under the class it was defined through. A class sees
-its own and its ancestors', nearest first, never a subclass's; a
-subclass can override an ancestor's name; a class can't define a name
-twice. (2026-0020, D4 and D5.)
-
-Weighed and set aside:
-
-- **One registry for every class.** A pipeline named through
-  DBIx::Squirrel::Pipeline could be found by Ekorn's own `pipeline`,
-  and spliced into an Ekorn::Pipeline: the streams crossed.
-- **A registry for each class, strictly separate.** Simpler to explain,
-  but a subclass would lose the pipelines its ancestor names, which a
-  subclass should inherit, as it inherits methods.
-- **A subclass unable to define a name its ancestor has.** That was
-  lopsided, as an ancestor could define a name its subclass had, and
-  unlike methods, which a subclass overrides as a matter of course. It
-  meant to keep a pipeline from finding that a name it used had changed
-  meaning; but a name is resolved when a pipeline is made, so a
-  pipeline made before an override keeps what it found anyway.
-
-### 17.4 Each Sugar makes only its own
-
-Ekorn's Sugar makes Ekorn::Pipelines, and DBIx::Squirrel's Sugar
-defines its own pipelines, with its own class's `named`. (2026-0010,
-D10.)
+(Principles 2 and 3, section 4.4, section 12; Iain, 2026-11-12:
+DBIx::Squirrel should be able to use Ekorn as it is.) DBIx::Squirrel,
+and any package like it, delivers sources, sinks and stages that keep Ekorn's
+protocols, and runs them in Ekorn's own pipelines. What it brings is a
+database's knowledge, not a pipeline of its own, and the protocols are
+all the parts need to work together. So a package can be built on
+Ekorn by anyone, from its documented protocols alone, and a change
+inside Ekorn can't break it unless it changes a protocol, which is a
+v0.3.0.
 
 Weighed and set aside:
 
-- **Ekorn's Sugar handing definitions back as DBIx::Squirrel's,** either
-  by a `pipeline_class` method a subclass of Ekorn's Sugar overrides,
-  or by a class passed to `import_into`. Either way Ekorn's code would
-  make and hold DBIx::Squirrel's pipelines, crossing the streams; and
-  the two Sugars aren't class and subclass, just modules in different
-  namespaces making syntax for their own users.
+- **DBIx::Squirrel as a descendant of Ekorn,** each of its modules a
+  subclass or facade of Ekorn's, as decided on 2026-11-11. To keep its
+  own class flowing through, it needed names per class, inherited one
+  way; Pipes' `pipeline_class` to override; words of its own in a
+  DBIx::Squirrel::Factories; a Sugar defining its own pipelines; a
+  `Stop` of its own to throw a subclass; and a rule that the two
+  namespaces' things never cross. Each was found as a bite, after
+  something was built, and none of it did anything a database needs:
+  its pipeline subclass has no code. It tied the two designs together,
+  and would have done the same to any other package built that way.
+- **Hooks in Ekorn for one package,** such as a class to make that
+  DBIx::Squirrel could set. Ekorn would bend to one user, and every
+  hook would be a protocol to keep.
+
+### 17.4 Names belong to a package
+
+A name is kept in a package, which says whose it is, and is found from
+anywhere by its qualified name. (2026-0011.)
+
+Weighed and set aside:
+
+- **Names per class, inherited one way, overridable** (2026-0020). It
+  kept one class's names from another's, which only matters when
+  another package subclasses Ekorn to make pipelines of its own, as
+  principle 2 says none does.
+- **One registry, unqualified.** Two modules would clash over `clean`.
 
 ### 17.5 Stages after values that may be code references
 
@@ -875,7 +937,7 @@ Weighed and set aside:
   (2026-0019). It would work only if callers wrote every stage as
   `stage {...}`, and as a default it would change behaviour, a v0.3.0.
   Pipeline-last works with the plain `sub {...}` stages callers already
-  write (**Q20**).
+  write (**Q18**).
 
 ### 17.6 One shape for things made for a run
 
@@ -1006,13 +1068,13 @@ Weighed and set aside:
 | Ekorn 2026-0016, sources | 8.2 | as listed |
 | Ekorn 2026-0017, sinks | 8.3 | as listed (**Q8**) |
 | Ekorn 2026-0018, operators | 9 | as listed |
-| Ekorn 2026-0019, strict `is_stage` | 13 | not now (**Q20**) |
-| Ekorn 2026-0020, `pipeline` through a subclass | 14 | replaced by Factories; names per class kept |
+| Ekorn 2026-0019, strict `is_stage` | 13 | not now (**Q18**) |
+| Ekorn 2026-0020, `pipeline` through a subclass | 14 | undone: `pipeline` moves to Factories, names are per package, and `pipeline_class` goes (17.3, 17.4) |
 | Ekorn 2026-0021, Factories | 6.2 | as its record |
 | DBIx-Squirrel 2026-0003, add-on distributions | 8 | those needing no database may move here |
-| DBIx-Squirrel 2026-0009, export `pipeline` | 12.2 | through its Factories |
-| DBIx-Squirrel 2026-0010, Sugar's `pipeline` key | 12.5 | defines its own |
-| DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | **Q13** |
+| DBIx-Squirrel 2026-0009, export `pipeline` | 12.6 | Ekorn's, re-exported as it is, if at all (**Q20**) |
+| DBIx-Squirrel 2026-0010, Sugar's `pipeline` key | 12.5 | not needed: Ekorn's Sugar names pipelines its statements can use |
+| DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | not needed: its Sugar keeps its own |
 | DBIx-Squirrel 2026-0012, `insert_into` | 12.4 | needs Sink and ends |
 
 When the design is split into items, the proofs of section 19 go with
@@ -1028,7 +1090,7 @@ The design is tested by building it: experimental code on
 `pipeline-experimental`, enough to run the proofs below, before Iain
 approves the design and it's split into items. What the code finds
 goes back into this document, and the drafts, as any other change
-does. Whether the code is kept is **Q21**.
+does. Whether the code is kept is **Q19**.
 
 Two compositions prove that the types fit together as section 4 says.
 Neither needs a stage between its parts, so each tests the types and
