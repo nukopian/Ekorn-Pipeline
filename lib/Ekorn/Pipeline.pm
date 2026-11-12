@@ -452,6 +452,21 @@ sub _iterator ($stages, $names, $source) {
         $ended, $spent, $dropped,
     );
     my $next_flush = 0;
+    # How many values wait at each stage's index, kept as @todo changes, so
+    # asking whether any wait before a stage needn't scan @todo: a flush
+    # can put many values there at once.
+    my @waiting_at;
+    # Put @values on @todo, to go on from stage $n, the first on top.
+    my $wait = sub ($n, $from_flush, @values) {
+        push @todo, map { [$n, $_, $from_flush] } reverse @values;
+        $waiting_at[$n] += @values;
+        return;
+    };
+    # Whether any value waits at a stage up to $upto.
+    my $waiting_upto = sub ($upto) {
+        $waiting_at[$_] && return 1 for 0 .. $upto;
+        return 0;
+    };
     # How the run ended, as its caller asks: whether the source was read
     # to its end, "stopped" if values still to be handed out were dropped,
     # or "died" if anything died, an end included.
@@ -476,7 +491,7 @@ sub _iterator ($stages, $names, $source) {
         }
         catch ($e) {
             # An end died: the run died, and hands out nothing more.
-            ($ended, $spent, @todo) = ('died', 1);
+            ($ended, $spent, @todo, @waiting_at) = ('died', 1);
             die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
         }
         return;
@@ -496,7 +511,7 @@ sub _iterator ($stages, $names, $source) {
     # still waiting, and no flush before it still to be called.
     my $input_ran_out_at_stop = sub ($n) {
         for my $stage ($next_flush .. $n) {
-            last if grep { $_->[0] <= $stage } @todo;
+            last if $waiting_upto->($stage);
             last if grep { $flushes[$_] && !$flushed{$_} } $next_flush .. $stage - 1;
             $input_done[$stage] = 1;
         }
@@ -505,7 +520,7 @@ sub _iterator ($stages, $names, $source) {
     # End the run if nothing in it can still act on a value.
     my $end_if_ended = sub () {
         return if $finished || !$done || defined $flush_at->();
-        return if grep { $_->[0] < @stages } @todo;
+        return if $waiting_upto->($#stages);
         $input_ran_out->($#stages);
         $finish->(0);
         return;
@@ -516,6 +531,7 @@ sub _iterator ($stages, $names, $source) {
             my($n, $value, $from_flush, $flush, $sink_flush);
             if (@todo) {
                 ($n, $value, $from_flush) = @{ pop @todo };
+                $waiting_at[$n]--;
             }
             elsif (!$done) {
                 my @values;
@@ -528,10 +544,10 @@ sub _iterator ($stages, $names, $source) {
                         # carries is its last, and it's done.
                         my(undef, @carried) = is_arrayref($e) ? @$e : ();
                         ($done, $source_done) = (1, 1);
-                        push @todo, map { [0, $_] } reverse @carried;
+                        $wait->(0, undef, @carried);
                         next;
                     }
-                    ($done, $next_flush, @todo) = (1, scalar @stages);
+                    ($done, $next_flush, @todo, @waiting_at) = (1, scalar @stages);
                     $finish->(1);
                     croak $e if is_ref($e);
                     die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
@@ -541,7 +557,7 @@ sub _iterator ($stages, $names, $source) {
                     next;
                 }
                 ($n, $value) = (0, shift @values);
-                push @todo, map { [0, $_] } reverse @values;
+                $wait->(0, undef, @values);
             }
             else {
                 $n = $flush_at->();
@@ -569,7 +585,7 @@ sub _iterator ($stages, $names, $source) {
                     $n++;
                     $kept  = @values;
                     $value = shift @values;
-                    push @todo, map { [$n, $_, 1] } reverse @values;
+                    $wait->($n, 1, @values);
                 }
                 while ($kept && $n < @stages) {
                     local $_ = $value;
@@ -581,7 +597,7 @@ sub _iterator ($stages, $names, $source) {
                         last;
                     }
                     $value = shift @values;
-                    push @todo, map { [$n, $_, $from_flush] } reverse @values;
+                    $wait->($n, $from_flush, @values);
                 }
             }
             catch ($e) {
@@ -594,12 +610,13 @@ sub _iterator ($stages, $names, $source) {
                     $done = 1;
                     my $from = $sinks[$n] && !$flushed{$n} ? $n : $n + 1;
                     $next_flush = $from if $next_flush < $from;
-                    @todo       = map { [$n + 1, $_, $from_flush] } reverse @values;
+                    (@todo, @waiting_at) = ();
+                    $wait->($n + 1, $from_flush, @values);
                     next;
                 }
                 # A stage or a flush that dies ends the run: nothing waiting
                 # goes on, and every end is told it died.
-                ($done, $next_flush, @todo) = (1, scalar @stages);
+                ($done, $next_flush, @todo, @waiting_at) = (1, scalar @stages);
                 $finish->(1);
                 croak $e if is_ref($e);
                 my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
@@ -621,7 +638,7 @@ sub _iterator ($stages, $names, $source) {
     my $end_run = sub () {
         $outside = 1;
         $dropped = 1 if @todo && ($ended // '') ne 'died';
-        ($done, $next_flush, @todo) = (1, scalar @stages);
+        ($done, $next_flush, @todo, @waiting_at) = (1, scalar @stages);
         $finish->(0);
         $ended = 'stopped' if $dropped;
         return;
