@@ -60,7 +60,9 @@ experimental code on `pipeline-experimental`, the one development the
 pause allows, built to the design's section 19: a source joined
 directly to a sink, and a complete pipeline used as a source. Done
 when the proofs hold and Iain has approved the design, and only then
-is it decomposed into items, which replace or rewrite those below. What's on `pipeline-experimental` (2026-0011,
+is it decomposed into items, which replace or rewrite those below.
+What the design makes ships together as v0.3.0, as Iain decided on
+2026-11-12, and stays on `pipeline-experimental` until then. What's on `pipeline-experimental` (2026-0011,
 0020) is provisional until then.
 
 ## Next

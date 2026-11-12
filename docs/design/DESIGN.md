@@ -741,19 +741,31 @@ question below.
 
 ## 13. Compatibility and versions
 
-| Change | Breaks anything? | Version |
-|---|---|---|
-| The lifecycle protocol; sources' and sinks' ends | no: only the new types use them | v0.2.x |
-| `gather` | unchanged | |
-| `iterator` returning a blessed code reference | no, unless code checks `ref` is `CODE` | v0.2.x (**Q7**) |
-| Stage, Source, Sink, Factories, Sources, Sinks, Sugar, Operators | no: new modules | v0.2.x |
-| `pipeline` and `named`, names per package | no: new, unreleased | v0.2.x |
-| Canned stages returning objects | `ref` changes from `CODE` | v0.2.x if accepted (**Q12**) |
-| A pipeline's name in its stages' errors (2026-0013) | messages change | v0.3.0 |
-| A strict `is_stage` by default (2026-0019) | behaviour changes | v0.3.0, not proposed |
+Settled by Iain, 2026-11-12: **the changes this design makes ship
+together as v0.3.0,** and until then everything stays on
+`pipeline-experimental`. Nothing of it reaches `develop` or `main`
+before. A v0.2.x from `develop` in the meantime only fixes.
 
-Proposed: everything here ships as v0.2.x, in one or more releases,
-and 2026-0013 waits for a v0.3.0 with whatever else needs one.
+| Change | Breaks anything? |
+|---|---|
+| The lifecycle protocol; sources' and sinks' ends | no: only the new types use them |
+| `gather` | unchanged |
+| `iterator` returning a blessed code reference | no, unless code checks `ref` is `CODE` (**Q7**) |
+| Stage, Source, Sink, Factories, Sources, Sinks, Sugar, Operators | no: new modules |
+| `pipeline` and `named`, names per package | no: new, unreleased |
+| Canned stages returning objects | `ref` changes from `CODE` (**Q12**) |
+| A pipeline's name in its stages' errors (2026-0013) | messages change (**Q22**) |
+| A strict `is_stage` by default (2026-0019) | behaviour changes; not proposed (**Q18**) |
+
+As a v0.3.0 may change behaviour, what was held back for one can join
+it, rather than wait for another: the canned stages as objects, and a
+pipeline's name in its errors, if Iain wants it now.
+
+v0.3.0 is outside DBIx::Squirrel's range, `>= v0.2.0, < v0.3.0`, so it
+reaches DBIx::Squirrel's users only when DBIx::Squirrel moves the
+range, with a task handed to it as the release comes: it tests
+against v0.3.0, and, in the same change, drops its facades for Ekorn
+as it is (section 12). Until then, its users keep v0.2.x.
 
 ## 14. What's built already
 
@@ -809,7 +821,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q9** | `stage(\&trim)`: wrap, never bless the sub given? | Ekorn | Always wrap |
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | Ekorn (2026-0021 D6) | `pipeline_in` |
 | **Q11** | Named sources (2026-0012) now, or later? | Iain | Later |
-| **Q12** | Canned stages return objects, changing their `ref`? | Iain, DBIx-Squirrel to check its tests | Yes, in a v0.2.x, said plainly in `Changes` |
+| **Q12** | Canned stages return objects, changing their `ref`? | Iain, DBIx-Squirrel to check its tests | Yes, in v0.3.0, said plainly in `Changes` |
 | **Q13** | `is_source`, exported like `is_stage`? | Ekorn | Yes, if `iterator` must tell a Source from a code reference |
 | **Q14** | How DBIx::Squirrel::Iterator becomes a source? | DBIx-Squirrel | |
 | **Q15** | Can a statement's definition in its Sugar name a pipeline by a string? | DBIx-Squirrel | |
@@ -819,6 +831,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions, such as `Stop` and `take`, as they are, or point its users to Ekorn's modules? | DBIx-Squirrel | Keep them, as plain re-exports, so its users' code keeps working |
 | **Q21** | How does a stage that needs to know about its source, such as `pluck`, which needs a statement's column names, find it out (section 12.7)? | Ekorn | A stage may ask for its run's source, as it asks `ending()`, and a source offers what it knows: a protocol any provider can use |
+| **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
 
 ## 17. Decisions, and what was weighed
 
@@ -1062,7 +1075,7 @@ Weighed and set aside:
 | Ekorn 2026-0010, Sugar | 10 | as its record, makes only Ekorn's |
 | Ekorn 2026-0011, `pipeline` and names | 6.2, 7 | names kept; `pipeline` moves |
 | Ekorn 2026-0012, a named source | 7 | later (**Q11**) |
-| Ekorn 2026-0013, names in errors | 13 | v0.3.0, later |
+| Ekorn 2026-0013, names in errors | 13 | may join v0.3.0 (**Q22**) |
 | Ekorn 2026-0014, the lifecycle | 5 | the core change everything that opens something rests on |
 | Ekorn 2026-0015, words for sources, stages and sinks | 6 | in Factories |
 | Ekorn 2026-0016, sources | 8.2 | as listed |
