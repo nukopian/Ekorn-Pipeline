@@ -537,7 +537,11 @@ package; until that's built, see section 10.2.
 What `iterator` returns: an Element, called as `$next->()`, with
 `finish` and `DESTROY` (section 5.5). Its `as_source` makes it a
 source to another run, which ends it, through `finish`, when that run
-ends, and passes on its context (section 6.8).
+ends, and passes on its context (section 6.8). Once it's spent, having
+handed out all it will, or been finished, its `as_source` croaks
+rather than give nothing (D41); an iterator whose run has ended with
+values still to give, such as a list sink's, isn't spent until they've
+gone.
 
 `ended` tells its caller how its run ended: nothing while it goes, and
 then `done` if the source's values ran out, `stopped` if the reading
@@ -951,6 +955,7 @@ are built:
 | `Expected stage #%s to return a code reference, and optionally a flush and an end` | `as_stage` returns anything else |
 | `Expected sink #%s to return a code reference, a flush, and optionally an end` | `as_scalar` or `as_list` returns anything else |
 | `Expected a sink to be run in a pipeline` | a sink called as a code reference |
+| `Expected a source with values still to give: an iterator is one run, and this one is spent` | a spent iterator given as a source |
 | `Expected a source, or a stage made with a word, on the left of \|` | `chain` given anything else on its left |
 | `Expected a stage or a sink on the right of \|` | `chain` given what can't go where a stage goes |
 | `Expected a sink giving one value at the end of \|, not a list: use to_arrayref, not to_array` | a chain ending in a list sink |
@@ -976,6 +981,7 @@ valid, as v0.3.0 changes.
 | How each part is told the run ended | `done` for input that ran out; a source that stops; ended from outside | 5.3, D16, D20, D22 |
 | 19.2, eight subtests | a complete pipeline as a source; abandoned; finished, taking no verdict; finished from inside a stage | 19.2, 5.5, D15, D28 |
 | The caller asks how the run ended | `ended`: nothing while it goes; `done`, `stopped`, `died` | 5.5, D34 |
+| A spent iterator is no source for another run | read in part, it goes on; spent or finished, it croaks; ended with values still to give, it gives them | 4.2, D41 |
 | Sinks and context | `to_arrayref`, and `to_array` croaking at the end of a chain; scalar context; a scalar sink of nothing; precedence | D10, D17, D25 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
@@ -1028,7 +1034,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 13 | v0.3.0, on this branch until then | not code |
 | 13 | a pipeline's name in its stages' errors joins v0.3.0 (D40) | not built |
 | 14 | `pipeline`'s `import`, names per class and `pipeline_class` go | not built: all three are still there |
-| 16 | Q24, a reusable source of a sink's result | not built: open |
+| 4.2 | a spent iterator croaks as a source (D41) | built |
 | 19 | the proofs | built: section 9 |
 
 ### 10.2 The code, where the design doesn't say, or says otherwise
@@ -1037,7 +1043,6 @@ Status: **built** as the design says; **built, differs**, with how;
 |---|---|---|
 | Names per class, `pipeline` exported from Ekorn::Pipeline with its own `import`, and Pipes' `pipeline_class` are still in the code | 7, 14, D30 say they go | built when the design is split into items |
 | `iterator`'s message for what isn't a source is still v0.2.0's "Expected a code reference", though it takes sources; a gather's is still "...and optionally an end function", though a gather may return a flush and an end | the reference draft's diagnostics | change with the messages, at v0.3.0 (the design's section 20) |
-| An iterator given to a second run gives nothing, with no error | Q24 recommends it croak | settle Q24 |
 | A Source called directly, outside a run, makes a run of its own, never ended | principle 6 says every type works as a code reference | say what it means for a source |
 | `to_file` in paragraph mode writes a blank line after each record | 8.3 says `$/` | say so, or change it |
 | An end's error from `DESTROY` is a warning, "(in cleanup)", as Perl gives every error in a destructor | 5.4: thrown | say so: a run ended as its iterator is let go can't throw |

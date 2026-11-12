@@ -167,7 +167,9 @@ How they relate:
   even at once.
 - **A pipeline with a source in front is a source.** Joined, they
   make a new source, not a pipeline: a chain, `$src | $stage`, which
-  can be used again, or an iterator, one run.
+  can be used again, or an iterator, one run. An iterator that's spent,
+  having handed out all it will, or been finished, croaks when given as
+  a source again, rather than give nothing (D41).
   `$pipeline->iterator($source)` already makes one: pulled, it gives
   the values that come out of the stages. Ending in a sink, it gives
   the sink's result, so it can feed another pipeline:
@@ -1025,7 +1027,6 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Whose | Recommended |
 |---|---|---|---|
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | Suggested for its review (section 12.3): the iterator offers `as_source`, its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, croaking if it's active |
-| **Q24** | How is a complete pipeline, a source joined to stages and a sink, kept as a source of the sink's result that can run more than once (2026-0022's D9)? A pipeline holds no source (D33), so it's a source made of the two, beside Pipeline, not a kind of it. An iterator is one run: given to a second run, it gives nothing, with no error; and a chain from a source to a sink is a result, not a source. | Iain | A method making a Source of a pipeline and a source, `$pipeline->source_of($source)`, whose `as_source` makes a fresh iterator for each run, passing on its context; name open. And an Iterator given to a second run croaks, rather than give nothing |
 | **Q26** | What does each type do when called directly, as a code reference, outside a run (principle 6)? Today a Stage calls its code with one value; a Pipeline pushes the values it's given; an Iterator gives its next value; a Gather runs its set-up, as in v0.2.0; a Sink croaks; and a Source makes a run of its own, which is never ended, so what it opens stays open while the Source lives. | Iain | A Sink called with values pushes them through itself and gives its result, as a pipeline of that one sink would: `count->(1, 2, 3)` is 3, so a sink is usable on its own, and "consumes every value, and gives a result" says what calling it does. A Source called directly croaks, "Expected a source to be read through iterator", as a run that's never ended can't close what it opened. Stage, Pipeline, Iterator and Gather stay as they are. Principle 6 then says, type by type, what a call means |
 | **Q27** | Should Ekorn export `is_sink`, as it does `is_stage`, for a function taking its caller's stages to know whether they end in a sink, and which kind? | Iain | Yes, on request, beside `is_stage`: `'scalar'` for a part offering `as_scalar`, `'list'` for `as_list`, or a pipeline whose last stage is one; false otherwise. Both answers are true, and `is_sink($x) eq 'list'` reads better than a number. So DBIx::Squirrel's `iterate` could give a scalar sink's result rather than an iterator, as a pushed run does (D17). Ekorn already works it out for `\|` and D17 |
 
@@ -1034,6 +1035,7 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Settled by |
 |---|---|---|
 | **Q1** | Do sources, sinks and operators belong in Ekorn? | D26: yes, the stream concept applied to functions, which Iain wants to run with; opt-in; the operators stay (D18); the README says so in a section of its own |
+| **Q24** | How is a complete pipeline, source to sink, kept as a reusable source of its result? And what of an iterator given to a second run? | D41: narrowed: a reusable source of a sink's result is dropped, as a few lines of `source {...}` make one, and it'll be found again if needed; and a spent iterator, one that has handed out all it will, or was finished, croaks when given as a source, rather than give nothing |
 | **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, nothing while it goes, then `done`, `stopped` or `died`, as the source sees it; for iterators only (section 5.5) |
 | **Q2** | The lifecycle method's name? | 2026-0022's D5: one method per role, `as_source`, `as_stage`, `as_scalar`, `as_list` |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
@@ -1474,8 +1476,9 @@ Weighed and set aside:
   source to sink. A source is a free-standing concept, and holding one
   would couple the pipeline to it: it couldn't run over another
   source, be pushed values, or go where a stage goes, so it would be a
-  source under a pipeline's name. The whole, kept, is Q24's: a source
-  made of a pipeline and a source, beside Pipeline.
+  source under a pipeline's name. The whole, kept, would be a source
+  made of a pipeline and a source, beside Pipeline; a few lines of
+  `source {...}` make one, so it waits until a need is found (D41).
 
 ### 17.20 The caller asks an iterator how its run ended
 
@@ -1492,6 +1495,26 @@ Weighed and set aside:
   pulls instead.
 - **`how` or `how_ended`,** for the name. `ended` reads as a question,
   `$next->ended eq 'stopped'`, and as false while the run goes.
+
+### 17.21 A spent iterator is no source
+
+(Section 4.2; Iain, 2026-11-12, 2026-0022's D41.) An iterator is one
+run. Once it has handed out all it will, or been finished, given as a
+source to another run it croaks: "Expected a source with values still
+to give".
+
+Weighed and set aside:
+
+- **A method making a reusable source of a pipeline and a source,**
+  `$pipeline->source_of($source)`, as Q24 first recommended. Nothing
+  needs it yet, and `source {...}`, making an iterator for each run,
+  does it in a few lines; if a need is found, it can come then.
+- **Giving nothing, as before.** A spent iterator, used again, looked
+  like an empty source: the quiet failure the design removes
+  elsewhere.
+- **Croaking whenever the run has ended.** A run can end with values
+  still to hand out, such as a list sink's result (D22), which must
+  still flow; so it's being spent, not ended, that counts.
 
 ## 18. Where each roadmap item lands
 

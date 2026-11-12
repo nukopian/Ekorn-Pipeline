@@ -9,8 +9,7 @@ settled: Ekorn's types are Elements. D5 settled: one method per role,
 `as_source`, `as_stage`, `as_scalar`, `as_list`. D6 settled: a sink's result is
 separate from its end, and every end waits for the run to end. D7
 settled: a source gives a context for each run, which a stage asks
-`run_context()` for. D8 open: `|` opt-in for the program, or for the
-code. D9 open: a reusable source of a sink's result. D10 settled:
+`run_context()` for. D8 and D9 settled, as D32 and D41. D10 settled:
 `to_arrayref` ends a chain, and `to_array` croaks there. D11 to D17
 settled, from the second cold review: the source's end first; a flush
 and an end for everything made for a run; `is_stage` by the role
@@ -38,7 +37,8 @@ names pipelines by string, as a chain of names. D37 settled: the name-reading cl
 method is `pipeline_in`. D38 settled: no strict `is_stage`, for
 now; `is_sink` is the design's Q27. D39 settled: the prototype is kept
 where it holds. D40 settled: a pipeline's name in its
-stages' errors joins v0.3.0.
+stages' errors joins v0.3.0. D41 settled: a spent iterator croaks
+as a source; a reusable source of a sink's result dropped.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -134,13 +134,14 @@ The design's own open questions are numbered Q1 and on, in its section
   runs at once saw each other's columns, and behind an iterator a
   stage got the iterator. Weighed: values that carry it; the stage
   given it. It settles Q21. The design's 4.4, 12.7 and 17.16.
-- [ ] **D8.** Is `|` opt-in for the program, or for the code that
-  loads Operators? From S4: overloading belongs to a class, so loading
+- [x] **D8.** Is `|` opt-in for the program, or for the code that
+  loads Operators? Settled as D32. From S4: overloading belongs to a class, so loading
   Operators gives `|` everywhere. Moved into the design as its Q23, at
   Iain's request, where it's discussed and recommended.
-- [ ] **D9.** How is a sink's result had as a source that can run more
+- [x] **D9.** How is a sink's result had as a source that can run more
   than once? From S5: an Iterator is one run, and gives nothing to a
-  second. Moved into the design as its Q24, at Iain's request.
+  second. Moved into the design as its Q24, at Iain's request, and
+  settled there as D41.
 - [x] **D10.** What does `to_array` give from `|`? Nothing: it
   croaks, Iain decided on 2026-11-12, as its list can't be given where
   one scalar must be. `to_arrayref` gives an array reference of every
@@ -335,6 +336,15 @@ D19 to D25 came from the third cold review, settled by Iain on
   release that may, the next a long way off. DBIx-Squirrel changes its
   tests and its copies of the message with the task that moves its
   range. Design 13, 18.
+- [x] **D41.** Is Q24 still relevant: a complete pipeline kept as a
+  reusable source of its result, and an iterator given to a second
+  run? Narrowed, Iain decided on 2026-11-12, as recommended: the
+  reusable source is dropped, as a few lines of `source {...}` make
+  one, and it'll be found again if needed; and a spent iterator, one
+  that has handed out all it will, or was finished, croaks when given
+  as a source, rather than give nothing. Being spent counts, not the
+  run's having ended, so a list sink's result still flows (D22).
+  Built, with `t/15-proofs.t` testing each case. Design 4.2, 17.21.
 
 ## The plan
 

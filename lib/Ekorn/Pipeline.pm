@@ -417,8 +417,10 @@ sub _iterator ($stages, $names, $source) {
     # stage returns on its own, as most are, carries on through the stages
     # without waiting here. Once the source is done, the flushes are called
     # in order, from the first not called or passed over by a stop.
-    my(@todo, $done, $source_done, %flushed, @input_done, $finished, $outside,
-        $ended);
+    my(
+        @todo,  $done, $source_done, %flushed, @input_done, $finished, $outside,
+        $ended, $spent,
+    );
     my $next_flush = 0;
     # How the run ended, as its caller asks: as the source sees it, or
     # "died" if anything died, an end included.
@@ -574,6 +576,8 @@ sub _iterator ($stages, $names, $source) {
                 return $value;
             }
         }
+        # Everything has been handed out: the iterator is spent.
+        $spent = 1;
         return;
     };
     # Ended from outside, by the iterator's finish or as it's let go, the
@@ -584,8 +588,10 @@ sub _iterator ($stages, $names, $source) {
         $finish->(0);
         return;
     };
-    return Ekorn::Pipeline::Iterator->new($next, $end_run, $context,
-        sub () { $ended });
+    return Ekorn::Pipeline::Iterator->new(
+        $next, $end_run, $context,
+        sub () { $ended }, sub () { $spent || $outside },
+    );
 }
 1;
 __END__

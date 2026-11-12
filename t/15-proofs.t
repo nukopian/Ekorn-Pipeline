@@ -419,12 +419,32 @@ subtest 'The caller asks how the run ended (D34)' => sub {
 
     my $failing = source {
         my @rest = (1);
-        return (sub () { @rest ? shift @rest : () },
-            sub ($how) { die "Can't close\n" });
+        return (
+            sub () { @rest ? shift @rest : () },
+            sub ($how) { die "Can't close\n" },
+        );
     };
     $next = $class->new->iterator($failing);
     ok dies { drain_all($next) };
     is $next->ended, 'died', 'and when an end died';
+};
+
+subtest 'A spent iterator is no source for another run (D41)' => sub {
+    my $next = $class->new->iterator(from_arrayref([1, 2]));
+    is [$next->()], [1];
+    is [drain_all($class->new->iterator($next))], [2],
+        'read in part, it goes on';
+    like dies { $class->new->iterator($next) },
+        qr( \A Expected\ a\ source\ with\ values\ still\ to\ give )x,
+        'spent, it croaks, rather than give nothing';
+
+    my $finished = $class->new->iterator(from_arrayref([1, 2]));
+    $finished->finish;
+    ok dies { $class->new->iterator($finished) }, 'and so when finished';
+
+    my $result = $class->new(to_array)->iterator(from_arrayref([1, 2]));
+    is [$result->()], [1], "a run that's ended with values still to give";
+    is [drain_all($class->new->iterator($result))], [2], 'still gives them';
 };
 
 subtest 'Sinks and context (D10, D17, D25)' => sub {

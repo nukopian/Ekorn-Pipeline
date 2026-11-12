@@ -4,17 +4,27 @@ package Ekorn::Pipeline::Iterator;
 
 use parent 'Ekorn::Pipeline::Element';
 
+use Ekorn::Pipeline::Errors qw(croakf);
 use namespace::clean;
 
+# Croak at the line that called Ekorn::Pipeline.
+our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
+
 # Return an iterator, calling $next for each value, whose run $end_run
-# ends from outside, $context is the context its run's source gave, and
-# $ended says how its run ended.
-sub new ($class, $next, $end_run, $context = undef, $ended = sub () { return })
-{
-    return
-        bless {call => $next, end_run => $end_run, context => $context,
-            ended => $ended},
-        $class;
+# ends from outside, $context is the context its run's source gave,
+# $ended says how its run ended, and $spent whether it has handed out
+# everything it will.
+sub new (
+    $class, $next, $end_run, $context = undef, $ended = sub () { return },
+    $spent = sub () { return },
+) {
+    return bless {
+        call    => $next,
+        end_run => $end_run,
+        context => $context,
+        ended   => $ended,
+        spent   => $spent,
+    }, $class;
 }
 
 
@@ -37,6 +47,9 @@ sub finish ($self) {
 # An iterator is a source: of the values its run gives, the run ended
 # from outside when the run reading it ends, passing on its context.
 sub as_source ($self) {
+    croakf
+        'Expected a source with values still to give: an iterator is one run, and this one is spent'
+        if $self->{spent}->();
     my $next = $self->{call};
     return (sub () { $next->() }, sub ($how) { $self->finish }, $self->{context});
 }
