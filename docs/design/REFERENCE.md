@@ -153,9 +153,9 @@ use Ekorn::Pipeline::Factories qw(pipeline stage gather source sink);
 ```
 
 The words make the types, from what you write. Each is a short form of
-a class method, which a class built on Ekorn can offer in a form of its
-own (see [Building on Ekorn](#building-on-ekorn)). Nothing is exported
-by default.
+a class method. A package built on Ekorn uses them as they are (see
+[Delivering parts for Ekorn](#delivering-parts-for-ekorn)). Nothing is
+exported by default.
 
 | Word | Makes | Its block |
 |---|---|---|
@@ -403,10 +403,10 @@ that gives a sink's result, none of which a chain can.
 
 | Written | Gives |
 |---|---|
-| `$stage \| $stage` | a pipeline of both |
+| `$stage \| $stage` | a chain of both stages, which `\|` can extend |
 | `$source \| $stage` | a source: the source's values, through the stage |
 | `$source \| ... \| $sink` | the sink's result, at once, not a source; for a source of the result, use `iterator` |
-| `$pipeline \|= $stage` | adds a stage, in place |
+| `$chain \|= $stage` | a new chain with the stage added, put in the variable |
 | `@{ $source }` | every value the source gives |
 
 A part from another package, such as a DBIx::Squirrel source, chains

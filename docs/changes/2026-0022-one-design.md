@@ -5,7 +5,11 @@
 **Decisions:** D1 settled: DBIx::Squirrel uses Ekorn as it is. D2
 settled: the design ships as v0.3.0, on `pipeline-experimental` until
 then. D3 settled: the design is proved by code in the core. D4
-settled: Ekorn's types are Elements.
+settled: Ekorn's types are Elements. D5 open: how a part declares its
+role. D6 open: when a sink and a source are told how the run ended. D7
+open: what a stage asks about its run. D8 open: `|` opt-in for the
+program, or for the code. D9 open: a reusable source of a sink's
+result.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -48,6 +52,30 @@ The design's own open questions are numbered Q1 and on, in its section
   Why: blessed code references have no fields, so their state lived in
   address-keyed hashes, and the closure trap of finding 8 came with
   them. The design's principle 6 and 17.13.
+
+- [ ] **D5.** How does a part declare its role, source or stage, so
+  that a package's own parts can take any role Ekorn's can, without
+  being Ekorn's classes? From the cold review's S1: `for_run` serves
+  both, and the core tells them apart by Ekorn's classes. The options,
+  and the recommendation, are in the chat of 2026-11-12, and go here
+  once settled.
+- [ ] **D6.** When are a sink and a source told how the run ended?
+  From S2: a sink's end gives its result and is told `done` when its
+  own stream ends, so a stage dying after it leaves it committed.
+  Separating "give your result" from "the run has ended, and how" is
+  the direction.
+- [ ] **D7.** What does a stage ask, to know about its run? From S3:
+  `run_source()` gives the source object, shared by all its runs, not
+  the run. A context for the run, from the source's set-up, is the
+  direction. Q21 waits on it.
+- [ ] **D8.** Is `|` opt-in for the program, or for the code that
+  loads Operators? From S4: overloading belongs to a class, so loading
+  Operators gives `|` everywhere. Saying so plainly is the
+  recommendation.
+- [ ] **D9.** How is a sink's result had as a source that can run more
+  than once? From S5: an Iterator is one run, and gives nothing to a
+  second. A Source made from a pipeline and a source, making an
+  iterator for each run, is the direction.
 
 ## The plan
 
@@ -135,7 +163,8 @@ What the prototype found, for the design to take in:
    it. Each class's code reference now closes over what it was made
    with.
 9. **A source given as a stage croaks,** "Expected stage #%d to be a
-   stage, not a source", as both are code references.
+   stage, not a source", as a source made with `source {...}` was
+   then a code reference, as a stage is.
 10. **A source called as a plain code reference,** outside a run,
     makes a run of its own, which is never ended. The design says
     every type works where a code reference does; for a source, that
@@ -181,6 +210,46 @@ of the code given. Everything else passed unchanged.
     package's sink have `for_run`, so a package's own sink must be one
     or the other to go where a stage goes. Section 4.4 of the design
     should say how a source is told from a stage made for a run.
+
+### The cold review, 2026-11-12
+
+A fresh reviewer read the design, the drafts, IMPLEMENTATION.md, the
+code and the proofs, with none of this session's conclusions, and ran
+what it doubted. Its verdict: mostly coherent. The run model holds for
+Ekorn's own types, with no reference cycles, but it found five
+structural problems, each now an open decision above:
+
+- **S1, D5:** a part's role is decided by Ekorn's classes and its
+  position, not a protocol. A package's own blessed-code source given
+  as a stage was taken for a sink, and crashed; its own sink under `|`
+  gave a chain that never runs; its hash-based sink was refused; and
+  Ekorn's Sink was accepted as a source. So principle 3 doesn't yet
+  hold, and finding 15's answer, "be an Element or a code reference",
+  contradicts D1 and brings finding 8's trap back in the package's
+  code. Findings 2, 4, 5, 9, 13, 14 and 15 are symptoms of it.
+- **S2, D6:** a sink commits before the run has ended. With a stage
+  dying after a sink, both the sink and the source were told `done`,
+  and then the run died: checked again by hand. Findings 1 and 14 are
+  symptoms of it.
+- **S3, D7:** `run_source()` gives the shared source object. Two runs
+  of one source at once each saw the other's columns.
+- **S4, D8:** loading Operators changes `|` for the whole program,
+  against principle 1 and 17.11's reason.
+- **S5, D9:** nothing reusable gives a sink's result: an Iterator
+  given to a second run gives nothing, with no error.
+
+It also found the docs out of step in places, fixed in the commit
+that records the review: the design's contents link to section 12;
+8.1, 12.8 and 13 still written for blessed code references; 6.1 calling
+`pipeline_in` the only method that reads names; section 9 chaining
+stages to stages, which made a pipeline, which has no operators, and
+the reference's `|=` changing a pipeline in place; the reference's
+words section pointing to the old subclass model; 19.1 saying both are
+told `died` when a sink can't be set up; and Q6 marked built, though
+the warning doesn't say which end. And code-level points, listed in
+IMPLEMENTATION.md's section 10.2: errors from a source's end handled
+three ways; a `Stop` thrown by a source escaping as an object;
+`Stage->new` taking a Gather.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

@@ -28,7 +28,7 @@ Ekorn's first user and sends its view as messages.
 9. [Operators](#9-operators)
 10. [Sugar: names at compile time](#10-sugar-names-at-compile-time)
 11. [The modules](#11-the-modules)
-12. [DBIx::Squirrel on top](#12-dbixsquirrel-on-top)
+12. [DBIx::Squirrel: a user of Ekorn](#12-dbixsquirrel-a-user-of-ekorn)
 13. [Compatibility and versions](#13-compatibility-and-versions)
 14. [What's built already](#14-whats-built-already)
 15. [The order things depend on](#15-the-order-things-depend-on)
@@ -348,9 +348,9 @@ made by its constructor, a class method that takes only real things
 | `Ekorn::Pipeline::Source` | `new($setup)` | proposed; `$setup` returns the step and the end |
 | `Ekorn::Pipeline::Sink` | `new($setup)` | proposed; `$setup` returns the step and the end |
 
-And one more class method, the only one that reads names (settled in
-2026-0021 as a class method taking the package; its name is **Q10**,
-here `pipeline_in`):
+And one more class method, which, with `named`, is all that reads
+names (settled in 2026-0021 as a class method taking the package; its
+name is **Q10**, here `pipeline_in`):
 
 ```perl
 Ekorn::Pipeline->pipeline_in($package, @stages)
@@ -443,9 +443,11 @@ source in front, is roadmap idea 2026-0012, left for later (**Q11**).
 
 Proposed: each returns an `Ekorn::Pipeline::Stage` (or Gather) object
 rather than a plain code reference, so they work with the operators of
-section 9. They stay code references, so everything taking them works
-as now; only `ref` of one changes, from `CODE` to the class
-(**Q12**).
+section 9. They're Elements (principle 6), called as code references,
+so everything that calls them, or takes them with `is_stage`, works as
+now; code that checks the type, `ref` or `is_coderef`, sees an object,
+not a code reference (**Q12**). Those made with `gather` are Elements
+already.
 
 ### 8.2 Sources: Ekorn::Pipeline::Sources (2026-0016)
 
@@ -510,7 +512,7 @@ whole model: what it can't say, a pipeline made with `new`, pulled
 with `iterator`, can, as the points below show.
 
 ```perl
-my $clean = $trim | $lowercase | $dedupe;               # Stage | Stage: a pipeline
+my $clean = $trim | $lowercase | $dedupe;               # Stage | Stage: a chain of stages
 my $names = $src | take(10) | stage { $_->{name} };    # Source | Stage: a source
 my $n     = $src | stage { $_->{name} } | count;       # Source | ... | Sink: the result
 my @names = @{ $src | take(10) };                       # @{} drains a source
@@ -539,7 +541,12 @@ my @names = @{ $src | take(10) };                       # @{} drains a source
   `my $n = $src | count` an object to drain. For a source that gives
   a sink's result, use `iterator` (section 4.2).
 - A pipeline made with `new` gets no operators: only the chains `|`
-  makes, and the typed objects, do.
+  makes, and the typed objects, do. So `Stage | Stage` makes a chain
+  of stages, not a pipeline, which `|` can extend, and which can be
+  given wherever a pipeline can.
+- **`|=` makes a new chain,** and puts it in the variable: `$chain |=
+  $stage` is `$chain = $chain | $stage`. Nothing made is changed in
+  place.
 
 ## 10. Sugar: names at compile time (2026-0010)
 
@@ -745,9 +752,11 @@ question below.
 - `Stop` from DBIx::Squirrel::Stop throws Ekorn's class already, so
   catching it is unchanged.
 - If `iterator` returns an object (section 5.5), DBIx::Squirrel's
-  `$self->{next}->()` keeps working, as it's still a code reference.
+  `$self->{next}->()` keeps working, as it's called as a code
+  reference, though it isn't one to `ref` or `is_coderef`.
 - If the canned stages become objects (**Q12**), any test in
-  DBIx::Squirrel comparing `ref` to `CODE` would fail.
+  DBIx::Squirrel comparing `ref` to `CODE`, or using `is_coderef`,
+  would fail.
 - Its CI installs Ekorn from CPAN, and runs only on `main` and
   `develop`, so it can't test against Ekorn's `pipeline-experimental`
   yet (**Q16**).
@@ -763,7 +772,7 @@ before. A v0.2.x from `develop` in the meantime only fixes.
 |---|---|
 | The lifecycle protocol; sources' and sinks' ends | no: only the new types use them |
 | `gather` | unchanged |
-| `iterator` returning an Iterator, an Element | no, unless code checks `ref` is `CODE` (**Q7**) |
+| `iterator` returning an Iterator, an Element | no, unless code checks the type, with `ref` or `is_coderef` (**Q7**) |
 | Gather, and the canned stages made with it, become Elements | `ref` and `is_coderef` change: an object, called as a code reference |
 | `stages` returns Elements: a code reference given comes back as a Stage of it | code comparing them with what it gave |
 | Stage, Source, Sink, Factories, Sources, Sinks, Sugar, Operators | no: new modules |
@@ -1163,8 +1172,9 @@ It proves the ends of section 5, with nothing else in the run:
 - **Both files are closed, once each, however the run ends:** run
   out, both are told `done`; with `first_value` as the sink, the
   source is told `stopped` after one record, and the sink `done`; when
-  the sink dies, such as when `b.txt` can't be written, both are told
-  `died`, and the error is thrown again.
+  the sink dies on a record, both are told `died`, and the error is
+  thrown again; when it can't be set up, such as when `b.txt` can't be
+  opened, it has no end yet, and only the source is told `died`.
 - **The source's end runs last** (**Q5**), after the sink's.
 - **Both forms agree:** `|`, and `new` pulled with `iterator`, give
   the same result and the same ends.

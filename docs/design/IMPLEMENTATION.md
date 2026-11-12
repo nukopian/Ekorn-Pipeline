@@ -200,10 +200,14 @@ for a run, whatever its class (section 4.2).
 
 ### 4.2 The protocols the core relies on
 
-The core never asks what class something is, except to tell a pipeline
-from a stage, a gather from a plain stage, and an iterator from other
-sources. Everything else is by what a thing can do. These are the
-whole contract between Ekorn and code built on it:
+These are the protocols as the code checks them. Some are by what a
+thing can do, `can('for_run')` above all; but many are by Ekorn's own
+classes: the core asks `isa` of Ekorn::Pipeline (to splice it),
+Gather, Source (refused as a stage), Stage (to unwrap it), Iterator (as
+a source), Element (in `is_stage`) and Stop; and Operators asks it of
+Sink and Chain. So a part of a package's own, which isn't one of
+Ekorn's classes, can't yet take every role an Ekorn part can (section
+10.2, and decision D5 in 2026-0022's record):
 
 | Protocol | As the core checks it | What it must do |
 |---|---|---|
@@ -935,7 +939,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.3 | told how it ended, from where it stands (Q3) | built; adds that a sink that stops is told `done` (as 8.3 says) and ended-from-outside (10.2) |
 | 5.4 | ends always run once; result only when `done` (Q4) | built |
 | 5.4 | the source's end last (Q5) | built; when it runs is in 10.2 |
-| 5.4 | an end dying during a die warns (Q6) | built |
+| 5.4 | an end dying during a die warns (Q6) | built, differs: the warning doesn't say which end |
 | 5.5 | an abandoned iterator ends its run (Q7) | built |
 | 5.6 | `ending()` | built, unchanged; true for a sink's end's values too |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes and constructors | built; Sink adds `list => 1` (10.2) |
@@ -979,7 +983,15 @@ Each of these is for the design to take in, or the code to change.
 | `run_source()` is the closure over the values in a pushed run | not said | say so with Q21 |
 | What a sink's step returns goes on, as any stage's: a `sink {...}` whose step returns values is a stage made for a run, with an end that always runs | the draft reference says a sink's step's return is ignored | decide: ignore it, or say a sink is any stage made for a run |
 | A sink is told `stopped` only when its run is ended from outside: a stop after it can't come while the source has values, and one before it leaves it after the stop | 5.3's table puts "stages up to the one that stopped" with the source | say so in 5.3 |
-| An object made for a run that isn't an Element or a code reference is taken only as a source: a package's own sink must be one or the other | 4.4 doesn't say how a source is told from a stage made for a run | say so in 4.4 |
+| A part's role, source or stage, is decided by Ekorn's classes and by position, not by a protocol: a package's own blessed-code source given as a stage is taken for a sink, and crashes; its own sink under `\|` gives a chain, which never runs; its hash-based sink is refused; Ekorn's own Sink is taken as a source | principle 3 says the contract is the protocols | D5 |
+| A sink's end is told `done` when its own stream ends, and the source when no end is left, so a stage dying after a sink leaves both told `done`, then the run dies | 5.3 says everything is told `died` | D6 |
+| `run_source()` gives the source object, shared by every run of it, not the run: what's known per run, such as a statement's columns, can't be had per run; it's Ekorn's closure in a pushed run, undefined in ends called as the run finishes, and an intermediate iterator when there is one | Q21 | D7 |
+| Loading Operators gives every Source `\|`, everywhere in the program | principle 1 and 17.11 say opt-in | D8 |
+| An Iterator given as a source to a second run gives nothing, with no error: there's no reusable source of a sink's result | 4.2 and 9 point to `iterator` for one | D9 |
+| An error from a source's end is wrapped as a stage's failure when a sink is last, thrown as it is when there are no ends, and a warning from `DESTROY` | 5.4 says thrown | decide with D6 |
+| A `Stop` thrown by a source goes to the caller as an object, and the source is told `died` | not said | decide |
+| `Stage->new` takes any object overloading `&{}`, a Gather included, which then runs per value | not said | refuse what isn't a plain stage |
+| The warning for an end that dies during a die doesn't say which end | Q6 says it does | name the end |
 | A Source given as a stage croaks | 4.2 says neither is the other; no message | add to the diagnostics |
 | A Source called directly, outside a run, makes a run of its own, never ended | principle 6 says every type works as a code reference | say what it means for a source |
 | A Sink called directly croaks | as above | as above |
