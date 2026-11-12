@@ -4,13 +4,14 @@ package Ekorn::Pipeline;
 
 use experimental qw(builtin try);
 
-use builtin   qw(refaddr);
+use builtin   qw(blessed refaddr);
 use Carp      qw(croak);
 use Exporter  qw();
 use Ref::Util qw(is_arrayref is_coderef is_ref);
 use mro       qw();
 
-use Ekorn::Pipeline::Errors qw(croakf);
+use Ekorn::Pipeline::Errors   qw(croakf);
+use Ekorn::Pipeline::Iterator qw();
 
 use namespace::clean -except => 'import';
 
@@ -39,6 +40,8 @@ sub new ($class, @given) {
         my $stage = $given[$n - 1];
         croakf 'Expected stage #%d to be a code reference or a pipeline', $n
             unless is_stage($stage);
+        croakf 'Expected stage #%d to be a stage, not a source', $n
+            if $stage isa 'Ekorn::Pipeline::Source';
         if ($stage isa 'Ekorn::Pipeline') {
             my($inner, $inner_names) = _composed($stage);
             croakf 'Expected stage #%d to be a code reference or a pipeline', $n
@@ -183,7 +186,8 @@ sub _composed ($pipeline) {
 # Return a closure handing out, one per call, the values from $source run
 # through the stages.
 sub iterator ($self, $source) {
-    croakf 'Expected a code reference' unless is_coderef($source);
+    croakf 'Expected a code reference'
+        unless is_coderef($source) || _made_for_run($source);
     return _iterator($self->{stages}, $self->{names}, $source);
 }
 
@@ -204,6 +208,60 @@ sub ending () {
     return $running{ending};
 }
 
+
+# For code telling its stages about the run: the source the run was
+# given, as it was given, so that a stage can ask it what it knows, such
+# as its columns. In a pipeline pulled from another, it's the source of
+# the run the stage is in.
+sub run_source () {
+    return $running{source};
+}
+
+
+# Return true if what's given is made for a run: an object whose
+# for_run method returns a step and an end for each run.
+sub _made_for_run ($thing) {
+    return !!(blessed($thing) && $thing->can('for_run'));
+}
+
+
+# Return the step and the end of a run of $source: from its for_run, if
+# it's made for a run; an iterator, which is a run already, is ended by
+# its finish; a code reference has no end.
+sub _source_run ($source) {
+    return $source->for_run if _made_for_run($source);
+    return ($source, sub ($how) { $source->finish($how) })
+        if $source isa 'Ekorn::Pipeline::Iterator';
+    return ($source, undef);
+}
+
+
+# Call each end given, and then the source's, telling each how the run
+# ended. An end that dies while the run is dying is reported as a
+# warning, keeping the first error; one that dies otherwise is thrown
+# once the rest, told that the run died, have been called.
+sub _end_all ($how, $ends, $source_end) {
+    my $error;
+    for my $end (@$ends, $source_end // ()) {
+        try {
+            local $_ = undef;
+            $end->(defined $error ? 'died' : $how);
+        }
+        catch ($e) {
+            if ($how eq 'died' || defined $error) {
+                Carp::carp 'An end died while the run was already dying: '
+                    . ($e =~ s( \n \z )()xr);
+            }
+            else {
+                $error = $e;
+            }
+        }
+    }
+    return       unless defined $error;
+    croak $error if is_ref($error);
+    die $error;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
+}
+
 # Make the stages of a run from @$stages, named by @$names, into the
 # lists in %$run: each gather stage's block is called, so it's made
 # afresh, and a pipeline it returns as its stage has its stages made in
@@ -212,10 +270,19 @@ sub ending () {
 sub _make_run ($stages, $names, $run) {
     for my $i (0 .. $#$stages) {
         my($stage, $name) = ($stages->[$i], $names->[$i]);
+        if (_made_for_run($stage)) {
+            my($step, $end) = $stage->for_run;
+            push @{ $run->{stages} }, $step;
+            push @{ $run->{names} },  $name;
+            push @{ $run->{ends} },   undef;
+            push @{ $run->{lives} },  $end;
+            next;
+        }
         unless ($stage isa 'Ekorn::Pipeline::Gather') {
             push @{ $run->{stages} }, $stage;
             push @{ $run->{names} },  $name;
             push @{ $run->{ends} },   undef;
+            push @{ $run->{lives} },  undef;
             next;
         }
         my @made = $stage->();
@@ -235,35 +302,70 @@ sub _make_run ($stages, $names, $run) {
         push @{ $run->{stages} }, $made[0];
         push @{ $run->{names} },  $name;
         push @{ $run->{ends} },   $made[1];
+        push @{ $run->{lives} },  undef;
     }
     return;
 }
 
 
-# Return a closure handing out, one per call, the values from $source run
-# through the stages in @$stages, named in messages by @$names.
+# Return an iterator handing out, one per call, the values from $source
+# run through the stages in @$stages, named in messages by @$names. The
+# source, and each stage made for a run, such as a sink, are told how the
+# run ended, from where each stands: "done" if the values ran out, or for
+# what follows a stop; "stopped" for the source and what's before a stop;
+# "died" if a stage or an end died. A sink that stops the run is told
+# "done", as what decided it had enough.
 sub _iterator ($stages, $names, $source) {
-    my %run = (stages => [], names => [], ends => []);
-    _make_run($stages, $names, \%run);
+    my %run = (stages => [], names => [], ends => [], lives => []);
+    my($pull, $source_end) = _source_run($source);
+    try {
+        _make_run($stages, $names, \%run);
+    }
+    catch ($e) {
+        _end_all('died', [grep { defined } @{ $run{lives} }], $source_end);
+        croak $e if is_ref($e);
+        die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
+    }
     my @stages = @{ $run{stages} };
     my @ends   = @{ $run{ends} };
+    my @lives  = @{ $run{lives} };
     $names = $run{names};
-
     # Each value waiting to go through a stage, as the stage's index, the
     # value, and whether it came from an end, the next on top. A value a
     # stage returns on its own, as most are, carries on through the stages
     # without waiting here. Once the values run out, the ends are called in
     # order, from the first not called or passed over by a stop.
-    my(@todo, $done);
+    my(@todo, $done, $stopped, %called, $finished);
     my $next_end = 0;
-    return sub () {
+    my $finish   = sub ($how) {
+        return if $finished++;
+        my @unended
+            = map { $lives[$_] } grep { $lives[$_] && !$called{$_} } 0 .. $#lives;
+        _end_all($how, \@unended, $source_end);
+        return;
+    };
+    my $end_at = sub () {
+        my($n)
+            = grep { $ends[$_] || ($lives[$_] && !$called{$_}) } $next_end .. $#stages;
+        return $n;
+    };
+    my $next = sub () {
         while (1) {
-            my($n, $value, $from_end, $end);
+            my($n, $value, $from_end, $end, $life);
             if (@todo) {
                 ($n, $value, $from_end) = @{ pop @todo };
             }
             elsif (!$done) {
-                my @values = $source->();
+                my @values;
+                try {
+                    @values = $pull->();
+                }
+                catch ($e) {
+                    ($done, $next_end) = (1, scalar @stages);
+                    $finish->('died');
+                    croak $e if is_ref($e);
+                    die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
+                }
                 unless (@values) {
                     $done = 1;
                     next;
@@ -272,20 +374,30 @@ sub _iterator ($stages, $names, $source) {
                 push @todo, map { [0, $_] } reverse @values;
             }
             else {
-                ($n) = grep { $ends[$_] } $next_end .. $#stages;
-                last unless defined $n;
-                ($next_end, $end, $from_end) = ($n + 1, $ends[$n], 1);
+                $n = $end_at->();
+                unless (defined $n) {
+                    $finish->($stopped ? 'stopped' : 'done');
+                    last;
+                }
+                $life = !$ends[$n];
+                $called{$n} = 1 if $life;
+                ($next_end, $end, $from_end) = ($n + 1, $ends[$n] // $lives[$n], 1);
             }
             return $value if $n == @stages;
             # Set only when it changes, as most values come from the source.
             local $running{ending} = $from_end
                 if $from_end || $running{ending};
+            local $running{source} = $source;
             my $kept = 1;
             try {
                 if ($end) {
                     local $_ = undef;
-                    my @values = $end->();
+                    my @values = $life ? $end->('done') : $end->();
                     $n++;
+                    # With no end left to call, what the source gave is
+                    # finished with, so the run ends now, though values
+                    # from the ends are still to come.
+                    $finish->($stopped ? 'stopped' : 'done') unless defined $end_at->();
                     $kept  = @values;
                     $value = shift @values;
                     push @todo, map { [$n, $_, 1] } reverse @values;
@@ -307,14 +419,18 @@ sub _iterator ($stages, $names, $source) {
                     # A stop made by throw is an array; one made otherwise
                     # carries nothing.
                     my(undef, @values) = is_arrayref($e) ? @$e : ();
-                    $done     = 1;
-                    $next_end = $n + 1 if $next_end < $n + 1;
+                    ($done, $stopped) = (1, 1);
+                    # A sink that stops the run still gives its result.
+                    my $from = $lives[$n] && !$called{$n} ? $n : $n + 1;
+                    $next_end = $from if $next_end < $from;
                     @todo     = map { [$n + 1, $_, $from_end] } reverse @values;
                     next;
                 }
                 # A stage that dies ends the run: nothing waiting goes on,
-                # no end is called, and the source isn't called again.
+                # no gather's end is called, and the source isn't called
+                # again. What's made for a run is told it died.
                 ($done, $next_end, @todo) = (1, scalar @stages);
+                $finish->('died');
                 croak $e if is_ref($e);
                 my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
                 my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
@@ -324,6 +440,7 @@ sub _iterator ($stages, $names, $source) {
         }
         return;
     };
+    return Ekorn::Pipeline::Iterator->new($next, $finish);
 }
 
 1;

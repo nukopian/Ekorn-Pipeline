@@ -1,0 +1,141 @@
+# 2026-0022. One design, end to end, before more is built
+
+**Status:** in progress
+
+**Decisions:** D1 settled: DBIx::Squirrel uses Ekorn as it is. D2
+settled: the design ships as v0.3.0, on `pipeline-experimental` until
+then. D3 settled: the design is proved by code in the core.
+
+**Origin:** roadmap, added 2026-11-11
+
+**Started:** 2026-11-11, in 82f609762895ff4e74c249cdb9a6678d301f36f3
+
+## Background
+
+The work for sources, sinks, words and names had been split into
+roadmap items, here and in DBIx-Squirrel, each designed on its own.
+Decisions made one at a time kept turning out to bite later: one name
+registry for every class, Ekorn's Sugar making DBIx::Squirrel's
+pipelines, a facade's `import` losing `pipeline`. So development was
+paused while one design was written for all of it, in `docs/design/`.
+The design's own open questions are numbered Q1 and on, in its section
+16; this record keeps the decisions about the item itself.
+
+## Decisions
+
+- [x] **D1.** How does DBIx::Squirrel build on Ekorn? It uses Ekorn as
+  it is, as any package would, Iain decided on 2026-11-12: it delivers
+  sources, sinks and stages that keep Ekorn's protocols, and runs them
+  in Ekorn's own pipelines, subclassing and wrapping nothing; Ekorn
+  makes that pattern possible for any package, and changes nothing for
+  one. Why: the facade of subclasses it replaces had coupled the two
+  designs, and did nothing a database needs. The design's principles 2
+  and 3, and its 17.3, have the rest.
+- [x] **D2.** Which release? v0.3.0, Iain decided on 2026-11-12, and
+  everything stays on `pipeline-experimental` until then. The design's
+  section 13.
+- [x] **D3.** Where is the code that proves the design built? In the
+  core, on `pipeline-experimental`, Iain decided on 2026-11-12, so that
+  it proves the design fits today's run loop, stops and gathers, not
+  only itself. Whether it's kept once the design is split into items
+  is the design's Q19.
+
+## The plan
+
+As the roadmap gave it on 2026-11-11:
+
+> Development is paused, here and in DBIx-Squirrel's work touching
+> Ekorn, as Iain decided on 2026-11-11, while one design is written for
+> everything planned in both repositories, in `docs/design/`: the
+> concepts as a whole (sources, stages, gathers, sinks, pipelines, runs
+> and their ends, names, subclasses, factories), the modules on both
+> sides, how DBIx::Squirrel builds on Ekorn, what's compatible, and the
+> questions still open; with drafts of the sections the reference and
+> the how-to would gain. Why: the work had been decomposed into items
+> whose decisions, made one at a time, kept turning out to bite later,
+> here or in DBIx-Squirrel. DBIx-Squirrel reviews it, as Ekorn's first
+> user, and sends its view as messages. Done when Iain has approved the
+> design, and only then is it decomposed into items, which replace or
+> rewrite those below. What's on `pipeline-experimental` (2026-0011,
+> 0020) is provisional until then.
+
+## What happened
+
+- **Changes from the plan:** the design is proved by code before it's
+  approved (the design's section 19), and DBIx::Squirrel uses Ekorn as
+  it is (D1), so "subclasses" left the concepts.
+
+### The prototype, 2026-11-12
+
+Built in the core, on `pipeline-experimental`, to section 19.3: the
+lifecycle in `_iterator`; Stage, Source, Sink and Iterator classes;
+`stage`, `source`, `sink` and `gather` in Factories; `from_file` and
+`from_arrayref`; `to_file`, `to_array`, `count` and `first_value`; and
+`|` from a source. `t/15-proofs.t` runs the proofs.
+
+- **Every proof holds,** on Perl 5.36, 5.38, 5.40, 5.42 and 5.44,
+  under yath and prove: a source joined directly to a sink copies,
+  record for record, and both are told how the run ended, the source
+  last, whether it ran out, was stopped by `first_value`, or died; a
+  complete pipeline used as a source ends its inner run at the first
+  pull, and a stop or a die in the outer run doesn't reach it; without
+  a sink, the inner run is pulled only as needed, and told `stopped`
+  by the outer stop; an abandoned iterator ends its run. Q5 and Q6
+  behave as recommended. All the existing tests pass unchanged.
+- **The pattern of D1 works,** with a package outside Ekorn's
+  namespace standing for DBIx::Squirrel: a source class of its own,
+  with `for_run` and a `columns` method, and a stage of its own asking
+  `Ekorn::Pipeline::run_source()` for the columns (Q21's recommended
+  answer), composed with Ekorn's `take` and `to_array`, pulled or with
+  `|`. Nothing of Ekorn's is subclassed or wrapped.
+
+What the prototype found, for the design to take in:
+
+1. **The source's end runs as soon as no end is left,** not when the
+   last value has been handed out. Otherwise a pipeline ending in
+   `to_array`, used as a source, would end its run only at its last
+   value, not at the first pull, as 19.2 says. Section 5.4 should say
+   when the source's end runs.
+2. **An iterator used as a source is ended through it.** An outer run
+   tells its source how it ended; an iterator, a run already, needs a
+   way to be told: here, a `finish($how)` method, which is also what
+   its `DESTROY` calls. Section 4.4's protocols should include it.
+3. **A sink that stops the run is told `done`,** and its end gives
+   the result, as section 8.3 says for `first_value`. The core does it
+   by calling the stopping stage's end, if it's a sink, rather than
+   passing over it as a stop does a gather's.
+4. **An operator must know whether a sink gives a list,** to give one
+   value or an array reference (section 9). The prototype marks it
+   when the sink is made, `Ekorn::Pipeline::Sink->new($setup, list =>
+   1)`; `sink {...}` makes one giving one value. The design should say
+   how a list-giving sink is declared.
+5. **`iterator` takes any object made for a run,** not only a code
+   reference, so a package's own source class works as it is. That
+   answers Q13 without an `is_source`.
+6. **A package's own source class gets `|` by overloading it with
+   Ekorn's function,** `use overload '|' =>
+   \&Ekorn::Pipeline::Operators::chain`. That uses Ekorn as it is, and
+   section 9 should say so.
+7. **A source's and a sink's set-up run when the iterator is made,**
+   as a gather's do today, so `from_file` opens its file then, not at
+   the first pull. An iterator let go unpulled still closes it. Whether
+   set-ups should wait for the first pull is for the design to say.
+8. **A blessed code reference must be a closure.** Perl gives every
+   call of an anonymous sub that closes over nothing the same code
+   reference, so every sink was one object, until the Q6 tests caught
+   it. Each class's code reference now closes over what it was made
+   with.
+9. **A source given as a stage croaks,** "Expected stage #%d to be a
+   stage, not a source", as both are code references.
+10. **A source called as a plain code reference,** outside a run,
+    makes a run of its own, which is never ended. The design says
+    every type works where a code reference does; for a source, that
+    means no end.
+11. **`to_file` in paragraph mode** writes a blank line after each
+    record, as `chomp` took off all the newlines there were.
+
+- **What's left:** coverage is below the floors (branch 86%, condition
+  73%, POD 55%), from the new modules' error paths and their
+  placeholder POD; CI doesn't run on `pipeline-experimental`. Each item
+  the design is split into brings its part up to the floors. The
+  findings above go into the design.

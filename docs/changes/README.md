@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [One design, end to end, before more is built](2026-0022-one-design.md),
+  roadmap 2026-0022: in progress.
 - [Ekorn::Pipeline::Factories](2026-0021-factories.md), roadmap 2026-0021:
   open.
 - [pipeline() through a subclass makes the subclass](2026-0020-subclass-pipeline.md),
