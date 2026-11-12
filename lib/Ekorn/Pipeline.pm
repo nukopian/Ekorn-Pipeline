@@ -379,10 +379,10 @@ sub _make_run ($stages, $names, $run) {
                 unless is_coderef($step)
                 && is_coderef($flush)
                 && _code_or_none($end);
-            # What a sink's step returns is ignored; a scalar sink's flush
-            # gives one value, undef if it has none.
-            my($each, $result) = ($step, $flush);
-            $step  = sub ($value) { $each->($value);    return };
+            # What a sink's step returns is ignored, by the run, which knows
+            # it's a sink; a scalar sink's flush gives one value, undef if
+            # it has none.
+            my $result = $flush;
             $flush = sub () { my @result = $result->(); return $result[0] }
                 if $role eq 'ekorn_sink_scalar';
         }
@@ -456,6 +456,9 @@ sub _iterator ($stages, $names, $source) {
     # asking whether any wait before a stage needn't scan @todo: a flush
     # can put many values there at once.
     my @waiting_at;
+    # Values a source's step gave, still to go through the stages from the
+    # first, held as they came: @todo's values go first, being further on.
+    my @from_source;
     # Put @values on @todo, to go on from stage $n, the first on top.
     my $wait = sub ($n, $from_flush, @values) {
         push @todo, map { [$n, $_, $from_flush] } reverse @values;
@@ -464,6 +467,7 @@ sub _iterator ($stages, $names, $source) {
     };
     # Whether any value waits at a stage up to $upto.
     my $waiting_upto = sub ($upto) {
+        return 1 if @from_source && $upto >= 0;
         $waiting_at[$_] && return 1 for 0 .. $upto;
         return 0;
     };
@@ -491,7 +495,7 @@ sub _iterator ($stages, $names, $source) {
         }
         catch ($e) {
             # An end died: the run died, and hands out nothing more.
-            ($ended, $spent, @todo, @waiting_at) = ('died', 1);
+            ($ended, $spent, @todo, @waiting_at, @from_source) = ('died', 1);
             die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
         }
         return;
@@ -533,6 +537,9 @@ sub _iterator ($stages, $names, $source) {
                 ($n, $value, $from_flush) = @{ pop @todo };
                 $waiting_at[$n]--;
             }
+            elsif (@from_source) {
+                ($n, $value) = (0, shift @from_source);
+            }
             elsif (!$done) {
                 my @values;
                 try {
@@ -544,10 +551,11 @@ sub _iterator ($stages, $names, $source) {
                         # carries is its last, and it's done.
                         my(undef, @carried) = is_arrayref($e) ? @$e : ();
                         ($done, $source_done) = (1, 1);
-                        $wait->(0, undef, @carried);
+                        @from_source = @carried;
                         next;
                     }
-                    ($done, $next_flush, @todo, @waiting_at) = (1, scalar @stages);
+                    ($done, $next_flush, @todo, @waiting_at, @from_source)
+                        = (1, scalar @stages);
                     $finish->(1);
                     croak $e if is_ref($e);
                     die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
@@ -557,7 +565,7 @@ sub _iterator ($stages, $names, $source) {
                     next;
                 }
                 ($n, $value) = (0, shift @values);
-                $wait->(0, undef, @values);
+                @from_source = @values;
             }
             else {
                 $n = $flush_at->();
@@ -570,7 +578,8 @@ sub _iterator ($stages, $names, $source) {
                 ($next_flush, $flush, $from_flush) = ($n + 1, $flushes[$n], 1);
             }
             if ($n == @stages) {
-                $end_if_ended->();
+                # Nothing can end while the source is still being read.
+                $end_if_ended->() if $done;
                 return $value;
             }
             # Set only when it changes, as most values come from the source.
@@ -589,7 +598,10 @@ sub _iterator ($stages, $names, $source) {
                 }
                 while ($kept && $n < @stages) {
                     local $_ = $value;
-                    my @values = $stages[$n]->($value);
+                    my @values
+                        = $sinks[$n]
+                        ? do { $stages[$n]->($value); () }
+                        : $stages[$n]->($value);
                     last if $outside;
                     $n++;
                     unless (@values) {
@@ -610,13 +622,14 @@ sub _iterator ($stages, $names, $source) {
                     $done = 1;
                     my $from = $sinks[$n] && !$flushed{$n} ? $n : $n + 1;
                     $next_flush = $from if $next_flush < $from;
-                    (@todo, @waiting_at) = ();
+                    (@todo, @waiting_at, @from_source) = ();
                     $wait->($n + 1, $from_flush, @values);
                     next;
                 }
                 # A stage or a flush that dies ends the run: nothing waiting
                 # goes on, and every end is told it died.
-                ($done, $next_flush, @todo, @waiting_at) = (1, scalar @stages);
+                ($done, $next_flush, @todo, @waiting_at, @from_source)
+                    = (1, scalar @stages);
                 $finish->(1);
                 croak $e if is_ref($e);
                 my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
@@ -625,7 +638,7 @@ sub _iterator ($stages, $names, $source) {
             }
             return if $outside;
             if ($kept) {
-                $end_if_ended->();
+                $end_if_ended->() if $done;
                 return $value;
             }
         }
@@ -633,12 +646,36 @@ sub _iterator ($stages, $names, $source) {
         $spent = 1;
         return;
     };
+    # Every value the run has still to give, as $next would give them one
+    # at a time, but taking those already at the end, such as a list sink's
+    # result, and a step's values where there are no stages, in one go.
+    my $all = sub () {
+        my @all;
+        while (!$outside) {
+            if (!@stages && @from_source) {
+                push @all, splice @from_source;
+                next;
+            }
+            if (@todo && $todo[-1][0] == @stages) {
+                while (@todo && $todo[-1][0] == @stages) {
+                    push @all, (pop @todo)->[1];
+                    $waiting_at[@stages]--;
+                }
+                next;
+            }
+            my @one = $next->();
+            last unless @one;
+            push @all, @one;
+        }
+        return @all;
+    };
     # Ended from outside, by the iterator's finish or as it's let go, the
     # run stops: nothing more is pulled, and nothing waiting goes on.
     my $end_run = sub () {
         $outside = 1;
-        $dropped = 1 if @todo && ($ended // '') ne 'died';
-        ($done, $next_flush, @todo, @waiting_at) = (1, scalar @stages);
+        $dropped = 1 if (@todo || @from_source) && ($ended // '') ne 'died';
+        ($done, $next_flush, @todo, @waiting_at, @from_source)
+            = (1, scalar @stages);
         $finish->(0);
         $ended = 'stopped' if $dropped;
         return;
@@ -652,6 +689,7 @@ sub _iterator ($stages, $names, $source) {
             return;
         },
         sub () { $spent || $outside || ($ended // '') eq 'died' },
+        $all,
     );
 }
 1;

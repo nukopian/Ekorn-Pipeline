@@ -56,6 +56,8 @@ first N items, stopping there. D58 settled: a `take` stage for every
 `keep` sink but `keep_all`. D59 settled: an iterator's `all`, `first`
 and `single`. D60 settled: `single`'s check doesn't consume, revising
 D59. D61 settled: `single` finishes, as `first` does, revising D60.
+D62 settled: a step's many values are cheap, and `all` takes them in
+bulk.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -591,6 +593,27 @@ D19 to D25 came from the third cold review, settled by Iain on
   and its tests restored, with a test of a source's step giving several
   values to `all`, which DBIx::Squirrel's fast path relies on. Design
   6.2 and 17.33.
+- [x] **D62.** Can a step's many values, and an iterator's `all`, cost
+  less than a value each? Yes, Iain decided on 2026-11-12, from
+  DBIx-Squirrel's task: its `$it->all`, its source giving every row
+  left in one step, took 0.403 s on Ekorn over 297,848 rows, against
+  0.108 s on its own pipeline. Internal only, with no protocol or
+  behaviour changed: a step's values wait unwrapped, in a buffer of
+  their own, not each wrapped on the queue; `all` takes what's ready
+  in bulk, values already at the end, such as a list sink's result,
+  and, with no stages, a step's values, by a closure the run gives the
+  iterator; and, from a profile of a pull, a sink's step is called
+  without a wrapper, and the check for the run's end is skipped while
+  the source is still read. Over 300,000 rows in one step: `->all`
+  with no stages 0.161 s to 0.042 s; pulled one at a time 0.376 s to
+  0.118 s; `keep_all` then `->all` 0.571 s to 0.304 s. What's left per
+  value is a `try` and two `local`s for each value through a stage,
+  which keep a stop or a die reported at its stage, and the `&{}`
+  overload on each call of an Element, such as `$it->()`; each could
+  be an item of its own. Tested: `all` around a list sink's result, a
+  stage after it, and a stop part way through a step; and
+  `xt/scaling.t`, where one step of every value takes 0.12 of the time
+  of a step each, against 0.69 before.
 
 ## The plan
 

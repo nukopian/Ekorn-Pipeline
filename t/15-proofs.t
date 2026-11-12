@@ -633,6 +633,21 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
     is [$next->()],  [1],       'pulled once, from a step of one';
     is [$next->all], [2, 3, 4], 'all, from a step giving every value left';
     is $next->ended, 'done',    'read to its end';
+
+    # all takes what's ready in bulk: it gives the same as pulling.
+    $next = $class->new(keep_all)->iterator(from_arrayref([1 .. 4]));
+    is [$next->()],  [1],       "a list sink's result, pulled once";
+    is [$next->all], [2, 3, 4], 'then the rest of it, in bulk';
+    is $next->ended, 'done';
+    $next = $class->new(keep_all, sub { $_ * 10 })
+        ->iterator(from_arrayref([1, 2]));
+    is [$next->all], [10, 20], 'and through a stage after the sink';
+    @steps = ([1, 2, 3], [4]);
+    $next  = $class->new(take(2))->iterator($class->new->iterator(source {
+        return sub () { my $step = shift @steps; $step ? @$step : () }
+    }));
+    is [$next->all], [1, 2], 'and stopped part way through a step';
+    is $next->ended, 'stopped';
 };
 
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {

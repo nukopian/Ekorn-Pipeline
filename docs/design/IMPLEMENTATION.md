@@ -544,7 +544,10 @@ What `iterator` returns: an Element, called as `$next->()`, with
 `finish` and `DESTROY` (section 5.5), and `all`, `first` and `single`
 (D59): the values still to come, as a list or an array reference; the
 next value, ending the run; and the next value, warning if there's
-another, ending the run (D61, revising D60). Its `ekorn_source` makes it a
+another, ending the run (D61, revising D60). `all` takes what the run
+has ready in bulk (D62): values already at the end, such as a list
+sink's result, and, with no stages, a step's values, which the run
+holds unwrapped, as they came. Its `ekorn_source` makes it a
 source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8). Once it's spent, having
 handed out all it will, been finished, or died, its `ekorn_source`

@@ -13,11 +13,12 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return an iterator, calling $next for each value, whose run $end_run
 # ends from outside, $context is the context its run's source gave,
-# $ended says how its run ended, and $spent whether it has handed out
-# everything it will.
+# $ended says how its run ended, $spent whether it has handed out
+# everything it will, and $all, if given, gives every value still to
+# come in one call, as calling $next until it gives none would.
 sub new (
     $class, $next, $end_run, $context = undef, $ended = sub () { return },
-    $spent = sub () { return },
+    $spent = sub () { return }, $all = undef,
 ) {
     return bless {
         call    => $next,
@@ -25,6 +26,7 @@ sub new (
         context => $context,
         ended   => $ended,
         spent   => $spent,
+        all     => $all,
     }, $class;
 }
 
@@ -49,9 +51,14 @@ sub finish ($self) {
 # Return the values still to be handed out, reading the run to its end:
 # as a list, or, asked for one value, an array reference of them.
 sub all ($self) {
-    my $next = $self->{call};
     my @all;
-    while (my($value) = $next->()) { push @all, $value }
+    if (my $all = $self->{all}) {
+        @all = $all->();
+    }
+    else {
+        my $next = $self->{call};
+        while (my($value) = $next->()) { push @all, $value }
+    }
     return wantarray ? @all : \@all;
 }
 
