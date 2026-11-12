@@ -11,7 +11,12 @@ separate from its end, and every end waits for the run to end. D7
 settled: a source gives a context for each run, which a stage asks
 `run_context()` for. D8 open: `|` opt-in for the program, or for the
 code. D9 open: a reusable source of a sink's result. D10 settled:
-`to_arrayref` ends a chain, and `to_array` croaks there.
+`to_arrayref` ends a chain, and `to_array` croaks there. D11 to D17
+settled, from the second cold review: the source's end first; a flush
+and an end for everything made for a run; `is_stage` by the role
+methods; a chain starts with a typed source; a run ends when nothing
+in it can act; the unanswered cases answered; a scalar sink's result
+in scalar context. D18 settled: the operators stay.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -122,6 +127,60 @@ The design's own open questions are numbered Q1 and on, in its section
   result another, and `to_arrayref` pushed onto your array and gave how
   many, which its name didn't say either. The design's 8.3, 9 and
   17.12.
+
+D11 to D17 came from the second cold review, settled by Iain on
+2026-11-12 as recommended, when he asked that what needed a fix be
+fixed; each can be reopened.
+
+- [x] **D11.** Where does the source's end run among the ends? First,
+  then the stages', first stage first, so a source failing to close is
+  known before any sink commits, and tells the ends after it `died`.
+  Why: with every end waiting for the run (D6), Q5's reason for last
+  went, and a source's end dying after a sink had committed left the
+  run dead and the sink committed. Settles Q5. Design 5.4, 17.17.
+- [x] **D12.** How many kinds of end? Two: a flush, called when a
+  part's input runs out normally, its values going on, which a gather
+  has as v0.2.0's end and a sink as its result; and an end, told how,
+  once the run has ended. Everything made for a run is a step, a
+  flush and an end, each part using what it needs. Why: under D6, a
+  sink's result was a gather's end under another name. Design 5.4,
+  17.7, 17.9.
+- [x] **D13.** What does `is_stage` take? A code reference, a
+  pipeline, or anything offering `as_stage`, `as_scalar` or
+  `as_list`; Element's `goes_as_stage` goes. Why: it still asked
+  Elements, so a package's own sink was refused, and there were two
+  ways of saying what a part can be. Design principle 6, 6.1.
+- [x] **D14.** What can start a `|` chain? A typed source: an object
+  whose class overloads `|`, Ekorn's sources and chains, or a
+  package's class overloading it with Operators' `chain`, which is
+  part of the protocol. Why: Perl overloads by class, so a plain code
+  reference on the left is ORed, and 17.14 claimed `|` asked only the
+  role methods. Design 9, 17.14.
+- [x] **D15.** When has a run ended? As soon as nothing in it can still
+  act on a value: the source run out or stopped, every flush called,
+  every value still to be handed out past the last stage; or when it's
+  ended from outside, or dies. So a pulled sink last commits as its
+  result is ready, not when its iterator is let go, when a failing
+  commit was only a warning; and a complete pipeline pulled as a
+  source ends its run at the first pull again. Design 5.4, 17.15,
+  17.17, 19.2.
+- [x] **D16.** The cases the design didn't answer: a sink that stops
+  the run itself has its flush called, and is told `done`;
+  `ending()` is true for every flush's values, a sink's result
+  included; a stop from a source ends its values, what it carries
+  going through as its last, and it's told `done`; from a flush, it's
+  a stop at that stage; from an end, an error; and a run with no
+  context of its own, such as one pushed inside a stage, sees the
+  context of the run it's in. Design 5.4, 5.6, 12.7.
+- [x] **D17.** What does a pushed run give in scalar context? How many
+  values came out, as in v0.2.0, unless its last stage is a scalar
+  sink, when it gives that sink's result: `my $n = $p->(@values)` with
+  `count` last is the count. Why: `as_scalar` is named for Perl's
+  scalar context, and gave 1, the number of results. No v0.2.0 code
+  has a sink, so nothing that works changes. Design 4.3.
+- [x] **D18.** Do the operators stay? Yes, Iain decided on 2026-11-12:
+  a chain tells its story visually; other syntax may be explored
+  beside it. The second review had suggested deferring them. Design 9.
 
 ## The plan
 
@@ -296,6 +355,27 @@ the warning doesn't say which end. And code-level points, listed in
 IMPLEMENTATION.md's section 10.2: errors from a source's end handled
 three ways; a `Stop` thrown by a source escaping as an object;
 `Stage->new` taking a Gather.
+
+### The second cold review, 2026-11-12
+
+A second fresh reviewer read everything again after D5 to D7 and D10,
+told that the code lags the design on purpose and that
+IMPLEMENTATION.md's section 10 is meant to account for the gap. Its
+verdict: the design mostly coherent, the settled model hanging
+together better than the prototype; the implementation and its
+document mostly accurate, every runnable example printing what it
+says. Its structural points became D11 to D17, and the operators, which
+it would have deferred, D18. It found stale text from the day's
+decisions, now fixed: the reference's set-up of two closures; the
+design's 4.4, 6.1 and 6.2 on what the role methods and words return;
+5.5 and the reference saying an iterator let go tells every part
+`stopped`; IMPLEMENTATION.md saying the existing tests are unchanged,
+and section 10 marking as built what D6 changed. And four drifts
+section 10.2 missed, now listed: a run ended from outside tells parts
+`stopped` whose input had run out; `finish` takes any verdict, so
+`finish('done')` commits a partial run; `finish` from inside a stage
+calls the sink's step again; and an error from a source's end shows an
+empty stage name. Section 10 is rewritten whole.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their

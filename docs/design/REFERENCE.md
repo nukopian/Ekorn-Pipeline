@@ -62,13 +62,18 @@ afresh for each run.
 
 A gather, source or sink made with a word has a block that's its
 **set-up**. The set-up runs at the start of each run. It declares
-whatever the run needs, with `my`, and returns two code references,
-closures sharing what it declared:
+whatever the run needs, with `my`, and returns closures sharing what
+it declared:
 
 - **the step,** called with each value (a gather or a sink), or each
   time the source is pulled (a source);
-- **the end,** called once, when the run ends. It's optional for a
-  gather and a source.
+- **the flush,** for a gather or a sink, called once its input runs
+  out, what it returns going on: a sink's gives its result, and is
+  required;
+- **the end,** called once, when the run has ended, told how. It's
+  optional;
+- **a context,** for a source only, and optional: anything its stages
+  may ask for with `run_context()`.
 
 ```perl
 my $lines = source {
@@ -111,30 +116,31 @@ my $n = Ekorn::Pipeline->new(take(5), count)->iterator($lines)->();
 
 ### What an end does
 
-A sink's result is called once its input runs out, and what it
-returns goes on through the stages after it. It isn't told how the run
-ended, as the run hasn't.
+A flush, a gather's or a sink's, is called once its input runs out
+normally: when the values ran out, after a stop in a stage before it,
+or when its own part stopped the run, as `first_value` does. What it
+returns goes on through the stages after it, and while it does,
+[`ending`](#ending) is true. It isn't told how the run ended, as the
+run hasn't. A gather's flush is what v0.2.0 called its end function,
+as [End functions](#end-functions) describes.
 
-A source's or a sink's end:
+An end:
 
 - **always runs, once, when the run has ended,** however it ended, and
   is given how, as its argument: `done`, `stopped` or `died` **[Q4]**.
-  A sink that commits only when told `done` never commits for a run
-  that dies after it;
+  A run has ended as soon as nothing in it can still act on a value,
+  so with a sink last, it ends as the sink's result is ready, and a
+  sink that commits only when told `done` commits then, and never for
+  a run that dies after it;
 - **gives nothing:** what it returns is dropped;
-- **runs in order:** each stage's end, first stage first, then the
-  source's, once every stage has finished with what it gave **[Q5]**.
+- **runs in order:** the source's end first, then each stage's, first
+  stage first, so a source that fails to close is known before any
+  sink commits **[Q5]**.
 
-After a stage dies, every source's and sink's end still runs, told
-`died`, and then the error is thrown again, as it would have been. An
-end that dies then is reported as a warning, naming its stage, and the
-first error is kept **[Q6]**.
-
-A gather's end is called only when its stream ended normally: when the
-values ran out, or after a stop in a stage before it. It's given no
-arguments, and what it returns goes on through the stages after it,
-as [End functions](#end-functions) describes. While it does,
-[`ending`](#ending) is true.
+After a stage dies, every end still runs, told `died`, and then the
+error is thrown again, as it would have been. An end that dies then is
+reported as a warning, naming its stage, and the first error is kept
+**[Q6]**.
 
 ### An iterator left unfinished
 
@@ -144,9 +150,10 @@ An iterator that's dropped before its values run out, as in
 my($first) = Ekorn::Pipeline->new(sub { uc })->iterator($lines)->();
 ```
 
-ends its run when the last reference to it goes: its source and sink
-are told `stopped`, so `$lines` closes its file there and then. An
-iterator is still a code reference, called as `$next->()` **[Q7]**.
+ends its run when the last reference to it goes: each part is told
+how from where it stands, `stopped` if its input hadn't run out, so
+`$lines` closes its file there and then. An iterator is called as a
+code reference, `$next->()`, as before **[Q7]**.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,
@@ -212,7 +219,8 @@ gather { SET-UP }
 ```
 
 Returns a Gather: a stage made for each run, whose set-up returns its
-stage and, optionally, an end, as [gather](#gather) describes.
+step, and, optionally, its flush, and an end told how the run ended,
+as [gather](#gather) describes.
 
 ```perl
 sub batches_of ($size) {
