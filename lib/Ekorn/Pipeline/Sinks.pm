@@ -9,8 +9,9 @@ use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK
-    = qw(keep_all count_items keep_first keep_last keep_single to_file);
+our @EXPORT_OK = qw(
+    keep keep_all count_items keep_first keep_last keep_single
+    to_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
@@ -29,9 +30,9 @@ sub count_items : prototype() () {
 }
 
 
-# The sinks named for what they give: keep_all, keep_first, keep_last,
-# keep_single and count_items. The container sink, named for where the items go, is
-# to_file, below.
+# The sinks named for what they give: keep_all, keep(N), keep_first,
+# keep_last, keep_single and count_items. The container sink, named for
+# where the items go, is to_file, below.
 
 # Return a sink giving every item, as a list.
 sub keep_all : prototype() () {
@@ -71,6 +72,26 @@ sub keep_first : prototype() () {
         return (
             sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
             sub () { @first },
+        );
+    });
+}
+
+
+# Return a sink giving the first $count items, as a list, stopping the
+# run once it has them.
+sub keep ($count) {
+    croakf 'Expected a count of 0 or more'
+        unless defined $count && $count =~ m( \A \d+ \z )xa;
+    return Ekorn::Pipeline::Sink->new(sub {
+        my @kept;
+        return (
+            sub ($item) {
+                Ekorn::Pipeline::Stop->throw if @kept >= $count;
+                push @kept, $item;
+                Ekorn::Pipeline::Stop->throw if @kept >= $count;
+                return;
+            },
+            sub () { @kept },
         );
     });
 }

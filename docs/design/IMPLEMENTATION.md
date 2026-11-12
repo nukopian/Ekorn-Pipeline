@@ -671,6 +671,7 @@ while (my($line) = $next->()) { say $line }
 | `count_items` | scalar | how many values there were |
 | `keep_first` | scalar | the first value, stopping the run there; `undef` if there were none |
 | `keep_last` | scalar | the last value, reading every one; `undef` if there were none |
+| `keep($n)` | list | the first `$n` values, stopping the run once it has them; `$n` checked as `take` checks it |
 | `to_file($path)` | scalar | writes each value, then `$/`, giving how many; opened as the run starts, closed as it ends |
 
 The sinks taking no arguments have an empty prototype, so `count_items + 0`
@@ -1071,7 +1072,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
-| 8.3 | sinks, in two families (D50, D53, D54, D55, D56) | built: `keep_all`, `keep_first`, `keep_last`, `keep_single`, `count_items`, `to_file`. Not built: `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh` |
+| 8.3 | sinks, in two families (D50, D53, D54, D55, D56, D57) | built: `keep_all`, `keep($n)`, `keep_first`, `keep_last`, `keep_single`, `count_items`, `to_file`. Not built: `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh` |
 | 9 | chains from a source or a stage (D14, D23); a list sink at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
 | 10 | Sugar | not built |

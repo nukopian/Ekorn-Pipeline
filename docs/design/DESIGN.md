@@ -625,6 +625,7 @@ reads, the other writes. Nothing exported by default.
 | `keep_first` | the first item; `undef` if none | scalar | yes |
 | `keep_single` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | scalar | at a second |
 | `keep_last` | the last item, reading every one to find it; `undef` if none | scalar | no |
+| `keep($n)` | the first `$n` items, as a list: what `take($n)` passes on, kept as the run's result (D57) | list | yes, at `$n` |
 | `any_item(sub {...})` | true at the first item the sub is true of | scalar | yes |
 | `every_item(sub {...})` | false at the first item the sub is false of | scalar | yes |
 | `count_items` | how many items there were: it's what it is, not where it's put | scalar | no |
@@ -1876,6 +1877,27 @@ what the sink keeps of what reaches it, which is what it gives.
 check, so a test imports both with no more said. `count_items` keeps
 its name. `last_item`, designed but not built, became `keep_last`, and
 was built (D56).
+
+### 17.31 `keep(N)`: `take` for stages, `keep` for sinks
+
+(Section 8.3; Iain, 2026-11-12, 2026-0022's D57, asked in
+DBIx-Squirrel's session.) "So we have `take` for stages, `keep...` for
+sinks." `keep($n)` is a list sink giving the first `$n` items, as
+`keep_all` gives every one, and an array reference where one value is
+asked for (D51). It stops the run once it has `$n`, as `take` and
+`keep_first` do, so a statement fetches no more rows than it keeps:
+`$src | keep(5)` gives what `$src | take(5) | keep_all` does. `$n` is
+checked as `take` checks it, a whole number, 0 or more, and
+`keep(0)` keeps nothing, stopping at the first item.
+
+Weighed and set aside:
+
+- **Reading every item, keeping the first `$n`.** A full read, for no
+  gain over stopping.
+- **`$n` of 1 or more, `keep(0)` croaking.** `take(0)` is allowed, and
+  the two should agree.
+- **The last `$n`, by a negative `$n` or `keep_last($n)`.** Not now;
+  it can come when a use appears.
 
 ## 18. Where each roadmap item lands
 

@@ -15,7 +15,7 @@ use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
-    keep_all count_items keep_first keep_last keep_single
+    keep keep_all count_items keep_first keep_last keep_single
     to_file);
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Stages::Flow;
@@ -587,6 +587,31 @@ subtest 'Sinks named for what they give (D50)' => sub {
     is [$next->()],  [3],    'pulled, it gives the last';
     is [$next->()],  [],     'and only that';
     is $next->ended, 'done', 'having read the source to its end';
+};
+
+subtest 'keep(N): the first N items, stopping there (D57)' => sub {
+    is [keep(2)->(1 .. 5)], [1, 2], 'the first two, as a list';
+    my $kept = keep(2)->(1 .. 5);
+    is $kept, [1, 2], 'a reference, asked for one value';
+    is from_arrayref([1 .. 5]) | keep(2), [1, 2],
+        'and so at the end of a chain';
+    is from_arrayref([1]) | keep(2),      [1],    'fewer, if there were fewer';
+    is from_arrayref([1, 2]) | keep(0),   [],     'none, for keep(0)';
+    is Ekorn::Pipeline::is_sink(keep(2)), 'list', 'a list sink';
+
+    my $next = $class->new(keep(2))->iterator(from_arrayref([1 .. 5]));
+    is [drain_all($next)], [1, 2];
+    is $next->ended, 'stopped', 'having stopped the source at two';
+    $next = $class->new(keep(3))->iterator(from_arrayref([1, 2]));
+    is [drain_all($next)], [1, 2];
+    is $next->ended, 'done', 'or read it to its end, if it had fewer';
+
+    for my $bad (-1, 1.5, 'x', '', undef) {
+        my $line = __LINE__ + 1;
+        is dies { keep($bad) },
+            "Expected a count of 0 or more at ${\ __FILE__ } line $line.\n",
+            'N is checked as take checks it: ' . ($bad // 'undef');
+    }
 };
 
 subtest 'Sinks and context (D10, D17, D25, D51)' => sub {

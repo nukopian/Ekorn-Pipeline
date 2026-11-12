@@ -51,7 +51,8 @@ sink. D53 settled: `count` renamed `count_items`, and `only_item`
 arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
 `all_items`, `first_item` and `single_item` renamed `keep_all`,
 `keep_first` and `keep_single`. D56 settled: `last_item` is
-`keep_last`, and built.
+`keep_last`, and built. D57 settled: `keep(N)`, a list sink of the
+first N items, stopping there.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -530,6 +531,16 @@ D19 to D25 came from the third cold review, settled by Iain on
   2026-11-12. It gives the last item, `undef` if there was none, and,
   unlike `keep_first`, reads every item to find it, so it never stops
   the pull early. Built: in Sinks, with tests. Design 8.3 and 17.30.
+- [x] **D57.** A `keep(N)` sink, as Iain asked in DBIx-Squirrel's
+  session, sent here as a task: "So we have `take` for stages,
+  `keep...` for sinks." Settled by Iain on 2026-11-12, on the questions
+  that session raised: it's a list sink, giving an array reference
+  where one value is asked for (D51); it stops the run once it has N,
+  so a statement fetches no more rows than it keeps, giving what
+  `take(N) | keep_all` does; N is checked as `take` checks it, and
+  `keep(0)` keeps nothing, stopping at the first item; and it keeps
+  the first N only, a negative N croaking, the last N left until a
+  use appears. Built: in Sinks, with tests. Design 8.3 and 17.31.
 
 ## The plan
 
@@ -879,6 +890,13 @@ A message from DBIx-Squirrel (DBIx-Squirrel
 found a bare `@{ chain }` weird, and DBIx-Squirrel's design now ends
 its chains in a sink. It became D52: `@{}` stays, explained in detail,
 and Ekorn's drafts lead with a sink too, with more alternatives.
+
+### `keep(N)`, 2026-11-12
+
+A task from DBIx-Squirrel (DBIx-Squirrel
+c41d9899b2af0ea5c60607a4519ce0042841302f), done and removed: Iain's
+`keep(N)` sink, with the questions its session saw. It became D57,
+each question settled by Iain here.
 
 - **What's left:** coverage is below the floors (branch 86%, condition
   73%, POD 55%), from the new modules' error paths and their
