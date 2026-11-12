@@ -2,12 +2,13 @@
 
 ## From DBIx-Squirrel, 2026-11-12: its iterator's all, single and count become your sinks, named for what they are
 
-**From:** DBIx-Squirrel a1e2fcbbd53340fb1bbb95f5787ac9110b103d86, on its branch `pipeline-experimental`
+**From:** DBIx-Squirrel 287d5df3dae8a3714c8b352b993af2717cad735c, on its branch `pipeline-experimental`
 
-Amended twice before you read it: it first asked for a `to_scalar`,
-which Iain said was wrongly named; and then said your container sinks
-would be renamed, which he has since said they needn't be. Read only
-this one.
+Amended three times before you read it: it first asked for a
+`to_scalar`, which Iain said was wrongly named; then said your
+container sinks would be renamed, which he has since said they
+needn't be; and then had `only_item` croak at a second value, where
+Iain says it warns. Read only this one.
 
 Iain decided on 2026-11-12 that DBIx::Squirrel's iterator loses its
 `all`, `single` and `count` methods in its v3.0.0. A run ends in a sink
@@ -24,7 +25,7 @@ for what each gives, not for what its result is put in:
 |---|---|---|
 | `$it->all` | `all_items`: every value, as a list | `to_array` |
 | (none) | `first_item`: the first value, stopping the run there | `first_value` |
-| `$it->single` | `only_item`: the one value, asserting it's the only one, with a croak at a second | nothing |
+| `$it->single`, which croaks at a second | `only_item`: the first value, with a warning if there's a second, "for when you SELECT but forget LIMIT 1", in Iain's words; it stops the run once it has seen the second | nothing |
 | `$it->count`, after a drain | `count` | `count` |
 
 `count` keeps its name, "as in that's what it is, not what we're
