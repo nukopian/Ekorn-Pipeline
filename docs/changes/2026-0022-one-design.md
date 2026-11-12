@@ -55,7 +55,7 @@ arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
 first N items, stopping there. D58 settled: a `take` stage for every
 `keep` sink but `keep_all`. D59 settled: an iterator's `all`, `first`
 and `single`. D60 settled: `single`'s check doesn't consume, revising
-D59.
+D59. D61 settled: `single` finishes, as `first` does, revising D60.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -580,6 +580,17 @@ D19 to D25 came from the third cold review, settled by Iain on
   `ended` says nothing, as the iterator still has one to give, and an
   iterator holding one isn't spent; `finish` drops it, so `ended` then
   says `stopped`. Built: in Iterator, with tests. Design 6.2 and 17.33.
+- [x] **D61.** Does an iterator's `single` finish it, as `first` does?
+  Yes, Iain decided on 2026-11-12, revising D60, from DBIx-Squirrel's
+  message: its iterator's `single` calls Ekorn's, then `finish`,
+  because a statement left active after `single` holds a lock on
+  SQLite (its 2026-0013 D25). So `single` pulls one value more to
+  check, warns if there is one, and finishes, as D59 had it. A finished
+  iterator drops what it holds, so the look-ahead D60 built protected
+  nothing, and went: the Iterator is as D59 built it. Built: Iterator
+  and its tests restored, with a test of a source's step giving several
+  values to `all`, which DBIx::Squirrel's fast path relies on. Design
+  6.2 and 17.33.
 
 ## The plan
 
@@ -929,6 +940,20 @@ A message from DBIx-Squirrel (DBIx-Squirrel
 found a bare `@{ chain }` weird, and DBIx-Squirrel's design now ends
 its chains in a sink. It became D52: `@{}` stays, explained in detail,
 and Ekorn's drafts lead with a sink too, with more alternatives.
+
+### `single`, and buffering, 2026-11-12
+
+Two messages from DBIx-Squirrel (DBIx-Squirrel
+062ea16c6a0dc32867342cd5d885205821b0ce33 and
+b45d34bb8ef2601ee0f621c9ff10e00a21be91f4), read and removed. The
+first: its iterator's `single` finishes its statement, so Iain chose
+the same for Ekorn's, as D61. The second: its buffering may yet need
+more of Ekorn's protocols, a fast path for sinks, a look-ahead that
+consumes nothing, and telling a source how many are wanted; nothing is
+asked until its spike shows a need, so nothing is added here. What it
+relies on was checked: a step giving several values works with `all`,
+and `ended` then says `done`, now tested; and `finish` after `single`
+ends the run, `stopped`, already tested.
 
 ### `keep(N)`, 2026-11-12
 

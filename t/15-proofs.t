@@ -620,24 +620,19 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
     is $warnings->[0],
         "Expected only one item, but there were more at ${\ __FILE__ } line $line.\n",
         "at the caller's line";
-    is $next->ended, undef, 'the iterator still open';
-    is [$next->()],  [8],   'the value it looked at, not consumed';
-    is [$next->all], [9],   'and the rest after it';
-    is $next->ended, 'done';
-
-    $next     = $class->new->iterator(from_arrayref([7, 8]));
-    $warnings = warnings { $next->single };
-    is scalar @$warnings, 1,     q(a warning);
-    is $next->ended,      undef, 'the source read to its end, a value still held';
-    is [drain_all($class->new->iterator($next))], [8],
-        'which another run reading the iterator gets';
-    $next     = $class->new->iterator(from_arrayref([7, 8]));
-    $warnings = warnings { $next->single };
-    is scalar @$warnings, 1, q(a warning);
-    $next->finish;
-    is $next->ended, 'stopped', 'and finish drops, as it drops what is left';
+    is $next->ended, 'stopped', 'the run ended, reading no more';
     is [$class->new->iterator(from_arrayref([]))->single], [undef],
         'undef, if none';
+
+    # A source's step may give several values at once.
+    my @steps = ([1], [2, 3, 4]);
+    my $steps = source {
+        return sub () { my $step = shift @steps; $step ? @$step : () }
+    };
+    $next = $class->new->iterator($steps);
+    is [$next->()],  [1],       'pulled once, from a step of one';
+    is [$next->all], [2, 3, 4], 'all, from a step giving every value left';
+    is $next->ended, 'done',    'read to its end';
 };
 
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {

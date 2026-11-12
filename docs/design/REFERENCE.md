@@ -171,15 +171,14 @@ Three methods pull what's left in one call:
 my @rest  = $next->all;       # every value still to come; read to the end
 my $rest  = $next->all;       # the same, as an array reference
 my $first = $next->first;     # the next value, or undef; then the run ends
-my $one   = $next->single;    # the next value, or undef, warning if there's another
+my $one   = $next->single;    # the next value, or undef, warning if there's another; then the run ends
 ```
 
-`all` reads the run to its end. `first` ends it, as `finish` does, so
-nothing more is read. `single` looks one value ahead to check there's
-no other, and warns "Expected only one item, but there were more" if
-there is, as `keep_single` does, without consuming it: the iterator
-stays open, and its next pull, `all`, or a run reading it, gives that
-value first. Until it has, `ended` says nothing.
+`all` reads the run to its end. `first` and `single` end it, as
+`finish` does, so nothing more is read, and a source holding a
+resource, such as a statement's lock, lets it go. `single` pulls one
+value more to check there's no other, and warns "Expected only one
+item, but there were more" if there is, as `keep_single` does.
 
 Perl destroys a lexical iterator as soon as it goes out of scope. One
 kept until the program ends is destroyed during global destruction,
