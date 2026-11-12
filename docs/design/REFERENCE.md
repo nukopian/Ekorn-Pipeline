@@ -595,8 +595,8 @@ Wording to be settled when the code is written. One for each:
   `as_list`;
 - a chain with `|` ending in a sink that gives a list, such as
   `to_array`;
-- an end that died while the run was already dying (a warning)
- ;
+- an end that died while the run was already dying (a warning,
+  naming the end);
 - `|` started with something that isn't one of the types, or given
   on its right what can't go where a stage goes.
 
