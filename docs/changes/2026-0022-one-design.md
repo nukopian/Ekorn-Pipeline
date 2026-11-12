@@ -36,7 +36,8 @@ dropped. Q14, DBIx-Squirrel's, has a suggested
 answer for its review. D36 settled: a statement's definition
 names pipelines by string, as a chain of names. D37 settled: the name-reading class
 method is `pipeline_in`. D38 settled: no strict `is_stage`, for
-now; `is_sink` is the design's Q27.
+now; `is_sink` is the design's Q27. D39 settled: the prototype is kept
+where it holds.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -70,7 +71,7 @@ The design's own open questions are numbered Q1 and on, in its section
   core, on `pipeline-experimental`, Iain decided on 2026-11-12, so that
   it proves the design fits today's run loop, stops and gathers, not
   only itself. Whether it's kept once the design is split into items
-  is the design's Q19.
+  was the design's Q19, settled as D39.
 - [x] **D4.** Blessed code references, or classes? Classes, Iain
   decided on 2026-11-12: each type a class on a base,
   Ekorn::Pipeline::Element, a hash overloading `&{}` as Ekorn::Pipeline
@@ -322,6 +323,11 @@ D19 to D25 came from the third cold review, settled by Iain on
   stages. He asked whether an `is_sink` beside it, telling a scalar
   sink from a list sink, had real value: it does, for a function
   taking its caller's stages, so it's the design's Q27.
+- [x] **D39.** The code that proves the design: kept, or written again
+  item by item (the design's Q19)? Kept where it holds, Iain decided on
+  2026-11-12, as recommended: each item the design is split into takes
+  in its part of the prototype and finishes it, with its tests, its
+  documentation, and coverage back to the floors. Design 19.
 
 ## The plan
 

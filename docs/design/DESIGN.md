@@ -1025,7 +1025,6 @@ Settled questions keep their numbers, listed after the open ones.
 | | Question | Whose | Recommended |
 |---|---|---|---|
 | **Q14** | How does DBIx::Squirrel::Iterator offer `as_source`, its step, its end and a context of its columns? | DBIx-Squirrel | Suggested for its review (section 12.3): the iterator offers `as_source`, its set-up executing, its step fetching in batches, its end finishing, its context `{columns => $sth->{NAME}, statement => $sth}`; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, croaking if it's active |
-| **Q19** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q22** | Does a pipeline's name in its stages' errors (2026-0013) join v0.3.0? | Iain | Yes: it's the release that may change messages, and the next is a long way off |
 | **Q24** | How is a complete pipeline, a source joined to stages and a sink, kept as a source of the sink's result that can run more than once (2026-0022's D9)? A pipeline holds no source (D33), so it's a source made of the two, beside Pipeline, not a kind of it. An iterator is one run: given to a second run, it gives nothing, with no error; and a chain from a source to a sink is a result, not a source. | Iain | A method making a Source of a pipeline and a source, `$pipeline->source_of($source)`, whose `as_source` makes a fresh iterator for each run, passing on its context; name open. And an Iterator given to a second run croaks, rather than give nothing |
 | **Q26** | What does each type do when called directly, as a code reference, outside a run (principle 6)? Today a Stage calls its code with one value; a Pipeline pushes the values it's given; an Iterator gives its next value; a Gather runs its set-up, as in v0.2.0; a Sink croaks; and a Source makes a run of its own, which is never ended, so what it opens stays open while the Source lives. | Iain | A Sink called with values pushes them through itself and gives its result, as a pipeline of that one sink would: `count->(1, 2, 3)` is 3, so a sink is usable on its own, and "consumes every value, and gives a result" says what calling it does. A Source called directly croaks, "Expected a source to be read through iterator", as a run that's never ended can't close what it opened. Stage, Pipeline, Iterator and Gather stay as they are. Principle 6 then says, type by type, what a call means |
@@ -1055,6 +1054,7 @@ Settled questions keep their numbers, listed after the open ones.
 | **Q20** | Does DBIx::Squirrel keep exporting Ekorn's functions as they are? | D31: yes, for now, as plain re-exports, so its users' code keeps working |
 | **Q23** | Is `\|` opt-in for the whole program, or only for the code that loads Operators? | D32: lexically, if it can be done, which it can: in force where `use Ekorn::Pipeline::Operators` is, checked against the caller's hints (section 9) |
 | **Q18** | A strict `is_stage`, taking only objects offering a role method and pipelines, not plain code references (2026-0019)? | D38: not now: pipeline-last answers the need, and plain code references are stages, as they've always been |
+| **Q19** | The code that proves the design: kept, or written again item by item? | D39: kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 | **Q21** | How does a stage find out about its source? | D7 and D24: the source's context for the run, from `run_context()` |
 
 ## 17. Decisions, and what was weighed
@@ -1528,7 +1528,8 @@ The design is tested by building it: experimental code on
 `pipeline-experimental`, enough to run the proofs below, before Iain
 approves the design and it's split into items. What the code finds
 goes back into this document, and the drafts, as any other change
-does. Whether the code is kept is **Q19**.
+does. The code is kept where it holds, each item that the design is
+split into taking in its part and finishing it (D39).
 
 Two compositions prove that the types fit together as section 4 says.
 Neither needs a stage between its parts, so each tests the types and
@@ -1666,9 +1667,9 @@ design is approved and split (roadmap 2026-0022).
 - **cpanfile and minil.toml:** nothing to add, as everything the
   design uses comes with Perl; checked as each item is built.
 - **This folder:** DESIGN.md, the drafts and IMPLEMENTATION.md become
-  history once their content is in the documents above; whether
-  IMPLEMENTATION.md stays alive after delivery is to decide (Q19's
-  neighbour, kept with it).
+  history once their content is in the documents above, as the
+  prototype becomes the items' code (D39); whether IMPLEMENTATION.md
+  stays alive after delivery is still to decide.
 
 ### 20.2 In DBIx-Squirrel
 
