@@ -5,7 +5,8 @@ decided until Iain approves it. Where it says "settled", it means
 decided earlier and carried in; where it says "proposed", it's this
 design's suggestion; open questions are numbered **Q1** and on, and
 listed together in section 16. Section 17 gives the reasons for each
-settled decision, and what was weighed against it.
+settled decision, and what was weighed against it. Section 19 says how
+the design is proved, by experimental code, before it's approved.
 
 **Read with:** [REFERENCE.md](REFERENCE.md) and [HOWTO.md](HOWTO.md)
 in this folder, drafts of the sections the reference and the how-to
@@ -34,6 +35,7 @@ Ekorn's first user and sends its view as messages.
 16. [Open questions](#16-open-questions)
 17. [Decisions, and what was weighed](#17-decisions-and-what-was-weighed)
 18. [Where each roadmap item lands](#18-where-each-roadmap-item-lands)
+19. [Proving the design](#19-proving-the-design)
 
 ## 1. Why this document
 
@@ -46,8 +48,9 @@ the class. Each was found after it was built.
 
 This document describes everything planned in both repositories as one
 design, so that its parts can be checked against each other before
-anything more is built. Only once it's approved is it split into
-items again.
+anything more is built. It's then proved by experimental code, built
+to show it holds together (section 19), and only once it's proved and
+approved is it split into items again.
 
 ## 2. What it's for
 
@@ -753,6 +756,7 @@ Each says whose it is, and recommends an answer where there's one.
 | **Q18** | Its CI testing against Ekorn's `pipeline-experimental`? | DBIx-Squirrel | Yes, as on its `ekorn-pipeline` branch in November |
 | **Q19** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | Iain | No |
 | **Q20** | A strict `is_stage` (2026-0019) at all, given pipeline-last? | Iain | Not now: pipeline-last answers the need |
+| **Q21** | The code that proves the design (section 19): kept, as where the items start, or written again item by item? | Iain | Kept where it holds, each item taking in its part and finishing it, with its tests, docs and coverage |
 
 ## 17. Decisions, and what was weighed
 
@@ -1010,3 +1014,80 @@ Weighed and set aside:
 | DBIx-Squirrel 2026-0010, Sugar's `pipeline` key | 12.5 | defines its own |
 | DBIx-Squirrel 2026-0011, Ekorn's helpers | 10 | **Q13** |
 | DBIx-Squirrel 2026-0012, `insert_into` | 12.4 | needs Sink and ends |
+
+When the design is split into items, the proofs of section 19 go with
+them as tests, in the Done when of each item they rest on: the
+lifecycle (2026-0014), the words (2026-0015), sources (2026-0016),
+sinks (2026-0017) and operators (2026-0018). So each item shows it
+still holds the design together, rather than that being found at the
+end.
+
+## 19. Proving the design
+
+The design is tested by building it: experimental code on
+`pipeline-experimental`, enough to run the proofs below, before Iain
+approves the design and it's split into items. What the code finds
+goes back into this document, and the drafts, as any other change
+does. Whether the code is kept is **Q21**.
+
+Two compositions prove that the types fit together as section 4 says.
+Neither needs a stage between its parts, so each tests the types and
+their ends alone.
+
+### 19.1 A source joined directly to a sink
+
+```perl
+my $copied = from_file('a.txt') | to_file('b.txt');
+my($also)  = Ekorn::Pipeline->new(to_file('b.txt'))->iterator(from_file('a.txt'))->();
+```
+
+It proves the ends of section 5, with nothing else in the run:
+
+- **It copies:** `b.txt` is `a.txt`, record for record, as `$/`
+  divides them, and the result is how many there were. A file whose
+  last line has no newline gains one, as `to_file` writes `$/` after
+  each record.
+- **Both files are closed, once each, however the run ends:** run
+  out, both are told `done`; with `first_value` as the sink, the
+  source is told `stopped` after one record, and the sink `done`; when
+  the sink dies, such as when `b.txt` can't be written, both are told
+  `died`, and the error is thrown again.
+- **The source's end runs last** (**Q5**), after the sink's.
+- **Both forms agree:** `|`, and `new` pulled with `iterator`, give
+  the same result and the same ends.
+
+### 19.2 A complete pipeline as a source
+
+```perl
+my $lines = Ekorn::Pipeline->new(stage { uc }, to_array)->iterator(from_file('a.txt'));
+my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
+```
+
+It proves that a whole run, with its ends, can be one part of another
+run, without the ends of either reaching the other:
+
+- **The inner run ends at the first pull:** its sink holds back every
+  value, so the first pull reads all of `a.txt`, and its source and
+  sink are told `done`, before the outer run has its first value.
+- **The outer run's ending doesn't reach the inner:** `take(2)` stops
+  the outer run, telling its source, the inner iterator, `stopped`,
+  but the inner's own source and sink, already ended, aren't told
+  again. The same holds for a die in the outer run.
+- **A result of one value is a source of one value:** with `count` as
+  the inner sink, the first pull gives the count, and the next an
+  empty list.
+- **Without a sink, the inner run is pulled only as needed:** with
+  `to_array` taken out, `take(2)` reads two lines of `a.txt`, and the
+  inner source is told `stopped`. So it's the sink that makes the
+  inner run read everything first.
+- **Abandoned, it ends:** the outer iterator let go after one pull
+  ends its run, as section 5.5 says, and the inner's too if it hasn't
+  ended already, as it has when the inner pipeline ends in a sink.
+
+### 19.3 What the proofs need built
+
+The least of each part they use: the lifecycle (section 5), with
+`for_run`, the ends and `DESTROY`; the Source and Sink classes, and
+the words `source`, `sink` and `stage`; `from_file`, `to_file`,
+`to_array`, `count` and `first_value`; and `|` between a source, a
+stage and a sink. Built in that order, as section 15 has it.

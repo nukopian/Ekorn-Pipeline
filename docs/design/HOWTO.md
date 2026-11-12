@@ -202,6 +202,44 @@ say tracks(sub { $_->{title} }, save_to('titles.txt'));    # 6
 # titles.txt is replaced only if every title was written
 ```
 
+### Copy a file, with nothing in between
+
+A source and a sink can be joined directly. Here the pipeline is only
+a sink, `to_file`, and the iterator runs it, reading from `from_file`:
+
+```perl
+use Ekorn::Pipeline::Sources qw(from_file);
+use Ekorn::Pipeline::Sinks   qw(to_file);
+
+my($n) = Ekorn::Pipeline->new(to_file('setlist.bak'))->iterator(from_file('setlist.txt'))->();
+say $n;    # how many lines were copied
+```
+
+`from_file` takes `$/` from each line and `to_file` puts it back, so
+the copy is line for line. Both files are closed however the run ends,
+even if `setlist.bak` can't be written.
+
+### Feed one pipeline's result to another
+
+A pipeline that reads from a source and ends in a sink, pulled, is
+itself a source: it gives the sink's result. Another pipeline can read
+from it:
+
+```perl
+use Ekorn::Pipeline::Sources qw(from_file);
+use Ekorn::Pipeline::Sinks   qw(to_array);
+
+my $lines = Ekorn::Pipeline->new(sub { uc }, to_array)->iterator(from_file('setlist.txt'));
+my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
+while (my($line) = $next->()) { say $line }
+# the first two lines, in capitals
+```
+
+`to_array` holds back every line until there are no more, so the first
+pull reads the whole file, and closes it, before the first line comes
+out. Without `to_array`, `take(2)` would read only two lines. Use a
+sink this way when the reading must finish before what follows starts.
+
 ## Chaining with | (new)
 
 ### Join a source, stages and a sink with |
@@ -219,6 +257,11 @@ my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 say from_arrayref(\@tracks) | $blur | count;                                  # 3
 my @titles = @{ from_arrayref(\@tracks) | $blur | stage { $_->{title} } };    # Girls & Boys, Parklife, Country House
 ```
+
+A source and a sink join directly too, so a file is copied with
+`from_file('setlist.txt') | to_file('setlist.bak')`. A chain ending in
+a sink gives its result at once, not a source: to feed one pipeline's
+result to another, use `iterator`, as above.
 
 **Write every stage in a chain with `stage`,** or use a ready-made
 one. `sub { ... } | sub { ... }` isn't an error in Perl: it's a
