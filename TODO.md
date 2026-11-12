@@ -2,11 +2,12 @@
 
 ## From DBIx-Squirrel, 2026-11-12: its iterator's all, single and count become your sinks, named for what they are
 
-**From:** DBIx-Squirrel a0186093f239c084deb3a67271cdb29ad61a055e, on its branch `pipeline-experimental`
+**From:** DBIx-Squirrel a1e2fcbbd53340fb1bbb95f5787ac9110b103d86, on its branch `pipeline-experimental`
 
-Amended before you read it: it first asked for a `to_scalar`, which
-Iain has since said was wrongly named, as were `to_array` and
-`to_arrayref`. Read only this one.
+Amended twice before you read it: it first asked for a `to_scalar`,
+which Iain said was wrongly named; and then said your container sinks
+would be renamed, which he has since said they needn't be. Read only
+this one.
 
 Iain decided on 2026-11-12 that DBIx::Squirrel's iterator loses its
 `all`, `single` and `count` methods in its v3.0.0. A run ends in a sink
@@ -16,8 +17,8 @@ sinks are Ekorn's, and DBIx::Squirrel makes none of its own
 (DBIx-Squirrel's `docs/design/DESIGN.md`, section 6, and its record
 2026-0013, D11, D12 and D14).
 
-**Iain's names,** for what each sink is, not for what its result is
-put in:
+**Iain's names,** for the sinks that stand in for the methods, named
+for what each gives, not for what its result is put in:
 
 | DBIx::Squirrel today | The sink | Your design has |
 |---|---|---|
@@ -26,17 +27,22 @@ put in:
 | `$it->single` | `only_item`: the one value, asserting it's the only one, with a croak at a second | nothing |
 | `$it->count`, after a drain | `count` | `count` |
 
-In his words, `to_scalar`, `to_array` and `to_arrayref` "were wrongly
-named". `count` keeps its name, "as in that's what it is, not what
-we're putting the result in". So the same rule would rename your
-other container-named sinks, and "item" replaces your "value". These
-are your sinks, so how far that goes, and the names of the rest, are
-yours to design with Iain.
+`count` keeps its name, "as in that's what it is, not what we're
+putting the result in". For these jobs, `to_scalar`, `to_array` and
+`to_arrayref` "were wrongly named", and "item" replaces your "value".
 
-**One gap:** a `|` chain can end only in a sink giving one value (your
-D10), so `all_items`, a list, can't end one; your design has
-`to_arrayref` for that. Its name in Iain's scheme is open, as
-DBIx-Squirrel's Q18.
+**Container sinks are another kind, and stay.** In Iain's words: "I
+think to_array is still *a* valid sink, but it's another sink. The
+same way I think to_hash and to_hashref might also be valid sinks for
+pairwise lists." So there are two kinds: sinks named for what they
+give, `all_items`, `first_item`, `only_item` and `count`; and
+container sinks, named for where the items go, your `to_array`,
+`to_arrayref`, `to_hash` and `to_hashref`. `to_arrayref` is what ends
+a `|` chain wanting every value (your D10), as your design has it
+(DBIx-Squirrel's record 2026-0013, D15).
+
+These are your sinks, so how far the names go, `first_value` and the
+rest of your "value" sinks included, is yours to design with Iain.
 
 DBIx::Squirrel also relies on D43: `iterate`, `results`, its `select`
 methods and its Sugar's statements give a sink's result when their last
