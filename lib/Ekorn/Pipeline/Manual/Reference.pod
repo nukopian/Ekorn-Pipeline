@@ -101,7 +101,7 @@ L<The modules|/"The modules">
     use Ekorn::Pipeline;
     use Ekorn::Pipeline::Stop;                                       # Stop
     use Ekorn::Pipeline::Gather;                                     # gather
-    use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_while, drop_while
+    use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_while, drop_while
     use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
     use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
 
@@ -1160,6 +1160,30 @@ B<Passes on:> all but the first C<$count> values
 
 B<Exported:> by default
 
+=item C<take_first>
+
+B<Module:> Flow
+
+B<Passes on:> the first value, then stops
+
+B<Exported:> on request
+
+=item C<take_last>
+
+B<Module:> Flow
+
+B<Passes on:> at the end, the last value
+
+B<Exported:> on request
+
+=item C<take_single>
+
+B<Module:> Flow
+
+B<Passes on:> the one value; at a second, warns and stops
+
+B<Exported:> on request
+
 =item C<take_while { ... }>
 
 B<Module:> Flow
@@ -1259,6 +1283,31 @@ Drops the first C<$count> values, and passes on the rest. With C<take>,
 it gives a page: C<drop(20), take(10)> passes on the 21st to the 30th.
 It croaks "Expected a count of 0 or more" if C<$count> isn't a whole
 number.
+
+=head3 take_first
+
+    take_first
+
+Passes on the first value, then stops the pipeline: C<take(1)>.
+
+=head3 take_last
+
+    take_last
+
+Passes on the last value, once there are no more, reading every one to
+find it; nothing if there were none. If a stage before it stops the
+pipeline, it passes on the last value to reach it.
+
+=head3 take_single
+
+    take_single
+
+Passes on the one value. At a second, it warns "Expected only one item,
+but there were more" and stops the pipeline, so the first is all that
+goes on: for when one value was meant, and its limit forgotten.
+
+    say join ' ', Ekorn::Pipeline->new(take_last)->(1 .. 9);      # 9
+    say join ' ', Ekorn::Pipeline->new(take_single)->(1 .. 9);    # 1, with a warning
 
 =head3 take_while
 
@@ -1763,6 +1812,12 @@ or C<peek> was given something other than a block or code reference.
 
 =item *
 
+B<Expected only one item, but there were more:> a warning, not an
+error: C<take_single> was given a second value, and stopped the
+pipeline, passing on only the first.
+
+=item *
+
 B<Expected a reference to a scalar:> C<count_into> was given
 something other than a reference to a scalar.
 
@@ -1805,7 +1860,7 @@ B<On request:> C<croakf>
 
 B<By default:> C<take>, C<drop>
 
-B<On request:> C<take_while>, C<drop_while>
+B<On request:> C<take_first>, C<take_last>, C<take_single>, C<take_while>, C<drop_while>
 
 B<Tags:> C<:all>
 
@@ -1854,7 +1909,7 @@ Reports errors at the caller's line: C<croakf> and C<@INTERNAL>.
 
 =item C<Ekorn::Pipeline::Stages::Flow>
 
-Canned stages taking or dropping values: C<take>, C<drop>, C<take_while>, C<drop_while>.
+Canned stages taking or dropping values: C<take>, C<drop>, C<take_first>, C<take_last>, C<take_single>, C<take_while>, C<drop_while>.
 
 =item C<Ekorn::Pipeline::Stages::Batch>
 

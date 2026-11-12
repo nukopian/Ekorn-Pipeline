@@ -326,8 +326,8 @@ caller's line.
 =over
 
 =item * L<Ekorn::Pipeline::Stages::Flow>: C<take>, C<drop>,
-C<take_while> and C<drop_while>, which pass values on by their
-position or by a test.
+C<take_first>, C<take_last>, C<take_single>, C<take_while> and
+C<drop_while>, which pass values on by their position or by a test.
 
 =item * L<Ekorn::Pipeline::Stages::Batch>: C<batch> and C<collect>,
 which gather values and pass them on together.

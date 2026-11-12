@@ -204,7 +204,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
 | `Ekorn::Pipeline::Sinks` | 2 | `keep_all`, `keep_first`, `keep_single`, `count_items`; `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
-| `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | `take`, `drop`, `take_while`, `drop_while`; `batch`, `collect`; `peek`, `count_into`, `dump_to` |
+| `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_while`, `drop_while`; `batch`, `collect`; `peek`, `count_into`, `dump_to` |
 
 ### 4.2 The protocols the core relies on
 

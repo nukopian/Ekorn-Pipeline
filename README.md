@@ -290,8 +290,8 @@ caller's line.
 ## Canned stages
 
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
-`take_while` and `drop_while`, which pass values on by their
-position or by a test.
+`take_first`, `take_last`, `take_single`, `take_while` and
+`drop_while`, which pass values on by their position or by a test.
 - [Ekorn::Pipeline::Stages::Batch](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ABatch): `batch` and `collect`,
 which gather values and pass them on together.
 - [Ekorn::Pipeline::Stages::Taps](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ATaps): `peek`, `count_into` and

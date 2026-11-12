@@ -52,7 +52,8 @@ arrays and hashes; `to_fh` and `to_file` stay. D55 settled:
 `all_items`, `first_item` and `single_item` renamed `keep_all`,
 `keep_first` and `keep_single`. D56 settled: `last_item` is
 `keep_last`, and built. D57 settled: `keep(N)`, a list sink of the
-first N items, stopping there.
+first N items, stopping there. D58 settled: a `take` stage for every
+`keep` sink but `keep_all`.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -541,6 +542,20 @@ D19 to D25 came from the third cold review, settled by Iain on
   `keep(0)` keeps nothing, stopping at the first item; and it keeps
   the first N only, a negative N croaking, the last N left until a
   use appears. Built: in Sinks, with tests. Design 8.3 and 17.31.
+- [x] **D58.** Does every `keep` sink have a `take` stage? Yes, Iain
+  decided on 2026-11-12: "For every `keep...` sink, we should have a
+  `take...` stage analogue", because "forgetting a keep sink isn't a
+  problem if we end a pipeline with a take stage. We just get a count
+  in scalar context and the items in list context." `take_first`,
+  `take_last` and `take_single` join `take($n)`, `keep($n)`'s, in
+  Stages::Flow, exported on request, each passing on what its sink
+  gives, as he chose: `take_first` is `take(1)`; `take_last` passes on
+  the last at the run's end, or the last to reach it if a stage before
+  it stops the run; `take_single` warns at a second, as `keep_single`
+  does, and stops. No `take_all`, Iain agreed: it would be no stage.
+  Not by default, as Flow is released and a new default export could
+  replace a user's function. Built: in Flow, with its POD, tests, the
+  published reference and README. Design 8.1 and 17.32.
 
 ## The plan
 

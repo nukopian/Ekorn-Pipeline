@@ -7,7 +7,8 @@ Unreleased
     pipeline given last. A subclass of Ekorn::Pipeline gets a
     pipeline() of its own, and Pipes can make a subclass's
     pipelines. The README's CPAN badge keeps up with releases, and
-    the how-to says where a stage belongs.
+    the how-to says where a stage belongs. Stages::Flow has
+    take_first, take_last and take_single.
 
     It ships two roadmap items, 2026-0009 and 2026-0011, and a task
     from DBIx-Squirrel, 2026-0020. It only adds: existing code runs as
@@ -58,6 +59,11 @@ Unreleased
     - The how-to has a recipe, "Decide where a stage belongs": under
       Ekorn::Pipeline::Stages, or with the module whose values it
       needs to know about. Its cpanfile example asks for v0.2.0.
+    - Ekorn::Pipeline::Stages::Flow exports three more stages on
+      request: take_first, which is take(1); take_last, passing on the
+      last value once there are no more; and take_single, passing on
+      the one value, and, at a second, warning "Expected only one item,
+      but there were more" and stopping. (roadmap 2026-0022)
 
 v0.2.0 2026-11-09
 

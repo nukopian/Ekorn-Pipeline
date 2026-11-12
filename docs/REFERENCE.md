@@ -48,7 +48,7 @@ use v5.36;
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Stop;                                       # Stop
 use Ekorn::Pipeline::Gather;                                     # gather
-use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_while, drop_while
+use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_while, drop_while
 use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
 use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
 
@@ -969,6 +969,9 @@ are made with `gather`, so they start afresh on each run.
 |---|---|---|---|
 | `take($count)` | Flow | the first `$count` values, then stops | by default |
 | `drop($count)` | Flow | all but the first `$count` values | by default |
+| `take_first` | Flow | the first value, then stops | on request |
+| `take_last` | Flow | at the end, the last value | on request |
+| `take_single` | Flow | the one value; at a second, warns and stops | on request |
 | `take_while { ... }` | Flow | values until the block is false of one, then stops | on request |
 | `drop_while { ... }` | Flow | values from the first the block is false of | on request |
 | `batch($size)` | Batch | array references of `$size` values, the last shorter | by default |
@@ -1017,6 +1020,39 @@ Drops the first `$count` values, and passes on the rest. With `take`,
 it gives a page: `drop(20), take(10)` passes on the 21st to the 30th.
 It croaks "Expected a count of 0 or more" if `$count` isn't a whole
 number.
+
+#### take_first
+
+```perl
+take_first
+```
+
+Passes on the first value, then stops the pipeline: `take(1)`.
+
+#### take_last
+
+```perl
+take_last
+```
+
+Passes on the last value, once there are no more, reading every one to
+find it; nothing if there were none. If a stage before it stops the
+pipeline, it passes on the last value to reach it.
+
+#### take_single
+
+```perl
+take_single
+```
+
+Passes on the one value. At a second, it warns "Expected only one item,
+but there were more" and stops the pipeline, so the first is all that
+goes on: for when one value was meant, and its limit forgotten.
+
+```perl
+say join ' ', Ekorn::Pipeline->new(take_last)->(1 .. 9);      # 9
+say join ' ', Ekorn::Pipeline->new(take_single)->(1 .. 9);    # 1, with a warning
+```
 
 #### take_while
 
@@ -1420,6 +1456,9 @@ stage.
   other than a whole number above 0.
 - **Expected a code reference:** `take_while`, `drop_while`, `collect`
   or `peek` was given something other than a block or code reference.
+- **Expected only one item, but there were more:** a warning, not an
+  error: `take_single` was given a second value, and stopped the
+  pipeline, passing on only the first.
 - **Expected a reference to a scalar:** `count_into` was given
   something other than a reference to a scalar.
 - **Expected an open filehandle:** `dump_to` was given something other
@@ -1434,7 +1473,7 @@ stage.
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
 | `Ekorn::Pipeline::Errors` | nothing | `croakf` | |
-| `Ekorn::Pipeline::Stages::Flow` | `take`, `drop` | `take_while`, `drop_while` | `:all` |
+| `Ekorn::Pipeline::Stages::Flow` | `take`, `drop` | `take_first`, `take_last`, `take_single`, `take_while`, `drop_while` | `:all` |
 | `Ekorn::Pipeline::Stages::Batch` | `batch`, `collect` | | `:all` |
 | `Ekorn::Pipeline::Stages::Taps` | `peek`, `count_into` | `dump_to` | `:all` |
 
@@ -1450,6 +1489,6 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Gather` | Makes a stage afresh for each run, with a function called at the end: `gather`. |
 | `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods, and `pipeline_class`. |
 | `Ekorn::Pipeline::Errors` | Reports errors at the caller's line: `croakf` and `@INTERNAL`. |
-| `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_while`, `drop_while`. |
+| `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_while`, `drop_while`. |
 | `Ekorn::Pipeline::Stages::Batch` | Canned stages gathering values: `batch`, `collect`. |
 | `Ekorn::Pipeline::Stages::Taps` | Canned stages run for their side effects: `peek`, `count_into`, `dump_to`. |

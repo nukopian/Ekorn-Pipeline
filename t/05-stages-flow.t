@@ -3,7 +3,7 @@ use Test2::V0;
 use Test2::Plugin::NoWarnings;
 
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Stages::Flow qw(:DEFAULT take_while drop_while);
+use Ekorn::Pipeline::Stages::Flow qw(:all);
 
 my $class = 'Ekorn::Pipeline';
 
@@ -25,14 +25,17 @@ subtest 'what is exported' => sub {
 
     package Defaults {    ## no critic (Modules::ProhibitMultiplePackages)
         use Ekorn::Pipeline::Stages::Flow;
-        ::ok __PACKAGE__->can($_),  "$_ by default" for qw(take       drop);
-        ::ok !__PACKAGE__->can($_), "not $_"        for qw(take_while drop_while);
+        ::ok __PACKAGE__->can($_), "$_ by default" for qw(take drop);
+        ::ok !__PACKAGE__->can($_), "not $_"
+            for qw(take_first take_last take_single take_while drop_while);
     }
 
     package All {         ## no critic (Modules::ProhibitMultiplePackages)
         use Ekorn::Pipeline::Stages::Flow qw(:all);
         ::ok __PACKAGE__->can($_), "$_ with :all"
-            for qw(take drop take_while drop_while);
+            for qw(
+                take drop take_first take_last take_single take_while
+                drop_while);
     }
 
     package None {        ## no critic (Modules::ProhibitMultiplePackages)
@@ -52,6 +55,34 @@ subtest 'take' => sub {
     my $next = $class->new(take(2))->iterator($src);
     is drain($next), [qw(a b)], 'pulled';
     is $$calls,      2,         'without asking for the value after';
+};
+
+subtest 'take_first, take_last and take_single' => sub {
+    is [$class->new(take_first)->(qw(a b c))], [qw(a)], 'take_first: the first';
+    is [$class->new(take_first)->()],          [],      'or none';
+    my($src, $calls) = source(qw(a b c d));
+    is drain($class->new(take_first)->iterator($src)), [qw(a)], 'pulled';
+    is $$calls, 1, 'asking for nothing after';
+
+    is [$class->new(take_last)->(qw(a b c))], [qw(c)], 'take_last: the last';
+    is [$class->new(take_last)->()],          [],      'or none';
+    is [$class->new(take_last, sub { uc })->(qw(a b))], [qw(B)],
+        'and the stages after it go on';
+    is [$class->new(take_last)->(qw(a b))], [qw(b)], 'afresh on each run';
+    is [$class->new(take(2), take_last)->(qw(a b c))], [qw(b)],
+        'the last to reach it, if the run is stopped before it';
+
+    is [$class->new(take_single)->(qw(a))], [qw(a)], 'take_single: the one';
+    is [$class->new(take_single)->()],      [],      'or none';
+    my @out;
+    my $warnings = warnings { @out = $class->new(take_single)->(qw(a b c)) };
+    is \@out,             [qw(a)], 'given more, the first';
+    is scalar @$warnings, 1,       'and a warning, once';
+    like $warnings->[0],
+        qr( \A Expected\ only\ one\ item,\ but\ there\ were\ more )x;
+    ($src, $calls) = source(qw(a b c d));
+    $warnings = warnings { drain($class->new(take_single)->iterator($src)) };
+    is $$calls, 2, 'pulled, it stops at the second';
 };
 
 subtest 'drop' => sub {

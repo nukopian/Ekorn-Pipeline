@@ -576,8 +576,11 @@ again (Q11, 2026-0022's D35). A pipeline holds no source anyway
 
 ### 8.1 Stages (settled, with one change, Q12)
 
-`take`, `drop`, `take_while`, `drop_while`, `batch`, `collect`,
-`peek`, `count_into`, `dump_to`, in Ekorn::Pipeline::Stages::*.
+`take`, `drop`, `take_first`, `take_last`, `take_single`,
+`take_while`, `drop_while`, `batch`, `collect`, `peek`, `count_into`,
+`dump_to`, in Ekorn::Pipeline::Stages::*. Every `keep` sink has a
+`take` stage passing on what it would give, but `keep_all`, whose
+stage would be no stage (D58, 17.32).
 
 Settled (Q12, D4): each returns an `Ekorn::Pipeline::Stage` (or Gather) object
 rather than a plain code reference, so they work with the operators of
@@ -1898,6 +1901,34 @@ Weighed and set aside:
   the two should agree.
 - **The last `$n`, by a negative `$n` or `keep_last($n)`.** Not now;
   it can come when a use appears.
+
+### 17.32 A `take` stage for every `keep` sink
+
+(Section 8.1; Iain, 2026-11-12, 2026-0022's D58.) "For every `keep...`
+sink, we should have a `take...` stage analogue." `take($n)` was
+already `keep($n)`'s; `take_first`, `take_last` and `take_single` join
+it in Stages::Flow, on request. Each passes on what its sink gives as
+its result, and the stages after it go on: `take_first` is `take(1)`;
+`take_last` holds each value and passes on the last as the run ends,
+or the last to reach it if a stage before it stops the run; and
+`take_single` passes on the first, and at a second warns, as
+`keep_single` does, and stops.
+
+Why, in Iain's words: "This way, forgetting a keep sink isn't a
+problem if we end a pipeline with a take stage. We just get a count in
+scalar context and the items in list context." A pipeline with no
+sink gives how many came out in scalar context (D17), and the values
+in list context, so one ending in `take_last` instead of `keep_last`
+is still right where a list is asked for, and plainly a count, not a
+wrong item, where one value is.
+
+Weighed and set aside:
+
+- **`take_all`, `keep_all`'s analogue.** It would pass every value on
+  unchanged: no stage at all, and noise in a pipeline.
+- **Exporting them by default,** beside `take` and `drop`. Flow is
+  released, and a new default export could replace a function already
+  in a user's package.
 
 ## 18. Where each roadmap item lands
 
