@@ -735,9 +735,11 @@ Ekorn::Pipeline - run values through a list of stages
 
 =head1 DESCRIPTION
 
-A pipeline is a list of stages. A stage is a code reference, or
-another pipeline, which stands for its own stages (see
-L</A pipeline as a stage>).
+A pipeline is a list of stages. A stage is a code reference; another
+pipeline, which stands for its own stages (see
+L</A pipeline as a stage>); a stage made for each run, with
+L<Ekorn::Pipeline::Gather>; or a sink, which consumes the values and
+gives a result (see L<Ekorn::Pipeline::Sink>).
 
 A code reference is called with one value, both as its argument and
 in C<$_>. It can name the value with a signature,
@@ -766,10 +768,11 @@ through the rest of the stages. Nothing else is processed:
 
     sub ($row) { $row->{id} == $wanted ? Stop($row) : () }
 
-A stage made with L<Ekorn::Pipeline::Gather> is made afresh for each
-run of the pipeline. It can also have an end function, called once the
-values run out, whose values go through the rest of the stages. Each
-call of a pipeline with values is a run, and so is each iterator.
+Each call of a pipeline with values is a run, and so is each
+iterator. A stage made with L<Ekorn::Pipeline::Gather> is made afresh
+for each run, and so are a source and a sink, so a run can open a file,
+or start a transaction, and close or commit it when it ends, however
+it ends: see L</RUNS AND HOW THEY END>.
 
 =head2 Stages from your caller
 
@@ -790,6 +793,12 @@ asks for them. A function reading a file or a socket reads no more
 than it has to. Once a stage has stopped the pipeline, the source isn't
 called again.
 
+Values can come from a source, given to L</iterator>: a code
+reference, or one made with L<Ekorn::Pipeline::Source>, which is told
+when the run ends. And a pipeline can end in a sink, such as
+C<keep_all> or C<count_items>, from L<Ekorn::Pipeline::Sinks>, whose
+result is what the run gives.
+
 The canned stages, in L<Ekorn::Pipeline::Stages::Flow>,
 L<Ekorn::Pipeline::Stages::Batch> and L<Ekorn::Pipeline::Stages::Taps>,
 work in any pipeline. L<Ekorn::Pipeline::Pipes> gives a class of your
@@ -802,9 +811,11 @@ own C<pipe> and C<tap> methods, which run an object through stages.
     my $p = Ekorn::Pipeline->new(@stages);
 
 Returns a pipeline that runs values through C<@stages>, in order. Each
-stage must be a code reference or a pipeline (see
-L</A pipeline as a stage>); anything else croaks. With no stages, a
-pipeline returns its values unchanged.
+stage must be something L</is_stage> is true for: a code reference; a
+pipeline (see L</A pipeline as a stage>); or a part offering one of the
+role methods C<ekorn_stage>, C<ekorn_sink_one> and C<ekorn_sink_many>,
+such as a gather or a sink. Anything else croaks, a source included.
+With no stages, a pipeline returns its values unchanged.
 
 A pipeline is an object that can be called as a code reference. Called
 with values, it returns the list that comes out of the last stage:
@@ -815,6 +826,14 @@ In scalar context, it returns how many results came out, as an array
 would:
 
     my $count = $p->(@values);
+
+Unless its last stage is a sink: then a run gives the sink's result. In
+list context, that's the sink's list, or a sink of one's one value. In
+scalar context, a sink of one gives its value, and a sink of many its
+list as an array reference:
+
+    my $n    = Ekorn::Pipeline->new(count_items)->('a', 'b');    # 2
+    my $kept = Ekorn::Pipeline->new(keep_all)->('a', 'b');       # ['a', 'b']
 
 =head3 A pipeline as a stage
 
@@ -963,11 +982,13 @@ is looked up when a pipeline is made. Define names before using them.
 
     my $next = $p->iterator($source);
 
-Returns a closure that hands out the values that come out of the
-stages, one per call. C<$source> is a code reference that returns the
-next value or values each time it's called, and an empty list when
-there are no more. It's called only once the values from its last
-call have all been handed out.
+Returns an iterator, an L<Ekorn::Pipeline::Iterator>, which hands out
+the values that come out of the stages, one per call. C<$source> is a
+code reference that returns the next value or values each time it's
+called, and an empty list when there are no more; or anything offering
+an C<ekorn_source> method, such as an L<Ekorn::Pipeline::Source>, made
+for the run and told when it ends, or another iterator. It's called
+only once the values from its last call have all been handed out.
 
 The closure returns an empty list when the values run out, and on
 every call after that. After a stop, it returns an empty list once the
@@ -977,15 +998,19 @@ isn't mistaken for the end:
 
     while (my($x) = $next->()) { ... }
 
-The end functions of stages made with L<Ekorn::Pipeline::Gather> are
-called once the source runs out, or after a stop, before the closure
-returns an empty list.
+The flushes of gathers and sinks are called once their input runs
+out, before the closure returns an empty list. The run's ends are
+called as it ends, as L</RUNS AND HOW THEY END> describes. The
+iterator has methods of its own, to pull every value still to come,
+or the first, and to end the run early: see
+L<Ekorn::Pipeline::Iterator>.
 
-If a stage or an end function dies, the call dies with it, and the
-iterator has ended, as a pushed run does. Every call after returns an
-empty list. Nothing waiting goes on through the stages, no end
-function is called, and the source isn't called again. To skip a bad
-value and carry on, catch the error inside the stage.
+If a stage or a flush dies, the call dies with it, and the run has
+ended, as a pushed run does. Every call after returns an empty list.
+Nothing waiting goes on through the stages, no flush is called, and
+the source isn't called again; each end is called, told C<died>, before
+the error is thrown again. To skip a bad value and carry on, catch the
+error inside the stage.
 
 =head2 stages
 
@@ -1018,6 +1043,111 @@ so anything it keeps is shared. Keep state in C<gather> instead.
 L</A pipeline as a stage> describes.
 
 =back
+
+=head1 RUNS AND HOW THEY END
+
+A run is one call of a pipeline with values, or one iterator made from
+it. Each run has its own state. A part of the pipeline that needs
+state, such as a batch it's filling or a file it has open, is made
+afresh for each run.
+
+=head2 Made for a run
+
+A gather (L<Ekorn::Pipeline::Gather>), a source
+(L<Ekorn::Pipeline::Source>) or a sink (L<Ekorn::Pipeline::Sink>) has a
+I<set-up>, a code reference called at the start of each run. It
+declares whatever the run needs, with C<my>, and returns closures
+sharing what it declared:
+
+=over
+
+=item * the I<step>, called with each value (a gather or a sink), or
+each time the source is pulled (a source);
+
+=item * the I<flush>, for a gather or a sink, called once its input
+runs out, what it returns going on through the stages after it. A
+sink's gives its result, and is required;
+
+=item * the I<end>, called once, when the run has ended, told how. It's
+optional;
+
+=item * a I<context>, for a source only, and optional: anything its
+stages may ask for with L</run_context>.
+
+=back
+
+Two iterators of the same pipeline each get their own, from their own
+call of the set-up. A plain code reference is never made for a run:
+it's the same code, with the same closure, in every run.
+
+Any object can take part, by offering a role method that does what a
+set-up does: C<ekorn_source>, C<ekorn_stage>, C<ekorn_sink_one> or
+C<ekorn_sink_many>.
+L<Ekorn::Pipeline::Manual::Reference/Delivering parts for Ekorn> has
+how.
+
+=head2 How a run ends
+
+A run ends in one of three ways, and each part's end is told which,
+from where the part stands:
+
+=over
+
+=item * C<died>, if the run died, anywhere, before it ended;
+
+=item * C<stopped>, if its input was cut short, by a stop at or after
+it, or by the run being ended from outside, as an iterator's
+L<finish|Ekorn::Pipeline::Iterator/finish> does;
+
+=item * C<done>, if its input ran out, and the run didn't die. A part
+whose input had run out before a stop is told C<done>, and so is a
+sink that stops the run itself.
+
+=back
+
+So a stop ends the stream early for what's before it, and normally
+for what's after it. In
+
+    my $n = Ekorn::Pipeline->new(take(5), count_items)->iterator($lines)->();
+
+C<$lines> is told C<stopped>, and closes its file, and C<count_items>,
+after C<take(5)>, is told C<done>, and gives 5.
+
+=head2 Flushes and ends
+
+A flush is called once its part's input runs out normally: when the
+values ran out, after a stop in a stage before it, or, for a sink, when
+the sink stopped the run itself. What it returns goes on through the
+stages after it, and while it runs, and they do, L</ending> is true. It
+isn't told how the run ended, as the run hasn't.
+
+An end:
+
+=over
+
+=item * always runs, once, when the run has ended, however it ended,
+and is given how, as its argument: C<done>, C<stopped> or C<died>. A
+run has ended as soon as nothing in it can still act on a value. With
+a sink last, that's as the sink's result is ready, so a sink that
+commits only when told C<done> commits then, and never for a run that
+dies after it;
+
+=item * gives nothing: what it returns is dropped;
+
+=item * runs in order: the source's end first, then each stage's,
+first stage first, so a source that fails to close is known before any
+sink commits.
+
+=back
+
+After a stage dies, every end still runs, told C<died>, and then the
+error is thrown again, as it would have been. An end that dies then is
+reported as a warning, naming its stage, and the first error is kept.
+An end that dies in a run that hadn't died ends the run with its
+error, and the ends after it are told C<died>.
+
+An iterator dropped before its values run out ends its run when the
+last reference to it goes, as L<Ekorn::Pipeline::Iterator> describes.
 
 =head1 FUNCTIONS
 
@@ -1099,10 +1229,12 @@ C<Ekorn::Pipeline::pipeline(...)>.
 
     is_stage($thing)
 
-True if C<$thing> can be used as a stage: a code reference (including
-a stage made with L<Ekorn::Pipeline::Gather>), or a pipeline of this
-class or a subclass. It's the same test L</new> uses. It's false for a
-string, even the name of a pipeline.
+True if C<$thing> can be used as a stage: a code reference; a pipeline
+of this class or a subclass; or an object offering one of the role
+methods C<ekorn_stage>, C<ekorn_sink_one> and C<ekorn_sink_many>, such
+as a stage made with L<Ekorn::Pipeline::Gather>, or a sink. It's the
+same test L</new> uses. It's false for a string, even the name of a
+pipeline, and for a source.
 
 Use it in a function that takes its stages from the end of its
 arguments, so that it accepts the same stages C<new> does, pipelines
@@ -1128,14 +1260,44 @@ C<use My::Pipeline qw(name)> croaks unless the subclass exports C<name>
 itself; C<pipeline> is the exception, made for the subclass, as
 L</Through a subclass> says.
 
+=head2 is_sink
+
+    use Ekorn::Pipeline qw(is_sink);
+
+    is_sink($thing)
+
+Returns C<one> if C<$thing> is a sink of one, giving one value, and
+C<many> if it's a sink of many, giving a list; for a pipeline, the sink
+it ends in, if any. Both are true. It's false for anything else. A sink
+is anything offering C<ekorn_sink_one> or C<ekorn_sink_many>, as
+L<Ekorn::Pipeline::Sink> describes. It's exported on request.
+
 =head2 ending
 
     Ekorn::Pipeline::ending()
 
-True while the values going through the stages come from an end
-function, rather than from the source. It's for code that tells its
-stages more about each value, such as where it came from: a value from
-an end function has no such origin. It isn't exported.
+True while a flush runs, and while the values it gave go through the
+stages after it, rather than values from the source. It's for code that
+tells its stages more about each value, such as where it came from: a
+value from a flush has no such origin. It isn't exported.
+
+=head2 run_context
+
+    Ekorn::Pipeline::run_context()
+
+Returns the context the run's source gave, if any: the third thing its
+C<ekorn_source> method returned, such as a statement's column names.
+It's for stages that need to know about the values' source, called as
+they run. Each run has its own. A pushed run has none, and an iterator
+used as a source passes on its own run's. It isn't exported.
+
+    sub pluck ($name) {
+        return sub ($row) {
+            my $columns = Ekorn::Pipeline::run_context()->{columns};
+            my($at) = grep { $columns->[$_] eq $name } 0 .. $#$columns;
+            return $row->[$at];
+        };
+    }
 
 =head1 DIAGNOSTICS
 
@@ -1177,9 +1339,57 @@ L</named> was given something other than a name.
 
 L</named>, on a pipeline, was given stages after the name.
 
+=item Expected stage #%d to be a stage, not a source
+
+A source, something offering C<ekorn_source> and none of a stage's
+role methods, was given as a stage. Give it to L</iterator> instead.
+
+=item Expected stage #%d to offer one of ekorn_stage, ekorn_sink_one and ekorn_sink_many, not %s
+
+A stage offered more than one of the role methods, so it couldn't say
+which it is.
+
 =item Expected a code reference
 
-The source given to L</iterator> wasn't a code reference.
+The source given to L</iterator> wasn't a code reference, or anything
+offering C<ekorn_source>.
+
+=item Expected the source to return a code reference, and optionally an end and a context
+
+A source's C<ekorn_source> returned something else. It's reported as
+the run starts.
+
+=item Expected stage #%s to return a code reference, and optionally a flush and an end
+
+A stage's C<ekorn_stage> returned something else. It's reported as the
+run starts.
+
+=item Expected sink #%s to return a code reference, a flush, and optionally an end
+
+A sink's C<ekorn_sink_one> or C<ekorn_sink_many> returned something
+else. It's reported as the run starts.
+
+=item Expected no stop in a set-up, as the run has nothing yet to stop
+
+A set-up, or a role method, threw a L<Ekorn::Pipeline::Stop>. The ends
+of the parts already made are called, told C<died>.
+
+=item Pipeline end of %s failed at %s line %d:
+
+An end died, in a run that hadn't died. The message it died with
+follows, indented, and the end is named: C<the source>, or a stage by
+its position, as C<stage #2>. An exception object is passed on
+unchanged.
+
+=item Expected no stop in an end, as the run has ended
+
+An end threw a L<Ekorn::Pipeline::Stop>, which is an error like any
+other there, reported as the message above.
+
+=item The end of %s died while the run was already dying: %s
+
+A warning: an end died in a run that had died. The run's own error is
+thrown, once every end has run.
 
 =item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function
 
@@ -1188,7 +1398,7 @@ returned something else.
 
 =item Pipeline stage #%s failed at %s line %d:
 
-A stage, or its end function, died. The message it died with follows,
+A stage, or its flush, died. The message it died with follows,
 indented. An exception object is passed on unchanged.
 
 In this message and the one above, a stage is named by its position:
@@ -1200,7 +1410,8 @@ pipeline given as the second stage.
 =head1 SEE ALSO
 
 L<Ekorn::Pipeline::Gather>, L<Ekorn::Pipeline::Stop>,
-L<Ekorn::Pipeline::Pipes>, and L<DBIx::Squirrel>, where the pipeline
+L<Ekorn::Pipeline::Source>, L<Ekorn::Pipeline::Sink>,
+L<Ekorn::Pipeline::Iterator>, L<Ekorn::Pipeline::Pipes>, and L<DBIx::Squirrel>, where the pipeline
 began
 
 L<Ekorn::Pipeline::Manual::HowTo> shows how to do common tasks, one

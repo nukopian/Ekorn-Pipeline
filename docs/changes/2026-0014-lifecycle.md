@@ -2,8 +2,8 @@
 
 **Status:** in progress
 
-**Decisions:** None of its own: the design's (2026-0022, D1 to D70)
-settle it.
+**Decisions:** the design's (2026-0022, D1 to D70) settle it; D1, a
+gather's message naming its "end function", open.
 
 **Origin:** roadmap, added 2026-11-10, from DBIx-Squirrel's message
 (DBIx-Squirrel 7cf473408d73add0eda3eae5ca3e0be6afaaf122), rewritten
@@ -21,7 +21,15 @@ the published reference and how-to don't yet describe it.
 
 ## Decisions
 
-None of its own. A question found in the work is added here.
+The design's settle the item. Questions found in the work:
+
+- [ ] **D1. The gather message's "end function".** The message
+  "Expected stage #%s, made with gather, to return a code reference or
+  a pipeline, and optionally an end function" names the second thing a
+  gather returns by v0.2.0's name; it's now the flush, and a third, the
+  end, may follow. Reword it as "..., and optionally a flush and an
+  end", as the stage's message has it, in v0.3.0 (DBIx-Squirrel's tests
+  and copies of the message told), or keep it.
 
 ## The plan
 
@@ -46,4 +54,16 @@ iterators, from the drafts; `Changes`, its line ending "(roadmap
 
 ## What happened
 
-Nothing yet.
+**The POD, 2026-11-13.** Ekorn::Pipeline, Element, Source, Stage, Sink,
+Iterator and Gather are documented from the draft reference, each
+method with POD, so Pod::Coverage finds none missing in them. Pipeline
+gains a section, Runs and how they end, with `is_sink`, `run_context`,
+and the new messages in DIAGNOSTICS; Gather's "end function" is its
+flush, with a section on ends. Each example was run. Two links point
+ahead, to the reference's Delivering parts for Ekorn, which this item's
+reference step adds. Pipeline's sections on named pipelines through a
+subclass are left for 2026-0021, which removes them.
+
+Coverage after it is still below the floors, as Factories, Sources,
+Sinks and Operators, which are other items', have placeholder POD, and
+the branches and conditions untested in the core are the next step.
