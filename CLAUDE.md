@@ -237,10 +237,20 @@ what was Iain's.
 
   The second, after the first, shows the lines and branches the tests
   miss.
-- **The examples in the README, the how-to and the reference are
-  checked by hand** for now: run each one, and see that it prints what
-  its comments say, before committing a change to them. The how-to's
-  examples follow on from its first, which sets up their data.
+- **The how-to's examples are checked by `xt/howto.t`,** as Iain
+  decided on 2026-11-13: it runs them as one program, the first setting
+  up their data and each after it in a block of its own, and checks
+  each prints what its comments say, a comment at the end of a line
+  that prints, or comment lines straight after it, or after the end of
+  a block that prints, with `...` for any text. So write a how-to
+  example's comments as exactly what it prints. One that can't be run
+  so, such as one printing a test's output, is marked
+  `<!-- not run -->` on the line before it, and checked by hand. The
+  test is DBIx-Squirrel's, as it is but for its notes, so a change to
+  it that would suit DBIx-Squirrel's goes to it as a message.
+- **The examples in the README and the reference are checked by hand**
+  for now: run each one, and see that it prints what its comments say,
+  before committing a change to them.
 - Users installing from CPAN run the tests with whatever harness their
   installer uses, so they must pass under `prove` too. yath is the
   maintainers' choice, not a requirement.

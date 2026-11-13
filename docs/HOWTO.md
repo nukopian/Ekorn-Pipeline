@@ -375,8 +375,11 @@ my $next  = Ekorn::Pipeline->new(sub { $_ * 10 })
     ->iterator(sub { @queue ? shift @queue : () });
 
 while (my($n) = $next->()) {
-    say $n;    # 30, then 10, then 20
+    say $n;
 }
+# 30
+# 10
+# 20
 ```
 
 The source is called only when a result is wanted. That's the point
@@ -432,8 +435,10 @@ my $errors = Ekorn::Pipeline->new(sub { m( \A ERROR \s+ (.*) )x ? $1 : () })
     ->iterator(sub { scalar(<$fh>) // () });
 
 while (my($message) = $errors->()) {
-    say $message;    # disk full, then disk still full
+    say $message;
 }
+# disk full
+# disk still full
 ```
 
 Without `scalar`, `<$fh>` would read every line on its first call.
@@ -985,8 +990,10 @@ use Ekorn::Pipeline::Sources qw(from_file);
 
 my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file($setlist));
 say join ' / ', $next->all;    # Dancing Queen / Knowing Me, Knowing You
-say $next->ended;              # stopped: the file is closed
+say $next->ended;              # stopped
 ```
+
+The run was stopped, so `from_file` closed the file there and then.
 
 Give it I/O layers as a second argument: `from_file($path, ':raw')`
 for bytes, or `from_file($path, ':encoding(UTF-8)')` to decode text.
@@ -1265,7 +1272,12 @@ my $hits = "$dir/hits.txt";
 my $n    = tracks(sub { $_->{plays} >= 6000 ? $_->{title} : () }, to_file($hits));
 say "$n written";    # 3 written
 
-Ekorn::Pipeline->new(take(1), to_fh(\*STDOUT))->iterator(from_file($hits))->();    # Dancing Queen
+open my $fh, '>', \my $text or die "Can't write the text: $!\n";
+Ekorn::Pipeline->new(to_fh($fh))->iterator(from_file($hits))->();
+print $text;
+# Dancing Queen
+# Girls & Boys
+# Sunshine of Your Love
 ```
 
 `from_file` takes the newline off each line, and `to_file` puts it
@@ -1570,7 +1582,12 @@ say $hits | count_items;    # 3
 say $hits | keep_first;     # Dancing Queen
 
 my $next = Ekorn::Pipeline->new->iterator($hits);
-while (my($title) = $next->()) { say "Now playing: $title" }    # each hit, one at a time
+while (my($title) = $next->()) {
+    say "Now playing: $title";
+}
+# Now playing: Dancing Queen
+# Now playing: Girls & Boys
+# Now playing: Sunshine of Your Love
 ```
 
 ### Build a chain of stages, and add to it
@@ -2060,6 +2077,7 @@ Calling a pipeline with values tests a stage, with no source to set
 up. Run it twice, to show it starts afresh, and with no values, to
 show what it does with none:
 
+<!-- not run -->
 ```perl
 use Test2::V0;
 
