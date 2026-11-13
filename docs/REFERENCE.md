@@ -330,6 +330,17 @@ its own, as
 [Calling a pipeline from a stage](#calling-a-pipeline-from-a-stage)
 explains.
 
+### name
+
+```perl
+my $name = $p->name;
+```
+
+Returns the first name the pipeline was given with [named](#named),
+qualified by its package, as `main::clean`, or `undef` if it has none.
+Errors in its stages name it (see
+[When a stage dies](#when-a-stage-dies)). It's new in v0.3.0.
+
 ### pipeline_in
 
 ```perl
@@ -1545,6 +1556,20 @@ Pipeline stage #2 failed at app.pl line 12:
     No name for user 7 at app.pl line 9.
 ```
 
+A stage within a named pipeline, or of the named pipeline run, is
+named with it too: after its position, the innermost named pipeline
+it's in, by its [name](#name), and its position there. The second
+stage of the pipeline named `clean`, given as the first stage, is:
+
+```text
+Pipeline stage #1.2 (main::clean#2) failed at app.pl line 12:
+```
+
+It's the name the pipeline has when the stage dies. An end that dies
+is named the same way, as "Pipeline end of stage #1.2 (main::clean#2)
+failed at ...". Before v0.3.0, a stage was named by its position
+alone.
+
 An exception object, such as a stop or an object of a class of your
 own, is thrown again unchanged, so code that catches it can tell it by
 its class.
@@ -1919,7 +1944,9 @@ the line of the caller's code that caused it.
 
 In these, a stage is named by its position: `#2` for the second
 stage, or `#2.3` for the third stage of a pipeline given as the second
-stage.
+stage. Within a named pipeline, the innermost one's name and the
+stage's position there follow, as `#1.2 (main::clean#2)` (see
+[When a stage dies](#when-a-stage-dies)).
 
 ### Ekorn::Pipeline::Factories
 

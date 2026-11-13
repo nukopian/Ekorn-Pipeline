@@ -1,6 +1,6 @@
 # 2026-0013. A named pipeline named in a stage's error
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: the place, then the innermost named pipeline and the place in it. D2 settled: the name qualified. D3 settled: a pipeline's first name.
 
@@ -11,6 +11,8 @@ joined v0.3.0 by 2026-0022's D40
 **Depends on:** 2026-0021, shipped unreleased
 
 **Started:** 2026-11-13
+
+**Finished:** 2026-11-13
 
 ## Background
 
@@ -56,4 +58,26 @@ DBIx-Squirrel told.
 
 ## What happened
 
-Nothing yet.
+**Shipped, 2026-11-13,** on `pipeline-experimental`, for v0.3.0
+(2026-0025), as planned.
+
+- **How:** each stage keeps, beside its place, the pipelines it came
+  from, each with its place within it, a gather's pipeline among them;
+  and a run knows the pipeline it's of, held weakly by the closure a
+  pipeline is called as, so the pipeline is still freed when let go.
+  As a stage or an end dies, the innermost of these with a name names
+  it. The name is read then, so a pipeline named after it was given as
+  a stage is named too.
+- **Found on the way:** the roadmap's example, `clean#2.3`, would have
+  read the place as within `clean`; under D1 the place stays the run's,
+  and the place within `clean` follows it.
+- **Tests:** `t/13` tests the getter, a named pipeline spliced, nested,
+  returned by a gather, and run itself, an end, a name given later, and
+  that a pipeline is freed when let go. Ekorn::Pipeline is covered in
+  full.
+- **Docs:** the POD's `name` and DIAGNOSTICS; the reference's `name`,
+  When a stage dies, and its Diagnostics; and the how-to's Find the
+  stage that failed, with an example, which was run.
+- **DBIx-Squirrel:** its copies of the message are all of unnamed
+  pipelines, which don't change, and it names none, so it's told by a
+  message, not a task.

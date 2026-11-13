@@ -1213,6 +1213,18 @@ print $@;
 #     No more Blur
 ```
 
+Named, a pipeline is named in the message too, with the stage's
+position in it, which is easier to find than a position in a pipeline
+made somewhere else:
+
+```perl
+Ekorn::Pipeline->named(no_blur => $no_blur->stages);
+eval { tracks(sub { $_ }, pipeline('no_blur')) };
+print $@;
+# Pipeline stage #2.1.2 (main::no_blur#2) failed at ... line ...:
+#     No more Blur
+```
+
 ### Throw exception objects through
 
 An exception object, such as one from a class of your own, is thrown

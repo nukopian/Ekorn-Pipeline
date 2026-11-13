@@ -449,6 +449,15 @@ its own, as
 L<Calling a pipeline from a stage|/"Calling a pipeline from a stage">
 explains.
 
+=head2 name
+
+    my $name = $p->name;
+
+Returns the first name the pipeline was given with L<named|/"named">,
+qualified by its package, as C<main::clean>, or C<undef> if it has none.
+Errors in its stages name it (see
+L<When a stage dies|/"When a stage dies">). It's new in v0.3.0.
+
 =head2 pipeline_in
 
     Ekorn::Pipeline->pipeline_in($package, @stages)
@@ -1859,6 +1868,18 @@ message it died with follows, indented by four spaces:
     Pipeline stage #2 failed at app.pl line 12:
         No name for user 7 at app.pl line 9.
 
+A stage within a named pipeline, or of the named pipeline run, is
+named with it too: after its position, the innermost named pipeline
+it's in, by its L<name|/"name">, and its position there. The second
+stage of the pipeline named C<clean>, given as the first stage, is:
+
+    Pipeline stage #1.2 (main::clean#2) failed at app.pl line 12:
+
+It's the name the pipeline has when the stage dies. An end that dies
+is named the same way, as "Pipeline end of stage #1.2 (main::clean#2)
+failed at ...". Before v0.3.0, a stage was named by its position
+alone.
+
 An exception object, such as a stop or an object of a class of your
 own, is thrown again unchanged, so code that catches it can tell it by
 its class.
@@ -2369,7 +2390,9 @@ thrown, once every end has run.
 
 In these, a stage is named by its position: C<#2> for the second
 stage, or C<#2.3> for the third stage of a pipeline given as the second
-stage.
+stage. Within a named pipeline, the innermost one's name and the
+stage's position there follow, as C<#1.2 (main::clean#2)> (see
+L<When a stage dies|/"When a stage dies">).
 
 =head2 Ekorn::Pipeline::Factories
 

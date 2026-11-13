@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0013. A named pipeline named in a stage's error
-
-**Size:** S (2)
-
-When a stage in a named pipeline dies, the message gives the
-pipeline's name with its place, such as `clean#2.3`, through a `name`
-getter left free by 2026-0011's D3. It changes a message, so it joins
-v0.3.0 (2026-0022's D40), with DBIx-Squirrel's tests and copies of the
-message told. From DBIx-Squirrel's message of 2026-11-10
-(DBIx-Squirrel 60dd1af8f11b7661b4e47decadf9885d3e22a2d3). Its
-[record](docs/changes/2026-0013-names-in-errors.md).
+Nothing yet.
 
 ## Next
 

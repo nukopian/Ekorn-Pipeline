@@ -19,14 +19,22 @@ Unreleased
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    It ships five roadmap items, 2026-0009, 2026-0011, 2026-0014,
-    2026-0021 and 2026-0024. It changes what some code sees, as the
-    entries marked "Changed" say: a gather, an iterator, every canned
-    stage, and the stages a pipeline gives back are objects, called as
-    code references, not code references themselves; and a gather's
-    message names the flush and the end. Otherwise, existing code runs
-    as before.
+    It ships six roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    2026-0014, 2026-0021 and 2026-0024. It changes what some code
+    sees, as the entries marked "Changed" say: a gather, an iterator,
+    every canned stage, and the stages a pipeline gives back are
+    objects, called as code references, not code references
+    themselves; a gather's message names the flush and the end; and a
+    stage's error names the named pipeline it's in. Otherwise,
+    existing code runs as before.
 
+    - Changed: a stage that dies within a named pipeline is named with
+      it: after its place, the innermost named pipeline and the
+      stage's place there, "Pipeline stage #1.2 (main::clean#2)
+      failed at ...", and an end, "Pipeline end of stage #1.2
+      (main::clean#2) failed at ...". A stage of no named pipeline is
+      named as before. A pipeline's name method gives its first name,
+      qualified, or undef. (roadmap 2026-0013)
     - The message for a gather's block that returns the wrong things
       now ends "and optionally a flush and an end", where it ended
       "and optionally an end function": what v0.2.0 called the end
