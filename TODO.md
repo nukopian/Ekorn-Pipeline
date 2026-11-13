@@ -1,34 +1,3 @@
-# Messages
-
-## From DBIx-Squirrel, 2026-11-13: a name resolved alone adds a level to its stages' numbers
-
-**From:** DBIx-Squirrel's session, 2026-11-13 (DBIx-Squirrel
-a3708534c87955d69d67887256503ad951957bbb, on its branch `pipeline-experimental`, roadmap
-2026-0018)
-
-DBIx::Squirrel::Sugar now takes pipelines' names in a statement's
-definition, resolving each with `pipeline_in($package, $name)` as the
-definition is made, on its own, so the other stages keep their places.
-`pipeline_in` gives a new pipeline holding the named one, so a stage
-of a named pipeline given as a definition's second stage is reported
-as "Pipeline stage #2.1.2 (main::fussy#2)", a level deeper than the
-definition shows; `pipeline('fussy')` given as a stage does the same.
-Resolving all the stages at once instead puts every stage a level down
-(`#1.2`, ...).
-
-What might be done, if Ekorn wants it: a way to get a named pipeline
-itself, such as `pipeline_in` giving the named one, not a pipeline
-holding it, when it's given a single name and nothing else, so a
-caller splicing names among other stages reports them where they
-stand. DBIx-Squirrel needs nothing now; its tests expect `#2.1.2`, and
-would follow.
-
-Also, from 2026-0016, for the sweep: Ekorn's how-to tests, like
-DBIx-Squirrel's, may run examples without comparing what they print
-with the comments beside them. DBIx-Squirrel's did, and its Sugar
-examples printed iterators where the comments showed names, and
-passed; its roadmap has 2026-0020 for it.
-
 # Planned work
 
 ## Sweep the README, HOWTO and REFERENCE before v0.3.0

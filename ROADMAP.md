@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0027.
+Last id: 2026-0029.
 
 Items come in four groups:
 
@@ -41,7 +41,29 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
+### 2026-0029. A single name gives the pipeline it names
+
+**Size:** XS (1)
+
+`pipeline_in`, and so the word `pipeline`, given one name and nothing
+else, returns the pipeline named, not a new pipeline holding it, when
+it's of the invocant's class, so a named pipeline spliced among other
+stages is numbered where it stands in errors: `#2.2 (main::fussy#2)`,
+not `#2.1.2`. From a message of DBIx-Squirrel's; it changes how stages
+are numbered, so it goes in before v0.3.0. See its
+[record](docs/changes/2026-0029-single-name.md).
+
+### 2026-0028. Fast paths
+
+**Size:** M (3)
+
+A run of plain stages pays for the machinery of flushes, ends and
+sinks it doesn't have: about 20 µs to set up each run, so a call with
+three values is about 175 times slower than `map`, and a pull through
+an empty pipeline about twenty times slower than a push. Fast paths
+where they make sense: a run of plain steps, an empty pipeline pulled,
+a push handing its values over at once, and the small costs on each
+value. See its [record](docs/changes/2026-0028-fast-paths.md).
 
 ## Next
 
@@ -50,7 +72,7 @@ Nothing yet.
 **Size:** S (2)
 
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
-2026-0021, 2026-0024, 2026-0026, 2026-0027
+2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029
 
 The design's release: the README rewritten for the stream concept
 (the design's 20.1), `Changes`' precis naming the items it ships, the
