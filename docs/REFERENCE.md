@@ -37,6 +37,7 @@ says what each release changed.
 - [pipe and tap: Ekorn::Pipeline::Pipes](#pipe-and-tap-ekornpipelinepipes)
 - [Canned stages](#canned-stages)
 - [Sources: Ekorn::Pipeline::Sources](#sources-ekornpipelinesources)
+- [Sinks: Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks)
 - [Errors: Ekorn::Pipeline::Errors](#errors-ekornpipelineerrors)
 - [Writing stages](#writing-stages)
 - [Writing functions that take stages](#writing-functions-that-take-stages)
@@ -1589,6 +1590,80 @@ anything else, and `counter` "Expected a number to start from, and
 one to step by". A hash's pairs are
 `from_array(map { [$_, $hash{$_}] } keys %hash)`.
 
+## Sinks: Ekorn::Pipeline::Sinks
+
+```perl
+use Ekorn::Pipeline::Sinks qw(keep_all count_items keep_first);
+use Ekorn::Pipeline::Sinks qw(:all);
+```
+
+Ready-made sinks, usually given last in a pipeline, so that a sink's
+result is what the run gives (see [Sinks](#sinks-ekornpipelinesink)).
+Each is made afresh for each run. Nothing is exported by default. Each
+is new in v0.3.0.
+
+They come in two families. Those named for what they give, an item
+being a value, have names that can't clash with Perl's built-ins or
+List::Util's, which is why they're `keep_first` and `keep_all`, not
+`first` and `all`. The containers, named for where the items go, are
+the `to_` sinks, each the counterpart of a `from_` source: what one
+reads, the other writes.
+
+| Sink | Gives | Stops the pull early? |
+|---|---|---|
+| `keep_all` | every item, as a list | no |
+| `keep_first` | the first item, or `undef` if none | yes |
+| `keep_single` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
+| `keep_last` | the last item, reading every one to find it, or `undef` if none | no |
+| `keep($n)` | the first `$n` items, as a list, as `take($n)` would pass on; it croaks "Expected a count of 0 or more" as `take` does | yes, at `$n` |
+| `count_items` | how many items there were | no |
+| `to_fh($fh)` | prints each item to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
+| `to_file($path)`, `to_file($path, $layers)` | writes each item to the file, followed by `$/`, through the I/O layers given, if any, and gives how many | no; it closes the file, however the run ends |
+
+Asked for one value, in scalar context, a sink giving a list gives it
+as an array reference; for how many, use `count_items`:
+
+```perl
+my $p      = Ekorn::Pipeline->new(sub { $_->{title} }, keep_all);
+my @titles = $p->(@tracks);    # every title
+my $titles = $p->(@tracks);    # every title, as an array reference
+```
+
+An array reference is true even when it's empty, so test for no items
+with `@$titles`, or use `count_items`.
+
+`from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
+`to_file` add it back, so a file read with one is written unchanged by
+the other. With `$/` undefined, or a reference to a record size, they
+add nothing; with it empty, for paragraphs, a blank line:
+
+```perl
+my $copied = Ekorn::Pipeline->new(to_file('copy.txt'))->iterator(from_file('original.txt'))->();
+```
+
+There's no sink for an array or a hash: `keep_all` gives every item,
+and `push @mine, @{ $p->(@values) }` adds them to your array. A hash
+is assigned from a list of keys and values, so to key values by
+something of their own, give each one's key and value from a stage:
+
+```perl
+my %by_title = Ekorn::Pipeline->new(sub { ($_->{title}, $_) })->(@tracks);
+```
+
+A sink that stops the pull early is told `done`: it decided the run
+had enough. The source and the stages before it are told `stopped`.
+
+```perl
+say scalar Ekorn::Pipeline->new(count_items)->(1 .. 10);                 # 10
+say scalar Ekorn::Pipeline->new(keep_first)->iterator(counter(1, 1))->();    # 1, then stops
+```
+
+`to_fh` croaks "Expected an open filehandle" given anything else.
+`to_file` opens its file, emptied, as the run starts, and croaks "Can't
+write %s: %s" if it can't, as both do if they can't write, and
+`to_file` if it can't close the file. Each sink taking no arguments has
+an empty prototype, so `count_items + 0` reads as `count_items() + 0`.
+
 ## Errors: Ekorn::Pipeline::Errors
 
 ### When a stage dies
@@ -2003,6 +2078,19 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 - **Expected yield to be called inside a generator:** `yield` was
   called with no generator's block running.
 
+### Ekorn::Pipeline::Sinks
+
+- **Expected a count of 0 or more:** `keep` was given something other
+  than a whole number.
+- **Expected only one item, but there were more:** a warning:
+  `keep_single` was given a second item, and stopped the run, giving
+  the first.
+- **Expected an open filehandle:** `to_fh` was given something other
+  than an open filehandle.
+- **Can't write %s: %s:** `to_fh` or `to_file` couldn't write, or
+  `to_file` couldn't open or close its file; the second part says why.
+  The first is the file's path, or "the filehandle".
+
 ### Ekorn::Pipeline::Sources
 
 - **Expected an open filehandle:** `from_fh` was given something other
@@ -2070,6 +2158,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | `from_array`, `from_fh`, `from_file`, `counter` | `:all` |
+| `Ekorn::Pipeline::Sinks` | nothing | `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file` | `:all` |
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
@@ -2087,6 +2176,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | Module | What it is |
 |---|---|
 | `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline_in`, `named`, `iterator`, `stages`, `is_stage`, `is_sink`, `ending` and `run_context`. |
+| `Ekorn::Pipeline::Sinks` | Ready-made sinks: `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file`. |
 | `Ekorn::Pipeline::Sources` | Ready-made sources: `from_array`, `from_fh`, `from_file`, `counter`. |
 | `Ekorn::Pipeline::Factories` | The words that make Ekorn's types: `pipeline`, `stage`, `gather`, `source`, `generator` and `yield`, `sink_one`, `sink_many`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |

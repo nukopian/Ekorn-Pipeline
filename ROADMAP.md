@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0017. Sinks that come with Perl
-
-**Size:** M (3)
-
-Ekorn::Pipeline::Sinks: the `keep` family (`keep_all`, `keep($n)`,
-`keep_first`, `keep_last`, `keep_single`), `count_items`, and the
-containers `to_fh` and `to_file`, which takes I/O layers, as the
-design's 8.3 lists them; those that can stop the pull early. Built so
-far: all but `to_fh`. Done when each is in, with its POD, tests and
-docs, and coverage above the floors. Its
-[record](docs/changes/2026-0017-sinks.md).
+Nothing yet.
 
 ## Next
 

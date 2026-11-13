@@ -83,6 +83,10 @@ L<Sources: Ekorn::Pipeline::Sources|/"Sources: Ekorn::Pipeline::Sources">
 
 =item *
 
+L<Sinks: Ekorn::Pipeline::Sinks|/"Sinks: Ekorn::Pipeline::Sinks">
+
+=item *
+
 L<Errors: Ekorn::Pipeline::Errors|/"Errors: Ekorn::Pipeline::Errors">
 
 =item *
@@ -1921,6 +1925,111 @@ anything else, and C<counter> "Expected a number to start from, and
 one to step by". A hash's pairs are
 C<from_array(map { [$_, $hash{$_}] } keys %hash)>.
 
+=head1 Sinks: Ekorn::Pipeline::Sinks
+
+    use Ekorn::Pipeline::Sinks qw(keep_all count_items keep_first);
+    use Ekorn::Pipeline::Sinks qw(:all);
+
+Ready-made sinks, usually given last in a pipeline, so that a sink's
+result is what the run gives (see L<Sinks|/"Sinks: Ekorn::Pipeline::Sink">).
+Each is made afresh for each run. Nothing is exported by default. Each
+is new in v0.3.0.
+
+They come in two families. Those named for what they give, an item
+being a value, have names that can't clash with Perl's built-ins or
+List::Util's, which is why they're C<keep_first> and C<keep_all>, not
+C<first> and C<all>. The containers, named for where the items go, are
+the C<to_> sinks, each the counterpart of a C<from_> source: what one
+reads, the other writes.
+
+=over 4
+
+=item C<keep_all>
+
+B<Gives:> every item, as a list
+
+B<Stops the pull early?:> no
+
+=item C<keep_first>
+
+B<Gives:> the first item, or C<undef> if none
+
+B<Stops the pull early?:> yes
+
+=item C<keep_single>
+
+B<Gives:> the one item, or C<undef> if none; at a second, a warning, and the first, for when you meant one and forgot to limit it
+
+B<Stops the pull early?:> at a second
+
+=item C<keep_last>
+
+B<Gives:> the last item, reading every one to find it, or C<undef> if none
+
+B<Stops the pull early?:> no
+
+=item C<keep($n)>
+
+B<Gives:> the first C<$n> items, as a list, as C<take($n)> would pass on; it croaks "Expected a count of 0 or more" as C<take> does
+
+B<Stops the pull early?:> yes, at C<$n>
+
+=item C<count_items>
+
+B<Gives:> how many items there were
+
+B<Stops the pull early?:> no
+
+=item C<to_fh($fh)>
+
+B<Gives:> prints each item to your filehandle, followed by C<$/>, and gives how many
+
+B<Stops the pull early?:> no; you opened it, so you close it
+
+=item C<to_file($path)>, C<to_file($path, $layers)>
+
+B<Gives:> writes each item to the file, followed by C<$/>, through the I/O layers given, if any, and gives how many
+
+B<Stops the pull early?:> no; it closes the file, however the run ends
+
+=back
+
+Asked for one value, in scalar context, a sink giving a list gives it
+as an array reference; for how many, use C<count_items>:
+
+    my $p      = Ekorn::Pipeline->new(sub { $_->{title} }, keep_all);
+    my @titles = $p->(@tracks);    # every title
+    my $titles = $p->(@tracks);    # every title, as an array reference
+
+An array reference is true even when it's empty, so test for no items
+with C<@$titles>, or use C<count_items>.
+
+C<from_fh> and C<from_file> remove C<$/> from each record, and C<to_fh> and
+C<to_file> add it back, so a file read with one is written unchanged by
+the other. With C<$/> undefined, or a reference to a record size, they
+add nothing; with it empty, for paragraphs, a blank line:
+
+    my $copied = Ekorn::Pipeline->new(to_file('copy.txt'))->iterator(from_file('original.txt'))->();
+
+There's no sink for an array or a hash: C<keep_all> gives every item,
+and C<< push @mine, @{ $p->(@values) } >> adds them to your array. A hash
+is assigned from a list of keys and values, so to key values by
+something of their own, give each one's key and value from a stage:
+
+    my %by_title = Ekorn::Pipeline->new(sub { ($_->{title}, $_) })->(@tracks);
+
+A sink that stops the pull early is told C<done>: it decided the run
+had enough. The source and the stages before it are told C<stopped>.
+
+    say scalar Ekorn::Pipeline->new(count_items)->(1 .. 10);                 # 10
+    say scalar Ekorn::Pipeline->new(keep_first)->iterator(counter(1, 1))->();    # 1, then stops
+
+C<to_fh> croaks "Expected an open filehandle" given anything else.
+C<to_file> opens its file, emptied, as the run starts, and croaks "Can't
+write %s: %s" if it can't, as both do if they can't write, and
+C<to_file> if it can't close the file. Each sink taking no arguments has
+an empty prototype, so C<count_items + 0> reads as C<count_items() + 0>.
+
 =head1 Errors: Ekorn::Pipeline::Errors
 
 =head2 When a stage dies
@@ -2476,6 +2585,34 @@ called with no generator's block running.
 
 =back
 
+=head2 Ekorn::Pipeline::Sinks
+
+=over 4
+
+=item *
+
+B<Expected a count of 0 or more:> C<keep> was given something other
+than a whole number.
+
+=item *
+
+B<Expected only one item, but there were more:> a warning:
+C<keep_single> was given a second item, and stopped the run, giving
+the first.
+
+=item *
+
+B<Expected an open filehandle:> C<to_fh> was given something other
+than an open filehandle.
+
+=item *
+
+B<Can't write %s: %s:> C<to_fh> or C<to_file> couldn't write, or
+C<to_file> couldn't open or close its file; the second part says why.
+The first is the file's path, or "the filehandle".
+
+=back
+
 =head2 Ekorn::Pipeline::Sources
 
 =over 4
@@ -2637,6 +2774,14 @@ B<On request:> C<from_array>, C<from_fh>, C<from_file>, C<counter>
 
 B<Tags:> C<:all>
 
+=item C<Ekorn::Pipeline::Sinks>
+
+B<By default:> nothing
+
+B<On request:> C<keep_all>, C<keep>, C<keep_first>, C<keep_single>, C<keep_last>, C<count_items>, C<to_fh>, C<to_file>
+
+B<Tags:> C<:all>
+
 =item C<Ekorn::Pipeline::Stop>
 
 B<By default:> C<Stop>
@@ -2693,6 +2838,10 @@ empty list: C<use Ekorn::Pipeline::Stop ();>.
 =item C<Ekorn::Pipeline>
 
 Runs values through a list of stages: C<new>, C<pipeline_in>, C<named>, C<iterator>, C<stages>, C<is_stage>, C<is_sink>, C<ending> and C<run_context>.
+
+=item C<Ekorn::Pipeline::Sinks>
+
+Ready-made sinks: C<keep_all>, C<keep>, C<keep_first>, C<keep_single>, C<keep_last>, C<count_items>, C<to_fh>, C<to_file>.
 
 =item C<Ekorn::Pipeline::Sources>
 

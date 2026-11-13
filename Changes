@@ -15,13 +15,14 @@ Unreleased
     sources that close what they open, however the run ends; sinks
     that consume every value and give a result, committing only when
     the run is done; and gathers with an end as well as a flush, what
-    v0.2.0 called the end function; Sources has sources ready-made.
+    v0.2.0 called the end function; Sources and Sinks have them
+    ready-made.
     An iterator is an object, which
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    It ships seven roadmap items, 2026-0009, 2026-0011, 2026-0013,
-    2026-0014, 2026-0016, 2026-0021 and 2026-0024. It changes what some code
+    It ships eight roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    2026-0014, 2026-0016, 2026-0017, 2026-0021 and 2026-0024. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -37,6 +38,15 @@ Unreleased
       ends; and counter($start, $step), without end. With $/
       undefined, from_fh and from_file slurp, an empty file giving
       none. (roadmap 2026-0016)
+    - Ekorn::Pipeline::Sinks has ready-made sinks, needing only Perl,
+      none exported by default: keep_all, every item; keep($n), the
+      first $n, stopping there; keep_first, stopping at it;
+      keep_single, warning at a second; keep_last; count_items; and
+      to_fh($fh) and to_file($path, $layers), writing each item
+      followed by $/, as from_fh and from_file take it off, and giving
+      how many. to_file opens its file for each run, through the I/O
+      layers given, if any, and closes it however the run ends.
+      (roadmap 2026-0017)
     - Changed: a stage that dies within a named pipeline is named with
       it: after its place, the innermost named pipeline and the
       stage's place there, "Pipeline stage #1.2 (main::clean#2)

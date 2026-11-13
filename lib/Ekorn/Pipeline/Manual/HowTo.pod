@@ -65,6 +65,10 @@ L<Gathering values|/"Gathering values">
 
 =item *
 
+L<Getting a result from many values|/"Getting a result from many values">
+
+=item *
+
 L<Watching values go by|/"Watching values go by">
 
 =item *
@@ -652,6 +656,52 @@ C<take(2)> stopped the second run while the gather still had tracks to
 come, so its end is told C<stopped>. A stage after the stop, whose input
 ran out, would be told C<done>.
 
+=head2 Tell values from a flush apart
+
+While the values going through the stages come from a flush, rather
+than from the source, C<Ekorn::Pipeline::ending()> is true:
+
+    my @lines = tracks(
+        sub { $_->{plays} },
+        collect { sum0 @_ },
+        sub { Ekorn::Pipeline::ending() ? "total $_" : $_ },
+    );
+    say "@lines";    # total 36800
+
+It's for code that tells its stages more about each value, such as
+where it came from. A value from a flush has no such origin.
+
+=head1 Getting a result from many values
+
+=head2 Count, keep or find, in one result
+
+A sink takes every value and turns them into its result. Given last,
+its result is what the run gives:
+
+    use Ekorn::Pipeline::Sinks qw(count_items keep_first keep_last);
+
+    say scalar tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);    # 3
+    say scalar tracks(sub { $_->{artist} }, keep_first);                         # Abba
+    say scalar tracks(sub { $_->{artist} }, keep_last);                          # Cream
+
+C<keep_all> gives every value: a list, or, asked for one value, an
+array reference.
+
+=head2 Stop reading once you have your answer
+
+Some sinks stop the pull as soon as they know the result, so a source
+reading a file or a database reads no further:
+
+    use Ekorn::Pipeline::Sources qw(from_array);
+    use Ekorn::Pipeline::Sinks   qw(keep_first);
+
+    my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, keep_first)
+        ->iterator(from_array(@tracks))->();
+    say $first_hit->{title};    # Dancing Queen: the rest aren't read
+
+The source is told C<stopped>. Had it been C<from_file>, it would have
+closed its file there and then.
+
 =head2 Write a sink of your own, and act on how the run ended
 
 A sink takes every value, and gives one result once they run out. Make
@@ -688,20 +738,38 @@ so a run that dies, even after the sink, leaves the old file:
 A pipeline ending in a sink gives the sink's result, so C<tracks> gives
 the count.
 
-=head2 Tell values from a flush apart
+=head2 Copy a file, with nothing in between
 
-While the values going through the stages come from a flush, rather
-than from the source, C<Ekorn::Pipeline::ending()> is true:
+A source and a sink can be joined directly. Here the pipeline is only
+a sink, C<to_file>, and the iterator runs it, reading from C<from_file>:
 
-    my @lines = tracks(
-        sub { $_->{plays} },
-        collect { sum0 @_ },
-        sub { Ekorn::Pipeline::ending() ? "total $_" : $_ },
-    );
-    say "@lines";    # total 36800
+    use Ekorn::Pipeline::Sources qw(from_file);
+    use Ekorn::Pipeline::Sinks   qw(to_file);
 
-It's for code that tells its stages more about each value, such as
-where it came from. A value from a flush has no such origin.
+    my($n) = Ekorn::Pipeline->new(to_file('setlist.bak'))->iterator(from_file('setlist.txt'))->();
+    say $n;    # how many lines were copied
+
+C<from_file> takes C<$/> from each line and C<to_file> puts it back, so
+the copy is line for line. Both files are closed however the run ends,
+even if C<setlist.bak> can't be written.
+
+=head2 Feed one pipeline's result to another
+
+A pipeline that reads from a source and ends in a sink, pulled, is
+itself a source: it gives the sink's result. Another pipeline can read
+from it:
+
+    use Ekorn::Pipeline::Sinks qw(keep_all);
+
+    my $lines = Ekorn::Pipeline->new(sub { uc }, keep_all)->iterator(from_file('setlist.txt'));
+    my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
+    while (my($line) = $next->()) { say $line }
+    # the first two lines, in capitals
+
+C<keep_all> holds back every line until there are no more, so the first
+pull reads the whole file, and closes it, before the first line comes
+out. Without C<keep_all>, C<take(2)> would read only two lines. Use a
+sink this way when the reading must finish before what follows starts.
 
 =head1 Watching values go by
 

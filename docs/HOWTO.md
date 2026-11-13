@@ -25,6 +25,7 @@ It needs Perl 5.36 or later.
 - [Pulling values one at a time](#pulling-values-one-at-a-time)
 - [Stopping early](#stopping-early)
 - [Gathering values](#gathering-values)
+- [Getting a result from many values](#getting-a-result-from-many-values)
 - [Watching values go by](#watching-values-go-by)
 - [Writing a function that takes stages](#writing-a-function-that-takes-stages)
 - [Writing stages for others](#writing-stages-for-others)
@@ -643,6 +644,58 @@ say for @log;
 come, so its end is told `stopped`. A stage after the stop, whose input
 ran out, would be told `done`.
 
+### Tell values from a flush apart
+
+While the values going through the stages come from a flush, rather
+than from the source, `Ekorn::Pipeline::ending()` is true:
+
+```perl
+my @lines = tracks(
+    sub { $_->{plays} },
+    collect { sum0 @_ },
+    sub { Ekorn::Pipeline::ending() ? "total $_" : $_ },
+);
+say "@lines";    # total 36800
+```
+
+It's for code that tells its stages more about each value, such as
+where it came from. A value from a flush has no such origin.
+
+## Getting a result from many values
+
+### Count, keep or find, in one result
+
+A sink takes every value and turns them into its result. Given last,
+its result is what the run gives:
+
+```perl
+use Ekorn::Pipeline::Sinks qw(count_items keep_first keep_last);
+
+say scalar tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);    # 3
+say scalar tracks(sub { $_->{artist} }, keep_first);                         # Abba
+say scalar tracks(sub { $_->{artist} }, keep_last);                          # Cream
+```
+
+`keep_all` gives every value: a list, or, asked for one value, an
+array reference.
+
+### Stop reading once you have your answer
+
+Some sinks stop the pull as soon as they know the result, so a source
+reading a file or a database reads no further:
+
+```perl
+use Ekorn::Pipeline::Sources qw(from_array);
+use Ekorn::Pipeline::Sinks   qw(keep_first);
+
+my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, keep_first)
+    ->iterator(from_array(@tracks))->();
+say $first_hit->{title};    # Dancing Queen: the rest aren't read
+```
+
+The source is told `stopped`. Had it been `from_file`, it would have
+closed its file there and then.
+
 ### Write a sink of your own, and act on how the run ended
 
 A sink takes every value, and gives one result once they run out. Make
@@ -681,22 +734,43 @@ say tracks(sub { $_->{title} }, save_to('titles.txt'));    # 6
 A pipeline ending in a sink gives the sink's result, so `tracks` gives
 the count.
 
-### Tell values from a flush apart
 
-While the values going through the stages come from a flush, rather
-than from the source, `Ekorn::Pipeline::ending()` is true:
+### Copy a file, with nothing in between
+
+A source and a sink can be joined directly. Here the pipeline is only
+a sink, `to_file`, and the iterator runs it, reading from `from_file`:
 
 ```perl
-my @lines = tracks(
-    sub { $_->{plays} },
-    collect { sum0 @_ },
-    sub { Ekorn::Pipeline::ending() ? "total $_" : $_ },
-);
-say "@lines";    # total 36800
+use Ekorn::Pipeline::Sources qw(from_file);
+use Ekorn::Pipeline::Sinks   qw(to_file);
+
+my($n) = Ekorn::Pipeline->new(to_file('setlist.bak'))->iterator(from_file('setlist.txt'))->();
+say $n;    # how many lines were copied
 ```
 
-It's for code that tells its stages more about each value, such as
-where it came from. A value from a flush has no such origin.
+`from_file` takes `$/` from each line and `to_file` puts it back, so
+the copy is line for line. Both files are closed however the run ends,
+even if `setlist.bak` can't be written.
+
+### Feed one pipeline's result to another
+
+A pipeline that reads from a source and ends in a sink, pulled, is
+itself a source: it gives the sink's result. Another pipeline can read
+from it:
+
+```perl
+use Ekorn::Pipeline::Sinks qw(keep_all);
+
+my $lines = Ekorn::Pipeline->new(sub { uc }, keep_all)->iterator(from_file('setlist.txt'));
+my $next  = Ekorn::Pipeline->new(take(2))->iterator($lines);
+while (my($line) = $next->()) { say $line }
+# the first two lines, in capitals
+```
+
+`keep_all` holds back every line until there are no more, so the first
+pull reads the whole file, and closes it, before the first line comes
+out. Without `keep_all`, `take(2)` would read only two lines. Use a
+sink this way when the reading must finish before what follows starts.
 
 ## Watching values go by
 
