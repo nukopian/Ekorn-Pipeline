@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0022.
+Last id: 2026-0023.
 
 Items come in four groups:
 
@@ -214,3 +214,18 @@ need with plain subs: not now, as Iain decided on 2026-11-12
 (2026-0022's D38). From DBIx-Squirrel's message, part 4.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0023. Generators as sources, with `yield`
+
+**Added:** 2026-11-13. **Size:** S (2). **Depends on:** 2026-0022
+
+A source written as Python writes a generator: a block that calls
+`yield(...)` as often as it likes, inside any loops, keeping its place
+in them without state variables of its own, as Iain wished for. Perl
+has no `yield` to pause a sub, short of Coro, an XS dependency, so the
+source runs the block to the end of a batch, collecting what it
+yields, and hands the batch over as one step, which D62 made cheap.
+Suits a producer that's finite or works in chunks; not one that loops
+without end, or must stop the moment a later stage has had enough, as
+the block runs on until its batch is done. A closure in `source
+{...}` already does the rest.
