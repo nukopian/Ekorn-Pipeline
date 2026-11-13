@@ -23,7 +23,7 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a sink giving how many values there were.
 sub count_items : prototype() () {
-    return Ekorn::Pipeline::Sink->new_scalar(sub {
+    return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my $n = 0;
         return (sub ($value) { $n++ }, sub () { $n });
     });
@@ -36,7 +36,7 @@ sub count_items : prototype() () {
 
 # Return a sink giving every item, as a list.
 sub keep_all : prototype() () {
-    return Ekorn::Pipeline::Sink->new(sub {
+    return Ekorn::Pipeline::Sink->new_sink_many(sub {
         my @all;
         return (sub ($item) { push @all, $item }, sub () { @all });
     });
@@ -47,7 +47,7 @@ sub keep_all : prototype() () {
 # second, it warns and stops the run, giving the first; undef if there
 # was none.
 sub keep_single : prototype() () {
-    return Ekorn::Pipeline::Sink->new_scalar(sub {
+    return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my @only;
         return (
             sub ($item) {
@@ -67,7 +67,7 @@ sub keep_single : prototype() () {
 # Return a sink giving the first item, stopping the run there; undef if
 # there was none.
 sub keep_first : prototype() () {
-    return Ekorn::Pipeline::Sink->new_scalar(sub {
+    return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my @first;
         return (
             sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
@@ -82,7 +82,7 @@ sub keep_first : prototype() () {
 sub keep ($count) {
     croakf 'Expected a count of 0 or more'
         unless defined $count && $count =~ m( \A \d+ \z )xa;
-    return Ekorn::Pipeline::Sink->new(sub {
+    return Ekorn::Pipeline::Sink->new_sink_many(sub {
         my @kept;
         return (
             sub ($item) {
@@ -100,7 +100,7 @@ sub keep ($count) {
 # Return a sink giving the last item, reading every one to find it;
 # undef if there was none.
 sub keep_last : prototype() () {
-    return Ekorn::Pipeline::Sink->new_scalar(sub {
+    return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my @kept;
         return (sub ($item) { @kept = ($item); return }, sub () { @kept });
     });
@@ -110,7 +110,7 @@ sub keep_last : prototype() () {
 # Return a sink writing each value to the file, followed by $/, giving
 # how many; the file is opened as the run starts, and closed as it ends.
 sub to_file ($path) {
-    return Ekorn::Pipeline::Sink->new_scalar(sub {
+    return Ekorn::Pipeline::Sink->new_sink_one(sub {
         # Open for the run, and closed by its end.
         open my $fh, '>', $path    ## no critic (InputOutput::RequireBriefOpen)
             or croakf q(Can't write %s: %s), $path, $!;

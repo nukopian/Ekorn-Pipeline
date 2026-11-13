@@ -8,7 +8,7 @@ use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Source qw();
 use Ekorn::Pipeline::Stage  qw();
 
-our @EXPORT_OK   = qw(stage gather source sink sink_scalar);
+our @EXPORT_OK   = qw(stage gather source sink_one sink_many);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 *gather = \&Ekorn::Pipeline::Gather::gather;
@@ -25,17 +25,17 @@ sub source : prototype(&) ($setup) {
 }
 
 
-# Return a Sink made for each run by the set-up given, its result a
-# list.
-sub sink : prototype(&) ($setup) {
-    return Ekorn::Pipeline::Sink->new($setup);
+# Return a Sink made for each run by the set-up given, its result one
+# value.
+sub sink_one : prototype(&) ($setup) {
+    return Ekorn::Pipeline::Sink->new_sink_one($setup);
 }
 
 
-# Return a Sink made for each run by the set-up given, its result one
-# value.
-sub sink_scalar : prototype(&) ($setup) {
-    return Ekorn::Pipeline::Sink->new_scalar($setup);
+# Return a Sink made for each run by the set-up given, its result a
+# list.
+sub sink_many : prototype(&) ($setup) {
+    return Ekorn::Pipeline::Sink->new_sink_many($setup);
 }
 
 1;

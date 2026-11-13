@@ -66,7 +66,7 @@ sub chain ($before, $after, $swapped = undef, @) {
     my $next = Ekorn::Pipeline->new(@stages, $after)->iterator($source);
     my @results;
     while (my($result) = $next->()) { push @results, $result }
-    return $sink eq 'list' ? \@results : $results[0];
+    return $sink eq 'many' ? \@results : $results[0];
 }
 
 

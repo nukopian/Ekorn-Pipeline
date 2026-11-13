@@ -14,23 +14,24 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a sink made afresh for each run by the set-up given, which
 # returns its step, its flush, giving its result, and, optionally, its
-# end. A sink's result is a list, offered by ekorn_sink; new_scalar makes
-# one whose result is one value, offered by ekorn_sink_scalar. Called with
+# end. new_sink_many makes one whose result is a list, offered by
+# ekorn_sink_many; new_sink_one makes one whose result is one value,
+# offered by ekorn_sink_one. Called with
 # values, a sink pushes them through a fresh sink of its set-up, as a
 # pipeline of the one sink would, and gives its result: the closure
 # holds the set-up, not the sink, so it works however long it's kept.
-sub new ($class, $setup) {
+sub new_sink_many ($class, $setup) {
     return _made(
-        $class->can('ekorn_sink') ? $class : 'Ekorn::Pipeline::Sink::List',
+        $class->can('ekorn_sink_many') ? $class : 'Ekorn::Pipeline::Sink::Many',
         $setup,
     );
 }
 
 
-# Return a sink, as new does, whose result is one value.
-sub new_scalar ($class, $setup) {
+# Return a sink, as new_sink_many does, whose result is one value.
+sub new_sink_one ($class, $setup) {
     return _made(
-        $class->can('ekorn_sink_scalar') ? $class : 'Ekorn::Pipeline::Sink::Scalar',
+        $class->can('ekorn_sink_one') ? $class : 'Ekorn::Pipeline::Sink::One',
         $setup,
     );
 }
@@ -47,21 +48,21 @@ sub _made ($into, $setup) {
 }
 
 # A sink whose result is one value.
-package Ekorn::Pipeline::Sink::Scalar {    ## no critic (Modules::ProhibitMultiplePackages)
+package Ekorn::Pipeline::Sink::One {    ## no critic (Modules::ProhibitMultiplePackages)
     use parent -norequire, 'Ekorn::Pipeline::Sink';
 
 
-    sub ekorn_sink_scalar ($self) {
+    sub ekorn_sink_one ($self) {
         return $self->{setup}->();
     }
 }
 
 # A sink whose result is a list.
-package Ekorn::Pipeline::Sink::List {    ## no critic (Modules::ProhibitMultiplePackages)
+package Ekorn::Pipeline::Sink::Many {    ## no critic (Modules::ProhibitMultiplePackages)
     use parent -norequire, 'Ekorn::Pipeline::Sink';
 
 
-    sub ekorn_sink ($self) {
+    sub ekorn_sink_many ($self) {
         return $self->{setup}->();
     }
 }

@@ -21,7 +21,7 @@ our @INTERNAL = qw(
     Ekorn::Pipeline::Factories  Ekorn::Pipeline::Iterator
     Ekorn::Pipeline::Operators  Ekorn::Pipeline::Operators::Chain
     Ekorn::Pipeline::Sink       Ekorn::Pipeline::Sinks
-    Ekorn::Pipeline::Sink::List Ekorn::Pipeline::Sink::Scalar
+    Ekorn::Pipeline::Sink::Many Ekorn::Pipeline::Sink::One
     Ekorn::Pipeline::Operators::Stages
     Ekorn::Pipeline::Source Ekorn::Pipeline::Sources
     Ekorn::Pipeline::Stage

@@ -13,8 +13,8 @@ What changes in the reference as a whole:
 - **A new section, Runs and how they end,** after How values go
   through stages.
 - **A new section, Words: Ekorn::Pipeline::Factories,** after
-  Pipelines, holding `pipeline`, `stage`, `gather`, `source` and
-  `sink`.
+  Pipelines, holding `pipeline`, `stage`, `gather`, `source`,
+  `sink_one` and `sink_many`.
 - **Pipelines** gains `pipeline_in`, the method every `pipeline` word
   calls.
 - **New sections for Sources, Sinks, Operators and Sugar,** after the
@@ -39,7 +39,7 @@ subclass, go, as does Pipes' `pipeline_class`.
   a list, such as every value, for a list sink, which, asked for one
   value, gives its list as an array reference. Usually the last stage,
   when its result is what the run gives; anywhere else, its result
-  goes on through the stages after it. Made with `sink` or `sink_scalar`, or ready-made, such as `count_items`.
+  goes on through the stages after it. Made with `sink_one` or `sink_many`, or ready-made, such as `count_items`.
 - **Made for a run:** made afresh at the start of each run, by a
   set-up block, so that each run has state of its own. Gathers,
   sources and sinks can be.
@@ -215,8 +215,8 @@ exported by default.
 | `stage {...}` | a Stage | the stage itself |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
-| `sink {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
-| `sink_scalar {...}` | a scalar Sink | the same, its flush giving one value |
+| `sink_many {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
+| `sink_one {...}` | a scalar Sink | the same, its flush giving one value |
 
 ### pipeline
 
@@ -311,26 +311,26 @@ reference is a source, as `iterator` has always taken.
 ### sink
 
 ```perl
-sink { SET-UP }
+sink_many { SET-UP }
 ```
 
 ```perl
-sink_scalar { SET-UP }
+sink_one { SET-UP }
 ```
 
 Returns a Sink, made for each run, usually the last in a pipeline.
 Its set-up returns its step, called with each value, whose return is
 ignored; its flush, called when its input runs out, giving its result;
 and, optionally, its end, told how the run ended once it has. A sink
-made with `sink` gives a list; one made with `sink_scalar` gives one
+made with `sink_many` gives a list; one made with `sink_one` gives one
 value. Asked for one value, in scalar context or at the end of a `|`
 chain, a list sink gives its list as an array reference, so write a
-sink of one value with `sink_scalar`: one written with `sink` would
+sink of one value with `sink_one`: one written with `sink_many` would
 give its value in an array reference. Last, the result is all the run
 gives; anywhere else, it goes on through the stages after it.
 
 ```perl
-my $longest = sink_scalar {
+my $longest = sink_one {
     my $max;
     return (
         sub ($s) { $max = $s if length $s > length($max // '') },
@@ -615,7 +615,7 @@ the start of a run, and returns closures sharing that run's state:
 |---|---|---|
 | `ekorn_source` | a source, given to `iterator` or starting a chain | its step, called with nothing for the next value, or an empty list at the end; optionally its end, told how the run ended; and optionally a context, anything its stages may want to know about this run |
 | `ekorn_stage` | a stage with state for the run | its step, called with each value, returning a list; optionally its flush, called when its input runs out; and optionally its end |
-| `ekorn_sink_scalar`, `ekorn_sink` | a sink, giving one value or a list | its step, called with each value, its return ignored; its flush, giving the result; and optionally its end |
+| `ekorn_sink_one`, `ekorn_sink_many` | a sink, giving one value or a list | its step, called with each value, its return ignored; its flush, giving the result; and optionally its end |
 
 The methods are named for Ekorn, so an object of yours with a method
 of its own such as `as_list` is never taken for a part. One object can
@@ -704,8 +704,8 @@ Wording to be settled when the code is written. One for each:
 - a word given something other than a block;
 - a set-up that doesn't return what its role needs: a step, and the
   flush, end or context it may have;
-- an object offering more than one of `ekorn_stage`, `ekorn_sink_scalar` and
-  `ekorn_sink`;
+- an object offering more than one of `ekorn_stage`, `ekorn_sink_one` and
+  `ekorn_sink_many`;
 - an end that died while the run was already dying (a warning,
   naming the end);
 - `|` started with something that isn't one of the types, or given
@@ -716,7 +716,7 @@ Wording to be settled when the code is written. One for each:
 | Module | By default | On request | Tags |
 |---|---|---|---|
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
-| `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink`, `sink_scalar` | `:all` |
+| `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink_one`, `sink_many` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | each source | `:all` |
 | `Ekorn::Pipeline::Sinks` | nothing | each sink | `:all` |
 | `Ekorn::Pipeline::Operators` | nothing: loading it is enough | | |

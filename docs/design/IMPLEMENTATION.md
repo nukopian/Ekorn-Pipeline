@@ -60,7 +60,7 @@ ended: `noisy`, a source, and `noisy_count`, a sink.
 ```perl
 use v5.36;
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
+use Ekorn::Pipeline::Factories qw(stage source sink sink_one gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
 use Ekorn::Pipeline::Sinks   qw(keep_all count_items keep_first to_file);
@@ -93,7 +93,7 @@ sub noisy (@values) {
 
 # A sink counting its values, saying how its run ended.
 sub noisy_count ($label) {
-    return sink_scalar {
+    return sink_one {
         my $n = 0;
         return (sub ($value) { $n++ }, sub () {$n}, sub ($how) { say "$label: $how" });
     };
@@ -171,8 +171,8 @@ say from_arrayref(\@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count
        +--------------+-------------+-------------+                     |
        |              |             |             |                     |
      Stage         Source         Sink         Gather <-----------------+
-   ekorn_stage:     ekorn_source:   ekorn_sink_scalar or    ekorn_stage:
-   its code      a set-up     ekorn_sink:        a set-up
+   ekorn_stage:     ekorn_source:   ekorn_sink_one or    ekorn_stage:
+   its code      a set-up     ekorn_sink_many:        a set-up
                               a set-up
        |              |             |             |
        +--------------+------+------+-------------+
@@ -199,8 +199,8 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Pipes` | core | `pipe` and `tap`, for a class's objects to run themselves through stages |
 | `Ekorn::Pipeline::Stage` | 1 | a stage as an object, wrapping a code reference |
 | `Ekorn::Pipeline::Source` | 1 | a source made for each run, from a set-up |
-| `Ekorn::Pipeline::Sink`, `::Sink::Scalar`, `::Sink::List` | 1 | a sink made for each run, from a set-up, giving one value or a list |
-| `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink`, `sink_scalar`, `gather` |
+| `Ekorn::Pipeline::Sink`, `::Sink::One`, `::Sink::Many` | 1 | a sink made for each run, from a set-up, giving one value or a list |
+| `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink_one`, `sink_many`, `gather` |
 | `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
 | `Ekorn::Pipeline::Sinks` | 2 | `keep_all`, `keep_first`, `keep_single`, `count_items`; `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
@@ -217,7 +217,7 @@ needs the code to load Ekorn:
 |---|---|---|
 | **Source** | `ekorn_source` | its step, called with nothing, giving the next value or values, or an empty list at the end; optionally its end, told how the run ended; optionally a context for the run |
 | **Stage made for a run** | `ekorn_stage` | its step, called with each value, returning a list; optionally its flush, called when its input runs out, its values going on; optionally its end |
-| **Sink** | `ekorn_sink_scalar` or `ekorn_sink` | its step, called with each value, its return ignored; its flush, giving its result, one value for `ekorn_sink_scalar`, `undef` if it has none; optionally its end |
+| **Sink** | `ekorn_sink_one` or `ekorn_sink_many` | its step, called with each value, its return ignored; its flush, giving its result, one value for `ekorn_sink_one`, `undef` if it has none; optionally its end |
 
 And beside them:
 
@@ -227,7 +227,7 @@ And beside them:
 - **`is_sink`** says whether a part is a sink, `'scalar'` or `'list'`,
   or false; a pipeline by the sink it ends in (D43).
 - **`is_stage`** takes a code reference, a pipeline, or anything
-  offering `ekorn_stage`, `ekorn_sink_scalar` or `ekorn_sink`. A part offering more
+  offering `ekorn_stage`, `ekorn_sink_one` or `ekorn_sink_many`. A part offering more
   than one of those three croaks when given to `new`, as they'd be
   called in the same place.
 - **A stop** is an exception `isa Ekorn::Pipeline::Stop`.
@@ -254,7 +254,7 @@ as nothing else holds it.
 Ekorn::Pipeline::Element          call, &{}
   ├─ Ekorn::Pipeline::Stage       ekorn_stage: its code
   ├─ Ekorn::Pipeline::Gather      ekorn_stage: its block's step, flush and end
-  ├─ Ekorn::Pipeline::Sink        ::Scalar, ekorn_sink_scalar; ::List, ekorn_sink
+  ├─ Ekorn::Pipeline::Sink        ::Scalar, ekorn_sink_one; ::List, ekorn_sink_many
   ├─ Ekorn::Pipeline::Source      ekorn_source
   ├─ Ekorn::Pipeline::Iterator    ekorn_source: a run already
   └─ Ekorn::Pipeline              a list of stages: call pushes values
@@ -581,8 +581,8 @@ say $all->ended, ' ', $some->ended;    # done stopped
 | `stage {...}` | `Ekorn::Pipeline::Stage->new($code)` | the stage itself, called with each value |
 | `gather {...}` | `Ekorn::Pipeline::Gather->new($setup)` | a set-up, returning the step, or a pipeline, and optionally a flush and an end |
 | `source {...}` | `Ekorn::Pipeline::Source->new($setup)` | a set-up, returning the step, and optionally an end and a context |
-| `sink {...}` | `Ekorn::Pipeline::Sink->new($setup)` | a set-up, returning the step, the flush, giving a list, and optionally an end |
-| `sink_scalar {...}` | `Ekorn::Pipeline::Sink->new_scalar($setup)` | the same, the flush giving one value (D47) |
+| `sink_many {...}` | `Ekorn::Pipeline::Sink->new_sink_many($setup)` | a set-up, returning the step, the flush, giving a list, and optionally an end |
+| `sink_one {...}` | `Ekorn::Pipeline::Sink->new_sink_one($setup)` | the same, the flush giving one value (D47) |
 
 A set-up declares the run's state with `my`, so two runs of one source
 don't share a position, or a filehandle:
@@ -603,7 +603,7 @@ transaction would be, even when it's a stage after the sink that dies:
 
 ```perl
 my @saved;
-my $save = sink_scalar {
+my $save = sink_one {
     my @pending;
     return (
         sub ($row) { push @pending, $row },
@@ -793,8 +793,8 @@ This is the pattern DBIx::Squirrel follows, and any package that hands
 out values can: deliver parts that offer Ekorn's role methods, and let
 users run them in Ekorn's pipelines, with Ekorn's parts and their own.
 Nothing of Ekorn's is subclassed or wrapped. A source needs nothing of
-Ekorn's loaded; the sink in 7.5 uses Ekorn's `sink_scalar` word, for
-brevity, where a class with `ekorn_sink_scalar` would need nothing
+Ekorn's loaded; the sink in 7.5 uses Ekorn's `sink_one` word, for
+brevity, where a class with `ekorn_sink_one` would need nothing
 either; and the overloads in 7.4 load Operators, whose functions they
 name. The role methods are named for Ekorn (D49), so an object with
 an ordinary method such as `as_list` is never taken for a part.
@@ -926,16 +926,16 @@ say scalar @{$people};
 
 ### 7.5 A sink of its own
 
-A sink is made with `sink {...}`, or as a class of the package's own
-offering `ekorn_sink_scalar` or `ekorn_sink`. Its flush gives its result, and its
+A sink is made with `sink_many {...}`, or as a class of the package's own
+offering `ekorn_sink_one` or `ekorn_sink_many`. Its flush gives its result, and its
 end, told how the run ended, commits or rolls back:
 
 ```perl
 package My::Rows {
-    use Ekorn::Pipeline::Factories qw(sink_scalar);
+    use Ekorn::Pipeline::Factories qw(sink_one);
 
     sub insert_into ($table) {
-        return sink_scalar {
+        return sink_one {
             my @pending;    # as a transaction begun
             return (
                 sub ($row) { push @pending, $row },
@@ -979,7 +979,7 @@ while that happens is a warning naming it, and the first error is
 kept:
 
 ```perl
-my $fails = sink_scalar {
+my $fails = sink_one {
     return (sub ($value) { die "First\n" }, sub () {0}, sub ($how) { die "Second\n" });
 };
 local $SIG{__WARN__} = sub ($warning) { print $warning =~ s( \ at\ \S+\ line\ \d+ )( at LINE)xr };
@@ -1001,10 +1001,10 @@ are built:
 | Message | When |
 |---|---|
 | `Expected stage #%d to be a stage, not a source` | a part offering only `ekorn_source`, given to `new` as a stage |
-| `Expected stage #%d to offer one of ekorn_stage, ekorn_sink_scalar and ekorn_sink, not %s` | a part offering more than one |
+| `Expected stage #%d to offer one of ekorn_stage, ekorn_sink_one and ekorn_sink_many, not %s` | a part offering more than one |
 | `Expected the source to return a code reference, and optionally an end and a context` | `ekorn_source` returns anything else |
 | `Expected stage #%s to return a code reference, and optionally a flush and an end` | `ekorn_stage` returns anything else |
-| `Expected sink #%s to return a code reference, a flush, and optionally an end` | `ekorn_sink_scalar` or `ekorn_sink` returns anything else |
+| `Expected sink #%s to return a code reference, a flush, and optionally an end` | `ekorn_sink_one` or `ekorn_sink_many` returns anything else |
 | `Expected a source to be read through iterator` | a source called as a code reference |
 | `Expected no stop in a set-up, as the run has nothing yet to stop` | a stop thrown from a set-up: a gather's block, `ekorn_source`, or a role method |
 | `Expected no stop in an end, as the run has ended` | a stop thrown from an end, inside "Pipeline end of ... failed", or the warning when the run is already dying |
@@ -1059,7 +1059,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 3, principle 1 | opt-in, in layers | built: Operators in force only where used (Q23); the lifecycle touches only what's made for a run |
 | 3, principle 2 | other packages use Ekorn as it is | built: section 7 and its test |
 | 3, principle 3 | the contract is the protocols | built: section 4.2 |
-| 3, principle 4 | words in Factories | built, differs: `stage`, `source`, `sink`, `sink_scalar` and `gather` are there; `pipeline` is still in Ekorn::Pipeline (D30) |
+| 3, principle 4 | words in Factories | built, differs: `stage`, `source`, `sink_one`, `sink_many` and `gather` are there; `pipeline` is still in Ekorn::Pipeline (D30) |
 | 3, principle 6 | every type an Element; `is_stage` by the role methods (D13) | built |
 | 3, principle 8 | nothing that works today changes, but by v0.3.0's changes | built: every existing test passes; three changed with v0.3.0's changes (section 9) |
 | 4.2 | the six types; a sink usually last, its result going on | built: section 6.3 |
@@ -1076,7 +1076,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.6 | `ending()`, true while a flush runs and its values go on | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes | built: Sink's roles by its subclasses, Scalar and List |
 | 6.1 | `pipeline_in` (D37) | not built |
-| 6.2 | the words, `sink` for a list sink and `sink_scalar` for a scalar one (D47) | built, differs: no `pipeline` in Factories |
+| 6.2 | the words, `sink_many` for a list sink and `sink_one` for a scalar one (D47, D64) | built, differs: no `pipeline` in Factories |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |

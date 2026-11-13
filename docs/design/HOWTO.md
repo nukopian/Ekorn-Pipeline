@@ -169,8 +169,8 @@ closed its file there and then.
 
 ### Write a sink of your own, and act on how the run ended
 
-A sink giving one value, as most do, is written with `sink_scalar`; one
-written with `sink` gives a list, and in scalar context, or at the
+A sink giving one value, as most do, is written with `sink_one`; one
+written with `sink_many` gives a list, and in scalar context, or at the
 end of a `|` chain, gives it as an array reference. The block runs at the start of each run, and returns
 the step,
 called with each value; the result, called when the values run out;
@@ -181,11 +181,11 @@ when the run is `done`, so a run that dies, even after the sink, leaves
 the old file:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(sink_scalar);
+use Ekorn::Pipeline::Factories qw(sink_one);
 use File::Temp qw(tempfile);
 
 sub save_to ($path) {
-    return sink_scalar {
+    return sink_one {
         my($fh, $tmp) = tempfile();
         my $n = 0;
         return (
@@ -359,7 +359,7 @@ load Ekorn to say it:
    }
    ```
 
-2. **`ekorn_sink_scalar` or `ekorn_sink`, for what you write.** A sink's end is
+2. **`ekorn_sink_one` or `ekorn_sink_many`, for what you write.** A sink's end is
    told how the run ended, so it can commit only when the run is
    `done`.
 3. **Stages for what only you know,** asking

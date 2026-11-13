@@ -58,6 +58,7 @@ and `single`. D60 settled: `single`'s check doesn't consume, revising
 D59. D61 settled: `single` finishes, as `first` does, revising D60.
 D62 settled: a step's many values are cheap, and `all` takes them in
 bulk. D63 settled: the `&{}` overload stays; `\&$next` is documented.
+D64 settled: a sink's kinds are one and many, in every name.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -630,6 +631,22 @@ D19 to D25 came from the third cold review, settled by Iain on
   which stay. Tested: `\&$it` is a plain code reference, pulls the
   same run, and gives nothing once the iterator is let go. The draft
   reference and IMPLEMENTATION.md describe it.
+- [x] **D64.** What are a sink's two kinds called? One and many,
+  Iain decided on 2026-11-13, renaming in the code the role methods
+  `ekorn_sink_scalar` and `ekorn_sink` as `ekorn_sink_one` and
+  `ekorn_sink_many`, and then, asked, the rest to match: the
+  constructors `Sink->new_sink_one` and `Sink->new_sink_many`, from
+  `new_scalar` and `new`, which goes; the words `sink_one {...}` and
+  `sink_many {...}`, from `sink_scalar` and `sink`, which goes; the
+  classes `Sink::One` and `Sink::Many`, from `Sink::Scalar` and
+  `Sink::List`; and `is_sink`'s answers, `one` or `many`, from `scalar`
+  or `list`. Each name says which kind, so neither is the default,
+  revising D47's lists first. The role methods are a protocol, so
+  DBIx::Squirrel's sinks offer the new names; nothing is released.
+  Built: Iain's rename in Pipeline and Sink, with the rest in Sink,
+  Factories, Sinks, Operators and Errors' internal list, and the
+  tests. Design 4.4, 6.2, 17.23, 17.24 and 17.34, with the names
+  throughout.
 
 ## The plan
 

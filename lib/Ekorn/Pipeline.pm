@@ -35,24 +35,24 @@ sub is_stage ($thing) {
 }
 
 
-# Return "scalar" if what's given is a sink giving one value, "list" if
+# Return "one" if what's given is a sink giving one value, "many" if
 # it's a sink giving a list, or false otherwise; a pipeline, by the
 # sink it ends in.
 sub is_sink ($thing) {
     ($thing) = ($thing->stages)[-1] if $thing isa 'Ekorn::Pipeline';
     return !!0                      unless blessed($thing);
-    return 'scalar'                 if $thing->can('ekorn_sink_scalar');
-    return 'list'                   if $thing->can('ekorn_sink');
+    return 'one'                    if $thing->can('ekorn_sink_one');
+    return 'many'                   if $thing->can('ekorn_sink_many');
     return !!0;
 }
 
 
 # Return the role method that what's given offers for a stage's place,
-# ekorn_stage, ekorn_sink_scalar or ekorn_sink, or nothing if it offers none.
+# ekorn_stage, ekorn_sink_one or ekorn_sink_many, or nothing if it offers none.
 sub _stage_role ($thing) {
     return unless blessed($thing);
     my @roles
-        = grep { $thing->can($_) } qw(ekorn_stage ekorn_sink_scalar ekorn_sink);
+        = grep { $thing->can($_) } qw(ekorn_stage ekorn_sink_one ekorn_sink_many);
     return $roles[0];
 }
 
@@ -77,10 +77,10 @@ sub _element ($stage) {
 sub _check_stage ($stage, $n) {
     my @roles
         = blessed($stage)
-        ? grep { $stage->can($_) } qw(ekorn_stage ekorn_sink_scalar ekorn_sink)
+        ? grep { $stage->can($_) } qw(ekorn_stage ekorn_sink_one ekorn_sink_many)
         : ();
     croakf
-        'Expected stage #%d to offer one of ekorn_stage, ekorn_sink_scalar and ekorn_sink, not %s',
+        'Expected stage #%d to offer one of ekorn_stage, ekorn_sink_one and ekorn_sink_many, not %s',
         $n,
         join ' and ', @roles
         if @roles > 1;
@@ -126,7 +126,7 @@ sub new ($class, @given) {
             my @results;
             while (my($result) = $next->()) { push @results, $result }
             return @results    if wantarray;
-            return $results[0] if $sink && $sink eq 'scalar';
+            return $results[0] if $sink && $sink eq 'one';
             return \@results   if $sink;
             return scalar @results;
         },
@@ -371,7 +371,7 @@ sub _make_run ($stages, $names, $run) {
                 $step = sub ($value) { $value };
             }
         }
-        elsif ($role eq 'ekorn_sink_scalar' || $role eq 'ekorn_sink') {
+        elsif ($role eq 'ekorn_sink_one' || $role eq 'ekorn_sink_many') {
             ($step, $flush, $end) = $stage->$role;
             croakf
                 'Expected sink #%s to return a code reference, a flush, and optionally an end',
@@ -384,7 +384,7 @@ sub _make_run ($stages, $names, $run) {
             # it has none.
             my $result = $flush;
             $flush = sub () { my @result = $result->(); return $result[0] }
-                if $role eq 'ekorn_sink_scalar';
+                if $role eq 'ekorn_sink_one';
         }
         elsif ($role eq 'ekorn_stage') {
             ($step, $flush, $end) = $stage->ekorn_stage;
@@ -400,7 +400,8 @@ sub _make_run ($stages, $names, $run) {
         push @{ $run->{names} },   $name;
         push @{ $run->{flushes} }, $flush;
         push @{ $run->{ends} },    $end;
-        push @{ $run->{sinks} }, $role eq 'ekorn_sink_scalar' || $role eq 'ekorn_sink';
+        push @{ $run->{sinks} },
+            $role eq 'ekorn_sink_one' || $role eq 'ekorn_sink_many';
     }
     return;
 }

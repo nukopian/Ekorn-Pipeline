@@ -13,7 +13,7 @@ use builtin      qw(blessed);
 use Carp       qw(croak);
 use File::Temp qw(tempdir);
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink sink_scalar gather);
+use Ekorn::Pipeline::Factories qw(stage source sink_one sink_many gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
@@ -45,7 +45,7 @@ sub spy_source (@values) {
 # A list sink giving every value, logging its set-up and how its run
 # ended.
 sub spy_sink () {
-    return sink {
+    return sink_many {
         push @log, 'sink set-up';
         my @all;
         return (
@@ -59,7 +59,7 @@ sub spy_sink () {
 # A sink keeping its values only if the run is done, as a transaction
 # commits, logging which; its result is how many it was given.
 sub saving_sink ($saved) {
-    return sink_scalar {
+    return sink_one {
         my @pending;
         return (
             sub ($value) { push @pending, $value },
@@ -146,7 +146,7 @@ subtest '19.1 A source joined directly to a sink' => sub {
     subtest
         'a sink that dies on a value: both told died, and the error thrown' => sub {
             @log = ();
-            my $fails = sink_scalar {
+            my $fails = sink_one {
                 return (
                     sub ($value) { die "No room\n" }, sub () { 0 },
                     sub ($how) { push @log, "sink $how" },
@@ -217,7 +217,7 @@ subtest 'An end that dies (Q6, D27)' => sub {
         'while the run is dying: a warning naming it, keeping the first error' =>
         sub {
             @log = ();
-            my $fails = sink_scalar {
+            my $fails = sink_one {
                 return (
                     sub ($value) { croak 'First' }, sub () { 0 },
                     sub ($how) { croak 'Second' },
@@ -236,7 +236,7 @@ subtest 'An end that dies (Q6, D27)' => sub {
 
     subtest 'as the run ends: thrown, once the rest are told it died' => sub {
         @log = ();
-        my $fails = sink_scalar {
+        my $fails = sink_one {
             return (sub ($value) { return }, sub () { 0 }, sub ($how) { croak 'Full' });
         };
         like
@@ -386,7 +386,7 @@ subtest '19.2 A complete pipeline as a source' => sub {
             @log = ();
             my $next;
             my $steps = 0;
-            my $after = sink_scalar {
+            my $after = sink_one {
                 return (
                     sub ($value) { $steps++ }, sub () { $steps },
                     sub ($how) { push @log, "sink $how" },
@@ -465,11 +465,11 @@ subtest 'A part called directly (D42, D43)' => sub {
         qr( \A Expected\ a\ source\ to\ be\ read\ through\ iterator )x,
         'a source called directly croaks';
 
-    is Ekorn::Pipeline::is_sink(count_items), 'scalar',
+    is Ekorn::Pipeline::is_sink(count_items), 'one',
         'is_sink: a scalar sink';
-    is Ekorn::Pipeline::is_sink(keep_all), 'list', 'a list sink';
+    is Ekorn::Pipeline::is_sink(keep_all), 'many', 'a list sink';
     is Ekorn::Pipeline::is_sink($class->new(stage { $_ }, count_items)),
-        'scalar',
+        'one',
         'a pipeline, by the sink it ends in';
     ok !Ekorn::Pipeline::is_sink($_), 'not a sink'
         for stage { $_ }, sub { $_ }, $class->new,
@@ -502,7 +502,7 @@ subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
 };
 
 subtest 'An end dying with values still waiting: no more is handed out' => sub {
-    my $dies = sink {
+    my $dies = sink_many {
         my @all;
         return (
             sub ($v) { push @all, $v }, sub () { @all },
@@ -515,18 +515,19 @@ subtest 'An end dying with values still waiting: no more is handed out' => sub {
     is $next->ended, 'died';
 };
 
-subtest 'A list sink by default; sink_scalar for one value (D47)' => sub {
-    my $list = sink {
+subtest 'sink_many and sink_one (D47, D64)' => sub {
+    my $list = sink_many {
         my @all;
         (sub ($v) { push @all, $v }, sub () { @all })
     };
-    my $scalar = sink_scalar {
+    my $scalar = sink_one {
         my $n = 0;
         (sub ($v) { $n++ }, sub () { $n })
     };
-    is Ekorn::Pipeline::is_sink($list), 'list', 'sink {...} makes a list sink';
-    is Ekorn::Pipeline::is_sink($scalar), 'scalar',
-        'sink_scalar {...} a scalar sink';
+    is Ekorn::Pipeline::is_sink($list), 'many',
+        'sink_many {...} makes a list sink';
+    is Ekorn::Pipeline::is_sink($scalar), 'one',
+        'sink_one {...} a scalar sink';
     is [$list->(1, 2)], [1, 2], 'called, it gives its list';
     is from_arrayref([1, 2]) | $scalar, 2, 'a scalar sink ends a chain';
     is from_arrayref([1, 2]) | $list, [1, 2],
@@ -534,7 +535,7 @@ subtest 'A list sink by default; sink_scalar for one value (D47)' => sub {
 };
 
 subtest 'Fixes from the fourth review' => sub {
-    my $stops_at_end = sink {
+    my $stops_at_end = sink_many {
         return (sub ($value) { return }, sub () { 1 }, sub ($how) { Stop() });
     };
     like dies { $class->new($stops_at_end)->(1) },
@@ -581,10 +582,10 @@ subtest 'Sinks named for what they give (D50)' => sub {
     is from_arrayref([9]) | keep_single, 9, 'it ends a chain';
     is keep_first->(3, 4),               3, 'keep_first gives the first';
 
-    is keep_last->(3, 4, 5),                5,        'keep_last gives the last';
-    is keep_last->(),                       undef,    'or undef, given none';
-    is from_arrayref([1, 2]) | keep_last,   2,        'it ends a chain';
-    is Ekorn::Pipeline::is_sink(keep_last), 'scalar', 'a scalar sink';
+    is keep_last->(3, 4, 5),                5,     'keep_last gives the last';
+    is keep_last->(),                       undef, 'or undef, given none';
+    is from_arrayref([1, 2]) | keep_last,   2,     'it ends a chain';
+    is Ekorn::Pipeline::is_sink(keep_last), 'one', 'a scalar sink';
     my $next = $class->new(keep_last)->iterator(from_arrayref([1, 2, 3]));
     is [$next->()],  [3],    'pulled, it gives the last';
     is [$next->()],  [],     'and only that';
@@ -670,7 +671,7 @@ subtest 'keep(N): the first N items, stopping there (D57)' => sub {
         'and so at the end of a chain';
     is from_arrayref([1]) | keep(2),      [1],    'fewer, if there were fewer';
     is from_arrayref([1, 2]) | keep(0),   [],     'none, for keep(0)';
-    is Ekorn::Pipeline::is_sink(keep(2)), 'list', 'a list sink';
+    is Ekorn::Pipeline::is_sink(keep(2)), 'many', 'a list sink';
 
     my $next = $class->new(keep(2))->iterator(from_arrayref([1 .. 5]));
     is [drain_all($next)], [1, 2];
@@ -798,7 +799,7 @@ subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
 
         my $both = bless {}, 'My::Both';
         like dies { $class->new($both) },
-        qr( \A Expected\ stage\ \#1 .* ekorn_stage\ and\ ekorn_sink_scalar )x,
+        qr( \A Expected\ stage\ \#1 .* ekorn_stage\ and\ ekorn_sink_one )x,
         "a part offering both a stage's method and a sink's croaks";
     };
 
@@ -849,7 +850,7 @@ package My::Both {    ## no critic (Modules::ProhibitMultiplePackages)
     }
 
 
-    sub ekorn_sink_scalar ($self) {
+    sub ekorn_sink_one ($self) {
         return (sub { }, sub { 0 });
     }
 }
