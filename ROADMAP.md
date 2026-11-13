@@ -41,21 +41,18 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0016. Sources that come with Perl
 
 **Size:** S (2)
-
-**Depends on:** 2026-0021
 
 Ekorn::Pipeline::Sources, needing nothing from CPAN: `from_array`,
 `from_fh`, `from_file`, which takes I/O layers, and `counter`, as the
 design's 8.2 lists them; nothing exported by default. Built so far:
 `from_array` and `from_file`. Done when each is in, with its POD,
-tests and docs, and coverage above the floors.
+tests and docs, and coverage above the floors. Its
+[record](docs/changes/2026-0016-sources.md).
+
+## Next
 
 ### 2026-0017. Sinks that come with Perl
 
