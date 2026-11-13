@@ -1120,8 +1120,10 @@ each question settled by Iain here.
   2026-0013, names in errors; 2026-0016, sources; 2026-0017, sinks;
   2026-0018, operators; and 2026-0025, the release of v0.3.0, a new
   item. 2026-0019 and 2026-0010 stay as they were.
-- **DBIx-Squirrel** is handed a task saying the design is approved,
-  as section 20.2 asks.
+- **DBIx-Squirrel** already knew, its session having taken in Iain's
+  approval of both designs and split its own (DBIx-Squirrel
+  ef654ec), so the task section 20.2 asks for would have repeated its
+  plan; a message gives it Ekorn's items, in order, instead.
 - **What's left:** each item's work, and coverage up to the floors,
   below them on `pipeline-experimental` (branch 90%, condition 82%,
   POD 43% when last run), as the new modules' POD is still a
