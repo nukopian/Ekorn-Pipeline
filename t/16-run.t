@@ -25,7 +25,7 @@ package My::Doubler {
     sub new ($class, $log) { return bless {log => $log}, $class }
 
 
-    sub ekorn_stage ($self) {
+    sub EKORN_STAGE ($self) {
         my $log = $self->{log};
         return (sub ($x) { $x * 2 }, undef, sub ($how) { push @$log, $how });
     }
@@ -40,19 +40,19 @@ package My::Returns {
         return bless {made => \@made}, "My::Returns::$role";
     }
 
-    package My::Returns::ekorn_stage {
+    package My::Returns::EKORN_STAGE {
         our @ISA = 'My::Returns';
-        sub ekorn_stage ($self) { return @{ $self->{made} } }
+        sub EKORN_STAGE ($self) { return @{ $self->{made} } }
     }
 
-    package My::Returns::ekorn_sink_one {
+    package My::Returns::EKORN_SINK_ONE {
         our @ISA = 'My::Returns';
-        sub ekorn_sink_one ($self) { return @{ $self->{made} } }
+        sub EKORN_SINK_ONE ($self) { return @{ $self->{made} } }
     }
 
-    package My::Returns::ekorn_source {
+    package My::Returns::EKORN_SOURCE {
         our @ISA = 'My::Returns';
-        sub ekorn_source ($self) { return @{ $self->{made} } }
+        sub EKORN_SOURCE ($self) { return @{ $self->{made} } }
     }
 }
 
@@ -60,13 +60,13 @@ package My::Returns {
 # keeps.
 package My::Sink {
     our @ISA = 'Ekorn::Pipeline::Sink';
-    sub ekorn_sink_many ($self) { return $self->{setup}->() }
+    sub EKORN_SINK_MANY ($self) { return $self->{setup}->() }
 }
 
 # A subclass of Sink with a sink of one's role method of its own.
 package My::SinkOfOne {
     our @ISA = 'Ekorn::Pipeline::Sink';
-    sub ekorn_sink_one ($self) { return $self->{setup}->() }
+    sub EKORN_SINK_ONE ($self) { return $self->{setup}->() }
 }
 
 # A pipeline whose stages method gives what can't be a stage.
@@ -169,7 +169,7 @@ subtest "Sink: a subclass's own role method keeps its class" => sub {
     isa_ok(
         My::Sink->new_sink_one(sub { (sub { }, sub () { 1 }) }),
         ['Ekorn::Pipeline::Sink::One'],
-        "new_sink_one makes a Sink::One, as the subclass has no ekorn_sink_one",
+        "new_sink_one makes a Sink::One, as the subclass has no EKORN_SINK_ONE",
     );
     my $one = My::SinkOfOne->new_sink_one(sub {
         my $n = 0;
@@ -188,14 +188,14 @@ subtest 'A part of your own, offering a role method' => sub {
 
 subtest 'What a set-up may return' => sub {
     my %bad = (
-        ekorn_stage    => [[], ['x'], [sub { }, 'x']],
-        ekorn_sink_one =>
+        EKORN_STAGE    => [[], ['x'], [sub { }, 'x']],
+        EKORN_SINK_ONE =>
             [['x', sub { }], [sub { }], [sub { }, 'x'], [sub { }, sub { }, 'x']],
     );
     my %message = (
-        ekorn_stage =>
+        EKORN_STAGE =>
             qr( \A Expected\ stage\ \#1\ to\ return\ a\ code\ reference,\ and\ optionally\ a\ flush\ and\ an\ end\  )x,
-        ekorn_sink_one =>
+        EKORN_SINK_ONE =>
             qr( \A Expected\ sink\ \#1\ to\ return\ a\ code\ reference,\ a\ flush,\ and\ optionally\ an\ end\  )x,
     );
     for my $role (sort keys %bad) {
@@ -206,10 +206,10 @@ subtest 'What a set-up may return' => sub {
         }
     }
     for my $made ([], ['x'], [sub { }, 'x']) {
-        my $source = My::Returns->new('ekorn_source', @$made);
+        my $source = My::Returns->new('EKORN_SOURCE', @$made);
         like dies { $class->new->iterator($source) },
             qr( \A Expected\ the\ source\ to\ return\ a\ code\ reference,\ and\ optionally\ an\ end\ and\ a\ context\  )x,
-            sprintf 'ekorn_source returning %d things, not all code', scalar @$made;
+            sprintf 'EKORN_SOURCE returning %d things, not all code', scalar @$made;
     }
 };
 

@@ -122,7 +122,7 @@ follows from them, and section 17 gives the reasons for each.
    a pipeline is made a Stage, so a pipeline is made of Elements, or
    of a package's own parts offering role methods, kept as they are.
    `is_stage` takes a plain code reference, a pipeline, or anything
-   offering `ekorn_stage`, `ekorn_sink_one` or `ekorn_sink_many` (section 4.4), so
+   offering `EKORN_STAGE`, `EKORN_SINK_ONE` or `EKORN_SINK_MANY` (section 4.4), so
    every function taking stages today takes the new types unchanged,
    and a package's own parts too. Code that checks for a code reference by its
    type, `ref` or Ref::Util's `is_coderef`, doesn't see one. Called
@@ -197,7 +197,7 @@ How they relate:
   or die doesn't reach them, as it's another run.
 - **A gather is a stage** whose state lasts a run, with a flush that
   can let out what it held, and, optionally, an end told how the run
-  ended. It's what `ekorn_stage` offers (section 5.4).
+  ended. It's what `EKORN_STAGE` offers (section 5.4).
 - **A sink is a stage that holds back every value,** and lets out its
   result when its input runs out (settled, Q8): one value, such as a count, or
   a list, such as every value. So it's a flatMap of the whole stream,
@@ -244,19 +244,19 @@ wrapping anything of it (principles 2 and 3; the list settled by D5 to D7, D25 a
 |---|---|
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
-| **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `ekorn_source`, to be read from, returning its step, and, optionally, its end and a context; `ekorn_stage`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `ekorn_sink_one` or `ekorn_sink_many`, at most one of them, returning its step, its flush, and, optionally, an end. A stage and a sink go in the same place, so an object offers at most one of `ekorn_stage`, `ekorn_sink_one` and `ekorn_sink_many`, which is checked when the pipeline is made; `ekorn_source` can go with any of them (D19). The role it's given in decides which is called, so one object can be read from and written to. A code reference offers none, and takes the role it's given in, with no flush or end |
-| **Sink** | an object with `ekorn_sink_one`, its result one value, or `ekorn_sink_many`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. The flush of a sink of one gives exactly one value, `undef` when it has none, as `keep_first` with no values (D25) (sections 5.4, 9) |
+| **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `EKORN_SOURCE`, to be read from, returning its step, and, optionally, its end and a context; `EKORN_STAGE`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `EKORN_SINK_ONE` or `EKORN_SINK_MANY`, at most one of them, returning its step, its flush, and, optionally, an end. A stage and a sink go in the same place, so an object offers at most one of `EKORN_STAGE`, `EKORN_SINK_ONE` and `EKORN_SINK_MANY`, which is checked when the pipeline is made; `EKORN_SOURCE` can go with any of them (D19). The role it's given in decides which is called, so one object can be read from and written to. A code reference offers none, and takes the role it's given in, with no flush or end |
+| **Sink** | an object with `EKORN_SINK_ONE`, its result one value, or `EKORN_SINK_MANY`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. The flush of a sink of one gives exactly one value, `undef` when it has none, as `keep_first` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
-| **A run's context** | the third value `ekorn_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (D46) |
+| **A run's context** | the third value `EKORN_SOURCE` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (D46) |
 
 One thing in a stage's place is Ekorn's own, not a protocol: a
 gather's block may return a pipeline as its step, whose stages are made
-in its place, as in v0.2.0 (2026-0007). A package's own `ekorn_stage`
+in its place, as in v0.2.0 (2026-0007). A package's own `EKORN_STAGE`
 returns a step, a code reference, not a pipeline.
 
-The role methods are named for Ekorn, `ekorn_source`, `ekorn_stage`,
-`ekorn_sink_many` and `ekorn_sink_one`, mirroring the words, so that an
+The role methods are named for Ekorn, `EKORN_SOURCE`, `EKORN_STAGE`,
+`EKORN_SINK_MANY` and `EKORN_SINK_ONE`, mirroring the words, so that an
 ordinary object is never taken for a part: a bind value whose class has
 an `as_list` method, given to a function finding its stages with
 `is_stage`, stays a bind value (D49).
@@ -317,7 +317,7 @@ So there's one shape to learn, state lives in plain lexicals, and the
 core needs one protocol: an object it's given as a source, a stage or
 a sink can be **made for a run**, by a method for that role, which the
 core calls at the start of each run, and which returns the closures
-of section 5.4: `ekorn_source`, `ekorn_stage`, and `ekorn_sink_one` or `ekorn_sink_many`
+of section 5.4: `EKORN_SOURCE`, `EKORN_STAGE`, and `EKORN_SINK_ONE` or `EKORN_SINK_MANY`
 for a sink (section 4.4; 2026-0022's D5). An object without the method
 for the role it's given in can't take that role. A code reference is
 used as it is, as every one is today.
@@ -478,7 +478,7 @@ made by its constructor, a class method that takes only real things
 | `Ekorn::Pipeline::Stage` | `new($code)` | settled (Q9, D4); wraps the code given, never blesses it (**Q9**); a run calls the code as it is |
 | `Ekorn::Pipeline::Gather` | `new($setup)` | as `gather` makes today, now an Element |
 | `Ekorn::Pipeline::Source` | `new($setup)` | settled (D5, D7); `$setup` returns the step, and, optionally, the end and a context |
-| `Ekorn::Pipeline::Sink` | `new_sink_many($setup)`, `new_sink_one($setup)` | settled (D6, D12, D47, D64): `new_sink_many` makes a sink of many, offering `ekorn_sink_many`, and `new_sink_one` a sink of one, offering `ekorn_sink_one`; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
+| `Ekorn::Pipeline::Sink` | `new_sink_many($setup)`, `new_sink_one($setup)` | settled (D6, D12, D47, D64): `new_sink_many` makes a sink of many, offering `EKORN_SINK_MANY`, and `new_sink_one` a sink of one, offering `EKORN_SINK_ONE`; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
 
 And one more class method, which, with `named`, is all that reads
 names (settled in 2026-0021 as a class method taking the package, and
@@ -670,7 +670,7 @@ my @names = @{ $src | take(10) };                       # @{}: every item, read 
   `Ekorn::Pipeline::Operators::drain`, which are part of the protocol.
   What follows is anything `is_stage` takes, a package's own parts
   included. A chain from a source is a source, and a sink, by
-  `ekorn_sink_one` or `ekorn_sink_many`, ends it with its result. A chain of stages,
+  `EKORN_SINK_ONE` or `EKORN_SINK_MANY`, ends it with its result. A chain of stages,
   `$trim | $lowercase`, is a pipeline, of a subclass of Ekorn::Pipeline
   that has `|`, so it goes wherever a pipeline does, given last to a
   function taking a pipeline last included; a sink can end it, making
@@ -893,7 +893,7 @@ its caller's stages. Settled by Iain, 2026-11-12 (2026-0022's D44), as
 first suggested for its review; if DBIx-Squirrel finds a problem with
 it, the design is revisited:
 
-- **The iterator offers `ekorn_source`,** as it's what users hold, from
+- **The iterator offers `EKORN_SOURCE`,** as it's what users hold, from
   `$sth->iterate(@binds, @stages)`, and it has all a run needs. Its
   set-up executes the statement; its step fetches, in batches of 100
   as now, from a buffer of this run's; its end finishes the handle;
@@ -905,11 +905,11 @@ it, the design is revisited:
   none once the last row has been fetched.
 - **Its own stages, if it was given any, are run by Ekorn:** the raw
   statement source through `Ekorn::Pipeline->new(@stages)->iterator`,
-  whose `ekorn_source` it hands on. An iterator passes on the context of
+  whose `EKORN_SOURCE` it hands on. An iterator passes on the context of
   the run inside it, so `pluck` sees the columns behind its stages.
 - **One run of a handle at a time:** a DBI statement handle can't have
   two executions in progress. As DBIx::Squirrel's iterator does today,
-  `ekorn_source` finishes a handle that's active and executes it
+  `EKORN_SOURCE` finishes a handle that's active and executes it
   again, so a run starts from the first row, even after `next`; it
   croaks only when another of DBIx::Squirrel's iterators is part-way
   through the same handle. Settled by Iain in DBIx-Squirrel's session,
@@ -1010,7 +1010,7 @@ them, because DBIx::Squirrel runs the pipeline. When a user joins
 nothing. This is the one place its parts need more than they're given.
 
 Settled (Iain, 2026-11-12, 2026-0022's D7): **a source gives a context
-for each run, and a stage asks for it.** `ekorn_source` may return a
+for each run, and a stage asks for it.** `EKORN_SOURCE` may return a
 third value, after its step and its end, anything the source knows
 about this run; a stage calls `Ekorn::Pipeline::run_context()` for it,
 as it calls `ending()`. A statement's set-up executes it, and gives
@@ -1161,10 +1161,10 @@ whose it is and a recommendation.
 | **Q28** | What does `ended` tell the caller? | D48, revising D45: whether the source was read to its end, `stopped` too if `finish` dropped values still to be handed out; said once the iterator has given all it will (section 5.5) |
 | **Q29** | What does a context describe? | D46: the run's source, not the values: a stage that reshapes rows doesn't change it, so a stage after it reading the context reads the source's (4.4, 12.7); a way to replace it waits until a need is found |
 | **Q30** | How is a sink of many declared? | D47: lists first: `Sink->new_sink_many` and `sink_many {...}` make a sink of many, and `Sink->new_sink_one` and `sink_one {...}` a scalar one, scalars being the second-class citizen; asked for one value, a sink of many gives its list as an array reference (D51) |
-| **Q31** | How is a part told from any object offering a method of the same name? | D49: the role methods are named for Ekorn, `ekorn_source`, `ekorn_stage`, `ekorn_sink_many`, `ekorn_sink_one` (17.24) |
+| **Q31** | How is a part told from any object offering a method of the same name? | D49: the role methods are named for Ekorn, `EKORN_SOURCE`, `EKORN_STAGE`, `EKORN_SINK_MANY`, `EKORN_SINK_ONE` (17.24) |
 | **Q32** | What does a sink of many give when one value is asked for? | D51: its list, as an array reference, in scalar context and at the end of a `\|` chain, revising D10 and D47; counting is `count_items`'s job (17.26) |
 | **Q33** | Does `@{}` stay, though it reads as a dereference? | D52: yes, explained in detail: it reads a source through, a run of its own each use; the docs lead with a sink, and show the alternatives, by what's wanted (section 9, 17.27) |
-| **Q2** | The lifecycle method's name? | D5: one method per role; their names, `ekorn_source`, `ekorn_stage`, `ekorn_sink_many` and `ekorn_sink_one`, by D49 |
+| **Q2** | The lifecycle method's name? | D5: one method per role; their names, `EKORN_SOURCE`, `EKORN_STAGE`, `EKORN_SINK_MANY` and `EKORN_SINK_ONE`, by D49 |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
 | **Q4** | Ends always run once, told how? | D6, D12 and D15: a flush and an end, the end once the run has ended (section 5.4) |
 | **Q5** | Where does the source's end run among the ends? | D11: first |
@@ -1175,8 +1175,8 @@ whose it is and a recommendation.
 | **Q10** | The name-reading class method: `pipeline_in` or `new_in`? | D37: `pipeline_in`, still needed by Factories' `pipeline` and Ekorn's Sugar; `new_in` would read as `new` with an option |
 | **Q11** | Named sources (2026-0012) now, or later? | D35: neither: dropped, with the roadmap idea; if there's a need, it'll be found again |
 | **Q12** | Canned stages as objects? | D4: those made with `gather` are Elements already; the rest become Stages with them, a v0.3.0 change said in `Changes` |
-| **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `ekorn_source` |
-| **Q14** | How does DBIx::Squirrel::Iterator offer `ekorn_source`? | D44: as section 12.3 sets out: its set-up executing, its step fetching in batches, its end finishing, its context the statement's columns, as `fetchrow_hashref` keys them, and the statement; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, finishing an active handle and executing it again (amended in DBIx-Squirrel's session). If DBIx-Squirrel finds a problem, the design is revisited |
+| **Q13** | `is_source`? | D5 and D13: not needed; `iterator` takes anything offering `EKORN_SOURCE` |
+| **Q14** | How does DBIx::Squirrel::Iterator offer `EKORN_SOURCE`? | D44: as section 12.3 sets out: its set-up executing, its step fetching in batches, its end finishing, its context the statement's columns, as `fetchrow_hashref` keys them, and the statement; its own stages run by an Ekorn iterator whose source it hands on; one run of a handle at a time, finishing an active handle and executing it again (amended in DBIx-Squirrel's session). If DBIx-Squirrel finds a problem, the design is revisited |
 | **Q15** | Can a statement's definition in DBIx::Squirrel's Sugar name a pipeline by a string? | D36: yes, written as a chain of names, each followed by `=>`, `clean => trim => top5 =>` (section 12.5); how a name is told from the rest is DBIx-Squirrel's to design |
 | **Q16** | DBIx::Squirrel's CI testing against Ekorn's `pipeline-experimental`? | D29: yes; `pipeline-experimental` is a sandbox, so testing against it costs nothing that matters; DBIx-Squirrel does it, told when it reviews the design |
 | **Q17** | Ekorn::Pipeline still re-exporting `pipeline` (2026-0021 D7)? | D30: no; `pipeline` is a word, in Factories only |
@@ -1471,8 +1471,8 @@ Weighed and set aside:
 ### 17.14 One method per role
 
 (Section 4.4; Iain, 2026-11-12, 2026-0022's D5.) A part says what it
-can be by its methods: `ekorn_source`, `ekorn_stage`, and, for a sink,
-`ekorn_sink_one` or `ekorn_sink_many`. The core asks only these, and so does `|`
+can be by its methods: `EKORN_SOURCE`, `EKORN_STAGE`, and, for a sink,
+`EKORN_SINK_ONE` or `EKORN_SINK_MANY`. The core asks only these, and so does `|`
 of what follows a source, so a package's own parts take any role
 Ekorn's can, without loading Ekorn, and one object, such as a table,
 can be read from and written to. A chain must start with an object
@@ -1526,7 +1526,7 @@ run ends as the result is ready (D15).
 ### 17.16 A stage asks for its run's context
 
 (Section 12.7; Iain, 2026-11-12, 2026-0022's D7.) A source gives a
-context for each run, as the third value of `ekorn_source`, and a stage
+context for each run, as the third value of `EKORN_SOURCE`, and a stage
 asks `run_context()` for it.
 
 Weighed and set aside:
@@ -1569,8 +1569,8 @@ Weighed and set aside:
 ### 17.18 One role in a stage's place, decided ends, and chains of stages
 
 (Iain, 2026-11-12, 2026-0022's D19 to D25, from the third cold
-review.) An object offers at most one of `ekorn_stage`, `ekorn_sink_one` and
-`ekorn_sink_many`, as they'd be called in the same place (D19). A part whose
+review.) An object offers at most one of `EKORN_STAGE`, `EKORN_SINK_ONE` and
+`EKORN_SINK_MANY`, as they'd be called in the same place (D19). A part whose
 input had run out is told `done`, whatever follows it (D20). Set-ups
 run when the run starts (D21). A run's ends wait for its stages, and
 nothing is run early (D22). Stages chain with `|` as well as sources,
@@ -1717,7 +1717,10 @@ stages from its bind values with `is_stage`, so a bind value whose
 class had an `as_list` method was taken for a sink, and the call died:
 code working in v0.2 would break in v0.3.0. D64 has since renamed
 `ekorn_sink` and `ekorn_sink_scalar` as `ekorn_sink_many` and
-`ekorn_sink_one` (17.34).
+`ekorn_sink_one` (17.34), and roadmap 2026-0027 has put all four in
+capitals: `EKORN_SOURCE`, `EKORN_STAGE`, `EKORN_SINK_ONE` and
+`EKORN_SINK_MANY`. This section, and 17.34, keep the names as they
+were then.
 
 Weighed and set aside:
 
@@ -1972,7 +1975,9 @@ name says which kind it makes, so neither is the default, where D47
 put lists first. The role methods are a protocol, so a package's own
 sinks, DBIx::Squirrel's among them, offer the new names. The prose
 follows: a scalar sink is a sink of one, a list sink a sink of many,
-and the tables' roles are `one` and `many`.
+and the tables' roles are `one` and `many`. Roadmap 2026-0027 has
+since put the role methods in capitals, `EKORN_SINK_ONE` and
+`EKORN_SINK_MANY`, as Perl names subs its runtime calls.
 
 ### 17.35 Fewer sinks, for now
 
@@ -2254,7 +2259,7 @@ design is approved and split (roadmap 2026-0022).
 Told by a task in its `TODO.md` when the design is approved, and
 again when v0.3.0 is ready; designed in its own session:
 
-- **Its code:** its iterators offer `ekorn_source` (D44), with their columns as
+- **Its code:** its iterators offer `EKORN_SOURCE` (D44), with their columns as
   the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
   its result sinks are sinks of its own design; its iterator's `all`,
   `single` and `count` give way to Ekorn's `keep_all`, `keep_single`

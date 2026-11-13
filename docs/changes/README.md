@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [The role methods in capitals](2026-0027-capital-role-methods.md),
-  roadmap 2026-0027: open.
+  roadmap 2026-0027: shipped, unreleased.
 - [Role methods return their parts by name](2026-0026-named-parts.md),
   roadmap 2026-0026: shipped, unreleased.
 - [Operators: `|`, `|=` and `@{}`](2026-0018-operators.md),

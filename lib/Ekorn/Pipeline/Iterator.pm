@@ -86,7 +86,7 @@ sub single ($self) {
 
 # An iterator is a source: of the values its run gives, the run ended
 # from outside when the run reading it ends, passing on its context.
-sub ekorn_source ($self) {
+sub EKORN_SOURCE ($self) {
     croakf
         'Expected a source with values still to give: an iterator is one run, and this one is spent'
         if $self->{spent}->();
@@ -175,7 +175,7 @@ gives nothing. Over 300,000 values, this saves about 0.03 s.
 
 An iterator can be given to another pipeline's
 L<Ekorn::Pipeline/iterator> as its source, as it has an
-L</ekorn_source> method. The values it hands out go through the second
+L</EKORN_SOURCE> method. The values it hands out go through the second
 pipeline's stages, and when the second run ends, it ends the first, so
 its source is told. The second run's stages see the first run's
 context, through L<Ekorn::Pipeline/run_context>.
@@ -248,9 +248,9 @@ still to be handed out;
 It says how the run ended for whoever is reading it: each part's end
 is told how it ended from where that part stands, which may differ.
 
-=head2 ekorn_source
+=head2 EKORN_SOURCE
 
-    my $parts = $next->ekorn_source;
+    my $parts = $next->EKORN_SOURCE;
 
 Returns the iterator as a source's parts, by name, as L</An iterator as
 a source> describes: a C<step> pulling it, an C<end> finishing it, and

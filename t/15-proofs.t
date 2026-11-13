@@ -887,7 +887,7 @@ subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
 
         my $both = bless {}, 'My::Both';
         like dies { $class->new($both) },
-        qr( \A Expected\ stage\ \#1 .* ekorn_stage\ and\ ekorn_sink_one )x,
+        qr( \A Expected\ stage\ \#1 .* EKORN_STAGE\ and\ EKORN_SINK_ONE )x,
         "a part offering both a stage's method and a sink's croaks";
     };
 
@@ -907,7 +907,7 @@ package My::Table {
     }
 
 
-    sub ekorn_source ($self) {
+    sub EKORN_SOURCE ($self) {
         my $i = 0;
         return (
             sub () { $i < @{ $self->{rows} } ? $self->{rows}[$i++] : () },
@@ -933,12 +933,12 @@ package My::Set {    ## no critic (Modules::ProhibitMultiplePackages)
 package My::Both {    ## no critic (Modules::ProhibitMultiplePackages)
 
 
-    sub ekorn_stage ($self) {
+    sub EKORN_STAGE ($self) {
         return sub { $_ }
     }
 
 
-    sub ekorn_sink_one ($self) {
+    sub EKORN_SINK_ONE ($self) {
         return (sub { }, sub { 0 });
     }
 }

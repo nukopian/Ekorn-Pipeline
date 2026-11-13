@@ -1308,13 +1308,13 @@ load Ekorn to say it:
 
 =item 1.
 
-**C<ekorn_source>, for what you read.** It starts a run, and returns
+**C<EKORN_SOURCE>, for what you read.** It starts a run, and returns
 its step, its end, closing what it opened, and a context, what your
 stages may need to know about the run, as below.
 
 =item 2.
 
-**C<ekorn_sink_one> or C<ekorn_sink_many>, for what you write.** A
+**C<EKORN_SINK_ONE> or C<EKORN_SINK_MANY>, for what you write.** A
 sink's end is told how the run ended, so it can commit only when the
 run is C<done>.
 
@@ -1342,7 +1342,7 @@ reported at your users' lines.
 
 A table's source, executing its statement for each run:
 
-    sub ekorn_source ($self) {
+    sub EKORN_SOURCE ($self) {
         my $sth = $self->{sth};
         $sth->execute;
         return (sub () { $sth->fetchrow_arrayref // () }, sub ($how) { $sth->finish },

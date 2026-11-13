@@ -26,7 +26,7 @@ sub new ($class, $setup) {
 
 # Return what the set-up returns for a new run: the step, and
 # optionally the end and a context.
-sub ekorn_source ($self) {
+sub EKORN_SOURCE ($self) {
     return $self->{setup}->();
 }
 
@@ -111,7 +111,7 @@ The word C<source {...}>, in L<Ekorn::Pipeline::Factories>, makes one
 of these from a block.
 
 A class of your own needn't be one of these to be a source. Any
-object with an C<ekorn_source> method, returning the step and
+object with an C<EKORN_SOURCE> method, returning the step and
 optionally the end and the context, as a list or by name, is one.
 
 =head1 METHODS
@@ -123,9 +123,9 @@ optionally the end and the context, as a list or by name, is one.
 Returns a source made afresh for each run by C<$setup>, a code
 reference, as L</DESCRIPTION> describes. Anything else croaks.
 
-=head2 ekorn_source
+=head2 EKORN_SOURCE
 
-    my @parts = $source->ekorn_source;
+    my @parts = $source->EKORN_SOURCE;
 
 Calls the set-up, for a new run, and returns what it returns: the
 parts, as a list or by name. A run

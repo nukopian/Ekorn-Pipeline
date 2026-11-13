@@ -34,7 +34,7 @@ sub new ($class, $block) {
 
 # Return what the block returns for a new run: the step, or a pipeline
 # of steps, and optionally a flush and an end.
-sub ekorn_stage ($self) {
+sub EKORN_STAGE ($self) {
     return $self->{call}->();
 }
 
@@ -202,9 +202,9 @@ Returns a gather of C<$setup>, a code reference, as C<gather> does.
 Anything else croaks. Called as a code reference, a gather calls its
 set-up.
 
-=head2 ekorn_stage
+=head2 EKORN_STAGE
 
-    my @parts = $stage->ekorn_stage;
+    my @parts = $stage->EKORN_STAGE;
 
 Calls the set-up, for a new run, and returns what it returns: the
 parts, as a list or by name. A run

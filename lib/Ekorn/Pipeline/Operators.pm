@@ -83,7 +83,7 @@ sub drain ($source, @) {
 
 # Return true if the object given offers a source's role method.
 sub _is_source ($object) {
-    return !!$object->can('ekorn_source');
+    return !!$object->can('EKORN_SOURCE');
 }
 
 

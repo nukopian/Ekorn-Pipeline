@@ -347,7 +347,7 @@ Returns an iterator, an object called as a code reference, that hands
 out the results one per call, pulling values from C<$source> as they're
 needed. C<$source> is a code reference called with no arguments, which
 returns the next value, several values, or an empty list when there are
-no more; or anything offering C<ekorn_source>, such as a source made for
+no more; or anything offering C<EKORN_SOURCE>, such as a source made for
 each run (see L<Sources|/"Sources: Ekorn::Pipeline::Source">), or another
 iterator. Given anything else, C<iterator> croaks "Expected a code
 reference".
@@ -581,7 +581,7 @@ such as C<'clean'> for one.
 
 True if C<$thing> can be used as a stage: a code reference; a pipeline
 of Ekorn::Pipeline or a subclass; or an object offering one of the role
-methods C<ekorn_stage>, C<ekorn_sink_one> and C<ekorn_sink_many>, such as
+methods C<EKORN_STAGE>, C<EKORN_SINK_ONE> and C<EKORN_SINK_MANY>, such as
 a stage made with C<gather>, or a sink. It's the same test L<new|/"new">
 uses. It's false for a string, even the name of a pipeline, and for a
 source. It's exported on request.
@@ -603,7 +603,7 @@ has an example.
 Returns C<one> if C<$thing> is a sink of one, giving one value, and
 C<many> if it's a sink of many, giving a list; for a pipeline, the sink
 it ends in, if any. Both are true. It's false for anything else. A sink
-is anything offering C<ekorn_sink_one> or C<ekorn_sink_many>. It's
+is anything offering C<EKORN_SINK_ONE> or C<EKORN_SINK_MANY>. It's
 exported on request, and new in v0.3.0.
 
     say join ' ', map { is_sink($_) || 'no' } count_items, keep_all, sub { $_ };    # one many no
@@ -636,7 +636,7 @@ one of the inner pipeline's own flushes is called.
     Ekorn::Pipeline::run_context()
 
 Returns the context the run's source gave, if any: the third thing its
-C<ekorn_source> returned, such as a statement's column names. It's for
+C<EKORN_SOURCE> returned, such as a statement's column names. It's for
 stages that need to know about the values' source, called as they run.
 Each run has its own. A pushed run has none, and an iterator used as a
 source passes on its own run's. It isn't exported, and is new in
@@ -1148,7 +1148,7 @@ C<new> as one, it croaks. Called directly, as a code reference, it
 croaks "Expected a source to be read through iterator": a run of its
 own would never be ended, so what it opened would stay open.
 
-C<< $source->ekorn_source >> calls the set-up for a new run, and returns
+C<< $source->EKORN_SOURCE >> calls the set-up for a new run, and returns
 what it returns. A run calls it as it starts; you needn't.
 
 =head2 Sinks: Ekorn::Pipeline::Sink
@@ -1202,11 +1202,11 @@ from a block. A sink can be called as a code reference with values, as a pipelin
 the one sink would be, and gives its result, from a fresh sink of its
 set-up each time.
 
-Called on a subclass with an C<ekorn_sink_one> or C<ekorn_sink_many>
+Called on a subclass with an C<EKORN_SINK_ONE> or C<EKORN_SINK_MANY>
 method of its own, C<new_sink_one> or C<new_sink_many> makes the
 subclass; otherwise, an Ekorn::Pipeline::Sink::One or
-Ekorn::Pipeline::Sink::Many. C<< $sink->ekorn_sink_one >>, or
-C<ekorn_sink_many>, calls the set-up for a new run; you needn't.
+Ekorn::Pipeline::Sink::Many. C<< $sink->EKORN_SINK_ONE >>, or
+C<EKORN_SINK_MANY>, calls the set-up for a new run; you needn't.
 
 =head2 Iterators: Ekorn::Pipeline::Iterator
 
@@ -1473,7 +1473,7 @@ return a code reference or a pipeline, and optionally a flush and an
 end".
 
 What C<gather> returns is an Ekorn::Pipeline::Gather, an object that
-can go wherever a stage can. Its C<ekorn_stage> method calls the block,
+can go wherever a stage can. Its C<EKORN_STAGE> method calls the block,
 for a new run; a run calls it as it starts, and you needn't.
 C<< Ekorn::Pipeline::Gather->new($block) >> makes one as C<gather> does.
 
@@ -2559,19 +2559,19 @@ the start of a run, and returns closures sharing that run's state:
 
 =over 4
 
-=item C<ekorn_source>
+=item C<EKORN_SOURCE>
 
 B<Makes it:> a source, given to C<iterator>
 
 B<Returns:> its step, called with nothing for the next value, or an empty list at the end; optionally its end, told how the run ended; and optionally a context, anything its stages may want to know about this run
 
-=item C<ekorn_stage>
+=item C<EKORN_STAGE>
 
 B<Makes it:> a stage with state for the run
 
 B<Returns:> its step, called with each value, returning a list; optionally its flush, called when its input runs out; and optionally its end
 
-=item C<ekorn_sink_one>, C<ekorn_sink_many>
+=item C<EKORN_SINK_ONE>, C<EKORN_SINK_MANY>
 
 B<Makes it:> a sink, giving one value or a list
 
@@ -2585,15 +2585,15 @@ C<context>, as a set-up does (see L<Made for a run|/"Made for a run">).
 
 The methods are named for Ekorn, so an object of yours with a method
 of its own such as C<as_list> is never taken for a part. One object can
-offer C<ekorn_source> and one of the others, as a table can be read from
-and written to; offering more than one of C<ekorn_stage>,
-C<ekorn_sink_one> and C<ekorn_sink_many> croaks where it's given as a
+offer C<EKORN_SOURCE> and one of the others, as a table can be read from
+and written to; offering more than one of C<EKORN_STAGE>,
+C<EKORN_SINK_ONE> and C<EKORN_SINK_MANY> croaks where it's given as a
 stage. A plain code reference is a source or a stage, wherever it's
 given, with no end. None of these needs your package to load Ekorn.
 
     package My::Rows;
 
-    sub ekorn_source ($self) {
+    sub EKORN_SOURCE ($self) {
         my $sth = $self->{sth};
         $sth->execute;                                  # this run's
         return {
@@ -2705,36 +2705,36 @@ pipeline, was given stages after the name.
 =item *
 
 B<Expected stage #%d to be a stage, not a source:> a source,
-offering C<ekorn_source> and none of a stage's role methods, was given
+offering C<EKORN_SOURCE> and none of a stage's role methods, was given
 to C<new> as a stage. Give it to C<iterator> instead.
 
 =item *
 
-B<Expected stage #%d to offer one of ekorn_stage, ekorn_sink_one and
-ekorn_sink_many, not %s:> a stage offered more than one of the role
+B<Expected stage #%d to offer one of EKORN_STAGE, EKORN_SINK_ONE and
+EKORN_SINK_MANY, not %s:> a stage offered more than one of the role
 methods, so it couldn't say which it is.
 
 =item *
 
 B<Expected a code reference:> the source given to C<iterator> wasn't
-a code reference, or anything offering C<ekorn_source>.
+a code reference, or anything offering C<EKORN_SOURCE>.
 
 =item *
 
 B<Expected the source to return a code reference, and optionally an
-end and a context:> a source's C<ekorn_source> returned something
+end and a context:> a source's C<EKORN_SOURCE> returned something
 else. Reported when the run starts.
 
 =item *
 
 B<Expected stage #%s to return a code reference, and optionally a
-flush and an end:> a stage's C<ekorn_stage> returned something else.
+flush and an end:> a stage's C<EKORN_STAGE> returned something else.
 Reported when the run starts.
 
 =item *
 
 B<Expected sink #%s to return a code reference, a flush, and
-optionally an end:> a sink's C<ekorn_sink_one> or C<ekorn_sink_many>
+optionally an end:> a sink's C<EKORN_SINK_ONE> or C<EKORN_SINK_MANY>
 returned something else. Reported when the run starts.
 
 =item *

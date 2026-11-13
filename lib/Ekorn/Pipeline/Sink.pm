@@ -15,14 +15,14 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # Return a sink made afresh for each run by the set-up given, which
 # returns its step, its flush, giving its result, and, optionally, its
 # end. new_sink_many makes one whose result is a list, offered by
-# ekorn_sink_many; new_sink_one makes one whose result is one value,
-# offered by ekorn_sink_one. Called with
+# EKORN_SINK_MANY; new_sink_one makes one whose result is one value,
+# offered by EKORN_SINK_ONE. Called with
 # values, a sink pushes them through a fresh sink of its set-up, as a
 # pipeline of the one sink would, and gives its result: the closure
 # holds the set-up, not the sink, so it works however long it's kept.
 sub new_sink_many ($class, $setup) {
     return _made(
-        $class->can('ekorn_sink_many') ? $class : 'Ekorn::Pipeline::Sink::Many',
+        $class->can('EKORN_SINK_MANY') ? $class : 'Ekorn::Pipeline::Sink::Many',
         $setup,
     );
 }
@@ -31,7 +31,7 @@ sub new_sink_many ($class, $setup) {
 # Return a sink, as new_sink_many does, whose result is one value.
 sub new_sink_one ($class, $setup) {
     return _made(
-        $class->can('ekorn_sink_one') ? $class : 'Ekorn::Pipeline::Sink::One',
+        $class->can('EKORN_SINK_ONE') ? $class : 'Ekorn::Pipeline::Sink::One',
         $setup,
     );
 }
@@ -52,7 +52,7 @@ package Ekorn::Pipeline::Sink::One {    ## no critic (Modules::ProhibitMultipleP
     use parent -norequire, 'Ekorn::Pipeline::Sink';
 
 
-    sub ekorn_sink_one ($self) {
+    sub EKORN_SINK_ONE ($self) {
         return $self->{setup}->();
     }
 }
@@ -62,7 +62,7 @@ package Ekorn::Pipeline::Sink::Many {    ## no critic (Modules::ProhibitMultiple
     use parent -norequire, 'Ekorn::Pipeline::Sink';
 
 
-    sub ekorn_sink_many ($self) {
+    sub EKORN_SINK_MANY ($self) {
         return $self->{setup}->();
     }
 }
@@ -159,10 +159,10 @@ L<Ekorn::Pipeline::Factories>, make these from a block, and
 L<Ekorn::Pipeline::Sinks> has ready-made ones.
 
 A class of your own needn't be one of these to be a sink. Any object
-with an C<ekorn_sink_one> or an C<ekorn_sink_many> method, returning
+with an C<EKORN_SINK_ONE> or an C<EKORN_SINK_MANY> method, returning
 the step, the flush, and optionally the end, as a list or by name, is
 one. Offering both, or
-either with C<ekorn_stage>, croaks where it's given as a stage, as it
+either with C<EKORN_STAGE>, croaks where it's given as a stage, as it
 couldn't say which it is.
 
 =head1 METHODS
@@ -174,7 +174,7 @@ couldn't say which it is.
 Returns a sink of one, made afresh for each run by C<$setup>, a code
 reference, as L</DESCRIPTION> describes. Anything else croaks. It's an
 Ekorn::Pipeline::Sink::One, unless the class it's called on has an
-C<ekorn_sink_one> method of its own, when it's of that class.
+C<EKORN_SINK_ONE> method of its own, when it's of that class.
 
 =head2 new_sink_many
 
@@ -182,20 +182,20 @@ C<ekorn_sink_one> method of its own, when it's of that class.
 
 Returns a sink of many, as L</new_sink_one> does: an
 Ekorn::Pipeline::Sink::Many, or of the class it's called on, if that
-has an C<ekorn_sink_many> method of its own.
+has an C<EKORN_SINK_MANY> method of its own.
 
-=head2 ekorn_sink_one
+=head2 EKORN_SINK_ONE
 
-    my @parts = $sink->ekorn_sink_one;
+    my @parts = $sink->EKORN_SINK_ONE;
 
 A sink of one's: calls the set-up, for a new run, and returns what it
 returns: the parts, as a list or by name. A run calls it as it starts; you needn't.
 
-=head2 ekorn_sink_many
+=head2 EKORN_SINK_MANY
 
-    my @parts = $sink->ekorn_sink_many;
+    my @parts = $sink->EKORN_SINK_MANY;
 
-A sink of many's, as L</ekorn_sink_one> is a sink of one's.
+A sink of many's, as L</EKORN_SINK_ONE> is a sink of one's.
 
 =head1 DIAGNOSTICS
 

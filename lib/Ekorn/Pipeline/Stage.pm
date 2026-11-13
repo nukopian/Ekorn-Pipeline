@@ -35,7 +35,7 @@ sub code ($self) {
 
 
 # Return the stage's step for a new run: its code, as a code reference.
-sub ekorn_stage ($self) {
+sub EKORN_STAGE ($self) {
     return $self->{call};
 }
 
@@ -93,9 +93,9 @@ already what they are. Anything else croaks.
 
 Returns the code the stage was made of.
 
-=head2 ekorn_stage
+=head2 EKORN_STAGE
 
-    my $step = $stage->ekorn_stage;
+    my $step = $stage->EKORN_STAGE;
 
 Returns the stage's step for a new run: its code, or, for an object
 called as a code reference, the code it gives. A run calls it as it

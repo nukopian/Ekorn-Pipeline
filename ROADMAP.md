@@ -45,26 +45,6 @@ Nothing yet.
 
 ## Next
 
-### 2026-0027. The role methods in capitals
-
-**Size:** S (2)
-
-The role methods become `EKORN_SOURCE`, `EKORN_STAGE`,
-`EKORN_SINK_ONE` and `EKORN_SINK_MANY`, as Iain decided on 2026-11-13:
-Perl's convention for a sub its runtime, rather than its caller,
-calls, as `DESTROY` and `tie`'s `FETCH` are, and CPAN's for a hook one
-package offers another's framework, as JSON's `TO_JSON` and Storable's
-`STORABLE_freeze` are. It says at a glance that a run calls them, not
-you, and sets them apart from Ekorn's own methods. It renames a
-protocol, so it's done before v0.3.0, while DBIx-Squirrel is writing
-its parts against `pipeline-experimental`, with DBIx-Squirrel told.
-No release has the lowercase names, so none are kept as aliases. See
-its [record](docs/changes/2026-0027-capital-role-methods.md). Done
-when the run, `is_stage`, `is_sink`, the operators and Ekorn's own
-parts use the new names, the old ones are nowhere outside the records
-of shipped items, and the tests, POD and docs follow, with coverage
-above the floors.
-
 ### 2026-0025. Release v0.3.0
 
 **Size:** S (2)
