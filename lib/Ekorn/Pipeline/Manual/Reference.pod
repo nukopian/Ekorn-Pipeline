@@ -126,7 +126,7 @@ L<The modules|/"The modules">
     use Ekorn::Pipeline;
     use Ekorn::Pipeline::Stop;                                       # Stop
     use Ekorn::Pipeline::Gather;                                     # gather
-    use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_while, drop_while
+    use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_if, drop_if, take_while, drop_while
     use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
     use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
 
@@ -1694,6 +1694,22 @@ B<Passes on:> the one value; at a second, warns and stops
 
 B<Exported:> on request
 
+=item C<take_if { ... }>
+
+B<Module:> Flow
+
+B<Passes on:> each value the block is true of
+
+B<Exported:> on request
+
+=item C<drop_if { ... }>
+
+B<Module:> Flow
+
+B<Passes on:> each value the block is false of
+
+B<Exported:> on request
+
 =item C<take_while { ... }>
 
 B<Module:> Flow
@@ -1820,15 +1836,40 @@ goes on: for when one value was meant, and its limit forgotten.
     say join ' ', Ekorn::Pipeline->new(take_last)->(1 .. 9);      # 9
     say join ' ', Ekorn::Pipeline->new(take_single)->(1 .. 9);    # 1, with a warning
 
+=head3 take_if
+
+    take_if { ... }
+
+Passes on each value the block returns true for, and drops the rest:
+a filter, as C<grep> is, testing every value. The block gets each value
+in C<$_> and as its argument. A plain stage ending in a test, C<< sub {
+$_ > 2 } >>, passes on what the test returns, true or false, not the
+value; C<< take_if { $_ > 2 } >> passes on the value. It croaks "Expected a
+code reference" if it isn't given a block or code reference. It's new
+in v0.3.0.
+
+=head3 drop_if
+
+    drop_if { ... }
+
+Drops each value the block returns true for, and passes on the rest:
+C<take_if>'s opposite. The block gets each value in C<$_> and as its
+argument. It croaks "Expected a code reference" if it isn't given a
+block or code reference. It's new in v0.3.0.
+
+    say join ' ', Ekorn::Pipeline->new(take_if { $_ % 3 })->(1 .. 9);    # 1 2 4 5 7 8
+    say join ' ', Ekorn::Pipeline->new(drop_if { $_ % 3 })->(1 .. 9);    # 3 6 9
+
 =head3 take_while
 
     take_while { ... }
 
 Passes on values while the block returns true for them, then stops the
 pipeline at the first value it returns false for. That value isn't
-passed on. The block gets each value in C<$_> and as its argument. It
-croaks "Expected a code reference" if it isn't given a block or code
-reference.
+passed on. The block gets each value in C<$_> and as its argument.
+Unlike C<take_if>, it tests no value after the first that fails, so it
+reads no further. It croaks "Expected a code reference" if it isn't
+given a block or code reference.
 
 =head3 drop_while
 
@@ -2975,8 +3016,8 @@ other than a whole number above 0.
 
 =item *
 
-B<Expected a code reference:> C<take_while>, C<drop_while>, C<collect>
-or C<peek> was given something other than a block or code reference.
+B<Expected a code reference:> C<take_if>, C<drop_if>, C<take_while>,
+C<drop_while>, C<collect> or C<peek> was given something other than a block or code reference.
 
 =item *
 
@@ -3062,7 +3103,7 @@ B<On request:> C<croakf>
 
 B<By default:> C<take>, C<drop>
 
-B<On request:> C<take_first>, C<take_last>, C<take_single>, C<take_while>, C<drop_while>
+B<On request:> C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<drop_if>, C<take_while>, C<drop_while>
 
 B<Tags:> C<:all>
 
@@ -3147,7 +3188,7 @@ Reports errors at the caller's line: C<croakf> and C<@INTERNAL>.
 
 =item C<Ekorn::Pipeline::Stages::Flow>
 
-Canned stages taking or dropping values: C<take>, C<drop>, C<take_first>, C<take_last>, C<take_single>, C<take_while>, C<drop_while>.
+Canned stages taking or dropping values: C<take>, C<drop>, C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<drop_if>, C<take_while>, C<drop_while>.
 
 =item C<Ekorn::Pipeline::Stages::Batch>
 

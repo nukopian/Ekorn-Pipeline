@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [take_if and drop_if](2026-0030-take-if.md), roadmap 2026-0030: shipped,
+  unreleased.
 - [A single name gives the pipeline it names](2026-0029-single-name.md),
   roadmap 2026-0029: shipped, unreleased.
 - [Fast paths](2026-0028-fast-paths.md), roadmap 2026-0028: shipped,

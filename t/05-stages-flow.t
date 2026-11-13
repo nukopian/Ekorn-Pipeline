@@ -27,15 +27,17 @@ subtest 'what is exported' => sub {
         use Ekorn::Pipeline::Stages::Flow;
         ::ok __PACKAGE__->can($_), "$_ by default" for qw(take drop);
         ::ok !__PACKAGE__->can($_), "not $_"
-            for qw(take_first take_last take_single take_while drop_while);
+            for qw(
+                take_first take_last take_single take_while drop_while take_if
+                drop_if);
     }
 
     package All {         ## no critic (Modules::ProhibitMultiplePackages)
         use Ekorn::Pipeline::Stages::Flow qw(:all);
         ::ok __PACKAGE__->can($_), "$_ with :all"
             for qw(
-                take drop take_first take_last take_single take_while
-                drop_while);
+                take       drop    take_first take_last take_single take_while
+                drop_while take_if drop_if);
     }
 
     package None {        ## no critic (Modules::ProhibitMultiplePackages)
@@ -97,6 +99,28 @@ subtest 'take and drop start afresh on each run' => sub {
     my $p = $class->new(drop(1), take(2));
     is [$p->(qw(a b c d))], [qw(b c)], 'the first run';
     is [$p->(qw(e f g h))], [qw(f g)], 'the second';
+};
+
+subtest 'take_if and drop_if: every value tested (2026-0030)' => sub {
+    my @seen;
+    my $p = $class->new(take_if { push @seen, $_; $_ % 2 });
+    is [$p->(1 .. 5)], [1, 3, 5], 'take_if: the values it is true of';
+    is \@seen,         [1 .. 5],  'given each in $_, and testing every one';
+    is [$class->new(drop_if { $_ % 2 })->(1 .. 5)], [2, 4],
+        'drop_if: the values it is false of';
+    is [$class->new(take_if sub ($x) { $x ne 'b' })->(qw(a b c))],
+        [qw(a c)], 'as its argument too';
+    is [$class->new(take_if { $_ > 2 })->(1 .. 4)], [3, 4],
+        'the values, not what the test returns';
+    my($src, $calls) = source(1 .. 5);
+    is drain($class->new(take_if { $_ < 3 })->iterator($src)), [1, 2],
+        'pulled';
+    is $$calls, 6, 'reading every value, as it never stops';
+    for my $word (qw(take_if drop_if)) {
+        my $code = \&{ "Ekorn::Pipeline::Stages::Flow::$word" };
+        like dies { $code->('x') }, qr( \A Expected\ a\ code\ reference\  )x,
+            "$word croaks given what isn't code";
+    }
 };
 
 subtest 'take_while' => sub {

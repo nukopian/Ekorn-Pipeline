@@ -55,7 +55,7 @@ use v5.36;
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Stop;                                       # Stop
 use Ekorn::Pipeline::Gather;                                     # gather
-use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_while, drop_while
+use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_if, drop_if, take_while, drop_while
 use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
 use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
 
@@ -1398,6 +1398,8 @@ one.
 | `take_first` | Flow | the first value, then stops | on request |
 | `take_last` | Flow | at the end, the last value | on request |
 | `take_single` | Flow | the one value; at a second, warns and stops | on request |
+| `take_if { ... }` | Flow | each value the block is true of | on request |
+| `drop_if { ... }` | Flow | each value the block is false of | on request |
 | `take_while { ... }` | Flow | values until the block is false of one, then stops | on request |
 | `drop_while { ... }` | Flow | values from the first the block is false of | on request |
 | `batch($size)` | Batch | array references of `$size` values, the last shorter | by default |
@@ -1481,6 +1483,36 @@ say join ' ', Ekorn::Pipeline->new(take_last)->(1 .. 9);      # 9
 say join ' ', Ekorn::Pipeline->new(take_single)->(1 .. 9);    # 1, with a warning
 ```
 
+#### take_if
+
+```perl
+take_if { ... }
+```
+
+Passes on each value the block returns true for, and drops the rest:
+a filter, as `grep` is, testing every value. The block gets each value
+in `$_` and as its argument. A plain stage ending in a test, `sub {
+$_ > 2 }`, passes on what the test returns, true or false, not the
+value; `take_if { $_ > 2 }` passes on the value. It croaks "Expected a
+code reference" if it isn't given a block or code reference. It's new
+in v0.3.0.
+
+#### drop_if
+
+```perl
+drop_if { ... }
+```
+
+Drops each value the block returns true for, and passes on the rest:
+`take_if`'s opposite. The block gets each value in `$_` and as its
+argument. It croaks "Expected a code reference" if it isn't given a
+block or code reference. It's new in v0.3.0.
+
+```perl
+say join ' ', Ekorn::Pipeline->new(take_if { $_ % 3 })->(1 .. 9);    # 1 2 4 5 7 8
+say join ' ', Ekorn::Pipeline->new(drop_if { $_ % 3 })->(1 .. 9);    # 3 6 9
+```
+
 #### take_while
 
 ```perl
@@ -1489,9 +1521,10 @@ take_while { ... }
 
 Passes on values while the block returns true for them, then stops the
 pipeline at the first value it returns false for. That value isn't
-passed on. The block gets each value in `$_` and as its argument. It
-croaks "Expected a code reference" if it isn't given a block or code
-reference.
+passed on. The block gets each value in `$_` and as its argument.
+Unlike `take_if`, it tests no value after the first that fails, so it
+reads no further. It croaks "Expected a code reference" if it isn't
+given a block or code reference.
 
 #### drop_while
 
@@ -2318,8 +2351,8 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
   something other than a whole number.
 - **Expected a batch size of 1 or more:** `batch` was given something
   other than a whole number above 0.
-- **Expected a code reference:** `take_while`, `drop_while`, `collect`
-  or `peek` was given something other than a block or code reference.
+- **Expected a code reference:** `take_if`, `drop_if`, `take_while`,
+  `drop_while`, `collect` or `peek` was given something other than a block or code reference.
 - **Expected only one item, but there were more:** a warning, not an
   error: `take_single` was given a second value, and stopped the
   pipeline, passing on only the first.
@@ -2342,7 +2375,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
 | `Ekorn::Pipeline::Source`, `::Sink`, `::Stage`, `::Iterator`, `::Element` | nothing: classes | | |
 | `Ekorn::Pipeline::Errors` | nothing | `croakf` | |
-| `Ekorn::Pipeline::Stages::Flow` | `take`, `drop` | `take_first`, `take_last`, `take_single`, `take_while`, `drop_while` | `:all` |
+| `Ekorn::Pipeline::Stages::Flow` | `take`, `drop` | `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`, `take_while`, `drop_while` | `:all` |
 | `Ekorn::Pipeline::Stages::Batch` | `batch`, `collect` | | `:all` |
 | `Ekorn::Pipeline::Stages::Taps` | `peek`, `count_into` | `dump_to` | `:all` |
 
@@ -2367,6 +2400,6 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Element` | What each of Ekorn's types is: `call`. |
 | `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods. |
 | `Ekorn::Pipeline::Errors` | Reports errors at the caller's line: `croakf` and `@INTERNAL`. |
-| `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_while`, `drop_while`. |
+| `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`, `take_while`, `drop_while`. |
 | `Ekorn::Pipeline::Stages::Batch` | Canned stages gathering values: `batch`, `collect`. |
 | `Ekorn::Pipeline::Stages::Taps` | Canned stages run for their side effects: `peek`, `count_into`, `dump_to`. |

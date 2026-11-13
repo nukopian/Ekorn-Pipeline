@@ -9,7 +9,7 @@ Unreleased
     types: stage, gather, source, generator with yield, sink_one and
     sink_many. The README's CPAN badge keeps up with releases, and the
     how-to says where a stage belongs. Stages::Flow has take_first,
-    take_last and take_single.
+    take_last and take_single, and take_if and drop_if, which filter.
 
     A run's parts can be made afresh for it, and told how it ended:
     sources that close what they open, however the run ends; sinks
@@ -25,9 +25,9 @@ Unreleased
 
     Pushing values through plain subs is several times faster.
 
-    It ships thirteen roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    It ships fourteen roadmap items, 2026-0009, 2026-0011, 2026-0013,
     2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021, 2026-0024,
-    2026-0026, 2026-0027, 2026-0028 and 2026-0029. It changes what some code
+    2026-0026, 2026-0027, 2026-0028, 2026-0029 and 2026-0030. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -87,6 +87,12 @@ Unreleased
       (main::clean#2) failed at ...". A stage of no named pipeline is
       named as before. A pipeline's name method gives its first name,
       qualified, or undef. (roadmap 2026-0013)
+    - Ekorn::Pipeline::Stages::Flow exports two more stages on request:
+      take_if { ... }, passing on each value the block is true of, and
+      drop_if { ... }, each it's false of, testing every value, as grep
+      does, where take_while and drop_while stop testing at the first
+      value that fails. A stage ending in a test passes on true or
+      false; take_if passes on the value. (roadmap 2026-0030)
     - Faster: a pipeline whose stages are all plain subs, called with
       values, runs them in a plain loop, with none of the machinery
       for flushes, ends and sinks: a call of a few values is about

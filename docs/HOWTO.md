@@ -160,7 +160,8 @@ second stage only ever sees the hits.
 One thing to watch: a test on its own isn't a filter. `sub {
 $_->{plays} >= 6000 }` returns what the test returns, true or false,
 and that's what goes on, in place of the track. Return the value, or
-nothing.
+nothing. Or give the test to `take_if`, from chapter 3, which passes on
+the value: `take_if { $_->{plays} >= 6000 }`.
 
 ### Turn one value into several
 
@@ -645,6 +646,29 @@ say tracks(sub { $_->{artist} eq 'Cream' ? $_->{title} : () }, take_single);    
 Each is a stage, so more stages can follow it. Chapter 6's sinks,
 `keep_first`, `keep_last` and `keep_single`, give the same values as
 the run's result instead.
+
+### Keep or drop values by a test
+
+`take_if` passes on each value its block is true for, and `drop_if`
+each value its block is false for, testing every value, as `grep`
+does. Compare `take_while`, in the next recipe, which stops at the
+first value its test fails:
+
+```perl
+use Ekorn::Pipeline::Stages::Flow qw(take_if drop_if take_while);
+
+say join ', ', tracks(take_if { $_->{plays} >= 6000 }, sub { $_->{title} });
+# Dancing Queen, Girls & Boys, Sunshine of Your Love
+say join ', ', tracks(drop_if { $_->{artist} eq 'Blur' }, sub { $_->{title} });
+# Dancing Queen, Knowing Me, Knowing You, Sunshine of Your Love
+say join ', ', tracks(take_while { $_->{plays} >= 6000 }, sub { $_->{title} });
+# Dancing Queen
+```
+
+The second track has fewer plays, so `take_while` stopped there, and
+read no further. Use `take_if` to keep every match, and `take_while`
+when the values are in an order that means nothing after the first
+miss is wanted, such as a file's header lines.
 
 ### Take values while a test holds
 
@@ -2359,7 +2383,7 @@ It falls short:
 - **on discoverability,** as a caller has to learn what a stage is,
   where an option would be listed in the documentation;
 - **in a few sharp corners,** most of them Perl's: a test isn't a
-  filter, a plain closure keeps its state between runs, `sub {...} |
+  filter (give it to `take_if`), a plain closure keeps its state between runs, `sub {...} |
   sub {...}` is a bitwise OR, `@{ $source }` reads everything, and a
   generator runs its block to the end.
 

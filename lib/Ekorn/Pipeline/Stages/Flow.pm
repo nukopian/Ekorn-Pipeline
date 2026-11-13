@@ -15,8 +15,10 @@ use namespace::clean -except => 'import';
 
 our @EXPORT = qw(take drop);    ## no critic (Modules::ProhibitAutomaticExportation)
 
-our @EXPORT_OK
-    = (@EXPORT, qw(take_first take_last take_single take_while drop_while));
+our @EXPORT_OK = (
+    @EXPORT,
+    qw(take_first take_last take_single take_while drop_while take_if drop_if),
+);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 # Croak at the line that called Ekorn::Pipeline.
@@ -83,6 +85,24 @@ sub take_single : prototype() () {
 }
 
 
+# Return a stage passing on each value the test given is true of, and
+# dropping the rest.
+sub take_if : prototype(&) ($test) {
+    croakf 'Expected a code reference' unless is_coderef($test);
+    return Ekorn::Pipeline::Stage->new(
+        sub ($value) { $test->($value) ? $value : () });
+}
+
+
+# Return a stage dropping each value the test given is true of, and
+# passing on the rest.
+sub drop_if : prototype(&) ($test) {
+    croakf 'Expected a code reference' unless is_coderef($test);
+    return Ekorn::Pipeline::Stage->new(
+        sub ($value) { $test->($value) ? () : $value });
+}
+
+
 # Return a stage passing on values while the test given is true of them,
 # and stopping the pipeline at the first it's false of.
 sub take_while : prototype(&) ($test) {
@@ -120,7 +140,7 @@ __END__
 
 =head1 NAME
 
-Ekorn::Pipeline::Stages::Flow - stages taking or dropping values: take, drop, take_while and drop_while
+Ekorn::Pipeline::Stages::Flow - stages taking or dropping values: take, drop, take_if, drop_if, take_while and drop_while
 
 =head1 SYNOPSIS
 
@@ -152,6 +172,10 @@ state, so they're made with
 L<Ekorn::Pipeline::Gather> and start afresh on each run. A run is a
 call of a pipeline with values, or an iterator made from it.
 
+C<take_if> and C<drop_if> test every value; C<take_while> and
+C<drop_while> stop testing at the first value the test fails, one by
+ending the pipeline there, the other by passing on everything after.
+
 C<take>, C<take_first>, C<take_single> and C<take_while> end the
 pipeline with
 L<Ekorn::Pipeline::Stop> once they've passed on all they will, so an
@@ -160,11 +184,11 @@ iterator stops calling its source.
 =head1 FUNCTIONS
 
 C<take> and C<drop> are exported by default. C<take_first>,
-C<take_last>, C<take_single>, C<take_while> and C<drop_while> are
-exported on request, and C<:all> gives all seven. To get the defaults
-and one more, name C<:DEFAULT> too:
+C<take_last>, C<take_single>, C<take_if>, C<drop_if>, C<take_while> and
+C<drop_while> are exported on request, and C<:all> gives all nine. To
+get the defaults and one more, name C<:DEFAULT> too:
 
-    use Ekorn::Pipeline::Stages::Flow qw(:DEFAULT take_while);
+    use Ekorn::Pipeline::Stages::Flow qw(:DEFAULT take_if);
 
 =head2 take
 
@@ -216,6 +240,28 @@ Passes on the one value. At a second, it warns "Expected only one item,
 but there were more" and stops the pipeline, so the first is all that
 goes on: for when one value was meant, and its limit forgotten.
 
+=head2 take_if
+
+    take_if { ... }
+
+Passes on each value the block returns true for, and drops the rest:
+a filter, as C<grep> is, testing every value. The block gets each
+value in C<$_> and as its argument. It's new in v0.3.0.
+
+    take_if { $_->{plays} >= 6000 }    # every hit
+
+A plain stage ending in a test, C<sub { $_->{plays} >= 6000 }>, passes
+on what the test returns, true or false, not the value; C<take_if>
+passes on the value.
+
+=head2 drop_if
+
+    drop_if { ... }
+
+Drops each value the block returns true for, and passes on the rest:
+C<take_if>'s opposite. The block gets each value in C<$_> and as its
+argument. It's new in v0.3.0.
+
 =head2 take_while
 
     take_while { ... }
@@ -223,6 +269,8 @@ goes on: for when one value was meant, and its limit forgotten.
 Passes on values while the block returns true for them, then stops the
 pipeline at the first value it returns false for. That value isn't
 passed on. The block gets each value in C<$_> and as its argument.
+Unlike C<take_if>, it tests no value after the first that fails, so it
+reads no further.
 
 =head2 drop_while
 
@@ -243,8 +291,8 @@ C<take> or C<drop> was given something other than a whole number.
 
 =item Expected a code reference
 
-C<take_while> or C<drop_while> was given something other than a block
-or code reference.
+C<take_if>, C<drop_if>, C<take_while> or C<drop_while> was given
+something other than a block or code reference.
 
 =item Expected only one item, but there were more
 
