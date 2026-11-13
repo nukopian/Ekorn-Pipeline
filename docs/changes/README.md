@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A named pipeline named in a stage's error](2026-0013-names-in-errors.md),
+  roadmap 2026-0013: in progress.
 - [Canned stages as objects, and a take stage for each keep sink](2026-0024-canned-stages.md),
   roadmap 2026-0024: shipped, unreleased.
 - [One design, end to end, before more is built](2026-0022-one-design.md),
