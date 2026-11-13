@@ -1,6 +1,6 @@
 # 2026-0029. A single name gives the pipeline it names
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: one name alone gives the pipeline named. D2 settled: only if it's of the invocant's class, or a subclass; otherwise wrapped, as now. None open.
 
@@ -60,4 +60,19 @@ with tests, docs and `Changes`, and DBIx-Squirrel has its task.
 
 ## What happened
 
-Nothing yet.
+Done as planned, on 2026-11-13, with one addition.
+
+- **`named` on a class no longer goes through `pipeline_in`.** It made
+  its pipeline with `pipeline_in`, so, unchanged, `Ekorn::Pipeline->
+  named(alias => 'clean')` would have made `alias` the very pipeline
+  named `clean`, where `named` documents a new pipeline, and naming it
+  twice would no longer croak. It now resolves its stages and calls
+  `new` itself, so it always makes a new pipeline, and a name never
+  aliases another. Tested in `t/13-pipeline-function.t`.
+- Three tests changed what they expect, each by a level less:
+  `pipeline('failing')` run alone is `#2 (main::failing#2)`, where it
+  was `#1.2`; given second, `#2.2`, where it was `#2.1.2`; and returned
+  by a gather's block, `#1.2`, where it was `#1.1.2`.
+- The reference's examples of numbers, a named pipeline given as a
+  stage, were right as they were.
+- DBIx-Squirrel was told by a task, as it was updating its how-to.

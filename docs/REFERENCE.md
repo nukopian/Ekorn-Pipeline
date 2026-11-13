@@ -357,6 +357,13 @@ code reference, a pipeline, or the name of one, looked up in
 only method that reads names, and it's what the word
 [pipeline](#pipeline) calls, with its caller's package.
 
+Given one name and nothing else, it returns the pipeline named itself,
+not a new one, if it's of the invocant's class or a subclass, so a
+stage of it, given second in another pipeline, is numbered `#2.2`, as
+it stands, not `#2.1.2`. A pipeline named that isn't of the invocant's
+class is held in a new pipeline of it, as before. That's new in
+v0.3.0.
+
 Call it from code the user calls directly, passing the user's package,
 as the word does with `scalar caller`. Code that passes stages
 through, such as a function taking stages from its caller, gives them
@@ -413,7 +420,10 @@ means:
 - **A name is resolved when the pipeline is made,** not when it runs.
   The pipeline it names is spliced in, as a pipeline given to `new`
   is, and its stages are named in messages by their places in each:
-  `#1.2`.
+  `#1.2`. A name alone, `pipeline('clean')`, gives that pipeline
+  itself, so it adds no level of its own. `named` on a class always
+  makes a new pipeline, even of one name, so a name never aliases
+  another.
 - **A name can't be defined twice.** Defining it again croaks: "A
   pipeline named main::clean is already defined", whatever class
   `named` was called on. Naming the same pipeline again, with
@@ -554,7 +564,8 @@ pipeline(@stages)
 
 Returns a new pipeline of `@stages`, each a code reference, a pipeline,
 or the name of one, looked up now, in the package that called
-`pipeline`, unless it's qualified:
+`pipeline`, unless it's qualified; or, given one name alone, the
+pipeline it names, itself, as [pipeline_in](#pipeline_in) describes:
 
 ```perl
 pipeline(sub { uc }, take(5))                # new, from stages

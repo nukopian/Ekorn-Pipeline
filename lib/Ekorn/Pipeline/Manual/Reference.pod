@@ -481,6 +481,13 @@ C<$package>, as L<Named pipelines|/"Named pipelines"> explains. It's the
 only method that reads names, and it's what the word
 L<pipeline|/"pipeline"> calls, with its caller's package.
 
+Given one name and nothing else, it returns the pipeline named itself,
+not a new one, if it's of the invocant's class or a subclass, so a
+stage of it, given second in another pipeline, is numbered C<#2.2>, as
+it stands, not C<#2.1.2>. A pipeline named that isn't of the invocant's
+class is held in a new pipeline of it, as before. That's new in
+v0.3.0.
+
 Call it from code the user calls directly, passing the user's package,
 as the word does with C<scalar caller>. Code that passes stages
 through, such as a function taking stages from its caller, gives them
@@ -543,7 +550,10 @@ C<pipeline("${package}::clean")>.
 B<A name is resolved when the pipeline is made,> not when it runs.
 The pipeline it names is spliced in, as a pipeline given to C<new>
 is, and its stages are named in messages by their places in each:
-C<#1.2>.
+C<#1.2>. A name alone, C<pipeline('clean')>, gives that pipeline
+itself, so it adds no level of its own. C<named> on a class always
+makes a new pipeline, even of one name, so a name never aliases
+another.
 
 =item *
 
@@ -716,7 +726,8 @@ L<gather|/"gather">).
 
 Returns a new pipeline of C<@stages>, each a code reference, a pipeline,
 or the name of one, looked up now, in the package that called
-C<pipeline>, unless it's qualified:
+C<pipeline>, unless it's qualified; or, given one name alone, the
+pipeline it names, itself, as L<pipeline_in|/"pipeline_in"> describes:
 
     pipeline(sub { uc }, take(5))                # new, from stages
     pipeline('clean')                            # the pipeline named clean

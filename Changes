@@ -23,14 +23,16 @@ Unreleased
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    It ships eleven roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    It ships twelve roadmap items, 2026-0009, 2026-0011, 2026-0013,
     2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021, 2026-0024,
-    2026-0026 and 2026-0027. It changes what some code
+    2026-0026, 2026-0027 and 2026-0029. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
-    themselves; a gather's message names the flush and the end; and a
-    stage's error names the named pipeline it's in. Otherwise,
+    themselves; a gather's message names the flush and the end; a
+    stage's error names the named pipeline it's in; and a pipeline
+    named alone, pipeline('clean'), is the pipeline itself, so its
+    stages are numbered where it's given. Otherwise,
     existing code runs as before.
 
     - The role methods, by which any object can be a source, a stage
@@ -83,6 +85,13 @@ Unreleased
       (main::clean#2) failed at ...". A stage of no named pipeline is
       named as before. A pipeline's name method gives its first name,
       qualified, or undef. (roadmap 2026-0013)
+    - Changed: pipeline_in, and so the word pipeline, given one name
+      and nothing else, returns the pipeline named itself, not a new
+      pipeline holding it, if it's of the invocant's class or a
+      subclass. So a stage of a named pipeline given second is
+      "Pipeline stage #2.2 (main::clean#2)", not "#2.1.2". named on a
+      class still makes a new pipeline, even of one name. (roadmap
+      2026-0029)
     - The message for a gather's block that returns the wrong things
       now ends "and optionally a flush and an end", where it ended
       "and optionally an end function": what v0.2.0 called the end

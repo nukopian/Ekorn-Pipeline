@@ -155,7 +155,8 @@ words of its own for Ekorn's types.
 
 Returns a new pipeline of C<@stages>, each a code reference, a
 pipeline, or the name of one, looked up now, in the package that
-called C<pipeline>, unless it's qualified. It's
+called C<pipeline>, unless it's qualified; or, given one name alone,
+the pipeline it names, itself. It's
 C<< Ekorn::Pipeline->pipeline_in(scalar caller, @stages) >>, as
 L<Ekorn::Pipeline/pipeline_in> describes, with named pipelines.
 

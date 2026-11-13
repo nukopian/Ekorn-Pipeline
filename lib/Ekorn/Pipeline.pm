@@ -181,10 +181,15 @@ sub _resolved ($package, @given) {
 
 # Return a new pipeline of the invocant's class, of the stages given, each
 # a code reference, a pipeline, or the name of one, looked up now in
-# $package unless it's qualified. The one method that reads names, called
-# by the words, such as Factories' pipeline, with their caller's package.
+# $package unless it's qualified; or, given one name alone, the pipeline
+# it names, if it's of the invocant's class, so its stages are numbered
+# where it's given. The one method that reads names, called by the words,
+# such as Factories' pipeline, with their caller's package.
 sub pipeline_in ($class, $package, @stages) {
-    return $class->new(_resolved($package, @stages));
+    my @resolved = _resolved($package, @stages);
+    return $resolved[0]
+        if @stages == 1 && !is_stage($stages[0]) && $resolved[0] isa $class;
+    return $class->new(@resolved);
 }
 
 
@@ -203,7 +208,8 @@ sub named ($invocant, $name, @stages) {
         $pipeline = $invocant;
     }
     else {
-        $pipeline = $class->pipeline_in($package, @stages);
+        # Always a new one, even of one name, so a name never aliases.
+        $pipeline = $class->new(_resolved($package, @stages));
     }
     my $own = $named{$qualified};
     croakf 'A pipeline named %s is already defined', $qualified
@@ -935,7 +941,9 @@ another package's behalf qualifies them: C<"${package}::clean">.
 =item * A name is resolved when the pipeline is made, not when it runs,
 and the pipeline it names is spliced in, as a pipeline given to L</new>
 is. So a pipeline, once made, keeps the pipelines it found, whatever's
-defined or overridden later.
+defined or overridden later. A name alone, C<pipeline('clean')>, gives
+that pipeline itself, and C<named> on a class always makes a new one,
+even of one name, so a name never aliases another.
 
 =item * Only L</pipeline_in>, which the word C<pipeline> calls, and
 C<named> read names. L</new> doesn't, and L</is_stage> is false for a
@@ -960,7 +968,11 @@ Returns a new pipeline of its invocant's class, of C<@stages>, each a
 code reference, a pipeline, or the name of one, looked up in
 C<$package> unless it's qualified, as L</Named pipelines> explains. It's
 the only method that reads names, and it's what the word C<pipeline>,
-from L<Ekorn::Pipeline::Factories>, calls, with its caller's package:
+from L<Ekorn::Pipeline::Factories>, calls, with its caller's package.
+Given one name and nothing else, it returns the pipeline named itself,
+if it's of the invocant's class or a subclass, so its stages are
+numbered where it's given, and in a new pipeline of the invocant's
+class otherwise:
 
     use Ekorn::Pipeline::Factories qw(pipeline);
 

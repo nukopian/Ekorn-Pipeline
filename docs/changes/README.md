@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [A single name gives the pipeline it names](2026-0029-single-name.md),
-  roadmap 2026-0029: in progress.
+  roadmap 2026-0029: shipped, unreleased.
 - [Fast paths](2026-0028-fast-paths.md), roadmap 2026-0028: in progress.
 - [The role methods in capitals](2026-0027-capital-role-methods.md),
   roadmap 2026-0027: shipped, unreleased.

@@ -132,6 +132,28 @@ subtest 'pipeline_in: the one method reading names' => sub {
         'and nowhere else';
 };
 
+subtest 'pipeline_in: one name alone gives the pipeline it names (2026-0029)' =>
+    sub {
+        my $here = $class->named('My::Alone::here' => sub { "here $_" });
+        ref_is $class->pipeline_in('My::Alone', 'here'), $here, 'itself';
+        ref_is pipeline('My::Alone::here'), $here, 'by the word pipeline too';
+        ref_is $class->pipeline_in('My::Alone', 'My::Alone::here'), $here,
+        'qualified or not';
+        isnt $class->pipeline_in('My::Alone', 'here', take(1)), $here,
+        'a new one, given more';
+        isnt $class->pipeline_in('My::Alone', $here), $here,
+        'and given a pipeline, not its name';
+        my $made = My::Pipeline->pipeline_in('My::Alone', 'here');
+        isnt $made, $here, 'a new one, if the class is not the invocant\'s';
+        isa_ok $made, ['My::Pipeline'], 'of the invocant\'s class';
+        is [$made->('a')], ['here a'], 'holding it';
+        my $mine = My::Pipeline->named('My::Alone::mine' => sub { $_ });
+        ref_is $class->pipeline_in('My::Alone', 'mine'), $mine,
+        'but itself, if it is of a subclass';
+        my $alias = $class->named('My::Alone::alias' => 'My::Alone::here');
+        isnt $alias, $here, 'named always makes a new one, so a name never aliases';
+    };
+
 subtest 'Ekorn::Pipeline no longer exports pipeline' => sub {
     like dies { Ekorn::Pipeline->import('pipeline') },
         qr( "pipeline" \  is \  not \  exported )x,
@@ -208,12 +230,12 @@ subtest 'A stage in a named pipeline is named with it in errors (2026-0013)' =>
         );
         my $line = __LINE__ + 1;
         is dies { pipeline('failing')->('x') },
-        "Pipeline stage #1.2 (main::failing#2) failed at $file line $line:\n    bad x\n",
+        "Pipeline stage #2 (main::failing#2) failed at $file line $line:\n    bad x\n",
         'by its place, then the pipeline\'s name and its place in it';
         like dies {
             $class->new(sub { $_ }, pipeline('failing'))->('x')
         },
-        qr( \A Pipeline\ stage\ \#2\.1\.2\ \(main::failing\#2\)\ failed\  )x,
+        qr( \A Pipeline\ stage\ \#2\.2\ \(main::failing\#2\)\ failed\  )x,
         'however deep it is';
         like dies {
             $class->named(outer_named => sub { $_ }, 'failing')->('x')
@@ -223,7 +245,7 @@ subtest 'A stage in a named pipeline is named with it in errors (2026-0013)' =>
         like dies {
             $class->new(gather { pipeline('failing') })->('x')
         },
-        qr( \A Pipeline\ stage\ \#1\.1\.2\ \(main::failing\#2\)\ failed\  )x,
+        qr( \A Pipeline\ stage\ \#1\.2\ \(main::failing\#2\)\ failed\  )x,
         'a gather\'s too';
         my $direct = $class->new(sub { die "direct\n" })->named('direct_run');
         like dies {
