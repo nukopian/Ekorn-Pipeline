@@ -91,7 +91,11 @@ sub ekorn_source ($self) {
         'Expected a source with values still to give: an iterator is one run, and this one is spent'
         if $self->{spent}->();
     my $next = $self->{call};
-    return (sub () { $next->() }, sub ($how) { $self->finish }, $self->{context});
+    return {
+        step    => sub () { $next->() },
+        end     => sub ($how) { $self->finish },
+        context => $self->{context},
+    };
 }
 
 
@@ -246,11 +250,11 @@ is told how it ended from where that part stands, which may differ.
 
 =head2 ekorn_source
 
-    my($step, $end, $context) = $next->ekorn_source;
+    my $parts = $next->ekorn_source;
 
-Returns the iterator as a source's parts, as L</An iterator as a
-source> describes: a step pulling it, an end finishing it, and its
-run's context. A run calls it as it starts; you needn't.
+Returns the iterator as a source's parts, by name, as L</An iterator as
+a source> describes: a C<step> pulling it, an C<end> finishing it, and
+its run's C<context>. A run calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS
 

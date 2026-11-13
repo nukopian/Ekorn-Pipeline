@@ -25,12 +25,13 @@ sub batch ($size) {
         if !defined $size || $size !~ m( \A \d+ \z )xa || $size < 1;
     return gather {
         my @batch;
-        my $stage = sub ($value) {
-            push @batch, $value;
-            return @batch < $size ? () : [splice @batch];
+        return {
+            step => sub ($value) {
+                push @batch, $value;
+                return @batch < $size ? () : [splice @batch];
+            },
+            flush => sub () { @batch ? [splice @batch] : () },
         };
-        my $flush = sub () { @batch ? [splice @batch] : () };
-        return ($stage, $flush);
     };
 }
 
@@ -41,12 +42,13 @@ sub collect : prototype(;&) ($make = undef) {
         if defined $make && !is_coderef($make);
     return gather {
         my @values;
-        my $stage = sub ($value) { push @values, $value; return };
-        my $flush = sub () {
-            my @all = splice @values;
-            return $make ? $make->(@all) : \@all;
+        return {
+            step  => sub ($value) { push @values, $value; return },
+            flush => sub () {
+                my @all = splice @values;
+                return $make ? $make->(@all) : \@all;
+            },
         };
-        return ($stage, $flush);
     };
 }
 

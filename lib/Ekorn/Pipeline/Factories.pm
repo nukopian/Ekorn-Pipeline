@@ -187,7 +187,8 @@ step, called with nothing, again and again, giving the next value or
 values, or an empty list when there are no more; optionally, its end,
 told how the run ended; and, optionally, a context for the run, which
 its stages ask for with L<Ekorn::Pipeline/run_context>. With a context
-but no end, give C<undef> for the end. It's an
+but no end, give C<undef> for the end, or return the parts by name, as
+L<Ekorn::Pipeline/Made for a run> describes. It's an
 L<Ekorn::Pipeline::Source>.
 
     sub up_to ($last) {

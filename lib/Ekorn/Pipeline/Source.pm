@@ -87,6 +87,11 @@ columns.
 
 =back
 
+It returns them as a list, in that order, giving C<undef> for the end
+to give only a context, or by name, as a hash reference, as in
+C<< {step => $step, context => $columns} >>:
+L<Ekorn::Pipeline/Made for a run> has how.
+
 So two iterators of the same pipeline, reading the same source, each
 get their own filehandle, and each closes its own, when its run ends.
 L<Ekorn::Pipeline/How a run ends> says when that is, and what each
@@ -107,7 +112,7 @@ of these from a block.
 
 A class of your own needn't be one of these to be a source. Any
 object with an C<ekorn_source> method, returning the step and
-optionally the end and the context, is one.
+optionally the end and the context, as a list or by name, is one.
 
 =head1 METHODS
 
@@ -120,9 +125,10 @@ reference, as L</DESCRIPTION> describes. Anything else croaks.
 
 =head2 ekorn_source
 
-    my($step, $end, $context) = $source->ekorn_source;
+    my @parts = $source->ekorn_source;
 
-Calls the set-up, for a new run, and returns what it returns. A run
+Calls the set-up, for a new run, and returns what it returns: the
+parts, as a list or by name. A run
 calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS

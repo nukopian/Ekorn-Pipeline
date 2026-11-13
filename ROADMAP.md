@@ -45,25 +45,6 @@ Nothing yet.
 
 ## Next
 
-### 2026-0026. Role methods return their parts by name
-
-**Size:** M (3)
-
-Each role method (`ekorn_source`, `ekorn_stage`, `ekorn_sink_one`,
-`ekorn_sink_many`) returns a hash reference naming its parts, `step`,
-`flush`, `end` and `context`, rather than a list in a set order, which
-a reader must remember and which takes an `undef` for a part left out
-before one given. It changes the protocols, Ekorn's contract with
-other packages, so it's done before v0.3.0, as Iain decided on
-2026-11-13, once DBIx-Squirrel has written its parts against
-`pipeline-experimental`, with DBIx-Squirrel told. A hash reference is
-an alternative to the list, so parts already written keep working, and
-it applies wherever parts are returned. Its questions are settled: see
-its [record](docs/changes/2026-0026-named-parts.md). Done
-when the run reads the parts by name, the words' and Ekorn's own parts
-return them so, with tests, POD and docs, and coverage above the
-floors.
-
 ### 2026-0025. Release v0.3.0
 
 **Size:** S (2)

@@ -16,14 +16,16 @@ Unreleased
     that consume every value and give a result, committing only when
     the run is done; and gathers with an end as well as a flush, what
     v0.2.0 called the end function; Sources and Sinks have them
-    ready-made, and Operators joins them with |.
+    ready-made, and Operators joins them with |. A part's set-up, or
+    a package's role method, can return its parts by name, as a hash
+    reference, rather than as a list in a set order.
     An iterator is an object, which
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    It ships nine roadmap items, 2026-0009, 2026-0011, 2026-0013,
-    2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021 and
-    2026-0024. It changes what some code
+    It ships ten roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021, 2026-0024
+    and 2026-0026. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -31,6 +33,16 @@ Unreleased
     stage's error names the named pipeline it's in. Otherwise,
     existing code runs as before.
 
+    - A set-up, a gather's, a source's or a sink's, and a role method,
+      ekorn_source, ekorn_stage, ekorn_sink_one or ekorn_sink_many,
+      can return its parts by name, as a hash reference with the keys
+      step, flush, end and context, giving only those it has, in place
+      of a list in a set order with undef for one left out before one
+      given: gather { {step => $step, end => $end} }. Other keys are
+      ignored, and a hash without what its part needs croaks, as a
+      list does. The list still works. Ekorn's own sources, sinks and
+      stages, and an iterator's ekorn_source, return theirs by name
+      (roadmap 2026-0026).
     - Ekorn::Pipeline::Sources has ready-made sources, needing only
       Perl, none exported by default: from_array(@values); from_fh($fh),
       a filehandle's records, as $/ divides them, chomped, left open;

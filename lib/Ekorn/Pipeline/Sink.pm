@@ -131,6 +131,10 @@ returns is dropped.
 
 =back
 
+It returns them as a list, in that order, or by name, as a hash
+reference, as in C<< {step => $step, flush => $flush} >>:
+L<Ekorn::Pipeline/Made for a run> has how.
+
 Its input runs out when the values run out, or after a stop in a stage
 before it. So a sink after C<take(5)> gives its result, and is told
 C<done>. A sink's step can stop the run itself, with
@@ -156,7 +160,8 @@ L<Ekorn::Pipeline::Sinks> has ready-made ones.
 
 A class of your own needn't be one of these to be a sink. Any object
 with an C<ekorn_sink_one> or an C<ekorn_sink_many> method, returning
-the step, the flush, and optionally the end, is one. Offering both, or
+the step, the flush, and optionally the end, as a list or by name, is
+one. Offering both, or
 either with C<ekorn_stage>, croaks where it's given as a stage, as it
 couldn't say which it is.
 
@@ -181,14 +186,14 @@ has an C<ekorn_sink_many> method of its own.
 
 =head2 ekorn_sink_one
 
-    my($step, $flush, $end) = $sink->ekorn_sink_one;
+    my @parts = $sink->ekorn_sink_one;
 
 A sink of one's: calls the set-up, for a new run, and returns what it
-returns. A run calls it as it starts; you needn't.
+returns: the parts, as a list or by name. A run calls it as it starts; you needn't.
 
 =head2 ekorn_sink_many
 
-    my($step, $flush, $end) = $sink->ekorn_sink_many;
+    my @parts = $sink->ekorn_sink_many;
 
 A sink of many's, as L</ekorn_sink_one> is a sink of one's.
 

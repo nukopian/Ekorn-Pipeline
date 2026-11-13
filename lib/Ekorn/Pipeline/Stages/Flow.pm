@@ -61,9 +61,10 @@ sub take_first : prototype() () {
 sub take_last : prototype() () {
     return gather {
         my @kept;
-        my $stage = sub ($value) { @kept = ($value); return };
-        my $flush = sub () { splice @kept };
-        return ($stage, $flush);
+        return {
+            step  => sub ($value) { @kept = ($value); return },
+            flush => sub () { splice @kept },
+        };
     };
 }
 

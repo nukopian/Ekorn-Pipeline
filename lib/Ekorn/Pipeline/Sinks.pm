@@ -27,7 +27,7 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 sub count_items : prototype() () {
     return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my $n = 0;
-        return (sub ($value) { $n++ }, sub () { $n });
+        return {step => sub ($value) { $n++ }, flush => sub () { $n }};
     });
 }
 
@@ -40,7 +40,7 @@ sub count_items : prototype() () {
 sub keep_all : prototype() () {
     return Ekorn::Pipeline::Sink->new_sink_many(sub {
         my @all;
-        return (sub ($item) { push @all, $item }, sub () { @all });
+        return {step => sub ($item) { push @all, $item }, flush => sub () { @all }};
     });
 }
 
@@ -51,8 +51,8 @@ sub keep_all : prototype() () {
 sub keep_single : prototype() () {
     return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my @only;
-        return (
-            sub ($item) {
+        return {
+            step => sub ($item) {
                 if (@only) {
                     Carp::carp 'Expected only one item, but there were more';
                     Ekorn::Pipeline::Stop->throw;
@@ -60,8 +60,8 @@ sub keep_single : prototype() () {
                 @only = ($item);
                 return;
             },
-            sub () { @only },
-        );
+            flush => sub () { @only },
+        };
     });
 }
 
@@ -71,10 +71,10 @@ sub keep_single : prototype() () {
 sub keep_first : prototype() () {
     return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my @first;
-        return (
-            sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
-            sub () { @first },
-        );
+        return {
+            step  => sub ($value) { @first = ($value); Ekorn::Pipeline::Stop->throw },
+            flush => sub () { @first },
+        };
     });
 }
 
@@ -86,15 +86,15 @@ sub keep ($count) {
         unless defined $count && $count =~ m( \A \d+ \z )xa;
     return Ekorn::Pipeline::Sink->new_sink_many(sub {
         my @kept;
-        return (
-            sub ($item) {
+        return {
+            step => sub ($item) {
                 Ekorn::Pipeline::Stop->throw if @kept >= $count;
                 push @kept, $item;
                 Ekorn::Pipeline::Stop->throw if @kept >= $count;
                 return;
             },
-            sub () { @kept },
-        );
+            flush => sub () { @kept },
+        };
     });
 }
 
@@ -104,7 +104,10 @@ sub keep ($count) {
 sub keep_last : prototype() () {
     return Ekorn::Pipeline::Sink->new_sink_one(sub {
         my @kept;
-        return (sub ($item) { @kept = ($item); return }, sub () { @kept });
+        return {
+            step  => sub ($item) { @kept = ($item); return },
+            flush => sub () { @kept },
+        };
     });
 }
 
@@ -127,15 +130,15 @@ sub to_file ($path, $layers = '') {
         # Open for the run, and closed by its end.
         open my $fh, ">$layers", $path    ## no critic (InputOutput::RequireBriefOpen)
             or croakf q(Can't write %s: %s), $path, $!;
-        return (
-            _writer($fh, $path),
-            sub ($how) { close $fh or croakf q(Can't write %s: %s), $path, $! },
-        );
+        return {
+            %{ _writer($fh, $path) },
+            end => sub ($how) { close $fh or croakf q(Can't write %s: %s), $path, $! },
+        };
     });
 }
 
 
-# Return the step and the flush of a sink printing each value to $fh,
+# Return, by name, the step and the flush of a sink printing each value to $fh,
 # named $what in its message, followed by $/ as it is now, as from_fh and
 # from_file take it off: nothing if it's undefined or a record's size,
 # and a blank line, for paragraph mode, if it's empty. The flush gives
@@ -143,13 +146,13 @@ sub to_file ($path, $layers = '') {
 sub _writer ($fh, $what) {
     my $after = ref $/ || !defined $/ ? '' : length $/ ? $/ : "\n\n";
     my $n     = 0;
-    return (
-        sub ($value) {
+    return {
+        step => sub ($value) {
             print { $fh } $value, $after or croakf q(Can't write %s: %s), $what, $!;
             $n++;
         },
-        sub () { $n },
-    );
+        flush => sub () { $n },
+    };
 }
 
 1;

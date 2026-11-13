@@ -91,6 +91,11 @@ however it ended, told how, as L</Ends> describes.
 
 =back
 
+It returns them as a list, in that order, giving C<undef> for the flush
+to have only an end, or by name, as a hash reference, as in
+C<< {step => $step, end => $end} >>: L<Ekorn::Pipeline/Made for a run>
+has how.
+
 What the flush returns goes through the rest of the stages, just like
 what a step returns: nothing, one value, or several. It's called even
 when there were no values, so a flush can give an empty result, such as
@@ -199,9 +204,10 @@ set-up.
 
 =head2 ekorn_stage
 
-    my($step, $flush, $end) = $stage->ekorn_stage;
+    my @parts = $stage->ekorn_stage;
 
-Calls the set-up, for a new run, and returns what it returns. A run
+Calls the set-up, for a new run, and returns what it returns: the
+parts, as a list or by name. A run
 calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS

@@ -622,14 +622,18 @@ works as it did.
 A flush isn't called when the run stops before its stage, or dies. For
 what must be done however the run ends, a `gather` block can return a
 third function, its *end*, called once the run has ended, and told
-how: `done`, `stopped` or `died`. Return `undef` for the flush if
-there's none:
+how: `done`, `stopped` or `died`. To give an end without a flush,
+return the parts by name, in a hash reference, rather than as a list
+with `undef` for the flush:
 
 ```perl
 my @log;
 my $logged = gather {
     my $n = 0;
-    return (sub ($track) { $n++; $track }, undef, sub ($how) { push @log, "$n tracks, $how" });
+    return {
+        step => sub ($track) { $n++; $track },
+        end  => sub ($how)   { push @log, "$n tracks, $how" },
+    };
 };
 
 tracks($logged);

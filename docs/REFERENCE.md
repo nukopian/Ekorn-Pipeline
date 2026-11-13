@@ -821,6 +821,35 @@ Two iterators of the same pipeline each get their own filehandle, from
 their own call of the set-up. A plain code reference is never made for
 a run: it's the same code, with the same closure, in every run.
 
+The set-up returns its parts as a list, in the order above, leaving
+out those it doesn't give from the end, and giving `undef` for one it
+leaves out before one it gives. Or it returns them **by name,** as a
+hash reference whose keys are `step`, `flush`, `end` and `context`,
+giving only those it has, in any order:
+
+```perl
+use Ekorn::Pipeline::Factories qw(gather);
+
+sub counted_into ($total) {
+    return gather {
+        my $n = 0;    # this run's
+        return {
+            step => sub ($x)   { $n++; $x },
+            end  => sub ($how) { $$total = $n },
+        };
+    };
+}
+
+my $count;
+Ekorn::Pipeline->new(counted_into(\$count))->(qw(a b c));
+say $count;    # 3
+```
+
+A key Ekorn doesn't read is ignored, and a hash without what its part
+needs, a step, and a sink's flush, croaks, as a list without them
+does. Only a plain hash reference returned alone is taken for parts by
+name. Parts by name are new in v0.3.0.
+
 ### How a run ends
 
 A run ends in one of three ways, and each part's end is told which,
@@ -890,9 +919,10 @@ my $source = Ekorn::Pipeline::Source->new($setup);
 Returns a source made afresh for each run by `$setup`, a code
 reference. Anything else croaks "Expected a code reference". The
 set-up returns the source's step, and optionally its end and a
-context. Its step is called with nothing each time the run wants more
-values, and returns the next value or values, or an empty list at the
-end. It can also stop the run, with `Stop`, when it's had enough: the
+context, as a list or by name (see [Made for a run](#made-for-a-run)).
+Its step is called with nothing each time the run wants more values,
+and returns the next value or values, or an empty list at the end. It
+can also stop the run, with `Stop`, when it's had enough: the
 values its stop carries are its last, and it's told `done`.
 
 The word [source](#source) makes one from a block. A source goes to
@@ -930,6 +960,9 @@ The set-up returns:
 - the flush, called with nothing, once its input runs out, giving the
   result. It's required;
 - optionally, the end, told how the run ended.
+
+It returns them as a list, or by name (see
+[Made for a run](#made-for-a-run)).
 
 A sink is usually a pipeline's last stage, so that its result is what
 a run gives (see [Calling a pipeline](#calling-a-pipeline)). Anywhere
@@ -1163,6 +1196,7 @@ stage.
 my $stage = gather { ...; return ($step, $flush, $end) };
 my $stage = gather { ...; return ($step, $flush) };
 my $stage = gather { ...; return $step };
+my $stage = gather { ...; return {step => $step, end => $end} };
 ```
 
 Returns a stage that a pipeline makes afresh at the start of each run,
@@ -1174,7 +1208,8 @@ run. The block returns:
 - optionally, the flush, called once its input runs out;
 - optionally, the end, called once the run has ended, told how (see
   [Flushes and ends](#flushes-and-ends)). Pass `undef` for the flush
-  to have only an end.
+  to have only an end, or return the parts by name (see
+  [Made for a run](#made-for-a-run)).
 
 `gather` croaks "Expected a code reference" if it's given something
 other than a block or code reference. The block is called when a run
@@ -2036,6 +2071,10 @@ the start of a run, and returns closures sharing that run's state:
 | `ekorn_stage` | a stage with state for the run | its step, called with each value, returning a list; optionally its flush, called when its input runs out; and optionally its end |
 | `ekorn_sink_one`, `ekorn_sink_many` | a sink, giving one value or a list | its step, called with each value, its return ignored; its flush, giving the result; and optionally its end |
 
+Each returns its parts as a list, in the order the table gives, or by
+name, as a hash reference with the keys `step`, `flush`, `end` and
+`context`, as a set-up does (see [Made for a run](#made-for-a-run)).
+
 The methods are named for Ekorn, so an object of yours with a method
 of its own such as `as_list` is never taken for a part. One object can
 offer `ekorn_source` and one of the others, as a table can be read from
@@ -2050,11 +2089,11 @@ package My::Rows;
 sub ekorn_source ($self) {
     my $sth = $self->{sth};
     $sth->execute;                                  # this run's
-    return (
-        sub ()     { $sth->fetchrow_arrayref // () },
-        sub ($how) { $sth->finish },
-        {columns => $sth->{NAME}},                  # what stages may ask
-    );
+    return {
+        step    => sub ()     { $sth->fetchrow_arrayref // () },
+        end     => sub ($how) { $sth->finish },
+        context => {columns => $sth->{NAME}},       # what stages may ask
+    };
 }
 ```
 

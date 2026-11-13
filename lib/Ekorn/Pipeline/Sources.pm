@@ -39,7 +39,7 @@ sub from_file ($path, $layers = '') {
         # Open for the run, and closed by its end.
         open my $fh, "<$layers", $path or croakf    ## no critic (InputOutput::RequireBriefOpen)
             q(Can't read %s: %s), $path, $!;
-        return (_records($fh), sub ($how) { close $fh });
+        return {step => _records($fh), end => sub ($how) { close $fh }};
     };
 }
 

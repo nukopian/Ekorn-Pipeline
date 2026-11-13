@@ -7,7 +7,7 @@ use experimental qw(builtin try);
 use builtin   qw(blessed refaddr weaken);
 use Carp      qw(croak);
 use Exporter  qw(import);
-use Ref::Util qw(is_arrayref is_coderef is_ref);
+use Ref::Util qw(is_arrayref is_coderef is_plain_hashref is_ref);
 
 use parent 'Ekorn::Pipeline::Element';
 
@@ -282,11 +282,22 @@ sub run_context () {
 # with no end or context.
 sub _source_run ($source) {
     return ($source) unless _is_source($source);
-    my($step, $end, $context) = $source->ekorn_source;
+    my($step, $end, $context)
+        = _parts([qw(step end context)], $source->ekorn_source);
     croakf
         'Expected the source to return a code reference, and optionally an end and a context'
         unless is_coderef($step) && _code_or_none($end);
     return ($step, $end, $context);
+}
+
+
+# Return the parts a role method or a set-up returned as a list, in the
+# order of the keys in @$order: as they are, if they're a list, or, if
+# they're one plain hash reference, its values for those keys. Other
+# keys are ignored.
+sub _parts ($order, @returned) {
+    return @returned unless @returned == 1 && is_plain_hashref($returned[0]);
+    return @{ $returned[0] }{@$order};
 }
 
 
@@ -348,7 +359,7 @@ sub _make_run ($stages, $names, $within, $run) {
         my $role = _stage_role($stage) // '';
         my($step, $flush, $end);
         if ($stage isa 'Ekorn::Pipeline::Gather') {
-            my @made = $stage->ekorn_stage;
+            my @made = _parts([qw(step flush end)], $stage->ekorn_stage);
             my($inner, $inner_names, $inner_within)
                 = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
             croakf
@@ -375,7 +386,7 @@ sub _make_run ($stages, $names, $within, $run) {
             }
         }
         elsif ($role eq 'ekorn_sink_one' || $role eq 'ekorn_sink_many') {
-            ($step, $flush, $end) = $stage->$role;
+            ($step, $flush, $end) = _parts([qw(step flush end)], $stage->$role);
             croakf
                 'Expected sink #%s to return a code reference, a flush, and optionally an end',
                 $name
@@ -390,7 +401,7 @@ sub _make_run ($stages, $names, $within, $run) {
                 if $role eq 'ekorn_sink_one';
         }
         elsif ($role eq 'ekorn_stage') {
-            ($step, $flush, $end) = $stage->ekorn_stage;
+            ($step, $flush, $end) = _parts([qw(step flush end)], $stage->ekorn_stage);
             croakf
                 'Expected stage #%s to return a code reference, and optionally a flush and an end',
                 $name
@@ -1086,8 +1097,28 @@ Two iterators of the same pipeline each get their own, from their own
 call of the set-up. A plain code reference is never made for a run:
 it's the same code, with the same closure, in every run.
 
+The set-up returns its parts as a list, in the order above, leaving
+out those it doesn't give from the end, and giving C<undef> for one it
+leaves out before one it gives. Or it returns them I<by name>, as a
+hash reference whose keys are C<step>, C<flush>, C<end> and
+C<context>, giving only those it has, in any order:
+
+    gather {
+        my $n = 0;    # this run's
+        return {
+            step => sub ($x)   { $n++; $x },
+            end  => sub ($how) { $$total = $n },
+        };
+    }
+
+A key Ekorn doesn't read is ignored, and a hash without what its part
+needs, a step, and a sink's flush, croaks, as a list without them
+does. Only a plain hash reference returned alone is taken for parts by
+name. Parts by name are new in v0.3.0.
+
 Any object can take part, by offering a role method that does what a
-set-up does: C<ekorn_source>, C<ekorn_stage>, C<ekorn_sink_one> or
+set-up does, returning the same parts, as a list or by name:
+C<ekorn_source>, C<ekorn_stage>, C<ekorn_sink_one> or
 C<ekorn_sink_many>.
 L<Ekorn::Pipeline::Manual::Reference/Delivering parts for Ekorn> has
 how.
