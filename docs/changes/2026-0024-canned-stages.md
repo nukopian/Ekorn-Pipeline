@@ -1,6 +1,6 @@
 # 2026-0024. Canned stages as objects, and a take stage for each keep sink
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** None of its own: the design's (2026-0022's D4, for its
 Q12, and D58) settle it.
@@ -11,6 +11,8 @@ that day (2026-0022)
 **Depends on:** 2026-0014, shipped unreleased
 
 **Started:** 2026-11-13
+
+**Finished:** 2026-11-13
 
 ## Background
 
@@ -55,4 +57,18 @@ Steps:
 
 ## What happened
 
-Nothing yet.
+**Shipped, 2026-11-13,** on `pipeline-experimental`, for v0.3.0
+(2026-0025), as planned. Against Done when: the stages, their POD,
+tests and docs are in, and Stages::Flow, Batch and Taps are covered
+in full.
+
+- `take_while`, `peek` and `dump_to` return a Stage of their closure;
+  the rest were Gathers already.
+- `t/12-documented.t` checks every canned stage is an Element, not a
+  plain code reference.
+- The modules' POD and the reference say each stage is an object, and
+  which `keep` sink each `take` stage matches, `keep_all` having none.
+- In Batch and `take_last`, the closure a gather's block returns
+  second is named `$flush`, not `$end`, as the design names it.
+- `Changes`: the take stages' entry names this item, where it named
+  2026-0022, and the change to objects is marked "Changed".

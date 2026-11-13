@@ -1315,6 +1315,21 @@ its arguments when it's called, not on each value, and croaks at the
 caller's line if they're wrong. Those that keep state or hold values
 are made with `gather`, so they start afresh on each run.
 
+Each stage is an object, an Ekorn::Pipeline::Stage or, for those made
+with `gather`, an Ekorn::Pipeline::Gather, called as a code reference,
+so it goes wherever a stage goes (see
+[Stages and elements](#stages-and-elements)). Code testing one with
+`ref` or `is_coderef` sees an object: v0.2.0 gave code references.
+
+Each `keep` sink but `keep_all` has a `take` stage that passes on what
+the sink would give as its result, so the stages after it can go on:
+`take($n)` is `keep($n)`'s, and `take_first`, `take_last` and
+`take_single` are `keep_first`'s, `keep_last`'s and `keep_single`'s.
+`keep_all`'s would pass every value on: no stage at all. A pipeline
+ending in a `take` stage, where its sink was forgotten, gives the
+values in list context, and how many in scalar context, never a wrong
+one.
+
 | Stage | Module | Passes on | Exported |
 |---|---|---|---|
 | `take($count)` | Flow | the first `$count` values, then stops | by default |
@@ -1377,7 +1392,8 @@ number.
 take_first
 ```
 
-Passes on the first value, then stops the pipeline: `take(1)`.
+Passes on the first value, then stops the pipeline: `take(1)`, named
+as the stage of the sink `keep_first`.
 
 #### take_last
 
