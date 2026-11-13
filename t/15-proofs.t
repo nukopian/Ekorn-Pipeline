@@ -4,9 +4,9 @@ use Test2::Plugin::NoWarnings;
 use experimental qw(builtin);
 use builtin      qw(blessed);
 
-# The design's proofs (docs/design/DESIGN.md, section 19), and its
-# settled decisions (2026-0022's record), run against the prototype on
-# pipeline-experimental. And the pattern that lets a package such as
+# The design's proofs (docs/design/DESIGN.md, section 19, on the tag
+# archive/pipeline-experimental), and its settled decisions (2026-0022's
+# record), run against the prototype built on pipeline-experimental. And the pattern that lets a package such as
 # DBIx::Squirrel use Ekorn as it is: parts of its own, keeping Ekorn's
 # protocols, that load nothing of Ekorn's to do it.
 

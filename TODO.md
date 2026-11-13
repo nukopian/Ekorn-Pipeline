@@ -50,7 +50,8 @@ both runs, on wide rows too.
 **From:** Ekorn-Pipeline's session, 2026-11-13 (Ekorn-Pipeline
 03bf92f3c8bf06923692695c742478aaeded6bce, on its branch `pipeline-experimental`)
 **Waiting on:** DBIx-Squirrel's code changes, made on its
-`pipeline-experimental` against this branch, as Iain plans
+`pipeline-experimental` against Ekorn's `develop`, through
+`../Ekorn-Pipeline/lib`, as Iain plans (roadmap 2026-0025, D5)
 
 Every item v0.3.0 ships is in (2026-0013, 0014, 0016, 0017, 0018, 0021,
 0024), but each added its share of the docs separately, so the docs
@@ -77,10 +78,8 @@ is held until then, as Iain decided on 2026-11-13.
 - **Whatever DBIx-Squirrel's changes turned up** that the docs should
   say.
 - The manuals made again with `scripts/manuals`, and every example run,
-  as CLAUDE.md asks. On `pipeline-experimental`, no PDFs; at the
-  release, on `develop`, they're rebuilt and read.
+  as CLAUDE.md asks, and the PDFs rebuilt and read.
 
 Done when the three read as one account of v0.3.0, every example prints
-what it says, and `xt/manuals.t` passes. Then 2026-0025 can start: its
-open questions are whether `docs/design/` and IMPLEMENTATION.md stay
-once v0.3.0 ships.
+what it says, and `xt/manuals.t` passes. Then 2026-0025 can release
+v0.3.0, as its record's plan says.

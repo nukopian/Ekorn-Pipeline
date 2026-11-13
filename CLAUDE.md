@@ -68,8 +68,10 @@ both:
   use. Ekorn's contract with other packages is its protocols, not its
   classes, so a change to a protocol is a v0.3.0. This replaces the
   rule of 2026-11-11 that DBIx::Squirrel's modules were subclasses of
-  Ekorn's, which tied the two designs together; `docs/design/`
-  (roadmap 2026-0022), principle 2 and its 17.3, has why.
+  Ekorn's, which tied the two designs together; the design (roadmap
+  2026-0022), principle 2 and its 17.3, has why. It's in
+  `docs/design/` on the tag `archive/pipeline-experimental`, not on
+  `develop`.
 - **Factories are words, and live in a module of words,** as Iain
   decided on 2026-11-11: a short, keyword-like function that makes one
   of Ekorn's types, such as `pipeline`, `source {...}` or `gather`, is
@@ -346,9 +348,11 @@ what was Iain's.
   repositories' work on roadmap 2026-0014 and the items after it is
   carried by a branch of the same name in each, `pipeline-experimental`,
   as Iain decided on 2026-11-10: shorter than a name made from the id,
-  and one name for the two sessions. So tasks and messages for
-  DBIx-Squirrel go to its `pipeline-experimental`, and its own come to
-  ours, until the branches merge. Never switch DBIx-Squirrel's
+  and one name for the two sessions. Ekorn's merged into `develop` on
+  2026-11-13 (roadmap 2026-0025, D4), so its work and `TODO.md` are on
+  `develop` again, and DBIx-Squirrel's tasks and messages come there.
+  DBIx-Squirrel's merges after; until it does, tasks and messages for
+  DBIx-Squirrel go to its `pipeline-experimental`. Never switch DBIx-Squirrel's
   working copy, or commit in it, as a session may be working there:
   use a worktree of the branch as GitHub has it, edit
   `/tmp/dbix-squirrel-todo/TODO.md`, commit only it, and push from

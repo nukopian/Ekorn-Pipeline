@@ -5,6 +5,12 @@
 **Decisions:** the design's (2026-0022, D1 to D70) settle it; D1, a
 gather's message reworded for the flush and the end.
 
+**The design's documents,** `docs/design/`, were deleted from
+`develop` on 2026-11-13, when `pipeline-experimental` merged into it
+(roadmap 2026-0025, D2 and D4). They're on the tag
+`archive/pipeline-experimental`:
+`git show archive/pipeline-experimental:docs/design/DESIGN.md`.
+
 **Origin:** roadmap, added 2026-11-10, from DBIx-Squirrel's message
 (DBIx-Squirrel 7cf473408d73add0eda3eae5ca3e0be6afaaf122), rewritten
 from the design approved on 2026-11-13 (2026-0022)

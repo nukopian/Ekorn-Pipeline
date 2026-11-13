@@ -69,6 +69,12 @@ D69 settled: `from_file` and `to_file` take I/O layers; an empty file
 slurped gives no record.
 D70 settled: `generator {...}` and `yield`, from idea 2026-0023.
 
+**The design's documents,** `docs/design/`, were deleted from
+`develop` on 2026-11-13, when `pipeline-experimental` merged into it
+(roadmap 2026-0025, D2 and D4). They're on the tag
+`archive/pipeline-experimental`:
+`git show archive/pipeline-experimental:docs/design/DESIGN.md`.
+
 **Origin:** roadmap, added 2026-11-11
 
 **Started:** 2026-11-11, in 82f609762895ff4e74c249cdb9a6678d301f36f3
