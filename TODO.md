@@ -62,7 +62,11 @@ is held until then, as Iain decided on 2026-11-13.
   20.1 has it, with a section on sources, sinks and the operators;
   still on v0.2.0's model now. Whether Iain or Claude drafts it is his
   call.
-- **docs/REFERENCE.md:** read through as a whole, for order,
+- **docs/REFERENCE.md, next,** as Iain decided on 2026-11-13, deferring
+  it to a later session. DBIx-Squirrel rewrote its own reference for
+  v3 the same day (DBIx-Squirrel c498ff175759c4c7234b8204bf899b3d9e018fa0, roadmap 2026-0023, on its
+  `pipeline-experimental`), which may serve as a model. Read it through
+  as a whole, for order,
   repetition between the sections each item added, the Contents list,
   and anything still in v0.2.0's terms ("end function", code
   references where objects are now given, v0.2.1).
