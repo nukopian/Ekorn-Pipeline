@@ -161,8 +161,8 @@ The message, whole:
 **Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
 
 `Ekorn::Pipeline::Sources`, needing nothing from CPAN: `from_array`,
-`from_arrayref`, `from_hash`, `from_hashref`, `from_fh`, `from_file`,
-`counter`, `unfold`, `cycle`, `concat` and `interleave`. Nothing
+`from_arrayref`, `from_hash`, `from_hashref`, `from_fh`, `from_file`
+and `counter` (2026-0022's D67 dropped the rest). Nothing
 exported by default. Those
 needing CPAN, such as JSON or CSV, go in add-on distributions of
 Ekorn's, as they need no database. Layer 2 of DBIx-Squirrel's message.

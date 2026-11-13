@@ -380,10 +380,6 @@ default. Each returns a Source.
 | `from_hash(%hash)` | the keys and values given, as pairs: two-element arrays, `[$key, $value]` | none |
 | `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as they're asked for, not copied | none |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
-| `unfold($seed, sub {...})` | the sub, applied again and again from the seed, until it gives nothing | none |
-| `cycle(@values)` | the values, round and round, without end | none |
-| `concat(@sources)` | each source in turn | ends each source it read |
-| `interleave(@sources)` | one value from each source in turn | ends each source it read |
 
 ```perl
 my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));

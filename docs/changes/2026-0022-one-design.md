@@ -61,6 +61,7 @@ bulk. D63 settled: the `&{}` overload stays; `\&$next` is documented.
 D64 settled: a sink's kinds are one and many, in every name.
 D65 settled: `is_sink` keeps `one` and `many`, not 1 and 2.
 D66 settled: six sinks set aside for now.
+D67 settled: four sources dropped.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -667,6 +668,11 @@ D19 to D25 came from the third cold review, settled by Iain on
   and 17.35; the draft reference and how-to, whose example now uses
   `keep_first` and `keep_last`; IMPLEMENTATION.md; and the roadmap's
   2026-0017.
+- [x] **D67.** Which of the designed sources stay? Iain dropped
+  `unfold`, `cycle`, `concat` and `interleave` on 2026-11-13. None was
+  built; each can come back as an item of its own. The design keeps
+  the `from_` sources and `counter`. Design 8.2 and 17.36; the draft
+  reference; IMPLEMENTATION.md; and the roadmap's 2026-0016.
 
 ## The plan
 

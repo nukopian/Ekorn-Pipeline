@@ -603,10 +603,6 @@ Using only what comes with Perl. Nothing exported by default.
 | `from_hash(%hash)` | the keys and values given, as pairs | none |
 | `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as asked for | none |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
-| `unfold($seed, sub {...})` | a sub applied again and again, until it gives nothing | none |
-| `cycle(@values)` | the values, round and round | none |
-| `concat(@sources)` | each source in turn | ends each source it read |
-| `interleave(@sources)` | one value from each source in turn | ends each source it read |
 
 Each `from_` source says what it takes: a list or a reference, of an
 array or a hash, a filehandle or a file. A pair is a two-element array,
@@ -1985,6 +1981,13 @@ aside for now. None was built. The sinks the design keeps are the
 `keep` family, `count_items` and the containers `to_fh` and
 `to_file`. Each of the six can come back as an item of its own, when
 a use asks for it.
+
+### 17.36 Fewer sources
+
+(Section 8.2; Iain, 2026-11-13, 2026-0022's D67.) `unfold`, `cycle`,
+`concat` and `interleave` are dropped from the sources. None was
+built. The design keeps the `from_` sources and `counter`. Any of the
+four can come back as an item of its own, when a use asks for it.
 
 ## 18. Where each roadmap item lands
 

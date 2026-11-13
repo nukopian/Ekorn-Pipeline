@@ -1079,7 +1079,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 6.2 | the words, `sink_many` for a sink of many and `sink_one` for a sink of one (D47, D64) | built, differs: no `pipeline` in Factories |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
-| 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
+| 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`; dropped by D67: `unfold`, `cycle`, `concat`, `interleave` |
 | 8.3 | sinks, in two families (D50, D53, D54, D55, D56, D57) | built: `keep_all`, `keep($n)`, `keep_first`, `keep_last`, `keep_single`, `count_items`, `to_file`. Not built: `to_fh`; set aside by D66: `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each` |
 | 9 | chains from a source or a stage (D14, D23); a sink of many at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
