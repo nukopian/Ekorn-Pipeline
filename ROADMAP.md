@@ -57,8 +57,10 @@ The design's release: the README rewritten for the stream concept
 manuals made again, and whether `docs/design/` and IMPLEMENTATION.md
 stay once it's delivered decided. Then `pipeline-experimental` merges
 to `develop`, v0.3.0 is released, and DBIx-Squirrel is handed a task
-to test against it and move its range. Done when v0.3.0 is on CPAN,
-and DBIx-Squirrel has its task.
+to test against it and move its range. It's v0.3.0, not v1.0.0, so
+the design can settle first, as Iain decided on 2026-11-13; see its
+[record](docs/changes/2026-0025-release-v0-3-0.md). Done when v0.3.0 is
+on CPAN, and DBIx-Squirrel has its task.
 
 ### 2026-0010. Named pipelines at compile time
 
