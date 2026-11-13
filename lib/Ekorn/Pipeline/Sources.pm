@@ -22,16 +22,20 @@ sub from_array (@values) {
 
 
 # Return a source giving the file's records, as $/ divides them, with $/
-# taken off; the file is opened for each run, and closed as it ends.
-sub from_file ($path) {
+# taken off; the file is opened for each run, with the I/O layers given,
+# if any, such as ':raw', and closed as it ends. With $/ undefined, the
+# whole file is one record, and an empty file none.
+sub from_file ($path, $layers = '') {
     return source {
         # Open for the run, and closed by its end.
-        open my $fh, '<', $path or croakf    ## no critic (InputOutput::RequireBriefOpen)
+        open my $fh, "<$layers", $path or croakf    ## no critic (InputOutput::RequireBriefOpen)
             q(Can't read %s: %s), $path, $!;
         return (
             sub () {
                 my $line = readline $fh;
                 return unless defined $line;
+                # Slurped, an empty file reads as one empty string.
+                return if !defined $/ && $line eq '';
                 chomp $line;
                 return $line;
             },

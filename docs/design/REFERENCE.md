@@ -375,7 +375,7 @@ default. Each returns a Source.
 |---|---|---|
 | `from_array(@values)` | the values given | none |
 | `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed, or all of it as one record if `$/` is undefined; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
-| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, or the whole file as one record if `$/` is undefined; each without the separator, as `chomp` removes it | closes the file, however the run ends |
+| `from_file($path)`, `from_file($path, $layers)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, or the whole file as one record if `$/` is undefined, and none if it's empty; read through the I/O layers given, such as `':raw'` or `':encoding(UTF-8)'`; each without the separator, as `chomp` removes it | closes the file, however the run ends |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
 
 ```perl
@@ -416,7 +416,7 @@ source: what one reads, the other writes.
 | `keep($n)` | the first `$n` items, as a list, as `take($n)` would pass on; it croaks "Expected a count of 0 or more" as `take` does | yes, at `$n` |
 | `count_items` | how many items there were | no |
 | `to_fh($fh)` | prints each item to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
-| `to_file($path)` | writes each item to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
+| `to_file($path)`, `to_file($path, $layers)` | writes each item to the file, followed by `$/`, through the I/O layers given, if any, and gives how many | no; it closes the file, however the run ends |
 
 Asked for one value, in scalar context or at the end of a `|` chain,
 a sink giving a list gives it as an array reference; for how many,

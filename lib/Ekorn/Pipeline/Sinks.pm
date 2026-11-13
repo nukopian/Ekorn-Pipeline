@@ -108,11 +108,12 @@ sub keep_last : prototype() () {
 
 
 # Return a sink writing each value to the file, followed by $/, giving
-# how many; the file is opened as the run starts, and closed as it ends.
-sub to_file ($path) {
+# how many; the file is opened as the run starts, with the I/O layers
+# given, if any, such as ':raw', and closed as it ends.
+sub to_file ($path, $layers = '') {
     return Ekorn::Pipeline::Sink->new_sink_one(sub {
         # Open for the run, and closed by its end.
-        open my $fh, '>', $path    ## no critic (InputOutput::RequireBriefOpen)
+        open my $fh, ">$layers", $path    ## no critic (InputOutput::RequireBriefOpen)
             or croakf q(Can't write %s: %s), $path, $!;
         my $after = ref $/ || !defined $/ ? '' : length $/ ? $/ : "\n\n";
         my $n     = 0;

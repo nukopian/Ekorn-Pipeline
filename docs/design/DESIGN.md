@@ -598,13 +598,13 @@ Using only what comes with Perl. Nothing exported by default.
 |---|---|---|
 | `from_array(@values)` | the values given | none |
 | `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed, and all of it, slurped, as one record if `$/` is undefined; each chomped | none: you opened it |
-| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, and the whole file, slurped, as one record if `$/` is undefined; each chomped | closes the file, however the run ends |
+| `from_file($path)`, `from_file($path, $layers)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, and the whole file, slurped, as one record if `$/` is undefined, none if it's empty; each chomped; read through the I/O layers given, if any (D69) | closes the file, however the run ends |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
 
 Each `from_` source says what it takes: a list, a filehandle or a
 file. With `$/` undefined, `from_fh` and `from_file` slurp: the whole
-of what's read is one record, as Perl's `readline` gives it, so an
-empty file gives one empty record. A hash's pairs are
+of what's read is one record, and an empty file gives none, though
+Perl's `readline` gives one empty string. A hash's pairs are
 `from_array(map { [$_, $hash{$_}] } keys %hash)` (D68).
 
 ### 8.3 Sinks: Ekorn::Pipeline::Sinks (2026-0017)
@@ -631,7 +631,7 @@ reads, the other writes. Nothing exported by default.
 | Sink | Gives | Role | Stops the pull early? |
 |---|---|---|---|
 | `to_fh($fh)` | prints each item to your filehandle, followed by `$/`; gives how many | one | no; you close it |
-| `to_file($path)` | writes each item to the file, followed by `$/`; gives how many | one | no; its end closes the file |
+| `to_file($path)`, `to_file($path, $layers)` | writes each item to the file, followed by `$/`, through the I/O layers given, if any (D69); gives how many | one | no; its end closes the file |
 
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
@@ -1998,6 +1998,32 @@ hash's pairs are `from_array(map { [$_, $hash{$_}] } keys %hash)`.
 `from_arrayref` was built, and is replaced by `from_array`, now built;
 `from_hash` and `from_hashref` weren't. A package may make its own,
 as DBIx::Squirrel may, keeping the source protocol (section 4.4).
+
+### 17.38 Files of bytes, or of text
+
+(Section 8.2 and 8.3; Iain, 2026-11-13, 2026-0022's D69.) `from_file`
+and `to_file` open their own file, so they take the I/O layers to open
+it with, as an optional second argument: `from_file($path, ':raw')`
+reads bytes, unchanged on any platform, and `':encoding(UTF-8)'`
+decodes text, as `to_file` encodes it. Without it, a file is opened as
+Perl opens one by default: unchanged bytes on Unix, but with line
+endings translated on Windows, which corrupts a binary file. A binary
+file is read with `':raw'` and fixed-size records, `local $/ = \4096`,
+which `chomp` leaves whole, and `to_file` writes nothing between, so
+a copy is exact. `from_fh` and `to_fh` take a handle the caller opened,
+with its own layers, so need nothing.
+
+With `$/` undefined, both slurp: the whole file is one record, and an
+empty file is none, as Iain wanted it sensible, where Perl's
+`readline` gives one empty string.
+
+Weighed and set aside:
+
+- **Always bytes, opening `:raw`,** leaving text to be decoded by a
+  stage, or by `from_fh` with your own handle. Safe for binary, but
+  every text file needs decoding by hand.
+- **Always UTF-8,** unless told `:raw`. Easy for text, but a binary
+  file needs the argument, and other text warns.
 
 ## 18. Where each roadmap item lands
 

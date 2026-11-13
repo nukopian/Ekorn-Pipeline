@@ -683,9 +683,35 @@ subtest 'from_file slurps, with $/ undefined' => sub {
     local $/ = undef;
     is [$class->new->iterator(from_file("$dir/lines"))->all], ["a\nb\n"],
         'the whole file, as one record';
-    is [$class->new->iterator(from_file("$dir/empty"))->all], [''],
-        'and an empty file, one empty record, as readline gives it';
+    is [$class->new->iterator(from_file("$dir/empty"))->all], [],
+        'and an empty file, none';
 };
+
+subtest 'from_file and to_file take I/O layers, for bytes or text (D69)' =>
+    sub {
+        my $dir   = tempdir(CLEANUP => 1);
+        my $bytes = join '', map { chr } 0 .. 255, 13, 10, 0, 26;
+        {
+            open my $fh, '>:raw', "$dir/in" or die "Can't write $dir/in: $!";
+            print { $fh } $bytes;
+            close $fh;
+        }
+        {
+            local $/ = \7;    # fixed records, for bytes
+            is [from_file("$dir/in", ':raw') | to_file("$dir/out", ':raw')],
+            [38], 'a binary file of 260 bytes, in 38 records of up to 7';
+        }
+        open my $fh, '<:raw', "$dir/out" or die "Can't read $dir/out: $!";
+        my $copy = do { local $/ = undef; <$fh> };
+        close $fh;
+        is $copy, $bytes, 'copied unchanged';
+
+        my $word = "caf\x{e9} \x{2603}";
+        my $n    = from_array($word) | to_file("$dir/text", ':encoding(UTF-8)');
+        is [$class->new->iterator(from_file("$dir/text", ':encoding(UTF-8)'))->all],
+        [$word], 'text, encoded and decoded as UTF-8';
+        is -s "$dir/text", 10, 'written as UTF-8: 9 bytes, then $/';
+    };
 
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {
     is [keep(2)->(1 .. 5)], [1, 2], 'the first two, as a list';

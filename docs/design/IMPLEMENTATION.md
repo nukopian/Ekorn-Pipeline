@@ -661,7 +661,7 @@ say join ' ', map {"[@$_]"} Ekorn::Pipeline->new(batch(2))->(1 .. 5);    # [1 2]
 | Source | Gives |
 |---|---|
 | `from_array(@array)` | the array's values, from the first, each run |
-| `from_file($path)` | the file's records, as `$/` divides them, with `$/` taken off; the file is opened as the run starts, and closed as it ends |
+| `from_file($path, $layers)` | the file's records, as `$/` divides them, with `$/` taken off; the file is opened as the run starts, with the I/O layers given, if any, and closed as it ends; slurped, an empty file gives none (D69) |
 
 ```perl
 my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file($setlist));
@@ -674,13 +674,13 @@ while (my($line) = $next->()) { say $line }
 
 | Sink | Role | Gives |
 |---|---|---|
-| `keep_all` | list | every item, as a list |
-| `keep_single` | scalar | the one item; `undef` if none; at a second, a warning, and the run stops, giving the first |
-| `count_items` | scalar | how many values there were |
-| `keep_first` | scalar | the first value, stopping the run there; `undef` if there were none |
-| `keep_last` | scalar | the last value, reading every one; `undef` if there were none |
-| `keep($n)` | list | the first `$n` values, stopping the run once it has them; `$n` checked as `take` checks it |
-| `to_file($path)` | scalar | writes each value, then `$/`, giving how many; opened as the run starts, closed as it ends |
+| `keep_all` | many | every item, as a list |
+| `keep_single` | one | the one item; `undef` if none; at a second, a warning, and the run stops, giving the first |
+| `count_items` | one | how many values there were |
+| `keep_first` | one | the first value, stopping the run there; `undef` if there were none |
+| `keep_last` | one | the last value, reading every one; `undef` if there were none |
+| `keep($n)` | many | the first `$n` values, stopping the run once it has them; `$n` checked as `take` checks it |
+| `to_file($path, $layers)` | one | writes each value, then `$/`, giving how many; opened as the run starts, with the I/O layers given, if any, closed as it ends (D69) |
 
 The sinks taking no arguments have an empty prototype, so `count_items + 0`
 reads as `count_items() + 0`. `to_file` writes `$/` after each value, so what

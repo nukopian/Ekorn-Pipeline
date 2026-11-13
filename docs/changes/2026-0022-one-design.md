@@ -64,6 +64,8 @@ D66 settled: six sinks set aside for now.
 D67 settled: four sources dropped.
 D68 settled: `from_arrayref`, `from_hash` and `from_hashref` dropped;
 `from_array` built.
+D69 settled: `from_file` and `to_file` take I/O layers; an empty file
+slurped gives no record.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -687,6 +689,20 @@ D19 to D25 came from the third cold review, settled by Iain on
   and `from_array(@x)`, with a test of its own. `from_hash` and
   `from_hashref` weren't built. Design 8.2, 17.12 and 17.37; the draft
   reference, how-to and IMPLEMENTATION.md; and the roadmap's 2026-0016.
+- [x] **D69.** How do `from_file` and `to_file` treat binary and
+  encoded files, and what does an empty file give, slurped? Iain, on
+  2026-11-13, concerned "that we don't consider files may be binary",
+  chose an optional second argument, the I/O layers to open with:
+  `':raw'` for bytes, unchanged on any platform, `':encoding(UTF-8)'`
+  for text; without it, Perl's default, which on Windows translates
+  line endings. And he wanted the slurp "sensible": with `$/`
+  undefined, an empty file gives no record, where Perl's `readline`
+  gives one empty string. Set aside: always `:raw`, and always UTF-8.
+  Built: both, with tests: a binary file of 260 bytes copied exactly,
+  in records of 7, through `':raw'`; text with é and ☃ written and read
+  as UTF-8; an empty file slurped, none. Design 8.2, 8.3 and 17.38;
+  the draft reference and IMPLEMENTATION.md, whose table of sinks also
+  now says `one` and `many`, which D64's prose change missed.
 
 ## The plan
 
