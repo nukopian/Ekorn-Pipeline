@@ -361,8 +361,8 @@ what was Iain's.
   and one name for the two sessions. Ekorn's merged into `develop` on
   2026-11-13 (roadmap 2026-0025, D4), so its work and `TODO.md` are on
   `develop` again, and DBIx-Squirrel's tasks and messages come there.
-  DBIx-Squirrel's merges after; until it does, tasks and messages for
-  DBIx-Squirrel go to its `pipeline-experimental`. Never switch DBIx-Squirrel's
+  DBIx-Squirrel's merged into its `develop` the same day, so tasks and
+  messages for it go to its `develop` again. Never switch DBIx-Squirrel's
   working copy, or commit in it, as a session may be working there:
   use a worktree of the branch as GitHub has it, edit
   `/tmp/dbix-squirrel-todo/TODO.md`, commit only it, and push from
