@@ -6,7 +6,7 @@ use Exporter                qw(import);
 use Ref::Util               qw(is_coderef);
 use Ekorn::Pipeline         qw();
 use Ekorn::Pipeline::Errors qw(croakf);
-use Ekorn::Pipeline::Gather qw();
+use Ekorn::Pipeline::Gather qw(gather);
 use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Source qw();
 use Ekorn::Pipeline::Stage  qw();
@@ -22,8 +22,6 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # any: local to each run, so a generator read inside another's block
 # keeps its own.
 our $YIELDED;
-
-*gather = \&Ekorn::Pipeline::Gather::gather;
 
 # Return a pipeline of the stages given, each a code reference, a
 # pipeline, or the name of one, looked up in the caller's package.
