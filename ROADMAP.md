@@ -54,8 +54,8 @@ Nothing yet.
 
 The design's release: the README rewritten for the stream concept
 (the design's 20.1), `Changes`' precis naming the items it ships, the
-manuals made again, and whether `docs/design/` and IMPLEMENTATION.md
-stay once it's delivered decided. Then `pipeline-experimental` merges
+manuals made again, and `docs/design/` left on `pipeline-experimental`,
+not merged, as Iain decided. Then `pipeline-experimental` merges
 to `develop`, v0.3.0 is released, and DBIx-Squirrel is handed a task
 to test against it and move its range. It's v0.3.0, not v1.0.0, so
 the design can settle first, as Iain decided on 2026-11-13; see its
