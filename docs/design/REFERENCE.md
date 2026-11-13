@@ -374,8 +374,8 @@ default. Each returns a Source.
 | Source | Gives | Its end |
 |---|---|---|
 | `from_array(@values)` | the values given | none |
-| `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
-| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | closes the file, however the run ends |
+| `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed, or all of it as one record if `$/` is undefined; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
+| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, or the whole file as one record if `$/` is undefined; each without the separator, as `chomp` removes it | closes the file, however the run ends |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
 
 ```perl

@@ -672,6 +672,21 @@ subtest 'from_array: the values given, afresh each run (D68)' => sub {
     is [drain_all($class->new->iterator(from_array()))], [], 'none, given none';
 };
 
+subtest 'from_file slurps, with $/ undefined' => sub {
+    my $dir = tempdir(CLEANUP => 1);
+    for ([lines => "a\nb\n"], [empty => '']) {
+        my($name, $text) = @$_;
+        open my $fh, '>', "$dir/$name" or die "Can't write $dir/$name: $!";
+        print { $fh } $text;
+        close $fh;
+    }
+    local $/ = undef;
+    is [$class->new->iterator(from_file("$dir/lines"))->all], ["a\nb\n"],
+        'the whole file, as one record';
+    is [$class->new->iterator(from_file("$dir/empty"))->all], [''],
+        'and an empty file, one empty record, as readline gives it';
+};
+
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {
     is [keep(2)->(1 .. 5)], [1, 2], 'the first two, as a list';
     my $kept = keep(2)->(1 .. 5);

@@ -597,13 +597,15 @@ Using only what comes with Perl. Nothing exported by default.
 | Source | Gives | Its end |
 |---|---|---|
 | `from_array(@values)` | the values given | none |
-| `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | none: you opened it |
-| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | closes the file, however the run ends |
+| `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed, and all of it, slurped, as one record if `$/` is undefined; each chomped | none: you opened it |
+| `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, and the whole file, slurped, as one record if `$/` is undefined; each chomped | closes the file, however the run ends |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
 
 Each `from_` source says what it takes: a list, a filehandle or a
-file. A hash's pairs are `from_array(map { [$_, $hash{$_}] } keys %hash)`
-(D68).
+file. With `$/` undefined, `from_fh` and `from_file` slurp: the whole
+of what's read is one record, as Perl's `readline` gives it, so an
+empty file gives one empty record. A hash's pairs are
+`from_array(map { [$_, $hash{$_}] } keys %hash)` (D68).
 
 ### 8.3 Sinks: Ekorn::Pipeline::Sinks (2026-0017)
 
