@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Operators: `|`, `|=` and `@{}`](2026-0018-operators.md),
+  roadmap 2026-0018: in progress.
 - [Sinks that come with Perl](2026-0017-sinks.md),
   roadmap 2026-0017: shipped, unreleased.
 - [Sources that come with Perl](2026-0016-sources.md),
