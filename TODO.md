@@ -78,7 +78,7 @@ is held until then, as Iain decided on 2026-11-13.
 - **Whatever DBIx-Squirrel's changes turned up** that the docs should
   say.
 - The manuals made again with `scripts/manuals`, and every example run,
-  as CLAUDE.md asks, and the PDFs rebuilt and read.
+  as CLAUDE.md asks.
 
 Done when the three read as one account of v0.3.0, every example prints
 what it says, and `xt/manuals.t` passes. Then 2026-0025 can release
