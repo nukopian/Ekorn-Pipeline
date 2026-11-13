@@ -1,6 +1,7 @@
 # 2026-0022. One design, end to end, before more is built
 
-**Status:** in progress
+**Status:** approved, on 2026-11-13, and split into items; what it
+made ships in v0.3.0 through them
 
 **Decisions:** D1 settled: DBIx::Squirrel uses Ekorn as it is. D2
 settled: the design ships as v0.3.0, on `pipeline-experimental` until
@@ -1105,3 +1106,23 @@ each question settled by Iain here.
   placeholder POD; CI doesn't run on `pipeline-experimental`. Each item
   the design is split into brings its part up to the floors. The
   findings above go into the design.
+
+### Approved, and split into items, 2026-11-13
+
+- **Outcome:** done, against Done when: the proofs hold, and Iain
+  approved the design on 2026-11-13: "I've reviewed the design and am
+  happy with it". Its questions, Q1 to Q33, and D1 to D70, are
+  settled.
+- **Split into items,** as Iain agreed the same day, each taking its
+  share of the proofs as tests and of section 20 into its Done when:
+  2026-0014, the lifecycle, now; then 2026-0021, the words, taking in
+  2026-0015, retired into it; 2026-0024, canned stages, a new item;
+  2026-0013, names in errors; 2026-0016, sources; 2026-0017, sinks;
+  2026-0018, operators; and 2026-0025, the release of v0.3.0, a new
+  item. 2026-0019 and 2026-0010 stay as they were.
+- **DBIx-Squirrel** is handed a task saying the design is approved,
+  as section 20.2 asks.
+- **What's left:** each item's work, and coverage up to the floors,
+  below them on `pipeline-experimental` (branch 90%, condition 82%,
+  POD 43% when last run), as the new modules' POD is still a
+  placeholder.

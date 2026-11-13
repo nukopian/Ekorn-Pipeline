@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0023.
+Last id: 2026-0025.
 
 Items come in four groups:
 
@@ -41,45 +41,120 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0022. One design, end to end, before more is built
+### 2026-0014. The lifecycle: sources, stages, sinks and their ends
 
 **Size:** L (5)
 
-Development is paused, here and in DBIx-Squirrel's work touching Ekorn,
-as Iain decided on 2026-11-11, while one design is written for
-everything planned in both repositories, in `docs/design/`: the
-concepts as a whole (sources, stages, gathers, sinks, pipelines, runs
-and their ends, names, subclasses, factories), the modules on both
-sides, how DBIx::Squirrel builds on Ekorn, what's compatible, and the
-questions still open; with drafts of the sections the reference and
-the how-to would gain. Why: the work had been decomposed into items
-whose decisions, made one at a time, kept turning out to bite later,
-here or in DBIx-Squirrel. DBIx-Squirrel reviews it, as Ekorn's first
-user, and sends its view as messages. The design is then proved by
-experimental code on `pipeline-experimental`, the one development the
-pause allows, built to the design's section 19: a source joined
-directly to a sink, and a complete pipeline used as a source. Done
-when the proofs hold and Iain has approved the design, and only then
-is it decomposed into items, which replace or rewrite those below.
-What the design makes ships together as v0.3.0, as Iain decided on
-2026-11-12, and stays on `pipeline-experimental` until then. What's on `pipeline-experimental` (2026-0011,
-0020) is provisional until then.
+The core of the design approved on 2026-11-13 (2026-0022), finished
+from its prototype on `pipeline-experimental`: a run made of a source,
+stages and sinks, each made for the run by its role method
+(`ekorn_source`, `ekorn_stage`, `ekorn_sink_one`, `ekorn_sink_many`),
+with a flush and an end told how the run ended, `done`, `stopped` or
+`died`; Ekorn's types as Elements; and the Iterator, with `ended`,
+`finish`, `all`, `first` and `single`. Why: a source can close its
+file however a run ends, and a sink commit or roll back, which no
+caller can do in v0.2.0. Done when its code has its POD, its tests
+hold the design's proofs (section 19) and keep coverage above the
+floors, and the reference and how-to take in its share of the
+drafts, with `Changes`. Its record:
+[2026-0014](docs/changes/2026-0014-lifecycle.md).
 
 ## Next
 
-### 2026-0021. Ekorn::Pipeline::Factories
+### 2026-0021. Ekorn::Pipeline::Factories, the words
 
 **Size:** M (3)
 
-A module of words, Ekorn::Pipeline::Factories, holding the short,
-keyword-like functions that make Ekorn's types, starting with
-`pipeline`, moved there from Ekorn::Pipeline, and `gather`; each one
-line over a class method, so the class keeps no `import` of its own.
-Why: `pipeline` is syntax, not behaviour, the first of a family
-2026-0015 adds to, and in the class it needed `import` tricks to make
-a subclass. Done when the module, the class method, their tests and
-docs are in, with coverage above the floors. Two questions are open: see its
+**Depends on:** 2026-0014
+
+The words that make Ekorn's types, in Ekorn::Pipeline::Factories, each
+one line over a class method: `stage`, `source`, `generator` with
+`yield`, `sink_one`, `sink_many`, `gather`, and `pipeline`, moved from
+Ekorn::Pipeline, whose own `import` goes. It takes in 2026-0015, the
+words for sources, stages and sinks, retired into it, and undoes
+2026-0020's `pipeline` through a subclass: names are per package, and
+Pipes' `pipeline_class` goes (the design's 17.3, 17.4). Done when the
+module, its tests and docs are in, with coverage above the floors. Its
 [record](docs/changes/2026-0021-factories.md).
+
+### 2026-0024. Canned stages as objects, and a take stage for each keep sink
+
+**Size:** S (2)
+
+**Depends on:** 2026-0014
+
+The canned stages made with `gather` are Elements, as the design's
+8.1 settles (Q12, D4), and `take_first`, `take_last` and
+`take_single`, already in Stages::Flow, join `take` as the stages of
+the `keep` sinks (2026-0022's D58). Done when the stages, their POD,
+tests and docs are in, with coverage above the floors.
+
+### 2026-0013. A named pipeline named in a stage's error
+
+**Size:** S (2)
+
+**Depends on:** 2026-0021
+
+When a stage in a named pipeline dies, the message gives the
+pipeline's name with its place, such as `clean#2.3`, through a `name`
+getter left free by 2026-0011's D3. It changes a message, so it joins
+v0.3.0 (2026-0022's D40), with DBIx-Squirrel's tests and copies of the
+message told. From DBIx-Squirrel's message of 2026-11-10
+(DBIx-Squirrel 60dd1af8f11b7661b4e47decadf9885d3e22a2d3).
+
+### 2026-0016. Sources that come with Perl
+
+**Size:** S (2)
+
+**Depends on:** 2026-0021
+
+Ekorn::Pipeline::Sources, needing nothing from CPAN: `from_array`,
+`from_fh`, `from_file`, which takes I/O layers, and `counter`, as the
+design's 8.2 lists them; nothing exported by default. Built so far:
+`from_array` and `from_file`. Done when each is in, with its POD,
+tests and docs, and coverage above the floors.
+
+### 2026-0017. Sinks that come with Perl
+
+**Size:** M (3)
+
+**Depends on:** 2026-0021
+
+Ekorn::Pipeline::Sinks: the `keep` family (`keep_all`, `keep($n)`,
+`keep_first`, `keep_last`, `keep_single`), `count_items`, and the
+containers `to_fh` and `to_file`, which takes I/O layers, as the
+design's 8.3 lists them; those that can stop the pull early. Built so
+far: all but `to_fh`. Done when each is in, with its POD, tests and
+docs, and coverage above the floors.
+
+### 2026-0018. Operators: `|`, `|=` and `@{}`
+
+**Size:** S (2)
+
+**Depends on:** 2026-0016, 2026-0017
+
+Ekorn::Pipeline::Operators, as the design's section 9 has it: `|`
+joining a source, stages and a sink, `|=`, and `@{}` reading a source
+through, in force lexically, with `chain` and `drain` for a package's
+own source class. Every stage in a chain is a `stage {...}` or a
+ready-made part, as `|` between two code references ORs their
+addresses, and the docs say so loudly. Done when the module, its POD,
+tests and docs are in, with coverage above the floors.
+
+### 2026-0025. Release v0.3.0
+
+**Size:** S (2)
+
+**Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
+2026-0021, 2026-0024
+
+The design's release: the README rewritten for the stream concept
+(the design's 20.1), `Changes`' precis naming the items it ships, the
+manuals made again, and whether `docs/design/` and IMPLEMENTATION.md
+stay once it's delivered decided. Then `pipeline-experimental` merges
+to `develop`, v0.3.0 is released, and DBIx-Squirrel is handed a task
+to test against it and move its range. Done when v0.3.0 is on CPAN,
+and DBIx-Squirrel has its task.
 
 ### 2026-0010. Named pipelines at compile time
 
@@ -107,102 +182,9 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-### 2026-0013. A named pipeline named in a stage's error
-
-**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0011
-
-When a stage in a named pipeline dies, the message gives its place,
-such as `#2.3`, but not the pipeline's name, which would make it
-easier to find. A `name` getter, left free by 2026-0011's D3, would
-give it. It changes a message, so it's a v0.3.0, with a task for
-DBIx-Squirrel to change its tests and its copies of the message. It
-joins v0.3.0, as Iain decided on 2026-11-12 (2026-0022's D40).
-Suggested in a message from DBIx-Squirrel, 2026-11-10 (DBIx-Squirrel
-60dd1af8f11b7661b4e47decadf9885d3e22a2d3).
-
-### 2026-0014. An end that always runs, told how the run ended
-
-**Added:** 2026-11-10. **Size:** M (3)
-
-A lifecycle hook in the core: an object given as a stage or a source
-can have two methods, called at the start of each run and at its end,
-the end told whether the run was `done`, `stopped` or `died`. So a
-source can close its file however a run ends, `from_file($path) |
-take(5)` included, which no caller can do today; and a sink can commit
-or roll back. An object without them behaves as now, so it only adds.
-With it, `is_source`, for `iterator` to take a source with a set-up
-and an end. From DBIx-Squirrel's message of 2026-11-10, layer 0 of
-four, each opt-in, for a grammar of sources, stages, gathers and
-sinks; built, as it suggests, on an experimental branch shared with
-DBIx-Squirrel, `pipeline-experimental` in both, with a line in both
-CLAUDE.md files saying how.
-The message, whole:
-`git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
-
-### 2026-0015. Words for sources, stages and sinks
-
-**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0014,
-2026-0021
-
-`stage`, `source` and `sink`, in Ekorn::Pipeline::Factories
-(2026-0021). `stage {...}` makes a Stage from its block. `source {...}`
-and `sink {...}` take a set-up, as `gather` does: the block runs at the
-start of each run, declares the run's state with `my`, and returns the
-step and the end as closures sharing it; the end always runs, and is
-told how the run ended. Each makes an Element, an object called as a
-code reference, over a class method. Layer 1 of DBIx-Squirrel's message;
-the design, with the reasons for this shape, is in `docs/design/`
-(2026-0022).
-The message, whole:
-`git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
-
-### 2026-0016. Sources that come with Perl
-
-**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
-
-`Ekorn::Pipeline::Sources`, needing nothing from CPAN: `from_array`,
-`from_fh`, `from_file` and `counter` (2026-0022's D67 and D68 dropped
-the rest). Nothing
-exported by default. Those
-needing CPAN, such as JSON or CSV, go in add-on distributions of
-Ekorn's, as they need no database. Layer 2 of DBIx-Squirrel's message.
-In scope: the stream concept applied to functions, as Iain decided on
-2026-11-12 (2026-0022's D26).
-The message, whole:
-`git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
-
-### 2026-0017. Sinks that come with Perl
-
-**Added:** 2026-11-10. **Size:** M (3). **Depends on:** 2026-0015
-
-`Ekorn::Pipeline::Sinks`, with names that can't clash with Perl's or
-List::Util's: `to_fh` and `to_file`, the counterparts of 2026-0016's
-`from_` sources, and `count_items`, `first_value` and `last_value`
-(2026-0022's D66 set aside the rest for now); those that can, stop the pull
-early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
-message, and the type DBIx-Squirrel 2026-0012, a database as a sink,
-`insert_into`, depends on. In scope, as 2026-0016 is.
-The message, whole:
-`git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
-
-### 2026-0018. Operators: `|`, `|=` and `@{}`
-
-**Added:** 2026-11-10. **Size:** S (2).
-**Depends on:** 2026-0016, 2026-0017
-
-`Ekorn::Pipeline::Operators`: `$src | take(10) | count_items`, on the typed
-objects of 2026-0015 and the chains `|` makes, never on a pipeline
-made with `new`. An operator returns one scalar, so a sink gives an
-array reference, or `@{}` drains a source. Between two plain code
-references, `|` silently ORs their addresses, so the docs must say
-loudly that every stage in a chain is a `stage {...}`. Layer 3 of
-DBIx-Squirrel's message.
-The message, whole:
-`git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
-
 ### 2026-0019. A strict is_stage
 
-**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0015
+**Added:** 2026-11-10. **Size:** S (2). **Depends on:** 2026-0021
 
 An `is_stage` that accepts only Stage objects and pipelines, as a
 function or an argument, so a function whose values can be code
