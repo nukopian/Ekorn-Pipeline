@@ -51,6 +51,10 @@ L<Pipelines: Ekorn::Pipeline|/"Pipelines: Ekorn::Pipeline">
 
 =item *
 
+L<Words: Ekorn::Pipeline::Factories|/"Words: Ekorn::Pipeline::Factories">
+
+=item *
+
 L<How values go through stages|/"How values go through stages">
 
 =item *
@@ -158,14 +162,19 @@ L<Delivering parts for Ekorn|/"Delivering parts for Ekorn">).
 =item *
 
 B<Pipeline:> a list of stages, made with C<< Ekorn::Pipeline->new >>
-or C<pipeline>.
+or the word C<pipeline>.
 
 =item *
 
 B<Name:> a name a pipeline is kept under, with C<named>, so that
 C<pipeline> and C<named> can take it where they take a stage. A name is
-in a package, which says whose it is, and belongs to a class, which
-says who can find it (see L<Named pipelines|/"Named pipelines">).
+in a package, which says whose it is (see
+L<Named pipelines|/"Named pipelines">).
+
+=item *
+
+B<Word:> a short function that makes one of Ekorn's types, such as
+C<pipeline> or C<source {...}>, from Ekorn::Pipeline::Factories.
 
 =item *
 
@@ -226,21 +235,20 @@ L<How a run ends|/"How a run ends">).
 
     use Ekorn::Pipeline;
     use Ekorn::Pipeline v0.1.3 qw(is_stage);
-    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+    use Ekorn::Pipeline v0.3.0 qw(is_sink);
 
-It exports nothing by default, and C<is_stage>, C<is_sink> and
-C<pipeline> on request. C<is_stage> is new in v0.1.3, so ask for that version on the
+It exports nothing by default, and C<is_stage> and C<is_sink> on
+request. C<is_stage> is new in v0.1.3, so ask for that version on the
 C<use> line, as above. Without it, C<use Ekorn::Pipeline qw(is_stage)>
 compiles under v0.1.2, which has no C<import>, and fails only when
-C<is_stage> is called. C<pipeline> and C<named> are new in v0.2.1, and
-C<is_sink> in v0.3.0.
+C<is_stage> is called. C<pipeline_in>, C<named> and C<is_sink> are new in
+v0.3.0. The word C<pipeline>, which makes a pipeline whose stages can
+be names, is in L<Factories|/"Words: Ekorn::Pipeline::Factories">.
 
-A subclass inherits its C<import>, which exports as Exporter does. C<use
-My::Pipeline;> imports nothing, but C<use My::Pipeline qw(name)> croaks
-unless the subclass exports C<name> itself. Before v0.1.3, a subclass
-ignored the list. C<pipeline> is the exception: imported through a
-subclass, it makes that subclass, as
-L<pipeline through a subclass|/"pipeline through a subclass"> says.
+A subclass inherits its C<import>, Exporter's, so C<use My::Pipeline;>
+imports nothing, and C<use My::Pipeline qw(name)> croaks unless the
+subclass exports C<name> itself. Before v0.1.3, a subclass ignored the
+list.
 
 =head2 new
 
@@ -441,86 +449,24 @@ its own, as
 L<Calling a pipeline from a stage|/"Calling a pipeline from a stage">
 explains.
 
-=head2 pipeline
+=head2 pipeline_in
 
-    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+    Ekorn::Pipeline->pipeline_in($package, @stages)
 
-    my $p = pipeline(@stages);
+Returns a new pipeline of its invocant's class, of C<@stages>, each a
+code reference, a pipeline, or the name of one, looked up in
+C<$package>, as L<Named pipelines|/"Named pipelines"> explains. It's the
+only method that reads names, and it's what the word
+L<pipeline|/"pipeline"> calls, with its caller's package.
 
-Returns a new pipeline of C<@stages>, as C<new> does, but each stage can
-also be the name of a pipeline, which stands for that pipeline:
-
-    pipeline(sub { uc }, take(5))                # new, from stages
-    pipeline('clean')                            # the pipeline named clean
-    pipeline('clean', take(5))                   # it, then more
-    pipeline('My::Module::clean', sub {...})     # another package's
-
-A name is looked up when the pipeline is made, as
-L<Named pipelines|/"Named pipelines"> explains, so one not defined
-croaks then: "No pipeline named main::clean". Anything that isn't a
-code reference, a pipeline or a name croaks, naming its position:
-"Expected stage #2 to be a code reference, a pipeline or the name of
-one".
-
-It's like C<< Ekorn::Pipeline->new(...) >>, but reads names, and, imported
-through a subclass, makes the subclass (see
-L<pipeline through a subclass|/"pipeline through a subclass">). Being
-short, it's handy for passing stages as one pipeline, given last. A function whose values
-can be code references can't tell them from stages with C<is_stage>,
-but it can take a pipeline given last as its stages, as
-L<Writing functions that take stages|/"Writing functions that take stages">
-shows.
-
-=head2 pipeline through a subclass
-
-Imported through a subclass, C<pipeline> makes that subclass. It's a
-function of its own, made for the subclass when it's imported. A
-subclass that inherits C<import> from Ekorn::Pipeline needs no code of
-its own for it:
-
-    package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
-
-    package main;
-    BEGIN { My::Pipeline->import(qw(pipeline)) }    # use My::Pipeline qw(pipeline), from its own file
-
-    Ekorn::Pipeline->named(shout => sub { uc });
-    say ref pipeline('shout');                       # My::Pipeline
-    say pipeline('shout')->('hi');                   # HI
-
-It looks names up in the package that calls it, when it's called, as
-Ekorn::Pipeline's C<pipeline> does, not in the package it was imported
-into. So a module can import it from its subclass and export it again
-to its own users, and each user's names are looked up in that user's
-package. That's how a distribution built on Ekorn::Pipeline, such as
-DBIx::Squirrel, gives its users a C<pipeline> making its own class.
-
-A subclass with an C<import> of its own, such as Exporter's, replaces
-Ekorn::Pipeline's, and C<use My::Pipeline qw(pipeline)> then croaks:
-C<"pipeline" is not exported by the My::Pipeline module>. Such a
-subclass asks for C<pipeline> itself, from inside the subclass, which
-installs the function made for it there, and exports it as it exports
-anything else:
-
-    package My::Pipeline;
-    use Exporter qw(import);
-    use Ekorn::Pipeline qw();
-
-    our @ISA;
-    BEGIN { @ISA = ('Ekorn::Pipeline') }
-
-    # pipeline, made for this class, installed here, so Exporter exports it.
-    BEGIN { __PACKAGE__->SUPER::import('pipeline') }
-
-    our @EXPORT_OK = qw(pipeline);
-
-C<@ISA> must be set in a C<BEGIN> block, as here, before that line runs;
-set at run time, it's empty when the C<BEGIN> block calls C<SUPER::import>.
-
-A package has one C<pipeline>. Importing both Ekorn::Pipeline's and a
-subclass's into the same package warns "Subroutine main::pipeline
-redefined", and the second replaces the first; call the other by its
-full name, such as C<Ekorn::Pipeline::pipeline(...)>, as the example in
-L<Named pipelines and subclasses|/"Named pipelines and subclasses"> does.
+Call it from code the user calls directly, passing the user's package,
+as the word does with C<scalar caller>. Code that passes stages
+through, such as a function taking stages from its caller, gives them
+to C<new>, which reads no names: the user has already turned any names
+into pipelines with C<pipeline>, where they wrote them. If C<new> read
+names, it would look them up in the package of whatever called it,
+which, for a function passing its caller's stages on, isn't the
+caller's.
 
 =head2 named
 
@@ -529,8 +475,8 @@ L<Named pipelines and subclasses|/"Named pipelines and subclasses"> does.
 
 Names a pipeline, and returns it. On the class, it makes a pipeline of
 the stages after the name, which C<pipeline> would take, names included,
-so a pipeline can be defined from others. A subclass makes one of its
-own class. On a pipeline, it names that one, and croaks if given
+looked up in its caller's package, so a pipeline can be defined from
+others. A subclass makes one of its own class. On a pipeline, it names that one, and croaks if given
 stages after the name.
 
 The name is kept in the caller's package, unless it's qualified, as
@@ -539,12 +485,9 @@ as Perl's, joined by C<::>, such as C<clean>, C<clean_2> or
 C<My::Module::clean>.
 Anything else croaks: "Expected a name, made of words joined by ::".
 
-The name belongs to the class C<named> was called on, or, for a
-pipeline, to the pipeline's class. A class can't define the same name
-twice, but a subclass can define a name its ancestor has, overriding
-it for itself and its own subclasses, as
-L<Named pipelines and subclasses|/"Named pipelines and subclasses">
-explains.
+A name can't be defined twice, whatever class C<named> is called on.
+
+    use Ekorn::Pipeline::Factories qw(pipeline);
 
     Ekorn::Pipeline->named(trimmed  => sub { s( \A \s+ | \s+ \z )()xgr });
     Ekorn::Pipeline->named(nonempty => sub { length ? $_ : () });
@@ -554,33 +497,9 @@ explains.
 
 =head2 Named pipelines
 
-A named pipeline is kept for the life of the program. Two things
-decide which pipeline a name means, and they're separate:
-
-=over 4
-
-=item *
-
-B<The package the name is in says whose name it is.> It's the
-package that called C<named>, unless the name is qualified, so two
-modules can each have a C<clean>.
-
-=item *
-
-B<The class it was defined through says who can find it.> A class
-finds its own names and its ancestors', never a subclass's, as
-L<Named pipelines and subclasses|/"Named pipelines and subclasses">
-explains.
-
-=back
-
-So C<< My::Pipeline->named(loud => sub { uc }) >>, called in C<main>,
-defines C<main::loud> for My::Pipeline. Ekorn::Pipeline's own
-C<pipeline('loud')>, in C<main>, then croaks "No pipeline named
-main::loud": the name is in C<main>, but it's My::Pipeline's, and
-Ekorn::Pipeline can't see it.
-
-In detail, these rules say which pipeline a name means:
+A named pipeline is kept for the life of the program, in a package,
+which says whose name it is. These rules say which pipeline a name
+means:
 
 =over 4
 
@@ -606,13 +525,12 @@ C<#1.2>.
 
 =item *
 
-B<A class can't define a name twice.> Defining it again through the
-same class croaks: "A pipeline named main::clean is already
-defined". Naming the same pipeline again, with C<< $p->named('clean') >>,
-is no mistake. But C<named> on a class always makes a new pipeline,
-even from a single pipeline, so C<< Ekorn::Pipeline->named(clean => $p) >>
-twice croaks. A subclass defining a name its ancestor has isn't
-defining it twice: it's overriding it, as the next section explains.
+B<A name can't be defined twice.> Defining it again croaks: "A
+pipeline named main::clean is already defined", whatever class
+C<named> was called on. Naming the same pipeline again, with
+C<< $p->named('clean') >>, is no mistake. But C<named> on a class always
+makes a new pipeline, even from a single pipeline, so
+C<< Ekorn::Pipeline->named(clean => $p) >> twice croaks.
 
 =item *
 
@@ -627,99 +545,12 @@ never changes a pipeline already made.
 
 =item *
 
-**Only C<pipeline> and C<named> read names.** C<new> doesn't, and
-C<is_stage> is false for a string, so a function finding its stages
-with C<is_stage> never takes a value such as C<'clean'> for one.
-
-=item *
-
-B<A name belongs to a class,> and is inherited one way, as methods
-are, so a distribution built on Ekorn::Pipeline keeps what it names
-to itself. The next section explains.
+**Only C<pipeline_in>, which the word C<pipeline> calls, and C<named>
+read names.** C<new> doesn't, and C<is_stage> is false for a string, so
+a function finding its stages with C<is_stage> never takes a value
+such as C<'clean'> for one.
 
 =back
-
-=head2 Named pipelines and subclasses
-
-Every named pipeline belongs to a class: the class whose C<named>
-defined it. C<< Ekorn::Pipeline->named(...) >> defines a name for
-Ekorn::Pipeline. C<< My::Pipeline->named(...) >>, called on a subclass,
-defines one for My::Pipeline. C<< $p->named(...) >>, called on a pipeline,
-defines one for the pipeline's class.
-
-C<pipeline> looks a name up for a class, too. Ekorn::Pipeline's own
-C<pipeline> looks it up for Ekorn::Pipeline. One imported through a
-subclass (see L<pipeline through a subclass|/"pipeline through a subclass">)
-looks it up for that subclass. It looks first among that class's own
-names, then among its parent's, then its parent's parent's, and so on
-up to Ekorn::Pipeline, and takes the first it finds. It never looks
-down, among a subclass's names. A name given to C<named>, as one of
-the stages after the new name, is looked up the same way, for the
-class C<named> was called on.
-
-So, for a subclass and its ancestors:
-
-=over 4
-
-=item 1.
-
-B<A subclass sees its ancestors' names.> A pipeline named through
-Ekorn::Pipeline can be used by a subclass's C<pipeline>, as a
-subclass can call its parent's methods.
-
-=item 2.
-
-B<An ancestor never sees a subclass's names.> A pipeline named
-through a subclass can't be found by Ekorn::Pipeline's own
-C<pipeline>, which croaks "No pipeline named main::clean". So the
-names a distribution such as DBIx::Squirrel defines for its own
-subclass never reach a program's plain Ekorn pipelines.
-
-=item 3.
-
-B<A subclass can override an ancestor's name.> It defines the same
-name for itself. From then on, it and its own subclasses get its
-pipeline for that name; the ancestor, and anything looking names up
-for the ancestor, still get the ancestor's. An ancestor can likewise
-define a name a subclass already has, and each class then keeps its
-own.
-
-=item 4.
-
-B<A class can't define the same name twice.> That croaks: "A
-pipeline named main::clean is already defined". Overriding is
-defining a name for a different class, so it's not defining it
-twice.
-
-=item 5.
-
-B<Overriding doesn't change a pipeline already made.> A name is
-looked up when a pipeline is made, so a pipeline made before an
-override keeps the ancestor's pipeline. Define your names before
-you use them, as a program usually does at its start, so that every
-pipeline finds the same.
-
-=back
-
-    package My::Pipeline { use parent -norequire, 'Ekorn::Pipeline' }
-
-    package main;
-    BEGIN { My::Pipeline->import(qw(pipeline)) }    # here, pipeline makes My::Pipelines
-
-    Ekorn::Pipeline->named(tidy => sub { lc });     # Ekorn::Pipeline's name
-    My::Pipeline->named(loud => sub { uc });        # My::Pipeline's name
-
-    say pipeline('tidy')->('Hi');                   # hi     (the subclass sees its ancestor's name)
-    say pipeline('loud')->('Hi');                   # HI     (and its own)
-    say eval { Ekorn::Pipeline::pipeline('loud') } ? 'found' : 'not found';
-                                                    # not found  (the ancestor never sees the subclass's)
-
-    my $made_before = pipeline('tidy');
-    My::Pipeline->named(tidy => sub { ucfirst lc });    # the subclass overrides tidy
-
-    say pipeline('tidy')->('hI');                   # Hi     (the subclass now gets its own)
-    say Ekorn::Pipeline::pipeline('tidy')->('hI');  # hi     (the ancestor keeps its own)
-    say $made_before->('hI');                       # hi     (a pipeline made earlier keeps what it found)
 
 =head2 is_stage
 
@@ -790,6 +621,184 @@ Each run has its own. A pushed run has none, and an iterator used as a
 source passes on its own run's. It isn't exported, and is new in
 v0.3.0. L<Stages that ask about their run|/"Stages that ask about their run">
 has an example.
+
+=head1 Words: Ekorn::Pipeline::Factories
+
+    use Ekorn::Pipeline::Factories qw(pipeline stage gather source generator yield sink_one sink_many);
+    use Ekorn::Pipeline::Factories qw(:all);
+
+The words make Ekorn's types, from what you write. Each is a short,
+keyword-like function, one line over a class method: syntax, not
+behaviour, so it lives here, not in the class it makes. A package
+built on Ekorn uses them as they are (see
+L<Delivering parts for Ekorn|/"Delivering parts for Ekorn">). Nothing is
+exported by default. Each is new in v0.3.0.
+
+=over 4
+
+=item C<pipeline(@stages)>
+
+B<Makes:> a pipeline
+
+B<Its block:> (takes a list)
+
+=item C<stage {...}>
+
+B<Makes:> a Stage
+
+B<Its block:> the stage itself
+
+=item C<gather {...}>
+
+B<Makes:> a Gather
+
+B<Its block:> a set-up, returning the step, and, optionally, the flush and the end
+
+=item C<source {...}>
+
+B<Makes:> a Source
+
+B<Its block:> a set-up, returning the step, and, optionally, the end and a context
+
+=item C<generator {...}>
+
+B<Makes:> a Source
+
+B<Its block:> a block, called once each run, giving every value it passes to C<yield>
+
+=item C<sink_one {...}>
+
+B<Makes:> a Sink of one
+
+B<Its block:> a set-up, returning the step, the flush, giving the result, one value, and, optionally, the end
+
+=item C<sink_many {...}>
+
+B<Makes:> a Sink of many
+
+B<Its block:> the same, its flush giving a list
+
+=back
+
+A word given something other than a block or code reference croaks
+"Expected a code reference". Each passes on the messages of the class
+it makes.
+
+C<gather {...}> is the same C<gather> that Ekorn::Pipeline::Gather
+exports, as it always has, and is described with it (see
+L<gather|/"gather">).
+
+=head2 pipeline
+
+    pipeline(@stages)
+
+Returns a new pipeline of C<@stages>, each a code reference, a pipeline,
+or the name of one, looked up now, in the package that called
+C<pipeline>, unless it's qualified:
+
+    pipeline(sub { uc }, take(5))                # new, from stages
+    pipeline('clean')                            # the pipeline named clean
+    pipeline('clean', take(5))                   # it, then more
+    pipeline('My::Module::clean', sub {...})     # another package's
+
+It's C<< Ekorn::Pipeline->pipeline_in(scalar caller, @stages) >> (see
+L<pipeline_in|/"pipeline_in">). A name is looked up when the pipeline is
+made, as L<Named pipelines|/"Named pipelines"> explains, so one not
+defined croaks then: "No pipeline named main::clean". Anything that
+isn't a code reference, a pipeline or a name croaks, naming its
+position: "Expected stage #2 to be a code reference, a pipeline or the
+name of one".
+
+Being short, it's handy for passing stages as one pipeline, given
+last. A function whose values can be code references can't tell them
+from stages with C<is_stage>, but it can take a pipeline given last as
+its stages, as
+L<Writing functions that take stages|/"Writing functions that take stages">
+shows.
+
+=head2 stage
+
+    stage { BLOCK }
+    stage sub ($row) { ... }
+
+Returns a Stage: the block, called with each value, as any stage is.
+It's an object called as a code reference, so it goes wherever a stage
+does. To give it a signature, give it a sub. A Stage keeps what it's
+given, so C<stage(\&trim)> never changes C<trim> itself.
+
+=head2 source
+
+    source { SET-UP }
+
+Returns a Source made for each run, as
+L<Sources|/"Sources: Ekorn::Pipeline::Source"> describes. Its set-up returns
+its step, called with nothing, again and again, giving the next value
+or values, or an empty list when there are no more; optionally, its
+end, told how the run ended; and, optionally, a context for the run,
+which its stages ask for with L<run_context|/"run_context">. With a
+context but no end, give C<undef> for the end.
+
+    sub up_to ($last) {
+        return source {
+            my $n = 0;    # this run's
+            return sub () { $n < $last ? ++$n : () };
+        };
+    }
+
+    my $next = Ekorn::Pipeline->new(sub { $_ * 10 })->iterator(up_to(3));
+    while (my($n) = $next->()) { say $n }    # 10, 20, 30
+
+Each run counts from 1 again, as the set-up runs at its start. The
+source in L<Made for a run|/"Made for a run"> has an end. A source with
+nothing to set up or end needs no word: any code reference is a
+source.
+
+=head2 generator and yield
+
+    my $pairs = generator {
+        for my $x (1 .. 3) {
+            for my $y ($x .. 3) { yield [$x, $y] }
+        }
+    };
+    say join ' ', map { "($_->[0],$_->[1])" } Ekorn::Pipeline->new->iterator($pairs)->all;
+    # (1,1) (1,2) (1,3) (2,2) (2,3) (3,3)
+
+C<generator> returns a Source giving what its block passes to C<yield>,
+as a Python generator does. Perl can't pause a sub at C<yield>, so each
+run calls the block once, to its end, and gives every value it yielded
+in one step: the block mustn't loop without end, and runs to its end
+even when a stage after it takes only some. For a producer without
+end, write a C<source {...}> whose step gives a value each call.
+C<yield> croaks "Expected yield to be called inside a generator" when
+it's called outside one, and a generator read inside another's block
+keeps its own.
+
+An empty block, C<generator {}>, reads as an empty hash: write
+C<generator { return }>.
+
+=head2 sink_one and sink_many
+
+    sink_one { SET-UP }
+    sink_many { SET-UP }
+
+Returns a Sink, made for each run, as
+L<Sinks|/"Sinks: Ekorn::Pipeline::Sink"> describes. Its set-up returns its
+step, called with each value, whose return is ignored; its flush,
+called when its input runs out, giving its result; and, optionally,
+its end, told how the run ended. A sink made with C<sink_one> gives one
+value; one made with C<sink_many>, a list. Asked for one value, a
+pipeline ending in a sink of many gives its list as an array
+reference, so write a sink of one value with C<sink_one>.
+
+    my $longest = sink_one {
+        my $max;
+        return (
+            sub ($s) { $max = $s if length $s > length($max // '') },
+            sub ()   { $max },
+        );
+    };
+
+    say Ekorn::Pipeline->new($longest)->(qw(a bbb cc));    # bbb
 
 =head1 How values go through stages
 
@@ -940,7 +949,8 @@ ends, so it can close the file, or commit what it wrote.
 
 =head2 Made for a run
 
-A gather, a source or a sink has a block that's its B<set-up>. The
+A gather, a source or a sink, made with a L<word|/"Words: Ekorn::Pipeline::Factories">,
+has a block that's its B<set-up>. The
 set-up runs at the start of each run. It declares whatever the run
 needs, with C<my>, and returns closures sharing what it declared:
 
@@ -969,16 +979,16 @@ may ask for with L<C<run_context>|/"run_context">.
 
 =back
 
-    use Ekorn::Pipeline::Source;
+    use Ekorn::Pipeline::Factories qw(source);
 
     sub lines_of ($path) {
-        return Ekorn::Pipeline::Source->new(sub {
+        return source {
             open my $fh, '<', $path or die "Can't read $path: $!\n";    # this run's
             return (
                 sub ()     { my $line = readline $fh; defined $line ? $line : () },
                 sub ($how) { close $fh },
             );
-        });
+        };
     }
 
 Two iterators of the same pipeline each get their own filehandle, from
@@ -1083,7 +1093,8 @@ values, and returns the next value or values, or an empty list at the
 end. It can also stop the run, with C<Stop>, when it's had enough: the
 values its stop carries are its last, and it's told C<done>.
 
-A source goes to L<iterator|/"iterator">. It isn't a stage, and given to
+The word L<source|/"source"> makes one from a block. A source goes to
+L<iterator|/"iterator">. It isn't a stage, and given to
 C<new> as one, it croaks. Called directly, as a code reference, it
 croaks "Expected a source to be read through iterator": a run of its
 own would never be ended, so what it opened would stay open.
@@ -1134,7 +1145,8 @@ else, its result goes on through the stages after it. Its step can
 stop the run, with C<Stop>, once it has all it wants: it still gives its
 result, and is told C<done>.
 
-A sink can be called as a code reference with values, as a pipeline of
+The words L<sink_one and sink_many|/"sink_one and sink_many"> make them
+from a block. A sink can be called as a code reference with values, as a pipeline of
 the one sink would be, and gives its result, from a fresh sink of its
 set-up each time.
 
@@ -1550,16 +1562,6 @@ calls can carry on after it.
 
     say Counter->new->up->tap(sub { $_->up })->up->n;    # 3
     say scalar Counter->new->pipe(sub { $_->n + 10 });   # 10
-
-=head2 pipeline_class
-
-    my $class = $object->pipeline_class;
-
-The class of the pipelines C<pipe> and C<tap> make: Ekorn::Pipeline. A
-subclass overrides it to make pipelines of a subclass of its own,
-C<sub pipeline_class ($self) { 'My::Pipeline' }>, so that C<pipe> and
-C<tap> run with whatever that subclass changes about how its pipelines
-behave. It's new in v0.2.1.
 
 =head1 Canned stages
 
@@ -2123,7 +2125,7 @@ stages.
     while (my($line) = $next->()) { push @lines, $line }
     say "@lines";    # ONE TWO
 
-    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+    use Ekorn::Pipeline::Factories qw(pipeline);
 
     # What each callback returns, through the stages given last, as a pipeline.
     sub call_all (@callbacks) {
@@ -2246,26 +2248,23 @@ isn't a code reference.
 =item *
 
 B<Expected stage #%d to be a code reference, a pipeline or the name
-of one:> a stage given to C<pipeline>, or to C<named> after the name,
+of one:> a stage given to C<pipeline_in>, and so to the word
+C<pipeline>, or to C<named> after the name,
 was none of them. For C<named>, stages are counted from the first
 after the name.
 
 =item *
 
-B<No pipeline named %s:> a name given to C<pipeline> or C<named> isn't
-defined in that package for the class it was looked up for, or for
-any of its ancestors. The name is given qualified, so it says which
-package it was looked up in. It may be defined for a subclass, which
-this class can't see, or in another package, which a qualified name
+B<No pipeline named %s:> a name given to C<pipeline_in>, and so to
+the word C<pipeline>, or to C<named>, isn't defined in that package. The
+name is given qualified, so it says which package it was looked up
+in. It may be defined in another package, which a qualified name
 reaches (see L<Named pipelines|/"Named pipelines">).
 
 =item *
 
 B<A pipeline named %s is already defined:> C<named> was given a name
-its class has already defined for another pipeline. The class is the
-one C<named> was called on, or the pipeline's. A subclass can define a
-name its ancestor has, which overrides it rather than defining it
-twice (see L<Named pipelines and subclasses|/"Named pipelines and subclasses">).
+already defined for another pipeline.
 
 =item *
 
@@ -2355,6 +2354,22 @@ thrown, once every end has run.
 In these, a stage is named by its position: C<#2> for the second
 stage, or C<#2.3> for the third stage of a pipeline given as the second
 stage.
+
+=head2 Ekorn::Pipeline::Factories
+
+=over 4
+
+=item *
+
+B<Expected a code reference:> a word was given something other
+than a block or code reference.
+
+=item *
+
+B<Expected yield to be called inside a generator:> C<yield> was
+called with no generator's block running.
+
+=back
 
 =head2 Ekorn::Pipeline::Source
 
@@ -2478,7 +2493,15 @@ than an open filehandle.
 
 B<By default:> nothing
 
-B<On request:> C<is_stage>, C<is_sink>, C<pipeline>
+B<On request:> C<is_stage>, C<is_sink>
+
+=item C<Ekorn::Pipeline::Factories>
+
+B<By default:> nothing
+
+B<On request:> C<pipeline>, C<stage>, C<gather>, C<source>, C<generator>, C<yield>, C<sink_one>, C<sink_many>
+
+B<Tags:> C<:all>
 
 =item C<Ekorn::Pipeline::Stop>
 
@@ -2535,7 +2558,11 @@ empty list: C<use Ekorn::Pipeline::Stop ();>.
 
 =item C<Ekorn::Pipeline>
 
-Runs values through a list of stages: C<new>, C<pipeline>, C<named>, C<iterator>, C<stages>, C<is_stage>, C<is_sink>, C<ending> and C<run_context>.
+Runs values through a list of stages: C<new>, C<pipeline_in>, C<named>, C<iterator>, C<stages>, C<is_stage>, C<is_sink>, C<ending> and C<run_context>.
+
+=item C<Ekorn::Pipeline::Factories>
+
+The words that make Ekorn's types: C<pipeline>, C<stage>, C<gather>, C<source>, C<generator> and C<yield>, C<sink_one>, C<sink_many>.
 
 =item C<Ekorn::Pipeline::Stop>
 
@@ -2567,7 +2594,7 @@ What each of Ekorn's types is: C<call>.
 
 =item C<Ekorn::Pipeline::Pipes>
 
-A parent class giving C<pipe> and C<tap> methods, and C<pipeline_class>.
+A parent class giving C<pipe> and C<tap> methods.
 
 =item C<Ekorn::Pipeline::Errors>
 

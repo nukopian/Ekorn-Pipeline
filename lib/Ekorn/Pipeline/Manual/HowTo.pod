@@ -297,26 +297,26 @@ called again:
 
 =head2 Close a file however the run ends
 
-A source made with Ekorn::Pipeline::Source is made afresh for each
-run, by a block that opens what the run needs, and returns the step,
-which gives the next value, and the end, which closes it. The end is
+A source made with the word C<source> is made afresh for each run, by
+a block that opens what the run needs, and returns the step, which
+gives the next value, and the end, which closes it. The end is
 called once the run has ended, however it ended: when the lines ran
 out, when a stage stopped the run, or when one died:
 
-    use Ekorn::Pipeline::Source;
+    use Ekorn::Pipeline::Factories qw(source);
 
     my $setlist = "Dancing Queen\nParklife\nCountry House\n";
 
     # The lines of a file, or of a string given by reference, each run
     # opening it afresh, and closing it once the run has ended.
     sub lines_of ($file) {
-        return Ekorn::Pipeline::Source->new(sub {
+        return source {
             open my $fh, '<', $file or die "Can't read $file: $!\n";
             return (
                 sub ()     { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
                 sub ($how) { close $fh },
             );
-        });
+        };
     }
 
     my $next = Ekorn::Pipeline->new(take(2))->iterator(lines_of(\$setlist));
@@ -636,8 +636,8 @@ ran out, would be told C<done>.
 =head2 Write a sink of your own, and act on how the run ended
 
 A sink takes every value, and gives one result once they run out. Make
-one with Ekorn::Pipeline::Sink: C<new_sink_one> for a sink giving one
-value, as most do, or C<new_sink_many> for one giving a list. Its block
+one with a word from Ekorn::Pipeline::Factories: C<sink_one> for a sink
+giving one value, as most do, or C<sink_many> for one giving a list. Its block
 runs at the start of each run, and returns the step, called with each
 value; the flush, giving the result; and, if it needs one, the end,
 told how the run ended once it has. One that should take effect only
@@ -645,11 +645,11 @@ if the whole run went through checks how, such as writing to a
 temporary file and moving it into place only when the run is C<done>,
 so a run that dies, even after the sink, leaves the old file:
 
-    use Ekorn::Pipeline::Sink;
+    use Ekorn::Pipeline::Factories qw(sink_one);
     use File::Temp qw(tempfile);
 
     sub save_to ($path) {
-        return Ekorn::Pipeline::Sink->new_sink_one(sub {
+        return sink_one {
             my($fh, $tmp) = tempfile();
             my $n = 0;
             return (
@@ -660,7 +660,7 @@ so a run that dies, even after the sink, leaves the old file:
                     $how eq 'done' ? rename $tmp, $path : unlink $tmp;
                 },
             );
-        });
+        };
     }
 
     say tracks(sub { $_->{title} }, save_to('titles.txt'));    # 6
@@ -843,9 +843,9 @@ true of a pipeline too:
 If the function's values can be code references, such as callbacks,
 C<is_stage> can't tell them from stages. Take a pipeline given last as
 the stages instead: a pipeline is never one of the values. The caller
-makes one with C<pipeline>, from Ekorn::Pipeline:
+makes one with the word C<pipeline>, from Ekorn::Pipeline::Factories:
 
-    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+    use Ekorn::Pipeline::Factories qw(pipeline);
 
     # What each callback returns, through the stages given last, as a pipeline.
     sub call_all (@callbacks) {
@@ -907,7 +907,7 @@ A pipeline used in several places can be named, with C<named>, and
 found by its name with C<pipeline>, which takes a name wherever it
 takes a stage. A definition can name other pipelines too:
 
-    use Ekorn::Pipeline v0.2.1 qw(pipeline);
+    use Ekorn::Pipeline::Factories qw(pipeline);
 
     Ekorn::Pipeline->named(hit   => sub { $_->{plays} >= 6000 ? $_ : () });
     Ekorn::Pipeline->named(title => sub { $_->{title} });
@@ -918,9 +918,8 @@ takes a stage. A definition can name other pipelines too:
 A name is kept in the package that defined it, so modules don't
 clash, and another package's is used by qualifying it, as
 C<'My::Music::hit'>. It's looked up when C<pipeline> is called, so a
-name not yet defined croaks there. A name can't be defined twice by
-the same class, or removed, so define each once, as the program
-starts.
+name not yet defined croaks there. A name can't be defined twice, or
+removed, so define each once, as the program starts.
 
 =head2 Give a class C<pipe> and C<tap>
 
