@@ -69,3 +69,31 @@ subclass are left for 2026-0021, which removes them.
 Coverage after it is still below the floors, as Factories, Sources,
 Sinks and Operators, which are other items', have placeholder POD, and
 the branches and conditions untested in the core are the next step.
+
+**The core's tests, 2026-11-13.** `t/16-run.t` tests the run's edges
+the POD describes: what each set-up may return, a set-up, a source and
+an end that die, with an error object or a message, a source that
+stops, a stop in a flushed value, a sink whose flush stops, a part of
+a package's own, Sink's subclasses, and the Iterator made with `new`.
+Ekorn::Pipeline, Element, Source, Stage, Sink, Iterator and Gather now
+have every statement, branch, condition, subroutine and POD covered.
+
+What the tests found:
+
+- **Stage took an object called as a code reference, but a run of it
+  croaked,** as `ekorn_stage` gave the object, not code. Its code is
+  now found once, as the stage is made, and `code` still gives the
+  object.
+- **Three conditions could never be false:** the run's check that its
+  source was done before ending, as every caller checks first; that a
+  run ended from outside hadn't died, before saying values were
+  dropped, as a run that dies drops them itself; and an iterator's
+  check that it had a way to end its run, which `new` always gives.
+  They're gone, each with a comment where it was.
+- **A stage of a stop in a flushed value is told `stopped`** if a value
+  from an earlier flush was still waiting for it, as its input was cut
+  short: the design's rule, which a first guess in the test had wrong.
+
+Coverage of `lib/` as a whole is still below the floors for branches
+and POD, all in Factories, Sources, Sinks and Operators, which are
+2026-0021's, 2026-0016's, 2026-0017's and 2026-0018's.

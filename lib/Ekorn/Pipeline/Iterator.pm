@@ -98,7 +98,7 @@ sub ekorn_source ($self) {
 # An iterator let go ends its run.
 sub DESTROY ($self) {
     local $@ = undef;
-    $self->{end_run}->() if $self->{end_run};
+    $self->{end_run}->();
     return;
 }
 

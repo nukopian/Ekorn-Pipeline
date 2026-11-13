@@ -522,9 +522,10 @@ sub _iterator ($stages, $names, $source) {
         }
         return;
     };
-    # End the run if nothing in it can still act on a value.
+    # End the run if nothing in it can still act on a value. Called only
+    # once the source is done.
     my $end_if_ended = sub () {
-        return if $finished || !$done || defined $flush_at->();
+        return if $finished || defined $flush_at->();
         return if $waiting_upto->($#stages);
         $input_ran_out->($#stages);
         $finish->(0);
@@ -674,7 +675,8 @@ sub _iterator ($stages, $names, $source) {
     # run stops: nothing more is pulled, and nothing waiting goes on.
     my $end_run = sub () {
         $outside = 1;
-        $dropped = 1 if (@todo || @from_source) && ($ended // '') ne 'died';
+        # A run that died has nothing waiting: its values were dropped then.
+        $dropped = 1 if @todo || @from_source;
         ($done, $next_flush, @todo, @waiting_at, @from_source)
             = (1, scalar @stages);
         $finish->(0);
