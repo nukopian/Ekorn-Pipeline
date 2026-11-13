@@ -1100,7 +1100,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | The code | Design | To do |
 |---|---|---|
 | Names per class, `pipeline` exported from Ekorn::Pipeline with its own `import`, and Pipes' `pipeline_class` are still in the code | 7, 14, D30 say they go | built when the design is split into items |
-| `iterator`'s message for what isn't a source is still v0.2.0's "Expected a code reference", though it takes sources; a gather's is still "...and optionally an end function", though a gather may return a flush and an end | the reference draft's diagnostics | change with the messages, at v0.3.0 (the design's section 20) |
+| `iterator`'s message for what isn't a source is still v0.2.0's "Expected a code reference", though it takes sources; a gather's was reworded as "...and optionally a flush and an end" in 2026-0014 (its D1) | the reference draft's diagnostics | change with the messages, at v0.3.0 (the design's section 20) |
 | `to_file` in paragraph mode writes a blank line after each record | 8.3 says `$/` | say so, or change it |
 | An end's error from `DESTROY` is a warning, "(in cleanup)", as Perl gives every error in a destructor | 5.4: thrown | say so: a run ended as its iterator is let go can't throw |
 | Ends run during global destruction, in no set order | 5.5 warns of it | nothing |

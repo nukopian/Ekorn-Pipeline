@@ -11,9 +11,17 @@ Unreleased
     take_first, take_last and take_single.
 
     It ships two roadmap items, 2026-0009 and 2026-0011, and a task
-    from DBIx-Squirrel, 2026-0020. It only adds: existing code runs as
-    before, and every message a pipeline gives today reads as before.
+    from DBIx-Squirrel, 2026-0020. Existing code runs as before, and
+    every message a pipeline gives today reads as before, but one: a
+    gather's, for a block returning the wrong things, now names the
+    flush and the end (roadmap 2026-0014).
 
+    - The message for a gather's block that returns the wrong things
+      now ends "and optionally a flush and an end", where it ended
+      "and optionally an end function": what v0.2.0 called the end
+      function is now the flush, and an end, told how the run ended,
+      may follow it. Code matching the old wording must change.
+      (roadmap 2026-0014)
     - Ekorn::Pipeline exports pipeline() on request. It makes a new
       pipeline from stages, as new does, but a stage can also be the
       name of a pipeline: pipeline('clean', take(5)). (roadmap

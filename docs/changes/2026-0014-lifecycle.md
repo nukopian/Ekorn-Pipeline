@@ -3,7 +3,7 @@
 **Status:** in progress
 
 **Decisions:** the design's (2026-0022, D1 to D70) settle it; D1, a
-gather's message naming its "end function", open.
+gather's message reworded for the flush and the end.
 
 **Origin:** roadmap, added 2026-11-10, from DBIx-Squirrel's message
 (DBIx-Squirrel 7cf473408d73add0eda3eae5ca3e0be6afaaf122), rewritten
@@ -23,13 +23,15 @@ the published reference and how-to don't yet describe it.
 
 The design's settle the item. Questions found in the work:
 
-- [ ] **D1. The gather message's "end function".** The message
+- [x] **D1. The gather message's "end function".** The message
   "Expected stage #%s, made with gather, to return a code reference or
   a pipeline, and optionally an end function" names the second thing a
   gather returns by v0.2.0's name; it's now the flush, and a third, the
   end, may follow. Reword it as "..., and optionally a flush and an
   end", as the stage's message has it, in v0.3.0 (DBIx-Squirrel's tests
-  and copies of the message told), or keep it.
+  and copies of the message told), or keep it. **Reworded,** as Iain
+  decided on 2026-11-13: the message should name what a gather may
+  return now. DBIx-Squirrel is handed a task, as it copies the message.
 
 ## The plan
 

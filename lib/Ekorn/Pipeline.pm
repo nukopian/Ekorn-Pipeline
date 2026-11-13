@@ -359,7 +359,7 @@ sub _make_run ($stages, $names, $run) {
             my($inner, $inner_names)
                 = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
             croakf
-                'Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function',
+                'Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally a flush and an end',
                 $name
                 unless (@made == 1 || @made == 2 || @made == 3)
                 && ($inner ? $inner_names : is_coderef($made[0]))
@@ -1391,7 +1391,7 @@ other there, reported as the message above.
 A warning: an end died in a run that had died. The run's own error is
 thrown, once every end has run.
 
-=item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function
+=item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally a flush and an end
 
 The block given to L<Ekorn::Pipeline::Gather/gather> for that stage
 returned something else.

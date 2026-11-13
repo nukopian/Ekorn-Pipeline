@@ -182,7 +182,7 @@ subtest 'messages name a stage inside by its place in each pipeline' => sub {
     my $bad = $class->new(sub { $_ }, $class->new(sub { $_ }, gather { 'x' }));
     $line = __LINE__ + 1;
     is dies { $bad->(1) },
-        'Expected stage #2.2, made with gather, to return a code reference or a pipeline, and optionally an end function'
+        'Expected stage #2.2, made with gather, to return a code reference or a pipeline, and optionally a flush and an end'
         . " at ${\ __FILE__ } line $line.\n",
         'a bad gather inside';
 

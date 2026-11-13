@@ -1427,8 +1427,8 @@ the line of the caller's code that caused it.
 - **Expected a code reference:** the source given to `iterator` wasn't
   a code reference.
 - **Expected stage #%s, made with gather, to return a code reference
-  or a pipeline, and optionally an end function:** the block given to
-  `gather` for that stage returned something else. Reported when the
+  or a pipeline, and optionally a flush and an end:** the block given
+  to `gather` for that stage returned something else. Reported when the
   run starts.
 - **Pipeline stage #%s failed at %s line %d:** a stage, or its end
   function, died with a message, which follows, indented. An exception

@@ -90,7 +90,7 @@ subtest 'its stages are named inside it' => sub {
 
 subtest 'what it may return' => sub {
     my $msg
-        = 'Expected stage #1, made with gather, to return a code reference or a pipeline, and optionally an end function';
+        = 'Expected stage #1, made with gather, to return a code reference or a pipeline, and optionally a flush and an end';
     my @bad = (
         ['a pipeline and something else', sub { ($class->new, 'x') }],
         [

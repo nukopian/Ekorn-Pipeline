@@ -1753,8 +1753,8 @@ a code reference.
 =item *
 
 B<Expected stage #%s, made with gather, to return a code reference
-or a pipeline, and optionally an end function:> the block given to
-C<gather> for that stage returned something else. Reported when the
+or a pipeline, and optionally a flush and an end:> the block given
+to C<gather> for that stage returned something else. Reported when the
 run starts.
 
 =item *

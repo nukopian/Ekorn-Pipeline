@@ -212,7 +212,7 @@ calls it as it starts; you needn't.
 
 C<gather> was given something other than a block or code reference.
 
-=item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally an end function
+=item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally a flush and an end
 
 A block given to C<gather> returned something else. It's reported
 when a run starts: when the
