@@ -1,14 +1,14 @@
 use v5.36;
 use Test2::V0;
 use Test2::Plugin::NoWarnings;
+use experimental qw(builtin);
 
 # pipeline(), from Factories, pipeline_in, named pipelines, kept per
 # package, and a pipeline given last as stages (roadmap 2026-0011, moved
 # to Factories by 2026-0021).
 
 use Ekorn::Pipeline            qw(is_stage);
-use Ekorn::Pipeline::Factories qw(pipeline);
-use Ekorn::Pipeline::Gather;
+use Ekorn::Pipeline::Factories qw(pipeline gather);
 use Ekorn::Pipeline::Stages::Flow;
 
 my $class = 'Ekorn::Pipeline';
@@ -188,6 +188,76 @@ subtest 'A pipeline given last is stages' => sub {
     is [$call_all->(@callbacks)], [1, 2, 3], 'without one, every value';
     is [$call_all->(@callbacks, pipeline(sub { $_ * 10 }, take(2)))], [10, 20],
         'with one, its stages, telling them from the values';
+};
+
+subtest 'name: the first name a pipeline was given, qualified' => sub {
+    my $p = pipeline(sub { $_ });
+    is $p->name, undef, 'none, until it is named';
+    $p->named('first_name');
+    $p->named('My::Place::second_name');
+    is $p->name, 'main::first_name', 'then the first, qualified';
+    is $class->named(own_name => sub { $_ })->name, 'main::own_name',
+        'as named on the class gives it';
+};
+
+subtest 'A stage in a named pipeline is named with it in errors (2026-0013)' =>
+    sub {
+        $class->named(
+            failing => sub { $_ },
+            sub { die "bad $_\n" if $_ eq 'x'; $_ },
+        );
+        my $line = __LINE__ + 1;
+        is dies { pipeline('failing')->('x') },
+        "Pipeline stage #1.2 (main::failing#2) failed at $file line $line:\n    bad x\n",
+        'by its place, then the pipeline\'s name and its place in it';
+        like dies {
+            $class->new(sub { $_ }, pipeline('failing'))->('x')
+        },
+        qr( \A Pipeline\ stage\ \#2\.1\.2\ \(main::failing\#2\)\ failed\  )x,
+        'however deep it is';
+        like dies {
+            $class->named(outer_named => sub { $_ }, 'failing')->('x')
+        },
+        qr( \A Pipeline\ stage\ \#2\.2\ \(main::failing\#2\)\ failed\  )x,
+        'by the innermost named pipeline';
+        like dies {
+            $class->new(gather { pipeline('failing') })->('x')
+        },
+        qr( \A Pipeline\ stage\ \#1\.1\.2\ \(main::failing\#2\)\ failed\  )x,
+        'a gather\'s too';
+        my $direct = $class->new(sub { die "direct\n" })->named('direct_run');
+        like dies {
+            $direct->iterator(sub { 1 })->()
+        },
+        qr( \A Pipeline\ stage\ \#1\ \(main::direct_run\#1\)\ failed\  )x,
+        'and the pipeline run itself, pulled';
+        like dies {
+            $class->new(sub { die "plain\n" })->(1)
+        },
+        qr( \A Pipeline\ stage\ \#1\ failed\  )x,
+        'but an unnamed one by its place alone, as before';
+
+        my $later = $class->new(sub { die "later\n" });
+        my $outer = $class->new($later);
+        $later->named('named_later');
+        like dies { $outer->(1) },
+        qr( \A Pipeline\ stage\ \#1\.1\ \(main::named_later\#1\)\ failed\  )x,
+        'by the name it has when the stage dies';
+
+        my $ending
+        = $class->new(gather { (sub { $_ }, undef, sub ($how) { die "end\n" }) })
+        ->named('ending_run');
+        like dies { $ending->(1) },
+        qr( \A Pipeline\ end\ of\ stage\ \#1\ \(main::ending_run\#1\)\ failed\  )x,
+        'an end that dies, too';
+    };
+
+subtest 'A pipeline is freed when let go, though its run names it' => sub {
+    my $p    = $class->new(sub { $_ });
+    my $weak = $p;
+    builtin::weaken($weak);
+    undef $p;
+    is $weak, undef;
 };
 
 subtest 'A named pipeline\'s gather stages start afresh on each run' => sub {

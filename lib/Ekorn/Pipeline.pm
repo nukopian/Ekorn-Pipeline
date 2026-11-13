@@ -4,7 +4,7 @@ package Ekorn::Pipeline;
 
 use experimental qw(builtin try);
 
-use builtin   qw(blessed refaddr);
+use builtin   qw(blessed refaddr weaken);
 use Carp      qw(croak);
 use Exporter  qw(import);
 use Ref::Util qw(is_arrayref is_coderef is_ref);
@@ -97,31 +97,41 @@ sub _check_stage ($stage, $n) {
 # a call gives how many values came out, unless the last stage is a
 # scalar sink, when it gives that sink's result.
 sub new ($class, @given) {
-    my(@stages, @names);
+    my(@stages, @names, @within);
     for my $n (1 .. @given) {
         my $stage = $given[$n - 1];
         _check_stage($stage, $n);
         if ($stage isa 'Ekorn::Pipeline') {
-            my($inner, $inner_names) = _composed($stage);
+            my($inner, $inner_names, $inner_within) = _composed($stage);
             croakf 'Expected stage #%d to be a code reference or a pipeline', $n
                 unless $inner_names;
             push @stages, map { _element($_) } @$inner;
             push @names,  map { "$n.$_" } @$inner_names;
+            push @within,
+                map { [[$stage, $inner_names->[$_]], @{ $inner_within->[$_] }] }
+                0 .. $#$inner;
             next;
         }
         push @stages, _element($stage);
         push @names,  $n;
+        push @within, [];
     }
     # In scalar context, a run gives a scalar sink's result, a list
     # sink's list as an array reference, or how many values came out.
     my $sink = @stages ? is_sink($stages[-1]) : !!0;
-    return bless {
+    # The pipeline, for its name in messages, held weakly, so the closure
+    # it's called as never keeps it.
+    my $self;
+    my $pipeline = bless {
         stages => \@stages,
         names  => \@names,
+        within => \@within,
         call   => sub (@values) {
             return @values unless @stages;
-            my $next
-                = _iterator(\@stages, \@names, sub { @values ? shift @values : () });
+            my $next = _iterator(
+                $self, \@stages, \@names, \@within,
+                sub { @values ? shift @values : () },
+            );
             my @results;
             while (my($result) = $next->()) { push @results, $result }
             return @results    if wantarray;
@@ -130,6 +140,8 @@ sub new ($class, @given) {
             return scalar @results;
         },
     }, $class;
+    weaken($self = $pipeline);
+    return $pipeline;
 }
 
 # The named pipelines, each by its name qualified by its package.
@@ -196,14 +208,23 @@ sub named ($invocant, $name, @stages) {
     my $own = $named{$qualified};
     croakf 'A pipeline named %s is already defined', $qualified
         if $own && refaddr($own) != refaddr($pipeline);
+    $pipeline->{name} = $qualified unless defined $pipeline->{name};
     return $named{$qualified} = $pipeline;
 }
 
+
+# Return the first name the pipeline was given, qualified by its
+# package, or undef if it has none.
+sub name ($self) {
+    return $self->{name};
+}
+
 # Return the stages of a pipeline given as a stage, from its stages
-# method, as giving its stages would, and their names: its own, if the
-# method returns the stages it was made with, as it does unless a
-# subclass overrides it, or else their places in what it returns. The
-# names are undefined if what it returns isn't all code references.
+# method, as giving its stages would, their names, and the pipelines
+# each came from within it: its own, if the method returns the stages it
+# was made with, as it does unless a subclass overrides it, or else their
+# places in what it returns. The names are undefined if what it returns
+# isn't all code references.
 sub _composed ($pipeline) {
     my @stages = $pipeline->stages;
     my $made   = $pipeline->{stages};
@@ -212,9 +233,9 @@ sub _composed ($pipeline) {
         last unless $same;
         $same = (refaddr($stages[$i]) // 0) == refaddr($made->[$i]);
     }
-    return \@stages, $pipeline->{names} if $same;
-    return \@stages, undef              if grep { !is_stage($_) } @stages;
-    return \@stages, [1 .. @stages];
+    return \@stages, $pipeline->{names}, $pipeline->{within} if $same;
+    return \@stages, undef if grep { !is_stage($_) } @stages;
+    return \@stages, [1 .. @stages], [map { [] } @stages];
 }
 
 
@@ -224,7 +245,10 @@ sub _composed ($pipeline) {
 sub iterator ($self, $source) {
     croakf 'Expected a code reference'
         unless is_coderef($source) || _is_source($source);
-    return _iterator($self->{stages}, $self->{names}, $source);
+    return _iterator(
+        $self, $self->{stages}, $self->{names}, $self->{within},
+        $source,
+    );
 }
 
 
@@ -318,14 +342,14 @@ sub _end_all ($ends, $dying) {
 # pipeline as its step, whose stages are made in its place, followed by
 # the gather's flush and end, if any, on a stage of their own that
 # passes values on.
-sub _make_run ($stages, $names, $run) {
+sub _make_run ($stages, $names, $within, $run) {
     for my $i (0 .. $#$stages) {
         my($stage, $name) = ($stages->[$i], $names->[$i]);
         my $role = _stage_role($stage) // '';
         my($step, $flush, $end);
         if ($stage isa 'Ekorn::Pipeline::Gather') {
             my @made = $stage->ekorn_stage;
-            my($inner, $inner_names)
+            my($inner, $inner_names, $inner_within)
                 = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
             croakf
                 'Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally a flush and an end',
@@ -335,7 +359,17 @@ sub _make_run ($stages, $names, $run) {
                 && _code_or_none(@made[1 .. $#made]);
             ($step, $flush, $end) = @made;
             if ($inner) {
-                _make_run($inner, [map { "$name.$_" } @$inner_names], $run);
+                _make_run(
+                    $inner,
+                    [map { "$name.$_" } @$inner_names],
+                    [
+                        map { [
+                            @{ $within->[$i] }, [$made[0], $inner_names->[$_]],
+                            @{ $inner_within->[$_] },
+                        ] } 0 .. $#$inner
+                    ],
+                    $run,
+                );
                 next unless $flush || $end;
                 $step = sub ($value) { $value };
             }
@@ -367,6 +401,7 @@ sub _make_run ($stages, $names, $run) {
         }
         push @{ $run->{stages} },  $step;
         push @{ $run->{names} },   $name;
+        push @{ $run->{within} },  $within->[$i];
         push @{ $run->{flushes} }, $flush;
         push @{ $run->{ends} },    $end;
         push @{ $run->{sinks} },
@@ -385,18 +420,32 @@ sub _make_run ($stages, $names, $run) {
 # ended from outside, or dies. Then each end is called, the source's
 # first, told how the run ended from where it stands: "died" if the run
 # died; else "done" if its input ran out, and "stopped" if not.
-sub _iterator ($stages, $names, $source) {
-    my %run = (stages => [], names => [], flushes => [], ends => [], sinks => []);
+sub _iterator ($pipeline, $stages, $names, $within, $source) {
+    my %run = (
+        stages => [], names => [], within => [], flushes => [], ends => [],
+        sinks  => [],
+    );
+    # A stage named in a message: by its place, and, if it's within a named
+    # pipeline, the innermost, by its name and its place in it.
+    my $label = sub ($n) {
+        my @in = ([$pipeline, $run{names}[$n]], @{ $run{within}[$n] });
+        for my $in (reverse @in) {
+            my($outer, $place) = @$in;
+            my $name = $outer->name;
+            return "stage #$run{names}[$n] ($name#$place)" if defined $name;
+        }
+        return "stage #$run{names}[$n]";
+    };
     my($pull, $source_end, $context);
     try {
         ($pull, $source_end, $context) = _source_run($source);
-        _make_run($stages, $names, \%run);
+        _make_run($stages, $names, $within, \%run);
     }
     catch ($e) {
         _end_all(
             [
                 ($source_end ? ['the source', $source_end, 'died'] : ()),
-                map { ["stage #$run{names}[$_]", $run{ends}[$_], 'died'] }
+                map { [$label->($_), $run{ends}[$_], 'died'] }
                     grep { $run{ends}[$_] } 0 .. $#{ $run{ends} },
             ],
             1,
@@ -411,7 +460,6 @@ sub _iterator ($stages, $names, $source) {
     my @flushes = @{ $run{flushes} };
     my @ends    = @{ $run{ends} };
     my @sinks   = @{ $run{sinks} };
-    $names = $run{names};
     # Each value waiting to go through a stage, as the stage's index, the
     # value, and whether it came from a flush, the next on top. A value a
     # stage returns on its own, as most are, carries on through the stages
@@ -456,7 +504,7 @@ sub _iterator ($stages, $names, $source) {
             if $source_end;
         push @calls,
             map { [
-                "stage #$names->[$_]", $ends[$_], $input_done[$_] ? 'done' : 'stopped',
+                $label->($_), $ends[$_], $input_done[$_] ? 'done' : 'stopped',
             ] }
             grep { $ends[$_] } 0 .. $#ends;
         local $running{context} = $context;
@@ -605,7 +653,8 @@ sub _iterator ($stages, $names, $source) {
                 croak $e if is_ref($e);
                 my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
                 my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
-                die "Pipeline stage #$names->[$n] failed$at:\n$message\n";
+                my $stage   = $label->($n);
+                die "Pipeline $stage failed$at:\n$message\n";
             }
             return if $outside;
             if ($kept) {
@@ -882,6 +931,15 @@ C<named> read names. L</new> doesn't, and L</is_stage> is false for a
 string.
 
 =back
+
+=head2 name
+
+    my $name = $p->name;
+
+Returns the first name the pipeline was given with L</named>,
+qualified by its package, as C<main::clean>, or C<undef> if it has
+none. Errors in its stages name it (see L</DIAGNOSTICS>). It's new in
+v0.3.0.
 
 =head2 pipeline_in
 
@@ -1271,6 +1329,13 @@ indented. An exception object is passed on unchanged.
 In this message and the one above, a stage is named by its position:
 C<#2> for the second stage, or C<#2.3> for the third stage of a
 pipeline given as the second stage.
+
+A stage within a named pipeline, or of the named pipeline run, is
+named with it too: after its position, the innermost named pipeline it's
+in, by its L</name>, and its position there, as
+C<#1.2 (main::clean#2)> for the second stage of the pipeline named
+C<clean>, given as the first stage. It's the name the pipeline has
+when the stage dies.
 
 =back
 
