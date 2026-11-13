@@ -16,24 +16,25 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a stage of the code given, which is kept as it is, never
 # blessed: a code reference, or an object called as one that isn't
-# itself one of Ekorn's types, as a gather made into a Stage would run
-# per value.
+# itself one of Ekorn's types. An object's code is found once, here, as
+# a run takes a step that's a code reference.
 sub new ($class, $code) {
     my $callable
         = is_coderef($code) || (blessed($code) && overload::Method($code, '&{}'));
     croakf 'Expected a code reference'
         if !$callable || $code isa 'Ekorn::Pipeline::Element';
-    return bless {call => $code}, $class;
+    return bless {call => is_coderef($code) ? $code : \&$code, code => $code},
+        $class;
 }
 
 
 # Return the code the stage was made of.
 sub code ($self) {
-    return $self->{call};
+    return $self->{code};
 }
 
 
-# Return the stage's step for a new run: its code, as it is.
+# Return the stage's step for a new run: its code, as a code reference.
 sub ekorn_stage ($self) {
     return $self->{call};
 }
@@ -96,8 +97,9 @@ Returns the code the stage was made of.
 
     my $step = $stage->ekorn_stage;
 
-Returns the stage's step for a new run: its code, as it is. A run
-calls it as it starts; you needn't.
+Returns the stage's step for a new run: its code, or, for an object
+called as a code reference, the code it gives. A run calls it as it
+starts; you needn't.
 
 =head1 DIAGNOSTICS
 
