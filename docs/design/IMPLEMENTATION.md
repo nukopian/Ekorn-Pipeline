@@ -200,7 +200,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Stage` | 1 | a stage as an object, wrapping a code reference |
 | `Ekorn::Pipeline::Source` | 1 | a source made for each run, from a set-up |
 | `Ekorn::Pipeline::Sink`, `::Sink::One`, `::Sink::Many` | 1 | a sink made for each run, from a set-up, giving one value or a list |
-| `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink_one`, `sink_many`, `gather` |
+| `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `generator` and `yield`, `sink_one`, `sink_many`, `gather` |
 | `Ekorn::Pipeline::Sources` | 2 | `from_array`, `from_file` |
 | `Ekorn::Pipeline::Sinks` | 2 | `keep_all`, `keep_first`, `keep_single`, `count_items`; `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
@@ -581,6 +581,7 @@ say $all->ended, ' ', $some->ended;    # done stopped
 | `stage {...}` | `Ekorn::Pipeline::Stage->new($code)` | the stage itself, called with each value |
 | `gather {...}` | `Ekorn::Pipeline::Gather->new($setup)` | a set-up, returning the step, or a pipeline, and optionally a flush and an end |
 | `source {...}` | `Ekorn::Pipeline::Source->new($setup)` | a set-up, returning the step, and optionally an end and a context |
+| `generator {...}` | `Ekorn::Pipeline::Source->new(...)`, over the block | the block, called once each run, giving what it passes to `yield` in one step (D70) |
 | `sink_many {...}` | `Ekorn::Pipeline::Sink->new_sink_many($setup)` | a set-up, returning the step, the flush, giving a list, and optionally an end |
 | `sink_one {...}` | `Ekorn::Pipeline::Sink->new_sink_one($setup)` | the same, the flush giving one value (D47) |
 

@@ -3,13 +3,22 @@ use v5.36;
 package Ekorn::Pipeline::Factories;
 
 use Exporter                qw(import);
+use Ekorn::Pipeline::Errors qw(croakf);
 use Ekorn::Pipeline::Gather qw();
 use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Source qw();
 use Ekorn::Pipeline::Stage  qw();
 
-our @EXPORT_OK   = qw(stage gather source sink_one sink_many);
+our @EXPORT_OK   = qw(stage gather source generator yield sink_one sink_many);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
+
+# Croak at the line that called Ekorn::Pipeline.
+our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
+
+# The values a generator's block has yielded in the run under way, if
+# any: local to each run, so a generator read inside another's block
+# keeps its own.
+our $YIELDED;
 
 *gather = \&Ekorn::Pipeline::Gather::gather;
 
@@ -22,6 +31,31 @@ sub stage : prototype(&) ($code) {
 # Return a Source made for each run by the set-up given.
 sub source : prototype(&) ($setup) {
     return Ekorn::Pipeline::Source->new($setup);
+}
+
+
+# Return a Source giving what the block yields: each run calls the block
+# once, collecting every value it passes to yield, and gives them all
+# as one step, so the block runs to its end before the first goes on.
+sub generator : prototype(&) ($block) {
+    return Ekorn::Pipeline::Source->new(sub {
+        my $ran;
+        return sub () {
+            return if $ran++;
+            local $YIELDED = [];
+            $block->();
+            return @$YIELDED;
+        };
+    });
+}
+
+
+# Add the values given to what the generator whose block is running
+# gives.
+sub yield (@values) {
+    croakf 'Expected yield to be called inside a generator' unless $YIELDED;
+    push @$YIELDED, @values;
+    return;
 }
 
 

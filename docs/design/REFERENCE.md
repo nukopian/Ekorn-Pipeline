@@ -14,7 +14,7 @@ What changes in the reference as a whole:
   through stages.
 - **A new section, Words: Ekorn::Pipeline::Factories,** after
   Pipelines, holding `pipeline`, `stage`, `gather`, `source`,
-  `sink_one` and `sink_many`.
+  `generator` and `yield`, `sink_one` and `sink_many`.
 - **Pipelines** gains `pipeline_in`, the method every `pipeline` word
   calls.
 - **New sections for Sources, Sinks, Operators and Sugar,** after the
@@ -215,8 +215,34 @@ exported by default.
 | `stage {...}` | a Stage | the stage itself |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
+| `generator {...}` | a Source | a block, called once each run, giving every value it passes to `yield` |
 | `sink_many {...}` | a Sink of many | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
 | `sink_one {...}` | a Sink of one | the same, its flush giving one value |
+
+### generator and yield
+
+```perl
+my $pairs = generator {
+    for my $x (1 .. 3) {
+        for my $y ($x .. 3) { yield [$x, $y] }
+    }
+};
+say join ' ', map { "($_->[0],$_->[1])" } @{ $pairs | keep_all };
+# (1,1) (1,2) (1,3) (2,2) (2,3) (3,3)
+```
+
+`generator` returns a Source giving what its block passes to `yield`,
+as a Python generator does. Perl can't pause a sub at `yield`, so each
+run calls the block once, to its end, and gives every value it yielded
+in one step: the block mustn't loop without end, and runs to its end
+even when a stage after it takes only some. For a producer without
+end, write a `source {...}` whose step gives a value each call.
+`yield` croaks "Expected yield to be called inside a generator" when
+it's called outside one.
+
+An empty block, `generator {}`, reads as an empty hash: write
+`generator { return }`. And `@{ generator {...} | ... }` reads as a
+hash slice: keep the generator in a variable first.
 
 ### pipeline
 
@@ -703,7 +729,7 @@ Wording to be settled when the code is written. One for each:
 | Module | By default | On request | Tags |
 |---|---|---|---|
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
-| `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `sink_one`, `sink_many` | `:all` |
+| `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | each source | `:all` |
 | `Ekorn::Pipeline::Sinks` | nothing | each sink | `:all` |
 | `Ekorn::Pipeline::Operators` | nothing: loading it is enough | | |

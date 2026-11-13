@@ -506,6 +506,7 @@ constructor (settled, 2026-0021):
 | `stage {...}` | a Stage | the stage itself, called with each value |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
+| `generator {...}` | a Source | a block, called once each run, giving every value it passes to `yield`, in one step (D70) |
 | `sink_many {...}` | a Sink of many | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
 | `sink_one {...}` | a Sink of one | the same, its flush giving one value (D47). Use it for a sink of one value: one written with `sink_many {...}`, in scalar context or at the end of a `\|` chain, gives its value in an array reference (D51) |
 
@@ -532,7 +533,8 @@ well. `Stop` isn't a factory, and stays only in Ekorn::Pipeline::Stop.
 Two kinds of function make things, and they live apart:
 
 - **Words** make one of the types from what the user writes:
-  `pipeline`, `stage`, `gather`, `source`, `sink_one` and `sink_many`:
+  `pipeline`, `stage`, `gather`, `source`, `generator`, `sink_one` and
+  `sink_many`, with `yield` for a generator's block:
   one word per type, a sink's two, by its result, in
   Ekorn::Pipeline::Factories.
 - **Ready-made parts** are particular stages, sources and sinks, with
@@ -2024,6 +2026,44 @@ Weighed and set aside:
   every text file needs decoding by hand.
 - **Always UTF-8,** unless told `:raw`. Easy for text, but a binary
   file needs the argument, and other text warns.
+
+### 17.39 A generator, with `yield`
+
+(Section 6; Iain, 2026-11-13, 2026-0022's D70, from roadmap idea
+2026-0023.) A source can be written as Python writes a generator:
+
+```perl
+my $pairs = generator {
+    for my $x (1 .. 3) {
+        for my $y ($x .. 3) { yield [$x, $y] }
+    }
+};
+```
+
+The block keeps its place in its loops with no state of its own. Perl
+can't pause a sub at `yield`, short of Coro, an XS dependency, so each
+run calls the block once, collecting what it yields, and gives it all
+as one step, which D62 made cheap. So it suits a producer that's
+finite: the block runs to its end before its first value goes on,
+though a stage after it takes only what it needs, and one that loops
+without end never returns. A `source {...}` closure does that. What's
+collected is held in a package variable, made `local` to each run, so
+a generator read inside another's block keeps its own; `yield`
+outside one croaks.
+
+Two of Perl's parsing rules apply: an empty block, `generator {}`, is
+read as an empty hash, so write `generator { return }`; and
+`@{ generator {...} | ... }` is read as a hash slice, so keep the
+generator in a variable first.
+
+Weighed and set aside:
+
+- **A true `yield`, by Coro.** A dependency, and fragile on newer
+  Perls.
+- **Syntax::Keyword::Dynamically, to hold the batch in a lexical.** A
+  dependency, for nothing `local` on a package variable doesn't do.
+- **`yield` as the block's argument, `my $yield = shift`.** No
+  variable to hold, but it reads less like Python than a bare `yield`.
 
 ## 18. Where each roadmap item lands
 

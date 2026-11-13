@@ -13,7 +13,9 @@ use builtin      qw(blessed);
 use Carp       qw(croak);
 use File::Temp qw(tempdir);
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink_one sink_many gather);
+use Ekorn::Pipeline::Factories qw(
+    stage     source generator yield sink_one
+    sink_many gather);
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
@@ -712,6 +714,42 @@ subtest 'from_file and to_file take I/O layers, for bytes or text (D69)' =>
         [$word], 'text, encoded and decoded as UTF-8';
         is -s "$dir/text", 10, 'written as UTF-8: 9 bytes, then $/';
     };
+
+subtest 'generator: a source of what its block yields (D70)' => sub {
+    my $runs  = 0;
+    my $pairs = generator {
+        $runs++;
+        for my $x (1 .. 3) {
+            for my $y ($x .. 3) { yield [$x, $y] }
+        }
+    };
+    is [map { "@$_" } @{ $pairs | keep_all }],
+        ['1 1', '1 2', '1 3', '2 2', '2 3', '3 3'],
+        'every value it yields, from loops, in order';
+    is [map { "@$_" } @{ $pairs | take(2) | keep_all }], ['1 1', '1 2'],
+        'and only what a stage takes';
+    is $runs, 2, 'its block called once for each run';
+
+    my $next = $class->new->iterator(generator { yield 1, undef; yield });
+    is [$next->all], [1, undef], 'several at once, undef among them, or none';
+    is $next->ended, 'done';
+    is [$class->new->iterator(generator { return })->all], [],
+        'nothing, if it yields nothing';
+
+    my $inner = generator { yield 1, 2 };
+    my $outer = generator {
+        yield 'a';
+        yield map { "b$_" } @{ $inner | keep_all };
+        yield 'c';
+    };
+    is $outer | keep_all, [qw(a b1 b2 c)],
+        "a generator read inside another's block keeps its own";
+
+    my $line = __LINE__ + 1;
+    is dies { yield 1 },
+        "Expected yield to be called inside a generator at ${\ __FILE__ } line $line.\n",
+        "yield outside a generator croaks, at the caller's line";
+};
 
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {
     is [keep(2)->(1 .. 5)], [1, 2], 'the first two, as a list';

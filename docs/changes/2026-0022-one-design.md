@@ -66,6 +66,7 @@ D68 settled: `from_arrayref`, `from_hash` and `from_hashref` dropped;
 `from_array` built.
 D69 settled: `from_file` and `to_file` take I/O layers; an empty file
 slurped gives no record.
+D70 settled: `generator {...}` and `yield`, from idea 2026-0023.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -703,6 +704,22 @@ D19 to D25 came from the third cold review, settled by Iain on
   as UTF-8; an empty file slurped, none. Design 8.2, 8.3 and 17.38;
   the draft reference and IMPLEMENTATION.md, whose table of sinks also
   now says `one` and `many`, which D64's prose change missed.
+- [x] **D70.** A Python-style generator as a source? Yes, Iain decided
+  on 2026-11-13, from his wish, added as idea 2026-0023 and taken into
+  this item: "the yield(...) idea sounds lightweight and useful". A
+  word, `generator {...}`, in Factories, with `yield` beside it, both
+  on request: each run calls the block once, collecting what it passes
+  to `yield`, and gives it all as one step, so it suits finite
+  producers, as Perl can't pause a sub at `yield` short of Coro. What's
+  collected is in a package variable, `local` to each run, as Iain
+  chose over Syntax::Keyword::Dynamically: "leave Dynamically". Built,
+  with tests: values from nested loops, in order; a stage taking only
+  some; the block once a run; several values at once, `undef` among
+  them, and none; a generator read inside another's block; and `yield`
+  outside one croaking at the caller's line. Found writing them: an
+  empty block, `generator {}`, reads as a hash, and `@{ generator
+  {...} | ... }` as a hash slice; the docs say so. Design 6 and 17.39;
+  the draft reference and IMPLEMENTATION.md.
 
 ## The plan
 
