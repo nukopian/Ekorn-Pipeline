@@ -1,6 +1,6 @@
 # 2026-0020. pipeline() through a subclass makes the subclass
 
-**Status:** shipped, unreleased
+**Status:** dropped: undone by 2026-0021, before any release
 
 **Decisions:** D1 settled: Ekorn::X is the ancestor of DBIx::Squirrel::X, so Ekorn makes the class it was reached through. D2 settled: `pipeline`, imported through a subclass, is made for it. D3 settled: Pipes asks `pipeline_class`. D4 settled: names are kept per class, inherited one way. D5 settled: a subclass can override an ancestor's name. None open.
 
@@ -163,3 +163,12 @@ planned in both repositories:
   of Ekorn::Pipeline into Ekorn::Pipeline::Factories, 2026-0021, so
   D2's `import`, and the `SUPER::import` line, go with it once that's
   built; D3 and D4 stand.
+
+**Undone, 2026-11-13,** by 2026-0021, before any release, as the
+design approved that day settles (2026-0022, its 17.3 and 17.4):
+DBIx::Squirrel uses Ekorn as it is, rather than subclassing it, so
+nothing needs a `pipeline` made for a subclass, names kept per class,
+or Pipes' `pipeline_class`. `pipeline` moved to
+Ekorn::Pipeline::Factories, names belong to a package again, and
+`pipeline_class` and `t/14-subclass.t` went. Its `Changes` entries were
+taken out, as none of it reached CPAN.

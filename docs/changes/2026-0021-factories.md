@@ -1,6 +1,6 @@
 # 2026-0021. Ekorn::Pipeline::Factories
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 withdrawn: there are no `step` and `end`. D6 settled: `pipeline_in`. D7 settled: no.
 
@@ -12,6 +12,8 @@ is the cosmetic point of its very existence"
 it moves, and 2026-0014, the lifecycle, shipped unreleased
 
 **Started:** 2026-11-13
+
+**Finished:** 2026-11-13
 
 ## Background
 
@@ -162,4 +164,38 @@ Factories' coverage complete, and `Changes`.
 
 ## What happened
 
-Nothing yet.
+**Shipped, 2026-11-13,** on `pipeline-experimental`, for v0.3.0
+(2026-0025), each step as planned. Against Done when: the module, its
+tests and docs are in; Pipeline, Factories and Pipes are covered in
+full; and `Changes` has its entries.
+
+- **The code:** `pipeline_in` on Ekorn::Pipeline; `pipeline`, one line
+  over it, in Factories; Ekorn::Pipeline's `import`, its `pipeline`,
+  and its names per class gone, with `mro`; Pipes' `pipeline_class`
+  gone. `named` on a class calls `pipeline_in` with its caller's
+  package.
+- **Found on the way:** `generator` didn't check its block was code,
+  as the other words do, so `&generator('x')` failed only in a run. It
+  croaks "Expected a code reference" now. And v0.2.1, which the POD and
+  docs named as when `pipeline`, `named` and `pipeline_class` came,
+  was never released: what's unreleased comes in v0.3.0, so they say
+  so.
+- **The tests:** `t/13` tests `pipeline` from Factories, `pipeline_in`
+  and names per package; `t/14-subclass.t`, testing 2026-0020, went;
+  `t/17-factories.t` tests the words.
+- **The docs:** the reference gains Words: Ekorn::Pipeline::Factories
+  and `pipeline_in`, and loses `pipeline` through a subclass, Named
+  pipelines and subclasses, and `pipeline_class`. `gather` has no
+  heading of its own under Words, as POD can't link to the second of
+  two headings of one name; a sentence points to Gather's. The
+  examples 2026-0014 wrote with `Source->new` and `Sink->new_sink_one`
+  use the words, as do the how-to's recipes for `pipeline`. Each
+  changed example was run.
+- **Changes:** 2026-0011's entries say `pipeline` comes from
+  Factories; 2026-0020's three entries are gone, its record dropped,
+  as none of it was released.
+- **CLAUDE.md:** the factories rule says each word lives in
+  Factories only.
+- **DBIx-Squirrel** is told by a message: its paused 2026-0009 can
+  re-export Factories' `pipeline`, and Pipes' `pipeline_class` is
+  gone.

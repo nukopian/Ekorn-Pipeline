@@ -41,19 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0021. Ekorn::Pipeline::Factories, the words
-
-**Size:** M (3)
-
-The words that make Ekorn's types, in Ekorn::Pipeline::Factories, each
-one line over a class method: `stage`, `source`, `generator` with
-`yield`, `sink_one`, `sink_many`, `gather`, and `pipeline`, moved from
-Ekorn::Pipeline, whose own `import` goes. It takes in 2026-0015, the
-words for sources, stages and sinks, retired into it, and undoes
-2026-0020's `pipeline` through a subclass: names are per package, and
-Pipes' `pipeline_class` goes (the design's 17.3, 17.4). Done when the
-module, its tests and docs are in, with coverage above the floors. Its
-[record](docs/changes/2026-0021-factories.md).
+Nothing yet.
 
 ## Next
 

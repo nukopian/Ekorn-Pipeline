@@ -183,3 +183,8 @@ say.
 - **What's left:** 2026-0010, which this unblocks; and DBIx::Squirrel
   imports names by name, so `pipeline` reaches its users only once it
   adds it to its list.
+- **Moved, 2026-11-13,** by 2026-0021, before any release:
+  `pipeline` is in Ekorn::Pipeline::Factories, over
+  `Ekorn::Pipeline->pipeline_in`, not exported by Ekorn::Pipeline;
+  names stay per package, as here, 2026-0020's names per class having
+  been undone.

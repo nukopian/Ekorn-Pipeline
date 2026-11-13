@@ -75,7 +75,8 @@ both:
   of Ekorn's types, such as `pipeline`, `source {...}` or `gather`, is
   syntax, not behaviour, so it goes in
   Ekorn::Pipeline::Factories, not in the class it makes. Each is one
-  line over a class method. Record 2026-0021.
+  line over a class method, and lives there only: Ekorn::Pipeline
+  doesn't export `pipeline` too (2026-0022's D30). Record 2026-0021.
 - **Keep the switch in view.** The messages, the order stages run in,
   and what Stop and Gather do are DBIx-Squirrel's behaviour too. A
   change to them is a change DBIx-Squirrel will take on when it
