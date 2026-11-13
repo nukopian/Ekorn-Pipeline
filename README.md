@@ -362,9 +362,10 @@ place of its own copy, from v2.0.5.
 
 ## Documentation
 
-[The how-to](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AHowTo) shows how to do common
-tasks, one recipe at a time, for callers, function authors and stage
-authors. [The reference](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AReference) describes
+[The user guide](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AHowTo) tours the package
+from the bottom up, from a single stage to functions and packages
+built on it, with recipes for what each part can do, and where it
+falls short. [The reference](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AReference) describes
 every module, function and method in full, and how a pipeline
 behaves, with notes for stage authors. Each module's POD, starting
 with [Ekorn::Pipeline](https://metacpan.org/pod/Ekorn%3A%3APipeline), says the same more briefly, and is the

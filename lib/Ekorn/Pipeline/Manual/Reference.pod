@@ -20,8 +20,9 @@ also stop the pipeline early, so the function makes no more values
 than its caller wants.
 
 This reference describes every module, function and method, and how a
-pipeline behaves, with examples. L<The how-to|Ekorn::Pipeline::Manual::HowTo> shows how to
-do common tasks, one recipe at a time. Notes marked B<For stage
+pipeline behaves, with examples. L<The user guide|Ekorn::Pipeline::Manual::HowTo> tours the
+package from the bottom up, with recipes for what each part can do.
+Notes marked B<For stage
 authors> are for people writing stages for others;
 L<Writing stages|/"Writing stages"> collects them. Each module's POD
 says the same more briefly, and is the authority where they differ.
@@ -387,7 +388,7 @@ list. Nothing waiting goes on, no flush is called, and the source
 isn't called again; each end is told C<died>. So a flush such as
 C<collect>'s never reports on a run that lost values. To skip a bad
 value and carry on, catch the error inside the stage, as in the
-how-to's "Catch errors in a stage, but not a stop".
+user guide's "Catch errors in a stage, but let a stop through".
 
 =item *
 
@@ -635,10 +636,10 @@ one of the inner pipeline's own flushes is called.
 
     Ekorn::Pipeline::run_context()
 
-Returns the context the run's source gave, if any: the third thing its
-C<EKORN_SOURCE> returned, such as a statement's column names. It's for
-stages that need to know about the values' source, called as they run.
-Each run has its own. A pushed run has none, and an iterator used as a
+Returns the context the run's source gave, if any: its C<context>, or
+the third part its C<EKORN_SOURCE> returned as a list, such as a
+statement's column names. It's for stages that need to know about the
+values' source, called as they run. Each run has its own. A pushed run has none, and an iterator used as a
 source passes on its own run's. It isn't exported, and is new in
 v0.3.0. L<Stages that ask about their run|/"Stages that ask about their run">
 has an example.
@@ -2082,19 +2083,19 @@ that gives a sink's result, none of which a chain can.
 
 =over 4
 
-=item C<$stage \| $stage>
+=item C<$stage | $stage>
 
-a chain of both stages: a pipeline, which C<\|> can extend, and which goes wherever a pipeline does
+a chain of both stages: a pipeline, which C<|> can extend, and which goes wherever a pipeline does
 
-=item C<$source \| $stage>
+=item C<$source | $stage>
 
 a source: the source's values, through the stage
 
-=item C<$source \| ... \| $sink>
+=item C<$source | ... | $sink>
 
 the sink's result, at once, not a source; for a source of the result, use C<iterator>
 
-=item C<$chain \|= $stage>
+=item C<$chain |= $stage>
 
 a new chain with the stage added, put in the variable
 
@@ -2184,35 +2185,35 @@ What to write, by what's wanted:
 
 =item every value, as a reference
 
-B<Write:> C<my $all = $source \| keep_all>
+B<Write:> C<my $all = $source | keep_all>
 
-B<Rather than:> C<my @all = $source \| keep_all>, one element
+B<Rather than:> C<my @all = $source | keep_all>, one element
 
 =item every value, as a list
 
-B<Write:> C<my @all = @{ $source \| keep_all }>, or C<@{$source}>
+B<Write:> C<my @all = @{ $source | keep_all }>, or C<@{$source}>
 
 =item the first value
 
-B<Write:> C<$source \| keep_first>, reading one
+B<Write:> C<$source | keep_first>, reading one
 
 B<Rather than:> C<< $source->[0] >>, reading them all
 
 =item how many
 
-B<Write:> C<$source \| count_items>
+B<Write:> C<$source | count_items>
 
 B<Rather than:> C<scalar @$source>, keeping every value to count them
 
 =item the first few
 
-B<Write:> C<$source \| take(5) \| keep_all>
+B<Write:> C<$source | take(5) | keep_all>
 
 B<Rather than:> C<(@$source)[0 .. 4]>, reading them all
 
 =item every value, added to your array
 
-B<Write:> C<push @mine, @{ $source \| keep_all }>
+B<Write:> C<push @mine, @{ $source | keep_all }>
 
 =item each, as it comes
 
@@ -3083,7 +3084,7 @@ Runs values through a list of stages: C<new>, C<pipeline_in>, C<named>, C<iterat
 
 =item C<Ekorn::Pipeline::Operators>
 
-C<\|>, C<\|=> and C<@{}> for Ekorn's types, in force lexically: C<chain> and C<drain>.
+C<|>, C<|=> and C<@{}> for Ekorn's types, in force lexically: C<chain> and C<drain>.
 
 =item C<Ekorn::Pipeline::Sinks>
 

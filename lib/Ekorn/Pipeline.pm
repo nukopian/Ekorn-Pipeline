@@ -1245,10 +1245,10 @@ value from a flush has no such origin. It isn't exported.
 
     Ekorn::Pipeline::run_context()
 
-Returns the context the run's source gave, if any: the third thing its
-C<EKORN_SOURCE> method returned, such as a statement's column names.
-It's for stages that need to know about the values' source, called as
-they run. Each run has its own. A pushed run has none, and an iterator
+Returns the context the run's source gave, if any: its C<context>, or
+the third part its C<EKORN_SOURCE> method returned as a list, such as
+a statement's column names. It's for stages that need to know about
+the values' source, called as they run. Each run has its own. A pushed run has none, and an iterator
 used as a source passes on its own run's. It isn't exported.
 
     sub pluck ($name) {
@@ -1377,9 +1377,10 @@ L<Ekorn::Pipeline::Source>, L<Ekorn::Pipeline::Sink>,
 L<Ekorn::Pipeline::Iterator>, L<Ekorn::Pipeline::Pipes>, and L<DBIx::Squirrel>, where the pipeline
 began
 
-L<Ekorn::Pipeline::Manual::HowTo> shows how to do common tasks, one
-recipe at a time, and L<Ekorn::Pipeline::Manual::Reference> describes
-every module, function and method in full.
+L<Ekorn::Pipeline::Manual::HowTo>, the user guide, tours the package
+from the bottom up, with recipes, and
+L<Ekorn::Pipeline::Manual::Reference> describes every module, function
+and method in full.
 
 =head1 AUTHOR
 

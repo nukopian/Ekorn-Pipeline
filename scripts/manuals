@@ -154,15 +154,18 @@ sub inline ($text, $sections, $file) {
 }
 
 
-# Split a table's row into its cells, leaving a | in inline code alone.
+# Split a table's row into its cells, leaving a | in inline code alone,
+# and a | escaped as \|, as GitHub needs one in a table, even in code,
+# which is unescaped.
 sub cells ($row) {
-    $row =~ s( \A \s* \| | \| \s* \z )()xg;
+    $row =~ s( \A \s* \| | (?<! \\ ) \| \s* \z )()xg;
     my @cells = ('');
-    for my $part (split m( (`[^`]*`|\|) )x, $row) {
+    for my $part (split m( (`[^`]*`|(?<! \\ )\|) )x, $row) {
         if ($part eq '|') { push @cells, '' }
         else              { $cells[-1] .= $part }
     }
     s( \A \s+ | \s+ \z )()xg for @cells;
+    s( \\ \| )(|)xg          for @cells;
     return @cells;
 }
 

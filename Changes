@@ -129,6 +129,16 @@ Unreleased
     - New messages, for sources, sinks, parts and ends, are listed in
       the POD's DIAGNOSTICS and the reference's Diagnostics. (roadmap
       2026-0014)
+    - The how-to, Ekorn::Pipeline::Manual::HowTo, is rewritten as a
+      user guide. It tours the package from the bottom up, a layer at
+      a time: stages, pipelines pushed and pulled, stopping, parts made
+      for each run, sources, sinks, composition, the operators,
+      functions that take stages, and parts for other packages; then
+      errors and debugging, and the questions people ask first, such
+      as how fast it is, how it compares with map, grep, options and
+      callbacks, and where it falls short. Each of its examples runs,
+      and prints what it says.
+    - The manuals' tables show a | written in them as |, not \|.
     - The reference has a section, Runs and how they end, and another,
       Delivering parts for Ekorn; the how-to has recipes for sources
       and sinks that close and commit however a run ends, and for

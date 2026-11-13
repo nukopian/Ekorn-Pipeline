@@ -11,8 +11,9 @@ also stop the pipeline early, so the function makes no more values
 than its caller wants.
 
 This reference describes every module, function and method, and how a
-pipeline behaves, with examples. [The how-to](HOWTO.md) shows how to
-do common tasks, one recipe at a time. Notes marked **For stage
+pipeline behaves, with examples. [The user guide](HOWTO.md) tours the
+package from the bottom up, with recipes for what each part can do.
+Notes marked **For stage
 authors** are for people writing stages for others;
 [Writing stages](#writing-stages) collects them. Each module's POD
 says the same more briefly, and is the authority where they differ.
@@ -270,7 +271,7 @@ reference".
   isn't called again; each end is told `died`. So a flush such as
   `collect`'s never reports on a run that lost values. To skip a bad
   value and carry on, catch the error inside the stage, as in the
-  how-to's "Catch errors in a stage, but not a stop".
+  user guide's "Catch errors in a stage, but let a stop through".
 - The iterator has methods to read every value still to come, or only
   the first, to end the run early, and to say how it ended (see
   [Iterators](#iterators-ekornpipelineiterator)).
@@ -505,10 +506,10 @@ one of the inner pipeline's own flushes is called.
 Ekorn::Pipeline::run_context()
 ```
 
-Returns the context the run's source gave, if any: the third thing its
-`EKORN_SOURCE` returned, such as a statement's column names. It's for
-stages that need to know about the values' source, called as they run.
-Each run has its own. A pushed run has none, and an iterator used as a
+Returns the context the run's source gave, if any: its `context`, or
+the third part its `EKORN_SOURCE` returned as a list, such as a
+statement's column names. It's for stages that need to know about the
+values' source, called as they run. Each run has its own. A pushed run has none, and an iterator used as a
 source passes on its own run's. It isn't exported, and is new in
 v0.3.0. [Stages that ask about their run](#stages-that-ask-about-their-run)
 has an example.

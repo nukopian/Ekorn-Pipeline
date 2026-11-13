@@ -48,10 +48,13 @@ is held until then, as Iain decided on 2026-11-13.
   20.1 has it, with a section on sources, sinks and the operators;
   still on v0.2.0's model now. Whether Iain or Claude drafts it is his
   call.
-- **docs/HOWTO.md and docs/REFERENCE.md:** read through as a whole, for
-  order, repetition between the sections each item added, the Contents
-  lists, and anything still in v0.2.0's terms ("end function", code
+- **docs/REFERENCE.md:** read through as a whole, for order,
+  repetition between the sections each item added, the Contents list,
+  and anything still in v0.2.0's terms ("end function", code
   references where objects are now given, v0.2.1).
+- **docs/HOWTO.md** was rewritten as a user guide on 2026-11-13, as Iain
+  asked, with every example run against what it says it prints. It
+  needs only a read for what DBIx-Squirrel's changes turn up.
 - **Whatever DBIx-Squirrel's changes turned up** that the docs should
   say.
 - The manuals made again with `scripts/manuals`, and every example run,
