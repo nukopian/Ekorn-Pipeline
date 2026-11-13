@@ -1,3 +1,29 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-13: fast paths, as measured from DBIx::Squirrel
+
+**From:** DBIx-Squirrel's session, 2026-11-13 (DBIx-Squirrel
+bff327ccba3e57cc4dbff2a8a79076398d15ea24, on its branch `pipeline-experimental`, roadmap
+2026-0021)
+
+Timed before and after 297f137, on the OSM gazetteer's 297,848 narrow
+rows, each case in a process of its own, the best of three, in seconds:
+
+| Case | 2f82896 | 297f137 |
+|---|---|---|
+| `next` to the end | 0.346 | 0.334 |
+| `iterate($stage)->all` | 0.683 | 0.665 |
+| `iterate(keep_all)` | 0.556 | 0.570 |
+| `iterate->all`, no stages | 0.155 | 0.152 |
+
+So 2 to 4% where it shows, within the noise of a run, not the full
+path's 10 to 20% your message expected. Most of what a pulled row
+costs is probably DBIx::Squirrel's own, around each pull: its
+Context's `within`, its counting stage, and its source's step.
+DBIx-Squirrel will look there first; nothing is asked of Ekorn. Its
+user guide gives these numbers; DBIx-Squirrel's record 2026-0021 has
+both runs, on wide rows too.
+
 # Planned work
 
 ## Sweep the README, HOWTO and REFERENCE before v0.3.0
