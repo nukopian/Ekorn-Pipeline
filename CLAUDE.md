@@ -271,18 +271,21 @@ what was Iain's.
 - **Perl::Tidy** formats the code, with `.perltidyrc` (Iain's, the same
   as DBIx-Squirrel's). It sets `--standard-output`, for editors, so
   `perltidy` prints the result instead of writing a `.tdy` file. To see
-  what it would change:
+  what it would change, on the newest Perl, as CI's style check runs:
 
   ```
-  perlbrew exec --quiet --with perl-5.36.3@ekorn-pipeline perltidy lib/Ekorn/Pipeline.pm | diff lib/Ekorn/Pipeline.pm -
+  perlbrew exec --quiet --with perl-5.44.0@ekorn-pipeline perltidy lib/Ekorn/Pipeline.pm | diff lib/Ekorn/Pipeline.pm -
   ```
 
 - **Perl::Critic** reviews it, with `.perlcriticrc`: severity 3 and up,
   core policies. Its comments say why each excluded policy is excluded;
   `ProhibitVersionStrings` among them, since modules start `use v5.36`.
+  Run it on the newest Perl, as CI's style check does: it knows a
+  Perl's builtins from that Perl, so a sub named for a keyword added
+  since the floor, such as `all`, from 5.42, passes on 5.36.
 
   ```
-  perlbrew exec --with perl-5.36.3@ekorn-pipeline perlcritic lib
+  perlbrew exec --with perl-5.44.0@ekorn-pipeline perlcritic lib
   ```
 
 - **Data::Dump**'s `pp` is for looking at data while debugging, not for

@@ -98,14 +98,17 @@ whether direnv has loaded it or not.
 
 Run these first, and check that each one succeeds. Don't pipe them
 through `tail` or `grep` to judge them: a pipe's exit status is the
-last command's, which hides a failure. The perltidy loop is CI's style
-check. It prints a diff for each file perltidy would change.
+last command's, which hides a failure. perlcritic and the perltidy
+loop are CI's style check, and run on the newest Perl, as it does:
+Perl::Critic knows a Perl's builtins from that Perl, so a sub named for
+a newer keyword passes on 5.36. The loop prints a diff for each file
+perltidy would change.
 
 ```
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 perlbrew exec --with perl-5.36.3@ekorn-pipeline yath test -L
-perlbrew exec --with perl-5.36.3@ekorn-pipeline perlcritic lib
-for f in $(git ls-files 'lib/*.pm' 't/*.t' 'xt/*.t'); do perlbrew exec --quiet --with perl-5.36.3@ekorn-pipeline perltidy "$f" | diff -u "$f" -; done
+perlbrew exec --with perl-5.44.0@ekorn-pipeline perlcritic lib
+for f in $(git ls-files 'lib/*.pm' 't/*.t' 'xt/*.t'); do perlbrew exec --quiet --with perl-5.44.0@ekorn-pipeline perltidy "$f" | diff -u "$f" -; done
 ```
 
 To run the tests on every Perl CI covers, each in its own library:

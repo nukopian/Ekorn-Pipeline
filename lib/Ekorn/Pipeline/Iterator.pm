@@ -49,8 +49,10 @@ sub finish ($self) {
 
 
 # Return the values still to be handed out, reading the run to its end:
-# as a list, or, asked for one value, an array reference of them.
-sub all ($self) {
+# as a list, or, asked for one value, an array reference of them. A
+# method, only ever called as $iterator->all, so it can't be mistaken
+# for Perl's all, a keyword from 5.42.
+sub all ($self) {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my @all;
     if (my $all = $self->{all}) {
         @all = $all->();
