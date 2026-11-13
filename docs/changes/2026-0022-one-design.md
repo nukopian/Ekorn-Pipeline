@@ -59,6 +59,7 @@ D59. D61 settled: `single` finishes, as `first` does, revising D60.
 D62 settled: a step's many values are cheap, and `all` takes them in
 bulk. D63 settled: the `&{}` overload stays; `\&$next` is documented.
 D64 settled: a sink's kinds are one and many, in every name.
+D65 settled: `is_sink` keeps `one` and `many`, not 1 and 2.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -649,6 +650,14 @@ D19 to D25 came from the third cold review, settled by Iain on
   throughout. Then, at Iain's asking, the drafts' prose: a scalar sink
   is a sink of one, a list sink a sink of many, and the tables' roles
   `one` and `many`; 17.23 and 17.24 keep D47's and D49's words.
+- [x] **D65.** Should `is_sink` give 1 and 2, in place of `one` and
+  `many`, as Iain wondered on 2026-11-13, both being true? No, he
+  agreed the same day: either is true, so a test of whether something
+  is a sink reads the same, but `is_sink($x) eq 'many'` says what it
+  means where it's written, where `== 2` needs the reader to know what
+  2 stands for, or constants to say it; and 1 would only seem to count
+  a sink of one's values, as 2 counts nothing. Its false answer is
+  already `!!0`, `''` as a string and 0 as a number. No code changes.
 
 ## The plan
 
