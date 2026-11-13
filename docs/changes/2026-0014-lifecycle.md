@@ -124,3 +124,11 @@ Found on the way: `stages` returns Elements, as the design settles
 said its list could go to a function taking only code references.
 Both now say a code reference comes back as a Stage, and that v0.2.0
 gave the code references themselves.
+
+**Not shipped yet, as Iain decided on 2026-11-13.** With its POD,
+tests and docs in, the item could have shipped, its coverage complete
+though `lib/` as a whole is below the floors in other items' modules.
+Nothing ships now: it stays in Now, and its `Changes` entries, with a
+precis naming what changes for users (a gather and an iterator are
+objects, `stages` returns Elements, a gather's message names the flush
+and the end), are written when it ships.
