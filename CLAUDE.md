@@ -119,12 +119,13 @@ on it, so it matters most that it's right.
 
 ## Credit
 
-- Iain's commits carry no `Co-Authored-By` trailer, even when Claude
-  drafted the message.
-- Commits Claude wrote, such as code, CI, setup files, tests or docs
-  written at Iain's request, end with a trailer for the Claude model
-  that wrote them, currently
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- **Every commit Claude makes carries a `Co-Authored-By` trailer** for
+  the Claude model that made it, currently
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`: code, CI,
+  setup files, tests or docs written at Iain's request, and a commit
+  holding Iain's own change with Claude's work to finish it, as Iain
+  decided on 2026-11-13. It's left off only when Iain says so before
+  the commit. Commits Iain makes himself are his to sign off.
 - The README's Acknowledgements say what Claude did. Keep them accurate.
 - **On CPAN, Iain is `Iain Campbell <cpanic@cpan.org>`,** and no other
   address goes in the distribution: the main module's AUTHOR and so
