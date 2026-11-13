@@ -36,6 +36,7 @@ says what each release changed.
 - [Gathering: Ekorn::Pipeline::Gather](#gathering-ekornpipelinegather)
 - [pipe and tap: Ekorn::Pipeline::Pipes](#pipe-and-tap-ekornpipelinepipes)
 - [Canned stages](#canned-stages)
+- [Sources: Ekorn::Pipeline::Sources](#sources-ekornpipelinesources)
 - [Errors: Ekorn::Pipeline::Errors](#errors-ekornpipelineerrors)
 - [Writing stages](#writing-stages)
 - [Writing functions that take stages](#writing-functions-that-take-stages)
@@ -1541,6 +1542,53 @@ It's for debugging. It writes each value in full, secrets and all. It
 doesn't escape control characters in strings, so a value from outside
 can send escape sequences to a terminal.
 
+## Sources: Ekorn::Pipeline::Sources
+
+```perl
+use Ekorn::Pipeline::Sources qw(from_array from_fh from_file counter);
+use Ekorn::Pipeline::Sources qw(:all);
+```
+
+Ready-made sources, needing nothing beyond Perl, for
+[iterator](#iterator). Each returns a Source, made afresh for each
+run, so each run reads from the start. Nothing is exported by default.
+Each is new in v0.3.0.
+
+| Source | Gives | Its end |
+|---|---|---|
+| `from_array(@values)` | the values given | none |
+| `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed, or all of it as one record if `$/` is undefined; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
+| `from_file($path)`, `from_file($path, $layers)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed, or the whole file as one record if `$/` is undefined, and none if it's empty; read through the I/O layers given, such as `':raw'` or `':encoding(UTF-8)'`; each without the separator, as `chomp` removes it | closes the file, however the run ends |
+| `counter($start, $step)` | `$start`, then on by `$step`, without end, 1 and 1 by default: give it a `take` | none |
+
+```perl
+my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));
+# reads two lines, then closes the file
+```
+
+`from_fh` and `from_file` read with `$/` as it is at each read, as
+`readline` does, so a caller can read a file's paragraphs, or records
+of their own, by setting it while they pull:
+
+```perl
+local $/ = '';    # paragraph mode
+my $next = Ekorn::Pipeline->new(take(3))->iterator(from_file('lyrics.txt'));
+while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
+```
+
+With `$/` undefined, both slurp: what's left is one record, and an
+empty file gives none, though Perl's `readline` gives one empty
+string. A binary file is read with `':raw'` and records of a fixed
+size, `local $/ = \4096`, which `chomp` leaves whole.
+
+`from_file` opens its file as the run starts, and croaks "Can't read
+%s: %s" there if it can't. Without layers, Perl opens it as it does
+by default, which on Windows translates line endings, and so corrupts
+a binary file. `from_fh` croaks "Expected an open filehandle" given
+anything else, and `counter` "Expected a number to start from, and
+one to step by". A hash's pairs are
+`from_array(map { [$_, $hash{$_}] } keys %hash)`.
+
 ## Errors: Ekorn::Pipeline::Errors
 
 ### When a stage dies
@@ -1955,6 +2003,15 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 - **Expected yield to be called inside a generator:** `yield` was
   called with no generator's block running.
 
+### Ekorn::Pipeline::Sources
+
+- **Expected an open filehandle:** `from_fh` was given something other
+  than an open filehandle.
+- **Can't read %s: %s:** `from_file` couldn't open its file, as a run
+  started; the second part says why.
+- **Expected a number to start from, and one to step by:** `counter`
+  was given something other than numbers.
+
 ### Ekorn::Pipeline::Source
 
 - **Expected a code reference:** `new` was given something other than
@@ -2012,6 +2069,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 |---|---|---|---|
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | `:all` |
+| `Ekorn::Pipeline::Sources` | nothing | `from_array`, `from_fh`, `from_file`, `counter` | `:all` |
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
@@ -2029,6 +2087,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | Module | What it is |
 |---|---|
 | `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline_in`, `named`, `iterator`, `stages`, `is_stage`, `is_sink`, `ending` and `run_context`. |
+| `Ekorn::Pipeline::Sources` | Ready-made sources: `from_array`, `from_fh`, `from_file`, `counter`. |
 | `Ekorn::Pipeline::Factories` | The words that make Ekorn's types: `pipeline`, `stage`, `gather`, `source`, `generator` and `yield`, `sink_one`, `sink_many`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |
 | `Ekorn::Pipeline::Gather` | Makes a stage afresh for each run, with a flush called when its values run out, and an end: `gather`. |

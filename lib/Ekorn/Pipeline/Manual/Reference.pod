@@ -79,6 +79,10 @@ L<Canned stages|/"Canned stages">
 
 =item *
 
+L<Sources: Ekorn::Pipeline::Sources|/"Sources: Ekorn::Pipeline::Sources">
+
+=item *
+
 L<Errors: Ekorn::Pipeline::Errors|/"Errors: Ekorn::Pipeline::Errors">
 
 =item *
@@ -1855,6 +1859,68 @@ It's for debugging. It writes each value in full, secrets and all. It
 doesn't escape control characters in strings, so a value from outside
 can send escape sequences to a terminal.
 
+=head1 Sources: Ekorn::Pipeline::Sources
+
+    use Ekorn::Pipeline::Sources qw(from_array from_fh from_file counter);
+    use Ekorn::Pipeline::Sources qw(:all);
+
+Ready-made sources, needing nothing beyond Perl, for
+L<iterator|/"iterator">. Each returns a Source, made afresh for each
+run, so each run reads from the start. Nothing is exported by default.
+Each is new in v0.3.0.
+
+=over 4
+
+=item C<from_array(@values)>
+
+B<Gives:> the values given
+
+B<Its end:> none
+
+=item C<from_fh($fh)>
+
+B<Gives:> a filehandle's records, as C<$/> divides them: its lines, unless C<$/> is changed, or all of it as one record if C<$/> is undefined; each without the separator, as C<chomp> removes it
+
+B<Its end:> none: you opened it, so you close it
+
+=item C<from_file($path)>, C<from_file($path, $layers)>
+
+B<Gives:> a file's records, as C<$/> divides them: its lines, unless C<$/> is changed, or the whole file as one record if C<$/> is undefined, and none if it's empty; read through the I/O layers given, such as C<':raw'> or C<':encoding(UTF-8)'>; each without the separator, as C<chomp> removes it
+
+B<Its end:> closes the file, however the run ends
+
+=item C<counter($start, $step)>
+
+B<Gives:> C<$start>, then on by C<$step>, without end, 1 and 1 by default: give it a C<take>
+
+B<Its end:> none
+
+=back
+
+    my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('tracks.txt'));
+    # reads two lines, then closes the file
+
+C<from_fh> and C<from_file> read with C<$/> as it is at each read, as
+C<readline> does, so a caller can read a file's paragraphs, or records
+of their own, by setting it while they pull:
+
+    local $/ = '';    # paragraph mode
+    my $next = Ekorn::Pipeline->new(take(3))->iterator(from_file('lyrics.txt'));
+    while (my($verse) = $next->()) { say "$verse\n" }    # the first three verses
+
+With C<$/> undefined, both slurp: what's left is one record, and an
+empty file gives none, though Perl's C<readline> gives one empty
+string. A binary file is read with C<':raw'> and records of a fixed
+size, C<local $/ = \4096>, which C<chomp> leaves whole.
+
+C<from_file> opens its file as the run starts, and croaks "Can't read
+%s: %s" there if it can't. Without layers, Perl opens it as it does
+by default, which on Windows translates line endings, and so corrupts
+a binary file. C<from_fh> croaks "Expected an open filehandle" given
+anything else, and C<counter> "Expected a number to start from, and
+one to step by". A hash's pairs are
+C<from_array(map { [$_, $hash{$_}] } keys %hash)>.
+
 =head1 Errors: Ekorn::Pipeline::Errors
 
 =head2 When a stage dies
@@ -2410,6 +2476,27 @@ called with no generator's block running.
 
 =back
 
+=head2 Ekorn::Pipeline::Sources
+
+=over 4
+
+=item *
+
+B<Expected an open filehandle:> C<from_fh> was given something other
+than an open filehandle.
+
+=item *
+
+B<Can't read %s: %s:> C<from_file> couldn't open its file, as a run
+started; the second part says why.
+
+=item *
+
+B<Expected a number to start from, and one to step by:> C<counter>
+was given something other than numbers.
+
+=back
+
 =head2 Ekorn::Pipeline::Source
 
 =over 4
@@ -2542,6 +2629,14 @@ B<On request:> C<pipeline>, C<stage>, C<gather>, C<source>, C<generator>, C<yiel
 
 B<Tags:> C<:all>
 
+=item C<Ekorn::Pipeline::Sources>
+
+B<By default:> nothing
+
+B<On request:> C<from_array>, C<from_fh>, C<from_file>, C<counter>
+
+B<Tags:> C<:all>
+
 =item C<Ekorn::Pipeline::Stop>
 
 B<By default:> C<Stop>
@@ -2598,6 +2693,10 @@ empty list: C<use Ekorn::Pipeline::Stop ();>.
 =item C<Ekorn::Pipeline>
 
 Runs values through a list of stages: C<new>, C<pipeline_in>, C<named>, C<iterator>, C<stages>, C<is_stage>, C<is_sink>, C<ending> and C<run_context>.
+
+=item C<Ekorn::Pipeline::Sources>
+
+Ready-made sources: C<from_array>, C<from_fh>, C<from_file>, C<counter>.
 
 =item C<Ekorn::Pipeline::Factories>
 

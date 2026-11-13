@@ -15,12 +15,13 @@ Unreleased
     sources that close what they open, however the run ends; sinks
     that consume every value and give a result, committing only when
     the run is done; and gathers with an end as well as a flush, what
-    v0.2.0 called the end function. An iterator is an object, which
+    v0.2.0 called the end function; Sources has sources ready-made.
+    An iterator is an object, which
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    It ships six roadmap items, 2026-0009, 2026-0011, 2026-0013,
-    2026-0014, 2026-0021 and 2026-0024. It changes what some code
+    It ships seven roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    2026-0014, 2026-0016, 2026-0021 and 2026-0024. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -28,6 +29,14 @@ Unreleased
     stage's error names the named pipeline it's in. Otherwise,
     existing code runs as before.
 
+    - Ekorn::Pipeline::Sources has ready-made sources, needing only
+      Perl, none exported by default: from_array(@values); from_fh($fh),
+      a filehandle's records, as $/ divides them, chomped, left open;
+      from_file($path, $layers), a file's records, opened through the
+      I/O layers given, if any, for each run, and closed however it
+      ends; and counter($start, $step), without end. With $/
+      undefined, from_fh and from_file slurp, an empty file giving
+      none. (roadmap 2026-0016)
     - Changed: a stage that dies within a named pipeline is named with
       it: after its place, the innermost named pipeline and the
       stage's place there, "Pipeline stage #1.2 (main::clean#2)

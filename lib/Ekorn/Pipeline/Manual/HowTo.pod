@@ -295,13 +295,32 @@ called again:
     my($first) = $next->();
     say "$first after $calls call";    # A after 1 call
 
-=head2 Close a file however the run ends
+=head2 Read a file, and close it however the run ends
 
-A source made with the word C<source> is made afresh for each run, by
-a block that opens what the run needs, and returns the step, which
-gives the next value, and the end, which closes it. The end is
-called once the run has ended, however it ended: when the lines ran
-out, when a stage stopped the run, or when one died:
+C<from_file> gives a file's lines, or its records as C<$/> divides them,
+each without its newline, and closes the file when the run ends,
+however it ends: when the lines run out, when a stage stops it, or
+when a stage dies:
+
+    use Ekorn::Pipeline::Sources qw(from_file);
+
+    my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file('setlist.txt'));
+    while (my($line) = $next->()) { say $line }
+    # the first two lines; the file is closed once take(2) stops
+
+Give it I/O layers to read bytes, C<from_file($path, ':raw')>, or to
+decode text, C<from_file($path, ':encoding(UTF-8)')>. Compare
+C<from_fh($fh)>, which reads a filehandle you opened, and leaves it to
+you to close.
+
+=head2 Write a source that closes what it opens
+
+For something C<from_file> doesn't read, write a source with the word
+C<source>. It's made afresh for each run, by a block that opens what the
+run needs, and returns the step, which gives the next value, and the
+end, which closes it. The end is called once the run has ended,
+however it ended: when the lines ran out, when a stage stopped the
+run, or when one died:
 
     use Ekorn::Pipeline::Factories qw(source);
 

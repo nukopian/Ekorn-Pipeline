@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [Sources that come with Perl](2026-0016-sources.md),
-  roadmap 2026-0016: in progress.
+  roadmap 2026-0016: shipped, unreleased.
 - [A named pipeline named in a stage's error](2026-0013-names-in-errors.md),
   roadmap 2026-0013: shipped, unreleased.
 - [Canned stages as objects, and a take stage for each keep sink](2026-0024-canned-stages.md),
