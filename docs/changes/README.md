@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Sinks that come with Perl](2026-0017-sinks.md),
+  roadmap 2026-0017: in progress.
 - [Sources that come with Perl](2026-0016-sources.md),
   roadmap 2026-0016: shipped, unreleased.
 - [A named pipeline named in a stage's error](2026-0013-names-in-errors.md),
