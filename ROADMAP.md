@@ -41,21 +41,18 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0024. Canned stages as objects, and a take stage for each keep sink
 
 **Size:** S (2)
-
-**Depends on:** 2026-0014
 
 The canned stages made with `gather` are Elements, as the design's
 8.1 settles (Q12, D4), and `take_first`, `take_last` and
 `take_single`, already in Stages::Flow, join `take` as the stages of
 the `keep` sinks (2026-0022's D58). Done when the stages, their POD,
-tests and docs are in, with coverage above the floors.
+tests and docs are in, with coverage above the floors. Its
+[record](docs/changes/2026-0024-canned-stages.md).
+
+## Next
 
 ### 2026-0013. A named pipeline named in a stage's error
 
