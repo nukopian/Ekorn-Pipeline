@@ -1,6 +1,6 @@
 # 2026-0021. Ekorn::Pipeline::Factories
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 withdrawn: there are no `step` and `end`. D6 settled: `pipeline_in`. D7 settled: no.
 
@@ -9,7 +9,9 @@
 is the cosmetic point of its very existence"
 
 **Depends on:** 2026-0011 and 2026-0020, unreleased, whose `pipeline`
-it moves
+it moves, and 2026-0014, the lifecycle, shipped unreleased
+
+**Started:** 2026-11-13
 
 ## Background
 
@@ -107,7 +109,56 @@ to pause its 2026-0009, which exports `pipeline`, until this is built
 
 ## The plan
 
-Written when work starts.
+As the roadmap gave it on 2026-11-13, with the design approved that
+day (2026-0022, its 17.3, 17.4 and 20.1, and the draft reference's
+Words and pipeline_in):
+
+**What:** the words that make Ekorn's types, in
+Ekorn::Pipeline::Factories, each one line over a class method:
+`stage`, `source`, `generator` with `yield`, `sink_one`, `sink_many`,
+`gather`, and `pipeline`, moved from Ekorn::Pipeline. It takes in
+2026-0015, retired into it, and undoes 2026-0020: names belong to a
+package, not a class, and Pipes' `pipeline_class` goes.
+
+**Why:** a word is syntax, not behaviour, so a class shouldn't hold
+it (D1); and with other packages using Ekorn as it is, rather than
+subclassing it (the design's 17.3), names per class and
+`pipeline_class` serve no one (17.4).
+
+**Steps:**
+
+1. Ekorn::Pipeline gains `pipeline_in($package, @stages)`, the one
+   method reading names (D3, D6), and loses `pipeline` and its own
+   `import`, going back to Exporter's, exporting `is_stage` and
+   `is_sink` on request (D7).
+2. Names go back to one per qualified name, as 2026-0011 had them:
+   no lookup through a class's ancestors, and `named` keeps a name in
+   its caller's package unless it's qualified, croaking at a name
+   already defined for another pipeline.
+3. Factories' `pipeline` is `Ekorn::Pipeline->pipeline_in(scalar
+   caller, @stages)`, exported on request with the other words.
+4. Pipes' `pipeline_class` goes; `pipe` and `tap` make
+   Ekorn::Pipelines.
+5. Tests: `t/13` and `t/14`, for `pipeline` and names, rewritten for
+   Factories and names per package; Factories' words tested, the
+   design's proofs for them included; coverage of Factories in full.
+6. POD: Factories written in full; Ekorn::Pipeline's names per
+   package, `pipeline_in`, and its sections on subclasses gone; Pipes
+   without `pipeline_class`.
+7. Docs: the reference's Words and `pipeline_in`, Named pipelines per
+   package, and its sections on subclasses gone; the how-to's two
+   recipes using `pipeline` from Factories; the examples 2026-0014
+   wrote with `Source->new` and `Sink->new_sink_one` switched to the
+   words. The manuals made again.
+8. CLAUDE.md's factories rule says `pipeline` lives in Factories only
+   (the design's D30). The records of 2026-0011 and 2026-0020 say what
+   this undid or moved.
+9. DBIx-Squirrel is told: its paused 2026-0009 waits on this, and it
+   loses Ekorn::Pipeline's `pipeline` and Pipes' `pipeline_class`.
+10. `Changes`, its line ending "(roadmap 2026-0021)".
+
+**Done when:** the module, its tests and docs are in, with
+Factories' coverage complete, and `Changes`.
 
 ## What happened
 

@@ -83,7 +83,7 @@ Newest id first.
 - [One design, end to end, before more is built](2026-0022-one-design.md),
   roadmap 2026-0022: approved, and split into items.
 - [Ekorn::Pipeline::Factories](2026-0021-factories.md), roadmap 2026-0021:
-  open.
+  in progress.
 - [pipeline() through a subclass makes the subclass](2026-0020-subclass-pipeline.md),
   a TODO task from DBIx-Squirrel: shipped, unreleased.
 - [The lifecycle: sources, stages, sinks and their ends](2026-0014-lifecycle.md),
