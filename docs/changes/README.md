@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Role methods return their parts by name](2026-0026-named-parts.md),
+  roadmap 2026-0026: open.
 - [Operators: `|`, `|=` and `@{}`](2026-0018-operators.md),
   roadmap 2026-0018: shipped, unreleased.
 - [Sinks that come with Perl](2026-0017-sinks.md),

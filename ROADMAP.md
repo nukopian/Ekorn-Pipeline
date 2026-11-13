@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0025.
+Last id: 2026-0026.
 
 Items come in four groups:
 
@@ -45,12 +45,29 @@ Nothing yet.
 
 ## Next
 
+### 2026-0026. Role methods return their parts by name
+
+**Size:** M (3)
+
+Each role method (`ekorn_source`, `ekorn_stage`, `ekorn_sink_one`,
+`ekorn_sink_many`) returns a hash reference naming its parts, `step`,
+`flush`, `end` and `context`, rather than a list in a set order, which
+a reader must remember and which takes an `undef` for a part left out
+before one given. It changes the protocols, Ekorn's contract with
+other packages, so it's done before v0.3.0, as Iain decided on
+2026-11-13, once DBIx-Squirrel has written its parts against
+`pipeline-experimental`, with DBIx-Squirrel told. Its questions are
+open: see its [record](docs/changes/2026-0026-named-parts.md). Done
+when the run reads the parts by name, the words' and Ekorn's own parts
+return them so, with tests, POD and docs, and coverage above the
+floors.
+
 ### 2026-0025. Release v0.3.0
 
 **Size:** S (2)
 
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
-2026-0021, 2026-0024
+2026-0021, 2026-0024, 2026-0026
 
 The design's release: the README rewritten for the stream concept
 (the design's 20.1), `Changes`' precis naming the items it ships, the
