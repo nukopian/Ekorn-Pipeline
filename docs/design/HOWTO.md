@@ -156,11 +156,11 @@ Some sinks stop the pull as soon as they know the result, so a source
 reading a file or a database reads no further:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_arrayref);
+use Ekorn::Pipeline::Sources qw(from_array);
 use Ekorn::Pipeline::Sinks   qw(keep_first);
 
 my $first_hit = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, keep_first)
-    ->iterator(from_arrayref(\@tracks))->();
+    ->iterator(from_array(@tracks))->();
 say $first_hit->{title};    # Dancing Queen: the rest aren't read
 ```
 
@@ -251,13 +251,13 @@ With `use Ekorn::Pipeline::Operators` in scope, the types join with
 ```perl
 use Ekorn::Pipeline::Operators;
 use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_arrayref);
+use Ekorn::Pipeline::Sources   qw(from_array);
 use Ekorn::Pipeline::Sinks     qw(keep_all count_items);
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-say from_arrayref(\@tracks) | $blur | count_items;                                   # 3
-my $titles = from_arrayref(\@tracks) | $blur | stage { $_->{title} } | keep_all;
+say from_array(@tracks) | $blur | count_items;                                   # 3
+my $titles = from_array(@tracks) | $blur | stage { $_->{title} } | keep_all;
 say join ', ', @$titles;                                                       # Girls & Boys, Parklife, Country House
 ```
 
@@ -278,7 +278,7 @@ above.
 ready-made one. `sub { ... } | sub { ... }` isn't an error in Perl:
 it's a bitwise OR of two addresses, and gives a meaningless number.
 And `|` binds more loosely than `.`, so put a chain in parentheses
-inside a string: `say 'Blur: ' . (from_arrayref(\@tracks) | $blur |
+inside a string: `say 'Blur: ' . (from_array(@tracks) | $blur |
 count_items)`.
 
 ### Get every value, or only what you need
@@ -290,7 +290,7 @@ what that needs:
 use Ekorn::Pipeline::Sinks        qw(keep_all count_items keep_first);
 use Ekorn::Pipeline::Stages::Flow qw(take);
 
-my $hits = from_arrayref(\@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
+my $hits = from_array(@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
 
 my $all = $hits | keep_all;           # an array reference
 say join ', ', @$all;                  # Dancing Queen, Girls & Boys, Sunshine of Your Love

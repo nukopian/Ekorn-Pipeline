@@ -62,6 +62,8 @@ D64 settled: a sink's kinds are one and many, in every name.
 D65 settled: `is_sink` keeps `one` and `many`, not 1 and 2.
 D66 settled: six sinks set aside for now.
 D67 settled: four sources dropped.
+D68 settled: `from_arrayref`, `from_hash` and `from_hashref` dropped;
+`from_array` built.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -673,6 +675,18 @@ D19 to D25 came from the third cold review, settled by Iain on
   built; each can come back as an item of its own. The design keeps
   the `from_` sources and `counter`. Design 8.2 and 17.36; the draft
   reference; IMPLEMENTATION.md; and the roadmap's 2026-0016.
+- [x] **D68.** Do `from_arrayref`, `from_hash` and `from_hashref`
+  stay? No, Iain decided on 2026-11-13: `from_array(@values)` gives
+  the values given, so `from_array(@$array)` does what `from_arrayref`
+  did, but for an array changed while it's read, and a hash's pairs are
+  `from_array(map { [$_, $hash{$_}] } keys %hash)`. DBIx::Squirrel, or
+  any package, may make its own, keeping the source protocol, as Iain
+  said. `from_arrayref` was built, and the tests used it; `from_array`
+  is built in its place, each `from_arrayref([...])` and
+  `from_arrayref(\@x)` in the tests and drafts now `from_array(...)`
+  and `from_array(@x)`, with a test of its own. `from_hash` and
+  `from_hashref` weren't built. Design 8.2, 17.12 and 17.37; the draft
+  reference, how-to and IMPLEMENTATION.md; and the roadmap's 2026-0016.
 
 ## The plan
 

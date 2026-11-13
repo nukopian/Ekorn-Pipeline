@@ -7,16 +7,16 @@ use Ekorn::Pipeline::Errors    qw(croakf);
 use Ekorn::Pipeline::Factories qw(source);
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK = qw(from_arrayref from_file);
+our @EXPORT_OK = qw(from_array from_file);
 
 # Croak at the line that called Ekorn::Pipeline.
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
-# Return a source giving the array's values, from the first, each run.
-sub from_arrayref ($array) {
+# Return a source giving the values given, from the first, each run.
+sub from_array (@values) {
     return source {
         my $i = 0;
-        return sub () { $i < @$array ? $array->[$i++] : () };
+        return sub () { $i < @values ? $values[$i++] : () };
     };
 }
 

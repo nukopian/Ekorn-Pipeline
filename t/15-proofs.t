@@ -19,7 +19,7 @@ use Ekorn::Pipeline::Sink  qw();
 use Ekorn::Pipeline::Sinks qw(
     keep keep_all count_items keep_first keep_last keep_single
     to_file);
-use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
+use Ekorn::Pipeline::Sources qw(from_array from_file);
 use Ekorn::Pipeline::Stages::Flow;
 use Ekorn::Pipeline::Stop;
 
@@ -403,21 +403,21 @@ subtest '19.2 A complete pipeline as a source' => sub {
 };
 
 subtest 'The caller asks how the run ended (D34)' => sub {
-    my $next = $class->new(sub { $_ * 2 })->iterator(from_arrayref([1, 2]));
+    my $next = $class->new(sub { $_ * 2 })->iterator(from_array(1, 2));
     is $next->ended, undef, 'nothing while it goes';
     my @values = drain_all($next);
     is $next->ended, 'done', 'done when its values ran out';
 
-    $next = $class->new(take(1))->iterator(from_arrayref([1, 2, 3]));
+    $next = $class->new(take(1))->iterator(from_array(1, 2, 3));
     my @one = drain_all($next);
     is $next->ended, 'stopped', 'stopped when take(1) cut the reading short';
 
-    $next = $class->new(sub { $_ })->iterator(from_arrayref([1, 2, 3]));
+    $next = $class->new(sub { $_ })->iterator(from_array(1, 2, 3));
     $next->();
     $next->finish;
     is $next->ended, 'stopped', 'stopped when finished early';
 
-    $next = $class->new(sub { die "No\n" })->iterator(from_arrayref([1]));
+    $next = $class->new(sub { die "No\n" })->iterator(from_array(1));
     ok dies { $next->() };
     is $next->ended, 'died', 'died when a stage died';
 
@@ -434,7 +434,7 @@ subtest 'The caller asks how the run ended (D34)' => sub {
 };
 
 subtest 'A spent iterator is no source for another run (D41)' => sub {
-    my $next = $class->new->iterator(from_arrayref([1, 2]));
+    my $next = $class->new->iterator(from_array(1, 2));
     is [$next->()], [1];
     is [drain_all($class->new->iterator($next))], [2],
         'read in part, it goes on';
@@ -442,11 +442,11 @@ subtest 'A spent iterator is no source for another run (D41)' => sub {
         qr( \A Expected\ a\ source\ with\ values\ still\ to\ give )x,
         'spent, it croaks, rather than give nothing';
 
-    my $finished = $class->new->iterator(from_arrayref([1, 2]));
+    my $finished = $class->new->iterator(from_array(1, 2));
     $finished->finish;
     ok dies { $class->new->iterator($finished) }, 'and so when finished';
 
-    my $result = $class->new(keep_all)->iterator(from_arrayref([1, 2]));
+    my $result = $class->new(keep_all)->iterator(from_array(1, 2));
     is [$result->()], [1], "a run that's ended with values still to give";
     is [drain_all($class->new->iterator($result))], [2], 'still gives them';
 };
@@ -461,7 +461,7 @@ subtest 'A part called directly (D42, D43)' => sub {
     is [spy_sink->(5)], [5],                'so a sink is tested on its own';
     is \@log, ['sink set-up', 'sink done'], 'its end told how its run ended';
 
-    like dies { from_arrayref([1])->() },
+    like dies { from_array(1)->() },
         qr( \A Expected\ a\ source\ to\ be\ read\ through\ iterator )x,
         'a source called directly croaks';
 
@@ -477,7 +477,7 @@ subtest 'A part called directly (D42, D43)' => sub {
 };
 
 subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
-    my $next = $class->new(keep_first)->iterator(from_arrayref([1, 2, 3]));
+    my $next = $class->new(keep_first)->iterator(from_array(1, 2, 3));
     is [$next->()],  [1];
     is $next->ended, undef, 'nothing until the iterator has given all it will';
     is [$next->()],  [];
@@ -485,15 +485,15 @@ subtest 'ended: was the source read to its end? Said once spent (D48)' => sub {
         'keep_first stopped the source: there were more';
 
     $next
-        = $class->new(take(2), sub { $_ })->iterator(from_arrayref([1, 2, 3]));
+        = $class->new(take(2), sub { $_ })->iterator(from_array(1, 2, 3));
     my @two = drain_all($next);
     is $next->ended, 'stopped', 'take(2), wherever it is, cut the source short';
 
-    $next = $class->new(sub { $_ })->iterator(from_arrayref([1, 2]));
+    $next = $class->new(sub { $_ })->iterator(from_array(1, 2));
     my @all = drain_all($next);
     is $next->ended, 'done', 'read to its end';
 
-    $next = $class->new(keep_all)->iterator(from_arrayref([1, 2, 3]));
+    $next = $class->new(keep_all)->iterator(from_array(1, 2, 3));
     $next->();
     is $next->ended, undef,
         'a list sink still handing out its result: nothing yet';
@@ -509,7 +509,7 @@ subtest 'An end dying with values still waiting: no more is handed out' => sub {
             sub ($how) { die "Late\n" },
         );
     };
-    my $next = $class->new($dies)->iterator(from_arrayref([1, 2, 3]));
+    my $next = $class->new($dies)->iterator(from_array(1, 2, 3));
     like dies { $next->() }, qr( Late )x;
     is [$next->()], [], 'nothing more';
     is $next->ended, 'died';
@@ -529,8 +529,8 @@ subtest 'sink_many and sink_one (D47, D64)' => sub {
     is Ekorn::Pipeline::is_sink($scalar), 'one',
         'sink_one {...} a scalar sink';
     is [$list->(1, 2)], [1, 2], 'called, it gives its list';
-    is from_arrayref([1, 2]) | $scalar, 2, 'a scalar sink ends a chain';
-    is from_arrayref([1, 2]) | $list, [1, 2],
+    is from_array(1, 2) | $scalar, 2, 'a scalar sink ends a chain';
+    is from_array(1, 2) | $list, [1, 2],
         'and a list sink, giving its list as an array reference (D51)';
 };
 
@@ -548,14 +548,14 @@ subtest 'Fixes from the fourth review' => sub {
     like dies { $class->new($stops_at_setup)->(1) },
         qr( \A Expected\ no\ stop\ in\ a\ set-up )x, 'nor can a stop from a set-up';
 
-    my $next = $class->new->iterator(from_arrayref([1, 2]));
+    my $next = $class->new->iterator(from_array(1, 2));
     is [@{ $next | stage { $_ * 10 } }], [10, 20],
         'an iterator chains, and drains, as a source';
     like dies {
         my @x = @{ $next | sub { $_ } }
     }, qr( spent )x, 'and, spent, croaks when the chain runs';
 
-    my $dies = $class->new(sub { die "No\n" })->iterator(from_arrayref([1]));
+    my $dies = $class->new(sub { die "No\n" })->iterator(from_array(1));
     ok dies { $dies->() };
     like dies { $class->new->iterator($dies) }, qr( spent )x,
         'an iterator that died is spent, as a source';
@@ -579,42 +579,42 @@ subtest 'Sinks named for what they give (D50)' => sub {
     is $first,            7, 'given more, it gives the first';
     is scalar @$warnings, 1, 'and warns, once';
     like $warnings->[0], qr( \A Expected\ only\ one\ item )x;
-    is from_arrayref([9]) | keep_single, 9, 'it ends a chain';
-    is keep_first->(3, 4),               3, 'keep_first gives the first';
+    is from_array(9) | keep_single, 9, 'it ends a chain';
+    is keep_first->(3, 4),          3, 'keep_first gives the first';
 
     is keep_last->(3, 4, 5),                5,     'keep_last gives the last';
     is keep_last->(),                       undef, 'or undef, given none';
-    is from_arrayref([1, 2]) | keep_last,   2,     'it ends a chain';
+    is from_array(1, 2) | keep_last,        2,     'it ends a chain';
     is Ekorn::Pipeline::is_sink(keep_last), 'one', 'a scalar sink';
-    my $next = $class->new(keep_last)->iterator(from_arrayref([1, 2, 3]));
+    my $next = $class->new(keep_last)->iterator(from_array(1, 2, 3));
     is [$next->()],  [3],    'pulled, it gives the last';
     is [$next->()],  [],     'and only that';
     is $next->ended, 'done', 'having read the source to its end';
 };
 
 subtest 'An iterator gives all, first or single (D59)' => sub {
-    my $next = $class->new(sub { $_ * 2 })->iterator(from_arrayref([1 .. 4]));
+    my $next = $class->new(sub { $_ * 2 })->iterator(from_array(1 .. 4));
     is [$next->()],  [2],       'pulled once';
     is [$next->all], [4, 6, 8], 'all: the values still to come, as a list';
     is $next->ended, 'done',    'read to its end';
     is [$next->all], [],        'and none, once spent';
-    $next = $class->new->iterator(from_arrayref([1, 2]));
+    $next = $class->new->iterator(from_array(1, 2));
     my $all = $next->all;
     is $all, [1, 2], 'an array reference, asked for one value';
-    is $class->new->iterator(from_arrayref([]))->all, [], 'empty, if none';
+    is $class->new->iterator(from_array())->all, [], 'empty, if none';
 
-    $next = $class->new->iterator(from_arrayref([1, 2, 3]));
+    $next = $class->new->iterator(from_array(1, 2, 3));
     is [$next->first], [1],       'first: the next value';
     is $next->ended,   'stopped', 'and the run ended, reading no more';
     is [$next->()],    [],        'nothing after it';
-    is [$class->new->iterator(from_arrayref([]))->first], [undef],
+    is [$class->new->iterator(from_array())->first], [undef],
         'undef, if none';
 
-    $next = $class->new->iterator(from_arrayref([7]));
+    $next = $class->new->iterator(from_array(7));
     my $warnings = warnings { is $next->single, 7, 'single: the one value' };
     is $warnings,    [],     'no warning, if it was the only one';
     is $next->ended, 'done', 'the run read to its end';
-    $next = $class->new->iterator(from_arrayref([7, 8, 9]));
+    $next = $class->new->iterator(from_array(7, 8, 9));
     my $got;
     my $line = __LINE__ + 1;
     $warnings = warnings { $got = $next->single };
@@ -624,7 +624,7 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
         "Expected only one item, but there were more at ${\ __FILE__ } line $line.\n",
         "at the caller's line";
     is $next->ended, 'stopped', 'the run ended, reading no more';
-    is [$class->new->iterator(from_arrayref([]))->single], [undef],
+    is [$class->new->iterator(from_array())->single], [undef],
         'undef, if none';
 
     # A source's step may give several values at once.
@@ -638,12 +638,12 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
     is $next->ended, 'done',    'read to its end';
 
     # all takes what's ready in bulk: it gives the same as pulling.
-    $next = $class->new(keep_all)->iterator(from_arrayref([1 .. 4]));
+    $next = $class->new(keep_all)->iterator(from_array(1 .. 4));
     is [$next->()],  [1],       "a list sink's result, pulled once";
     is [$next->all], [2, 3, 4], 'then the rest of it, in bulk';
     is $next->ended, 'done';
     $next = $class->new(keep_all, sub { $_ * 10 })
-        ->iterator(from_arrayref([1, 2]));
+        ->iterator(from_array(1, 2));
     is [$next->all], [10, 20], 'and through a stage after the sink';
     @steps = ([1, 2, 3], [4]);
     $next  = $class->new(take(2))->iterator($class->new->iterator(source {
@@ -654,7 +654,7 @@ subtest 'An iterator gives all, first or single (D59)' => sub {
 };
 
 subtest "An iterator's code reference, taken once (D63)" => sub {
-    my $it   = $class->new->iterator(from_arrayref([1, 2, 3]));
+    my $it   = $class->new->iterator(from_array(1, 2, 3));
     my $next = \&$it;
     ok !blessed($next), 'a plain code reference, with no overload to call';
     is [$next->()], [1], 'pulled through it';
@@ -663,20 +663,29 @@ subtest "An iterator's code reference, taken once (D63)" => sub {
     is [$next->()], [], 'and the run ended when the iterator was let go';
 };
 
+subtest 'from_array: the values given, afresh each run (D68)' => sub {
+    my $source = from_array(1, undef, 3);
+    is [drain_all($class->new->iterator($source))], [1, undef, 3],
+        'every value, undef among them';
+    is [drain_all($class->new->iterator($source))], [1, undef, 3],
+        'and again, from the first, on another run';
+    is [drain_all($class->new->iterator(from_array()))], [], 'none, given none';
+};
+
 subtest 'keep(N): the first N items, stopping there (D57)' => sub {
     is [keep(2)->(1 .. 5)], [1, 2], 'the first two, as a list';
     my $kept = keep(2)->(1 .. 5);
     is $kept, [1, 2], 'a reference, asked for one value';
-    is from_arrayref([1 .. 5]) | keep(2), [1, 2],
+    is from_array(1 .. 5) | keep(2), [1, 2],
         'and so at the end of a chain';
-    is from_arrayref([1]) | keep(2),      [1],    'fewer, if there were fewer';
-    is from_arrayref([1, 2]) | keep(0),   [],     'none, for keep(0)';
+    is from_array(1) | keep(2),           [1],    'fewer, if there were fewer';
+    is from_array(1, 2) | keep(0),        [],     'none, for keep(0)';
     is Ekorn::Pipeline::is_sink(keep(2)), 'many', 'a list sink';
 
-    my $next = $class->new(keep(2))->iterator(from_arrayref([1 .. 5]));
+    my $next = $class->new(keep(2))->iterator(from_array(1 .. 5));
     is [drain_all($next)], [1, 2];
     is $next->ended, 'stopped', 'having stopped the source at two';
-    $next = $class->new(keep(3))->iterator(from_arrayref([1, 2]));
+    $next = $class->new(keep(3))->iterator(from_array(1, 2));
     is [drain_all($next)], [1, 2];
     is $next->ended, 'done', 'or read it to its end, if it had fewer';
 
@@ -689,9 +698,9 @@ subtest 'keep(N): the first N items, stopping there (D57)' => sub {
 };
 
 subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
-    is from_arrayref([1, 2]) | keep_all, [1, 2],
+    is from_array(1, 2) | keep_all, [1, 2],
         'a list sink at the end of a chain gives its list as an array reference';
-    is from_arrayref([]) | keep_all, [],
+    is from_array() | keep_all, [],
         'an empty one, if there were none';
 
     my $n = $class->new(count_items)->(1 .. 10);
@@ -705,11 +714,11 @@ subtest 'Sinks and context (D10, D17, D25, D51)' => sub {
 
     is [$class->new(keep_first)->()], [undef],
         'a scalar sink with no values gives one undef';
-    is from_arrayref([]) | keep_first, undef, 'and so from a chain';
-    is $class->new(count_items)->(),   0,     'count of nothing is 0';
-    is +(from_arrayref([1, 2]) | count_items) + 10, 12,
+    is from_array() | keep_first,    undef, 'and so from a chain';
+    is $class->new(count_items)->(), 0,     'count of nothing is 0';
+    is +(from_array(1, 2) | count_items) + 10, 12,
         'a chain in parentheses, in an expression';
-    like dies { my $x = from_arrayref([1, 2]) | count_items + 10 },
+    like dies { my $x = from_array(1, 2) | count_items + 10 },
         qr( \A Expected\ a\ stage\ or\ a\ sink\ on\ the\ right )x,
         'and without them, | binding loosest, a clear error';
 };
@@ -720,9 +729,9 @@ subtest 'Chains (D14, D23)' => sub {
     my $clean = $trim | $loud;
     isa_ok $clean, [$class], 'a chain of stages is a pipeline';
     is [$clean->(' a ', 'b ')], [qw(A B)], 'called as one';
-    is from_arrayref([' a', 'b ']) | $clean | keep_all, [qw(A B)],
+    is from_array(' a', 'b ') | $clean | keep_all, [qw(A B)],
         'and spliced into a chain';
-    is [@{ from_arrayref([1, 2]) | stage { $_ * 2 } }], [2, 4],
+    is [@{ from_array(1, 2) | stage { $_ * 2 } }], [2, 4],
         '@{} drains a chain';
 
     my $counted = $clean | count_items;
@@ -736,11 +745,11 @@ subtest 'Chains (D14, D23)' => sub {
 
     {
         no Ekorn::Pipeline::Operators;
-        like dies { my $x = from_arrayref([1]) | $loud },
+        like dies { my $x = from_array(1) | $loud },
             qr( \A Expected\ use\ Ekorn::Pipeline::Operators\ in\ scope )x,
             '| croaks where Operators is not in force (Q23)';
     }
-    is [@{ from_arrayref([1]) | $loud }], [1], 'and works again where it is';
+    is [@{ from_array(1) | $loud }], [1], 'and works again where it is';
 };
 
 subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>

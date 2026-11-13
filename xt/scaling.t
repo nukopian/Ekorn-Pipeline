@@ -6,7 +6,7 @@ use Time::HiRes qw(time);
 
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Gather  qw(gather);
-use Ekorn::Pipeline::Sources qw(from_arrayref);
+use Ekorn::Pipeline::Sources qw(from_array);
 use Ekorn::Pipeline::Source  qw();
 
 # A run's time grows in proportion to its values, where a flush puts many
@@ -46,7 +46,7 @@ my %runs = (
     },
     pulled => sub ($n) {
         my @out = $class->new(hold_all, sub { $_ })
-            ->iterator(from_arrayref([1 .. $n]))
+            ->iterator(from_array(1 .. $n))
             ->all;
     },
 );

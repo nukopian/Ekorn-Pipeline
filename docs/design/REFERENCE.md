@@ -201,7 +201,7 @@ on other objects then.
 ## Words: Ekorn::Pipeline::Factories
 
 ```perl
-use Ekorn::Pipeline::Factories qw(pipeline stage gather source sink);
+use Ekorn::Pipeline::Factories qw(pipeline stage gather source sink_one sink_many);
 ```
 
 The words make the types, from what you write. Each is a short form of
@@ -374,11 +374,8 @@ default. Each returns a Source.
 | Source | Gives | Its end |
 |---|---|---|
 | `from_array(@values)` | the values given | none |
-| `from_arrayref(\@array)` | an array's values, read as they're asked for, not copied | none |
 | `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | none: you opened it, so you close it |
 | `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each without the separator, as `chomp` removes it | closes the file, however the run ends |
-| `from_hash(%hash)` | the keys and values given, as pairs: two-element arrays, `[$key, $value]` | none |
-| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as they're asked for, not copied | none |
 | `counter($start, $step)` | `$start`, then on by `$step`, without end: give it a `take` | none |
 
 ```perl

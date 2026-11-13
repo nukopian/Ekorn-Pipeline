@@ -60,9 +60,9 @@ ended: `noisy`, a source, and `noisy_count`, a sink.
 ```perl
 use v5.36;
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Factories qw(stage source sink sink_one gather);
+use Ekorn::Pipeline::Factories qw(stage source sink_one sink_many gather);
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Sources qw(from_arrayref from_file);
+use Ekorn::Pipeline::Sources qw(from_array from_file);
 use Ekorn::Pipeline::Sinks   qw(keep_all count_items keep_first to_file);
 use Ekorn::Pipeline::Stages::Flow;    # take and drop
 use File::Temp qw(tempdir);
@@ -118,7 +118,7 @@ my $blur = Ekorn::Pipeline->new(sub { $_->{artist} eq 'Blur' ? $_ : () }, sub { 
 
 say join ', ', $blur->(@tracks);    # Girls & Boys, Parklife, Country House
 
-my $next = $blur->iterator(from_arrayref(\@tracks));
+my $next = $blur->iterator(from_array(@tracks));
 say $next->();                      # Girls & Boys
 ```
 
@@ -146,7 +146,7 @@ source was told `stopped`. With the operators in force, `|` draws the
 same thing left to right:
 
 ```perl
-say from_arrayref(\@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count_items;    # 3
+say from_array(@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count_items;    # 3
 ```
 
 ## 4. Architecture
@@ -201,7 +201,7 @@ role Ekorn's can (section 4.2).
 | `Ekorn::Pipeline::Source` | 1 | a source made for each run, from a set-up |
 | `Ekorn::Pipeline::Sink`, `::Sink::One`, `::Sink::Many` | 1 | a sink made for each run, from a set-up, giving one value or a list |
 | `Ekorn::Pipeline::Factories` | 1 | the words: `stage`, `source`, `sink_one`, `sink_many`, `gather` |
-| `Ekorn::Pipeline::Sources` | 2 | `from_arrayref`, `from_file` |
+| `Ekorn::Pipeline::Sources` | 2 | `from_array`, `from_file` |
 | `Ekorn::Pipeline::Sinks` | 2 | `keep_all`, `keep_first`, `keep_single`, `count_items`; `to_file` |
 | `Ekorn::Pipeline::Operators` | 3 | `\|` and `@{}`, in force lexically; `chain` and `drain`, for a package's own source class |
 | `Ekorn::Pipeline::Stages::Flow`, `::Batch`, `::Taps` | parts | `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_while`, `drop_while`; `batch`, `collect`; `peek`, `count_into`, `dump_to` |
@@ -524,8 +524,8 @@ number of times, even at once:
 
 ```perl
 my $counted = Ekorn::Pipeline->new(sub { $_ * 10 }, count_items);
-my $one = $counted->iterator(from_arrayref([1, 2, 3]));
-my $two = $counted->iterator(from_arrayref([4, 5]));
+my $one = $counted->iterator(from_array(1, 2, 3));
+my $two = $counted->iterator(from_array(4, 5));
 say $two->(), ' ', $one->();    # 2 3
 ```
 
@@ -567,8 +567,8 @@ decides it from `$source_done` (section 5.3), and `$end_run` makes it
 `stopped` if it dropped values:
 
 ```perl
-my $all  = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_arrayref(\@tracks));
-my $some = Ekorn::Pipeline->new(sub { $_->{title} }, take(2))->iterator(from_arrayref(\@tracks));
+my $all  = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_array(@tracks));
+my $some = Ekorn::Pipeline->new(sub { $_->{title} }, take(2))->iterator(from_array(@tracks));
 my @all  = map { $all->() } 1 .. 7;
 my @some = map { $some->() } 1 .. 3;
 say $all->ended, ' ', $some->ended;    # done stopped
@@ -640,7 +640,7 @@ be ended:
 ```perl
 say count_items->(1, 2, 3);                      # 3
 say join ', ', keep_all->(qw(a b));       # a, b
-eval { from_arrayref([1])->() };
+eval { from_array(1)->() };
 print $@ =~ s( \ at\ \S+\ line\ \d+ )( at LINE)xr;
 # Expected a source to be read through iterator at LINE.
 ```
@@ -660,7 +660,7 @@ say join ' ', map {"[@$_]"} Ekorn::Pipeline->new(batch(2))->(1 .. 5);    # [1 2]
 
 | Source | Gives |
 |---|---|
-| `from_arrayref(\@array)` | the array's values, from the first, each run |
+| `from_array(@array)` | the array's values, from the first, each run |
 | `from_file($path)` | the file's records, as `$/` divides them, with `$/` taken off; the file is opened as the run starts, and closed as it ends |
 
 ```perl
@@ -715,13 +715,13 @@ gives Ekorn's sources `|` and `@{}`, and its stages, gathers and sinks
 | `@{ $source }` | every value the source gives, as an array, read through by `drain`, a run of its own each use (D52) |
 
 ```perl
-my $titles = from_arrayref(\@tracks) | stage { $_->{title} };
+my $titles = from_array(@tracks) | stage { $_->{title} };
 say $titles | count_items;                                        # 6
 say join ', ', @{ $titles | take(2) | keep_all };          # Dancing Queen, Knowing Me, Knowing You
 
 my $clean = stage { s( \A \s+ | \s+ \z )()xgr } | stage {uc};
 say join ',', $clean->(' a ', 'b ');                        # A,B
-say join ',', @{ from_arrayref([' c']) | $clean };          # C
+say join ',', @{ from_array(' c') | $clean };          # C
 ```
 
 In the first `@{...}`, the braces are Perl's own, dereferencing the
@@ -744,7 +744,7 @@ than `.` and `+`, so put a chain inside a larger expression in
 parentheses:
 
 ```perl
-say 'Blur: ' . (from_arrayref(\@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count_items);    # Blur: 3
+say 'Blur: ' . (from_array(@tracks) | stage { $_->{artist} eq 'Blur' ? $_ : () } | count_items);    # Blur: 3
 ```
 
 `chain($left, $right, $swapped)` and `drain($source)` are what `|` and
@@ -1079,7 +1079,7 @@ Status: **built** as the design says; **built, differs**, with how;
 | 6.2 | the words, `sink_many` for a sink of many and `sink_one` for a sink of one (D47, D64) | built, differs: no `pipeline` in Factories |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
-| 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`; dropped by D67: `unfold`, `cycle`, `concat`, `interleave` |
+| 8.2 | sources | built: `from_array`, `from_file`. Not built: `from_fh`, `counter`; dropped by D68: `from_arrayref`, `from_hash`, `from_hashref`; dropped by D67: `unfold`, `cycle`, `concat`, `interleave` |
 | 8.3 | sinks, in two families (D50, D53, D54, D55, D56, D57) | built: `keep_all`, `keep($n)`, `keep_first`, `keep_last`, `keep_single`, `count_items`, `to_file`. Not built: `to_fh`; set aside by D66: `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each` |
 | 9 | chains from a source or a stage (D14, D23); a sink of many at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |

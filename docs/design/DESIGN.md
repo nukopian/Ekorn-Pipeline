@@ -185,7 +185,7 @@ How they relate:
 
   ```perl
   my $artists = Ekorn::Pipeline->new(stage { $_->{artist} }, keep_all)
-      ->iterator(from_arrayref(\@tracks));
+      ->iterator(from_array(@tracks));
   my $next = Ekorn::Pipeline->new(take(2))->iterator($artists);
   ```
 
@@ -597,16 +597,13 @@ Using only what comes with Perl. Nothing exported by default.
 | Source | Gives | Its end |
 |---|---|---|
 | `from_array(@values)` | the values given | none |
-| `from_arrayref(\@array)` | an array's values, read as asked for | none |
 | `from_fh($fh)` | a filehandle's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | none: you opened it |
 | `from_file($path)` | a file's records, as `$/` divides them: its lines, unless `$/` is changed; each chomped | closes the file, however the run ends |
-| `from_hash(%hash)` | the keys and values given, as pairs | none |
-| `from_hashref(\%hash)` | a hash's keys and values, as pairs, read as asked for | none |
 | `counter($start, $step)` | 1, 2, 3 and on, without end | none |
 
-Each `from_` source says what it takes: a list or a reference, of an
-array or a hash, a filehandle or a file. A pair is a two-element array,
-`[$key, $value]`, in the order Perl gives the hash's keys.
+Each `from_` source says what it takes: a list, a filehandle or a
+file. A hash's pairs are `from_array(map { [$_, $hash{$_}] } keys %hash)`
+(D68).
 
 ### 8.3 Sinks: Ekorn::Pipeline::Sinks (2026-0017)
 
@@ -1411,10 +1408,10 @@ Weighed and set aside:
 
 ### 17.12 Ready-made parts are named not to clash
 
-The sources are named for what they take, `from_array`,
-`from_arrayref`, `from_hash`, `from_hashref`, `from_fh` and
-`from_file`, so a reader knows from the call whether a list, a
-reference, a filehandle or a path goes in, and the family reads as
+The sources are named for what they take, `from_array`, `from_fh` and
+`from_file` (`from_arrayref`, `from_hash` and `from_hashref` dropped by
+D68), so a reader knows from the call whether a list, a filehandle or
+a path goes in, and the family reads as
 one. The `to_` sinks, `to_fh` and `to_file`, are their counterparts
 for a filehandle and a file, named for where the values go, so a value
 read with one is written with the other. The other
@@ -1988,6 +1985,17 @@ a use asks for it.
 `concat` and `interleave` are dropped from the sources. None was
 built. The design keeps the `from_` sources and `counter`. Any of the
 four can come back as an item of its own, when a use asks for it.
+
+### 17.37 One source for a list
+
+(Section 8.2; Iain, 2026-11-13, 2026-0022's D68.) `from_arrayref`,
+`from_hash` and `from_hashref` are dropped. `from_array(@values)`
+gives the values given, so `from_array(@$array)` does what
+`from_arrayref` did, but for an array changed while it's read, and a
+hash's pairs are `from_array(map { [$_, $hash{$_}] } keys %hash)`.
+`from_arrayref` was built, and is replaced by `from_array`, now built;
+`from_hash` and `from_hashref` weren't. A package may make its own,
+as DBIx::Squirrel may, keeping the source protocol (section 4.4).
 
 ## 18. Where each roadmap item lands
 
