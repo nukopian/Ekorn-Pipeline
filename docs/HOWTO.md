@@ -2241,21 +2241,31 @@ take it out before the code goes live.
 ### How fast is it?
 
 Slower than plain Perl, and how much depends on how much each stage
-does. Through two trivial stages, a filter and a multiplication, a
-pipeline runs at about 800,000 values a second on a recent laptop,
-about thirty times slower than the same work with `map` and `grep`.
-Pulling through an iterator costs about the same as pushing.
+does, and on how the pipeline is run. Through two trivial stages, a
+filter and a multiplication, on a recent laptop:
+
+- **pushed,** a pipeline runs about 2.3 million values a second, about
+  twelve times slower than the same work with `map` and `grep`;
+- **pulled** through an iterator, about a million a second, about
+  thirty times slower, as each value handed out is a call of its own.
+
+A push through plain subs takes a fast path, a plain loop with none of
+the machinery for flushes, ends and sinks. A run with a part made for
+it, such as a `gather`, a sink, or `take`, which is made with `gather`,
+takes the full path, which costs about twice as much per value, and
+some 20 microseconds to set up each run.
 
 That sounds a lot, and for a tight loop over numbers in memory, it is:
-use `map` and `grep` there. But each value costs around a microsecond,
-and most pipelines spend far longer than that on the value itself:
-reading a line, fetching a row, calling a service. Against a database
-row, the pipeline's share is lost in the noise. And a pipeline that
-stops early does less work than code that can't: `take(10)` over a
-million rows reads ten.
+use `map` and `grep` there. But each value costs well under a
+microsecond, and most pipelines spend far longer than that on the
+value itself: reading a line, fetching a row, calling a service.
+Against a database row, the pipeline's share is lost in the noise. And
+a pipeline that stops early does less work than code that can't:
+`take(10)` over a million rows reads ten.
 
-This version hasn't been optimised yet, so the figures describe it as
-it is, not a limit of the design.
+Only the commonest case, a push through plain subs, has been optimised
+so far, so the other figures describe the code as it is, not a limit
+of the design.
 
 ### How much memory does it use?
 

@@ -1,6 +1,6 @@
 # 2026-0028. Fast paths
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** None.
 
@@ -77,4 +77,64 @@ stays at its floors, and the benchmarks show the gains, kept here.
 
 ## What happened
 
-Nothing yet.
+Done on 2026-11-13, but for the empty pipeline pulled. The suite
+passed unchanged at each step, on 5.36, 5.38 and 5.44, the user
+guide's 95 examples printed the same before and after, and coverage
+stayed at its floors.
+
+Measured with the same benchmark, in Perl's Benchmark, on 5.36, over
+1,000 values unless said, before and after:
+
+| Run | Before | After | |
+|---|---|---|---|
+| a call of three values through one stage, 1,000 times | 41/s | 487/s | 11.9 times |
+| push through one stage | 774/s | 2,726/s | 3.5 times |
+| push through two stages | 805/s | 2,169/s | 2.7 times |
+| push through a gather | 773/s | 1,153/s | 1.5 times |
+| push through a stage and `take(500)` | 1,157/s | 1,654/s | 1.4 times |
+| pull through one stage, with `all` | 800/s | 926/s | 1.2 times |
+| pull through one stage, one at a time | 781/s | 895/s | 1.1 times |
+| pull through an empty pipeline, with `all` | 1,778/s | 1,708/s | the same |
+| push through an empty pipeline | 42,997/s | 40,325/s | the same, as its path didn't change |
+
+The user guide's comparison, a filter and a multiplication over 10,000
+values, pushed, went from about thirty times slower than `map` and
+`grep` to about twelve; pulled, it's still about thirty. The guide's
+"How fast is it?" says so.
+
+- **A run of plain steps.** `new` keeps the steps of a pipeline whose
+  stages are all Stages of Ekorn's own class, not a subclass, which
+  could give more than a step, and a push through them runs
+  `_push_steps`, a plain loop. Stages made for a run, gathers, sinks
+  and other packages' parts, and so `take` and the other canned stages
+  made with `gather`, take the full path. A stage that dies is named
+  by `_label`, which the full path now shares.
+- **One `try` for a stretch of values.** The plain loop first had a
+  `try` for each value, which a measurement put at about 0.07 µs a
+  time; hoisted, it's entered again only after a stop, which took a
+  push through one stage from 2.6 to 3.5 times.
+- **The full path:** a push hands over its values in one call, and is
+  read with `all`; `$wait` isn't called with nothing to put on the
+  queue; the next flush is found from a list of the stages that have
+  one; and `run_context` isn't made local for each value where it's
+  undefined, inside and out, about 5 to 7% on its own. A first
+  measurement of that last showed no gain, because the edit hadn't
+  been made, a command having stopped before it; made, it showed one.
+- **`t/22-fast-paths.t`** runs each case both ways, the plain loop with
+  the full path made to die, and the full path forced by a gather that
+  passes values on, and expects the same: values, stops, a stop that
+  isn't an array, errors with their places and names, exception
+  objects, no context or `ending` in a pushed run, the count, and a
+  pipeline calling itself.
+
+**Not done: an empty pipeline pulled.** A profile of a pull showed its
+cost is in each call of the iterator: leaving the call, with its
+`local`s and lexicals, and a `try` around each pull. A fast path would
+be a second iterator, keeping the stops, the source's end and context,
+`finish`, `ended` and the rest, for a pipeline with no stages, which is
+rare in use. Left until a use asks for it.
+
+**What's left:** the full path's set-up, about 20 µs a run, which a
+run with a gather or a sink still pays, and its cost on each value,
+about twice the plain loop's. A pull is a call for each value, so it
+can't take the plain loop.

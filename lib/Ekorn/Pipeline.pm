@@ -119,6 +119,13 @@ sub new ($class, @given) {
     # In scalar context, a run gives a scalar sink's result, a list
     # sink's list as an array reference, or how many values came out.
     my $sink = @stages ? is_sink($stages[-1]) : !!0;
+    # Where every stage is a plain step, a Stage of Ekorn's own, with no
+    # flush, end or sink, and nothing made for a run, a push runs the
+    # steps in a plain loop, with none of a run's machinery.
+    my @steps
+        = (grep { ref ne 'Ekorn::Pipeline::Stage' } @stages)
+        ? ()
+        : map { $_->{call} } @stages;
     # The pipeline, for its name in messages, held weakly, so the closure
     # it's called as never keeps it.
     my $self;
@@ -128,12 +135,13 @@ sub new ($class, @given) {
         within => \@within,
         call   => sub (@values) {
             return @values unless @stages;
-            my $next = _iterator(
-                $self, \@stages, \@names, \@within,
-                sub { @values ? shift @values : () },
-            );
-            my @results;
-            while (my($result) = $next->()) { push @results, $result }
+            my @results
+                = @steps
+                ? _push_steps($self, \@steps, \@names, \@within, @values)
+                : _iterator(
+                    $self, \@stages, \@names, \@within,
+                    sub { splice @values },
+                )->all;
             return @results    if wantarray;
             return $results[0] if $sink && $sink eq 'one';
             return \@results   if $sink;
@@ -313,6 +321,70 @@ sub _code_or_none (@things) {
 }
 
 
+# Return how a stage is named in a message: by its place, $name, and, if
+# it's within a named pipeline, the innermost, by its name and its place
+# in it, from the pipelines in @$within it came from, and $pipeline, the
+# one being run.
+sub _label ($pipeline, $name, $within) {
+    for my $in (reverse [$pipeline, $name], @$within) {
+        my($outer, $place) = @$in;
+        my $outer_name = $outer->name;
+        return "stage #$name ($outer_name#$place)" if defined $outer_name;
+    }
+    return "stage #$name";
+}
+
+
+# Return the results of pushing @values through @$steps, each a plain
+# step, as a run of them would give them, without a run's machinery: each
+# value through every step before the next, what a step returns going on
+# in order, a stop's values going on from the step after it, with
+# nothing else, and a step that dies named as a run names it.
+sub _push_steps ($pipeline, $steps, $names, $within, @values) {
+    # A pushed run has no context, and gives no values from a flush.
+    local $running{context} = undef;
+    local $running{ending}  = undef;
+    my(@results, @todo, $n);
+    my($at, $more) = (0, 1);
+    # One try for as many values as go through without a stop, which is
+    # caught, and the values it carries go on from the step after it.
+    while ($more) {
+        try {
+        VALUE:
+            while (1) {
+                my $value;
+                if    (@todo)         { ($n, $value) = @{ pop @todo } }
+                elsif ($at < @values) { ($n, $value) = (0, $values[$at++]) }
+                else                  { $more = 0; last VALUE }
+                while ($n < @$steps) {
+                    local $_ = $value;
+                    my @values = $steps->[$n]->($value);
+                    $n++;
+                    next VALUE unless @values;
+                    $value = shift @values;
+                    push @todo, map { [$n, $_] } reverse @values if @values;
+                }
+                push @results, $value;
+            }
+        }
+        catch ($e) {
+            if ($e isa 'Ekorn::Pipeline::Stop') {
+                my(undef, @carried) = is_arrayref($e) ? @$e : ();
+                ($at, @todo) = (scalar @values);
+                push @todo, map { [$n + 1, $_] } reverse @carried;
+                next;
+            }
+            croak $e if is_ref($e);
+            my $where   = Carp::shortmess() =~ s( \.? \n \z )()xr;
+            my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
+            my $stage   = _label($pipeline, $names->[$n], $within->[$n]);
+            die "Pipeline $stage failed$where:\n$message\n";
+        }
+    }
+    return @results;
+}
+
+
 # Return the text of an end's error: a stop's own text, "Stop used
 # outside a pipeline", would mislead, as the stop was in a run.
 sub _end_error ($error) {
@@ -445,13 +517,7 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
     # A stage named in a message: by its place, and, if it's within a named
     # pipeline, the innermost, by its name and its place in it.
     my $label = sub ($n) {
-        my @in = ([$pipeline, $run{names}[$n]], @{ $run{within}[$n] });
-        for my $in (reverse @in) {
-            my($outer, $place) = @$in;
-            my $name = $outer->name;
-            return "stage #$run{names}[$n] ($name#$place)" if defined $name;
-        }
-        return "stage #$run{names}[$n]";
+        return _label($pipeline, $run{names}[$n], $run{within}[$n]);
     };
     my($pull, $source_end, $context);
     try {
@@ -477,6 +543,9 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
     my @flushes = @{ $run{flushes} };
     my @ends    = @{ $run{ends} };
     my @sinks   = @{ $run{sinks} };
+    # The places of the stages with a flush, so finding the next needn't
+    # look at every stage.
+    my @flush_at = grep { $flushes[$_] } 0 .. $#stages;
     # Each value waiting to go through a stage, as the stage's index, the
     # value, and whether it came from a flush, the next on top. A value a
     # stage returns on its own, as most are, carries on through the stages
@@ -537,8 +606,10 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
     };
     # The index of the next flush to call, if any.
     my $flush_at = sub () {
-        my($n) = grep { $flushes[$_] && !$flushed{$_} } $next_flush .. $#stages;
-        return $n;
+        for my $n (@flush_at) {
+            return $n if $n >= $next_flush && !$flushed{$n};
+        }
+        return;
     };
     # Every part from the next flush up to $upto has had all its input.
     my $input_ran_out = sub ($upto) {
@@ -618,10 +689,12 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
                 $end_if_ended->() if $done;
                 return $value;
             }
-            # Set only when it changes, as most values come from the source.
+            # Set only when it changes, as most values come from the source,
+            # and most runs, and the code running them, have no context.
             local $running{ending} = $from_flush
                 if $from_flush || $running{ending};
-            local $running{context} = $context;
+            local $running{context} = $context
+                if defined $context || defined $running{context};
             my $kept = 1;
             try {
                 if ($flush) {
@@ -630,7 +703,7 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
                     $n++;
                     $kept  = @values;
                     $value = shift @values;
-                    $wait->($n, 1, @values);
+                    $wait->($n, 1, @values) if @values;
                 }
                 while ($kept && $n < @stages) {
                     local $_ = $value;
@@ -645,7 +718,7 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
                         last;
                     }
                     $value = shift @values;
-                    $wait->($n, $from_flush, @values);
+                    $wait->($n, $from_flush, @values) if @values;
                 }
             }
             catch ($e) {

@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0028. Fast paths
-
-**Size:** M (3)
-
-A run of plain stages pays for the machinery of flushes, ends and
-sinks it doesn't have: about 20 µs to set up each run, so a call with
-three values is about 175 times slower than `map`, and a pull through
-an empty pipeline about twenty times slower than a push. Fast paths
-where they make sense: a run of plain steps, an empty pipeline pulled,
-a push handing its values over at once, and the small costs on each
-value. See its [record](docs/changes/2026-0028-fast-paths.md).
+Nothing yet.
 
 ## Next
 
