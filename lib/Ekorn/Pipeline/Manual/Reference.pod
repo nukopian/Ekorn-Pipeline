@@ -1571,6 +1571,21 @@ its arguments when it's called, not on each value, and croaks at the
 caller's line if they're wrong. Those that keep state or hold values
 are made with C<gather>, so they start afresh on each run.
 
+Each stage is an object, an Ekorn::Pipeline::Stage or, for those made
+with C<gather>, an Ekorn::Pipeline::Gather, called as a code reference,
+so it goes wherever a stage goes (see
+L<Stages and elements|/"Stages and elements">). Code testing one with
+C<ref> or C<is_coderef> sees an object: v0.2.0 gave code references.
+
+Each C<keep> sink but C<keep_all> has a C<take> stage that passes on what
+the sink would give as its result, so the stages after it can go on:
+C<take($n)> is C<keep($n)>'s, and C<take_first>, C<take_last> and
+C<take_single> are C<keep_first>'s, C<keep_last>'s and C<keep_single>'s.
+C<keep_all>'s would pass every value on: no stage at all. A pipeline
+ending in a C<take> stage, where its sink was forgotten, gives the
+values in list context, and how many in scalar context, never a wrong
+one.
+
 =over 4
 
 =item C<take($count)>
@@ -1717,7 +1732,8 @@ number.
 
     take_first
 
-Passes on the first value, then stops the pipeline: C<take(1)>.
+Passes on the first value, then stops the pipeline: C<take(1)>, named
+as the stage of the sink C<keep_first>.
 
 =head3 take_last
 

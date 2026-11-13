@@ -8,6 +8,7 @@ use Ref::Util qw(is_coderef);
 
 use Ekorn::Pipeline::Errors qw(croakf);
 use Ekorn::Pipeline::Gather qw(gather);
+use Ekorn::Pipeline::Stage  qw();
 use Ekorn::Pipeline::Stop   qw();
 
 use namespace::clean -except => 'import';
@@ -61,8 +62,8 @@ sub take_last : prototype() () {
     return gather {
         my @kept;
         my $stage = sub ($value) { @kept = ($value); return };
-        my $end   = sub () { splice @kept };
-        return ($stage, $end);
+        my $flush = sub () { splice @kept };
+        return ($stage, $flush);
     };
 }
 
@@ -85,10 +86,10 @@ sub take_single : prototype() () {
 # and stopping the pipeline at the first it's false of.
 sub take_while : prototype(&) ($test) {
     croakf 'Expected a code reference' unless is_coderef($test);
-    return sub ($value) {
+    return Ekorn::Pipeline::Stage->new(sub ($value) {
         return $value if $test->($value);
         Ekorn::Pipeline::Stop->throw;
-    };
+    });
 }
 
 # Return a stage dropping values while the test given is true of them,
@@ -140,6 +141,11 @@ Stages that decide which values go on, by their position or by a
 test, whatever the values are. Each function returns a stage. It
 checks its arguments when it's called, not on each value.
 
+Each stage is an object, an L<Ekorn::Pipeline::Stage> or, for those
+that keep state, an L<Ekorn::Pipeline::Gather>, called as a code
+reference, so it goes wherever a stage goes. Code testing it with
+C<ref> or C<is_coderef> sees an object: v0.2.0 gave code references.
+
 C<take>, C<drop>, C<take_last>, C<take_single> and C<drop_while> keep
 state, so they're made with
 L<Ekorn::Pipeline::Gather> and start afresh on each run. A run is a
@@ -182,16 +188,24 @@ C<take>, it gives a page:
     take_first
 
 Passes on the first value, then stops the pipeline: C<take(1)>, named
-as the stage the sink C<keep_first> gives the result of.
+as the stage of the sink C<keep_first>.
 
 =head2 take_last
 
     take_last
 
 Passes on the last value, once there are no more, reading every one to
-find it; nothing if there were none. Each C<take_...> stage passes on
-what the C<keep_...> sink of the same name gives as its result, so the
-stages after it can go on.
+find it; nothing if there were none. If a stage before it stops the
+pipeline, it passes on the last value to reach it.
+
+Each C<take_...> stage passes on what the C<keep_...> sink of the same
+name, in L<Ekorn::Pipeline::Sinks>, gives as its result, so the stages
+after it can go on: C<take($n)> is C<keep($n)>'s, and C<take_first>,
+C<take_last> and C<take_single> are C<keep_first>'s, C<keep_last>'s
+and C<keep_single>'s. C<keep_all> has none, as its stage would pass
+every value on, and be no stage at all. A pipeline ending in a C<take>
+stage, where its sink was forgotten, gives the values in list context,
+and how many in scalar context, never a wrong one.
 
 =head2 take_single
 
