@@ -1,6 +1,6 @@
 # 2026-0018. Operators: `|`, `|=` and `@{}`
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** None of its own: the design's section 9 (2026-0022's
 D14, D18, D23, D32, D51 and D52) settles it.
@@ -12,6 +12,8 @@ on 2026-11-13 (2026-0022)
 **Depends on:** 2026-0016 and 2026-0017, shipped unreleased
 
 **Started:** 2026-11-13
+
+**Finished:** 2026-11-13
 
 ## Background
 
@@ -44,4 +46,19 @@ Changes.
 
 ## What happened
 
-Nothing yet.
+**Shipped, 2026-11-13,** on `pipeline-experimental`, for v0.3.0
+(2026-0025), as planned. Against Done when: the module, its POD, tests
+and docs are in, and `scripts/coverage` passes, every floor met
+across `lib/`, for the first time on `pipeline-experimental`.
+
+- `t/20-operators.t` tests what the proofs don't: `chain` and `drain`
+  called as functions, `|=`, an object that's neither a source nor a
+  stage on the left, and `|` out of scope, with `no` and with no hints
+  at all. `_is_source`'s test that its argument is blessed went, as
+  it's only ever given one that is.
+- The module's POD is written in full, saying loudly never to start a
+  chain with a plain code reference. The reference gains Operators,
+  from the draft, and `|` for your sources in Delivering parts; the
+  how-to gains a part, "Chaining with |", from the draft, and the
+  recipe for delivering parts its point on `|`. Each example was
+  run.

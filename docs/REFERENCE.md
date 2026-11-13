@@ -38,6 +38,7 @@ says what each release changed.
 - [Canned stages](#canned-stages)
 - [Sources: Ekorn::Pipeline::Sources](#sources-ekornpipelinesources)
 - [Sinks: Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks)
+- [Operators: Ekorn::Pipeline::Operators](#operators-ekornpipelineoperators)
 - [Errors: Ekorn::Pipeline::Errors](#errors-ekornpipelineerrors)
 - [Writing stages](#writing-stages)
 - [Writing functions that take stages](#writing-functions-that-take-stages)
@@ -1664,6 +1665,106 @@ write %s: %s" if it can't, as both do if they can't write, and
 `to_file` if it can't close the file. Each sink taking no arguments has
 an empty prototype, so `count_items + 0` reads as `count_items() + 0`.
 
+## Operators: Ekorn::Pipeline::Operators
+
+```perl
+use Ekorn::Pipeline::Operators;
+```
+
+It puts `|`, `|=` and `@{}` in force for Ekorn's sources, stages,
+gathers and chains, for the rest of the scope it's used in; `no
+Ekorn::Pipeline::Operators` takes them out again. Written where
+they're not in force, they croak: "Expected use
+Ekorn::Pipeline::Operators in scope". They're new in v0.3.0, and a
+shorthand for the commonest shapes, not the whole of Ekorn: a pipeline made with `new` can have stages after a
+sink, give a list as a list, and, pulled with `iterator`, be a source
+that gives a sink's result, none of which a chain can.
+
+| Written | Gives |
+|---|---|
+| `$stage \| $stage` | a chain of both stages: a pipeline, which `\|` can extend, and which goes wherever a pipeline does |
+| `$source \| $stage` | a source: the source's values, through the stage |
+| `$source \| ... \| $sink` | the sink's result, at once, not a source; for a source of the result, use `iterator` |
+| `$chain \|= $stage` | a new chain with the stage added, put in the variable |
+| `@{ $source }` | every value the source gives, read through anew each time (see [`@{}`](#-reads-a-source-through)) |
+
+**A chain starts with one of the types,** a source or a stage made
+with a word, or ready-made. What follows can be anything that goes
+where a stage goes, a plain code reference or a package's own part.
+Started with a plain code reference, `sub { ... } | sub { ... }` is
+Perl's bitwise OR of two addresses: a meaningless number, with no
+error. So start a chain with `stage { uc }`, never `sub { uc }`. A
+pipeline made with `new` has no operators.
+
+A package's own source class chains as Ekorn's do by overloading `|`
+with `Ekorn::Pipeline::Operators::chain`, and `@{}` with
+`Ekorn::Pipeline::Operators::drain` (see
+[Delivering parts for Ekorn](#delivering-parts-for-ekorn)).
+
+`|` binds more loosely than `.` and `+`, so put a chain inside a larger
+expression in parentheses.
+
+An operator gives one scalar, so a chain ending in a sink gives one
+value: the result of a sink of one, such as `count_items`, or the
+list of a sink of many, such as `keep_all`, as an array reference.
+Nothing can be chained after a sink: a chain ending in one has already run, and gives its result.
+
+```perl
+my $n      = $source | count_items;          # a number
+my $titles = $source | keep_all;             # an array reference
+my @titles = @{ $source | keep_all };        # a list
+```
+
+As `|` gives one value, a list assignment from a chain gets one
+element: `my @titles = $source | keep_all` is the array reference
+alone. Dereference it, as above.
+
+Keep a chain's result, even one run for what its sink does:
+`my $copied = $source | to_file($path)`. Written as a statement of its
+own, the chain runs, but Perl warns "Useless use of numeric bitwise or
+(|) in void context", as it compiles the line, which Ekorn can't stop.
+
+### `@{}` reads a source through
+
+`@{ $source }` gives every value a source gives, with no sink. It looks
+like a dereference, but a source holds no array. Perl lets a class say
+what `@{ $object }` means, with a function returning an array
+reference, which Perl then dereferences. Ekorn's runs the source from
+its start, collects every value into a new array, and returns a
+reference to it. So:
+
+- **Each use is a run of its own,** reading the source to its end.
+  `$source->[0]`, `scalar @$source` and `$#$source` read every value,
+  to give one value, a count or an index; two uses read it twice.
+- **`for (@$source)` reads every value before the loop starts.** Pull
+  from an iterator to take each as it comes.
+- **An iterator is one run,** so it's read through once, and croaks
+  the second time: "Expected a source with values still to give".
+- **Only a source has it.** On a stage, or a chain of stages, Perl
+  says "Not an ARRAY reference"; a chain ending in a sink is already
+  its result, so `@{ $source | count_items }` dereferences a number.
+- **`@{ $source | keep_all }` is Perl's own dereference,** of the
+  array reference the sink gave.
+
+What to write, by what's wanted:
+
+| Wanted | Write | Rather than |
+|---|---|---|
+| every value, as a reference | `my $all = $source \| keep_all` | `my @all = $source \| keep_all`, one element |
+| every value, as a list | `my @all = @{ $source \| keep_all }`, or `@{$source}` | |
+| the first value | `$source \| keep_first`, reading one | `$source->[0]`, reading them all |
+| how many | `$source \| count_items` | `scalar @$source`, keeping every value to count them |
+| the first few | `$source \| take(5) \| keep_all` | `(@$source)[0 .. 4]`, reading them all |
+| every value, added to your array | `push @mine, @{ $source \| keep_all }` | |
+| each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |
+
+```perl
+my @all   = @{$source};                                      # every value
+my $first = $source | keep_first;                            # the first, reading only one
+my $next  = Ekorn::Pipeline->new->iterator($source);
+while (my ($value) = $next->()) { say $value }               # each, as it comes
+```
+
 ## Errors: Ekorn::Pipeline::Errors
 
 ### When a stage dies
@@ -1974,6 +2075,21 @@ sub pluck ($name) {
 }
 ```
 
+### `|` for your sources
+
+To let your users start a chain with your source, overload `|`, and
+`@{}`, with Ekorn's own functions. Load Operators with an empty import
+list, which defines them without putting the operators in force in
+your own scope; without loading it, `|` dies with "Undefined
+subroutine" until something else does:
+
+```perl
+use Ekorn::Pipeline::Operators ();
+use overload
+    '|'   => \&Ekorn::Pipeline::Operators::chain,
+    '@{}' => \&Ekorn::Pipeline::Operators::drain;
+```
+
 ### Functions that take stages
 
 A function of yours that runs its own values through its caller's
@@ -2078,6 +2194,16 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 - **Expected yield to be called inside a generator:** `yield` was
   called with no generator's block running.
 
+### Ekorn::Pipeline::Operators
+
+- **Expected use Ekorn::Pipeline::Operators in scope, for %s:** `|` or
+  `@{}` was used on Ekorn's types where Operators isn't in force.
+- **Expected a source, or a stage made with a word, on the left of
+  |:** a chain started with something else, such as a pipeline made
+  with `new`, or an object of another class.
+- **Expected a stage or a sink on the right of |:** what followed `|`
+  can't go where a stage goes.
+
 ### Ekorn::Pipeline::Sinks
 
 - **Expected a count of 0 or more:** `keep` was given something other
@@ -2158,6 +2284,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | `from_array`, `from_fh`, `from_file`, `counter` | `:all` |
+| `Ekorn::Pipeline::Operators` | nothing: loading it puts the operators in force | `chain` and `drain`, by their full names, for your own overloads | |
 | `Ekorn::Pipeline::Sinks` | nothing | `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file` | `:all` |
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
@@ -2176,6 +2303,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | Module | What it is |
 |---|---|
 | `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline_in`, `named`, `iterator`, `stages`, `is_stage`, `is_sink`, `ending` and `run_context`. |
+| `Ekorn::Pipeline::Operators` | `\|`, `\|=` and `@{}` for Ekorn's types, in force lexically: `chain` and `drain`. |
 | `Ekorn::Pipeline::Sinks` | Ready-made sinks: `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file`. |
 | `Ekorn::Pipeline::Sources` | Ready-made sources: `from_array`, `from_fh`, `from_file`, `counter`. |
 | `Ekorn::Pipeline::Factories` | The words that make Ekorn's types: `pipeline`, `stage`, `gather`, `source`, `generator` and `yield`, `sink_one`, `sink_many`. |

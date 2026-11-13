@@ -26,6 +26,7 @@ It needs Perl 5.36 or later.
 - [Stopping early](#stopping-early)
 - [Gathering values](#gathering-values)
 - [Getting a result from many values](#getting-a-result-from-many-values)
+- [Chaining with |](#chaining-with-)
 - [Watching values go by](#watching-values-go-by)
 - [Writing a function that takes stages](#writing-a-function-that-takes-stages)
 - [Writing stages for others](#writing-stages-for-others)
@@ -772,6 +773,101 @@ pull reads the whole file, and closes it, before the first line comes
 out. Without `keep_all`, `take(2)` would read only two lines. Use a
 sink this way when the reading must finish before what follows starts.
 
+## Chaining with |
+
+### Join a source, stages and a sink with |
+
+With `use Ekorn::Pipeline::Operators` in scope, the types join with
+`|`:
+
+```perl
+use Ekorn::Pipeline::Operators;
+use Ekorn::Pipeline::Factories qw(stage);
+use Ekorn::Pipeline::Sources   qw(from_array);
+use Ekorn::Pipeline::Sinks     qw(keep_all count_items);
+
+my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
+
+say from_array(@tracks) | $blur | count_items;                                   # 3
+my $titles = from_array(@tracks) | $blur | stage { $_->{title} } | keep_all;
+say join ', ', @$titles;                                                       # Girls & Boys, Parklife, Country House
+```
+
+A chain ends in one value, as `|` gives one: `count_items`'s number, or, from
+a sink giving a list, such as `keep_all`, the list as an array
+reference. So `my @titles = ... | keep_all` would get one element,
+the reference; write `my @titles = @{ ... | keep_all }`.
+
+A source and a sink join directly too, so a file is copied with
+`my $copied = from_file('setlist.txt') | to_file('setlist.bak')`. Keep
+the result, even if you don't need it: written as a statement of its
+own, the chain still runs, but Perl warns of a useless `|` in void
+context. A chain ending in a sink gives its result at once, not a
+source: to feed one pipeline's result to another, use `iterator`, as
+above.
+
+**Start a chain with a source, or a stage made with `stage`,** or a
+ready-made one. `sub { ... } | sub { ... }` isn't an error in Perl:
+it's a bitwise OR of two addresses, and gives a meaningless number.
+And `|` binds more loosely than `.`, so put a chain in parentheses
+inside a string: `say 'Blur: ' . (from_array(@tracks) | $blur |
+count_items)`.
+
+### Get every value, or only what you need
+
+End a chain in the sink that says what you want, and it reads only
+what that needs:
+
+```perl
+use Ekorn::Pipeline::Sinks        qw(keep_all count_items keep_first);
+use Ekorn::Pipeline::Stages::Flow qw(take);
+
+my $hits = from_array(@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
+
+my $all = $hits | keep_all;           # an array reference
+say join ', ', @$all;                  # Dancing Queen, Girls & Boys, Sunshine of Your Love
+my @all = @{ $hits | keep_all };      # a list
+say scalar @all;                       # 3
+say $hits | keep_first;                # Dancing Queen
+say $hits | count_items;                     # 3
+say join ', ', @{ $hits | take(2) | keep_all };    # Dancing Queen, Girls & Boys
+
+my @mine = ('Waterloo');
+push @mine, @{ $hits | keep_all };
+say join ', ', @mine;                  # Waterloo, Dancing Queen, Girls & Boys, Sunshine of Your Love
+```
+
+`$hits` is a source, so each chain from it is a run of its own, from
+the first track. `keep_first` stops reading at the first hit, and
+`take(2)` at the second.
+
+To take each value as it comes, pull them from an iterator:
+
+```perl
+my $next = Ekorn::Pipeline->new->iterator($hits);
+while (my ($title) = $next->()) {
+    say "Now playing: $title";         # Now playing: Dancing Queen, and the rest, one at a time
+}
+```
+
+**`@{ $source }` reads a source through, with no sink.** It looks like
+a dereference, but a source holds no array: Operators gives sources
+an `@{}` that runs the source, collects every value into a new array,
+and hands Perl a reference to it to dereference:
+
+```perl
+my @titles = @{$hits};                 # every value, read through, with no sink
+say join ', ', @titles;                # Dancing Queen, Girls & Boys, Sunshine of Your Love
+```
+
+Each use reads the source again, from its start to its end, however
+little you take: `$hits->[0]` reads every track to give the first, and
+`scalar @$hits` keeps every title to count them. `for (@$hits)` reads
+them all before the loop starts. Use `keep_first`, `count_items`, `take` or
+an iterator instead, as above. `@{}` is only for sources; in
+`@{ $hits | keep_all }` the braces are Perl's own, dereferencing the
+array reference `keep_all` gave.
+
 ## Watching values go by
 
 ### Look at each value as it goes by
@@ -1234,7 +1330,9 @@ load Ekorn to say it:
    `Ekorn::Pipeline::run_context()` for what the source gave.
 4. **Functions that take stages,** if you like, finding them with
    `is_stage` and running them with `Ekorn::Pipeline->new(@stages)`.
-5. **Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
+5. **`|` for your sources,** by overloading it with
+   `Ekorn::Pipeline::Operators::chain`, and `@{}` with `drain`.
+6. **Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
    reported at your users' lines.
 
 A table's source, executing its statement for each run:

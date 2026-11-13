@@ -16,13 +16,14 @@ Unreleased
     that consume every value and give a result, committing only when
     the run is done; and gathers with an end as well as a flush, what
     v0.2.0 called the end function; Sources and Sinks have them
-    ready-made.
+    ready-made, and Operators joins them with |.
     An iterator is an object, which
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    It ships eight roadmap items, 2026-0009, 2026-0011, 2026-0013,
-    2026-0014, 2026-0016, 2026-0017, 2026-0021 and 2026-0024. It changes what some code
+    It ships nine roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021 and
+    2026-0024. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -47,6 +48,16 @@ Unreleased
       how many. to_file opens its file for each run, through the I/O
       layers given, if any, and closes it however the run ends.
       (roadmap 2026-0017)
+    - Ekorn::Pipeline::Operators, used in a scope, puts |, |= and @{}
+      in force there for Ekorn's types: $source | $stage | $sink gives
+      the sink's result, $stage | $stage a chain of stages, $source |
+      $stage a source, and @{ $source } every value, read through. A
+      chain starts with a source or a stage made with a word, never a
+      plain code reference, whose | is Perl's bitwise OR. Out of
+      scope, they croak "Expected use Ekorn::Pipeline::Operators in
+      scope, for %s". A package's own source class chains by
+      overloading | and @{} with Operators' chain and drain. (roadmap
+      2026-0018)
     - Changed: a stage that dies within a named pipeline is named with
       it: after its place, the innermost named pipeline and the
       stage's place there, "Pipeline stage #1.2 (main::clean#2)

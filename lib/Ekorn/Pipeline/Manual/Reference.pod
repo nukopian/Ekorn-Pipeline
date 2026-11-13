@@ -87,6 +87,10 @@ L<Sinks: Ekorn::Pipeline::Sinks|/"Sinks: Ekorn::Pipeline::Sinks">
 
 =item *
 
+L<Operators: Ekorn::Pipeline::Operators|/"Operators: Ekorn::Pipeline::Operators">
+
+=item *
+
 L<Errors: Ekorn::Pipeline::Errors|/"Errors: Ekorn::Pipeline::Errors">
 
 =item *
@@ -2030,6 +2034,166 @@ write %s: %s" if it can't, as both do if they can't write, and
 C<to_file> if it can't close the file. Each sink taking no arguments has
 an empty prototype, so C<count_items + 0> reads as C<count_items() + 0>.
 
+=head1 Operators: Ekorn::Pipeline::Operators
+
+    use Ekorn::Pipeline::Operators;
+
+It puts C<|>, C<|=> and C<@{}> in force for Ekorn's sources, stages,
+gathers and chains, for the rest of the scope it's used in; C<no
+Ekorn::Pipeline::Operators> takes them out again. Written where
+they're not in force, they croak: "Expected use
+Ekorn::Pipeline::Operators in scope". They're new in v0.3.0, and a
+shorthand for the commonest shapes, not the whole of Ekorn: a pipeline made with C<new> can have stages after a
+sink, give a list as a list, and, pulled with C<iterator>, be a source
+that gives a sink's result, none of which a chain can.
+
+=over 4
+
+=item C<$stage \| $stage>
+
+a chain of both stages: a pipeline, which C<\|> can extend, and which goes wherever a pipeline does
+
+=item C<$source \| $stage>
+
+a source: the source's values, through the stage
+
+=item C<$source \| ... \| $sink>
+
+the sink's result, at once, not a source; for a source of the result, use C<iterator>
+
+=item C<$chain \|= $stage>
+
+a new chain with the stage added, put in the variable
+
+=item C<@{ $source }>
+
+every value the source gives, read through anew each time (see L<C<@{}>|/"@{} reads a source through">)
+
+=back
+
+B<A chain starts with one of the types,> a source or a stage made
+with a word, or ready-made. What follows can be anything that goes
+where a stage goes, a plain code reference or a package's own part.
+Started with a plain code reference, C<sub { ... } | sub { ... }> is
+Perl's bitwise OR of two addresses: a meaningless number, with no
+error. So start a chain with C<stage { uc }>, never C<sub { uc }>. A
+pipeline made with C<new> has no operators.
+
+A package's own source class chains as Ekorn's do by overloading C<|>
+with C<Ekorn::Pipeline::Operators::chain>, and C<@{}> with
+C<Ekorn::Pipeline::Operators::drain> (see
+L<Delivering parts for Ekorn|/"Delivering parts for Ekorn">).
+
+C<|> binds more loosely than C<.> and C<+>, so put a chain inside a larger
+expression in parentheses.
+
+An operator gives one scalar, so a chain ending in a sink gives one
+value: the result of a sink of one, such as C<count_items>, or the
+list of a sink of many, such as C<keep_all>, as an array reference.
+Nothing can be chained after a sink: a chain ending in one has already run, and gives its result.
+
+    my $n      = $source | count_items;          # a number
+    my $titles = $source | keep_all;             # an array reference
+    my @titles = @{ $source | keep_all };        # a list
+
+As C<|> gives one value, a list assignment from a chain gets one
+element: C<my @titles = $source | keep_all> is the array reference
+alone. Dereference it, as above.
+
+Keep a chain's result, even one run for what its sink does:
+C<my $copied = $source | to_file($path)>. Written as a statement of its
+own, the chain runs, but Perl warns "Useless use of numeric bitwise or
+(|) in void context", as it compiles the line, which Ekorn can't stop.
+
+=head2 C<@{}> reads a source through
+
+C<@{ $source }> gives every value a source gives, with no sink. It looks
+like a dereference, but a source holds no array. Perl lets a class say
+what C<@{ $object }> means, with a function returning an array
+reference, which Perl then dereferences. Ekorn's runs the source from
+its start, collects every value into a new array, and returns a
+reference to it. So:
+
+=over 4
+
+=item *
+
+B<Each use is a run of its own,> reading the source to its end.
+C<< $source->[0] >>, C<scalar @$source> and C<$#$source> read every value,
+to give one value, a count or an index; two uses read it twice.
+
+=item *
+
+**C<for (@$source)> reads every value before the loop starts.** Pull
+from an iterator to take each as it comes.
+
+=item *
+
+B<An iterator is one run,> so it's read through once, and croaks
+the second time: "Expected a source with values still to give".
+
+=item *
+
+B<Only a source has it.> On a stage, or a chain of stages, Perl
+says "Not an ARRAY reference"; a chain ending in a sink is already
+its result, so C<@{ $source | count_items }> dereferences a number.
+
+=item *
+
+**C<@{ $source | keep_all }> is Perl's own dereference,** of the
+array reference the sink gave.
+
+=back
+
+What to write, by what's wanted:
+
+=over 4
+
+=item every value, as a reference
+
+B<Write:> C<my $all = $source \| keep_all>
+
+B<Rather than:> C<my @all = $source \| keep_all>, one element
+
+=item every value, as a list
+
+B<Write:> C<my @all = @{ $source \| keep_all }>, or C<@{$source}>
+
+=item the first value
+
+B<Write:> C<$source \| keep_first>, reading one
+
+B<Rather than:> C<< $source->[0] >>, reading them all
+
+=item how many
+
+B<Write:> C<$source \| count_items>
+
+B<Rather than:> C<scalar @$source>, keeping every value to count them
+
+=item the first few
+
+B<Write:> C<$source \| take(5) \| keep_all>
+
+B<Rather than:> C<(@$source)[0 .. 4]>, reading them all
+
+=item every value, added to your array
+
+B<Write:> C<push @mine, @{ $source \| keep_all }>
+
+=item each, as it comes
+
+B<Write:> C<< my $next = Ekorn::Pipeline->new->iterator($source) >>, then C<< while (my ($value) = $next->()) {...} >>
+
+B<Rather than:> C<for (@$source) {...}>, reading them all first
+
+=back
+
+    my @all   = @{$source};                                      # every value
+    my $first = $source | keep_first;                            # the first, reading only one
+    my $next  = Ekorn::Pipeline->new->iterator($source);
+    while (my ($value) = $next->()) { say $value }               # each, as it comes
+
 =head1 Errors: Ekorn::Pipeline::Errors
 
 =head2 When a stage dies
@@ -2417,6 +2581,19 @@ context of the run inside it. A pushed run has none.
         };
     }
 
+=head2 C<|> for your sources
+
+To let your users start a chain with your source, overload C<|>, and
+C<@{}>, with Ekorn's own functions. Load Operators with an empty import
+list, which defines them without putting the operators in force in
+your own scope; without loading it, C<|> dies with "Undefined
+subroutine" until something else does:
+
+    use Ekorn::Pipeline::Operators ();
+    use overload
+        '|'   => \&Ekorn::Pipeline::Operators::chain,
+        '@{}' => \&Ekorn::Pipeline::Operators::drain;
+
 =head2 Functions that take stages
 
 A function of yours that runs its own values through its caller's
@@ -2582,6 +2759,28 @@ than a block or code reference.
 
 B<Expected yield to be called inside a generator:> C<yield> was
 called with no generator's block running.
+
+=back
+
+=head2 Ekorn::Pipeline::Operators
+
+=over 4
+
+=item *
+
+B<Expected use Ekorn::Pipeline::Operators in scope, for %s:> C<|> or
+C<@{}> was used on Ekorn's types where Operators isn't in force.
+
+=item *
+
+B<Expected a source, or a stage made with a word, on the left of
+|:> a chain started with something else, such as a pipeline made
+with C<new>, or an object of another class.
+
+=item *
+
+B<Expected a stage or a sink on the right of |:> what followed C<|>
+can't go where a stage goes.
 
 =back
 
@@ -2774,6 +2973,12 @@ B<On request:> C<from_array>, C<from_fh>, C<from_file>, C<counter>
 
 B<Tags:> C<:all>
 
+=item C<Ekorn::Pipeline::Operators>
+
+B<By default:> nothing: loading it puts the operators in force
+
+B<On request:> C<chain> and C<drain>, by their full names, for your own overloads
+
 =item C<Ekorn::Pipeline::Sinks>
 
 B<By default:> nothing
@@ -2838,6 +3043,10 @@ empty list: C<use Ekorn::Pipeline::Stop ();>.
 =item C<Ekorn::Pipeline>
 
 Runs values through a list of stages: C<new>, C<pipeline_in>, C<named>, C<iterator>, C<stages>, C<is_stage>, C<is_sink>, C<ending> and C<run_context>.
+
+=item C<Ekorn::Pipeline::Operators>
+
+C<\|>, C<\|=> and C<@{}> for Ekorn's types, in force lexically: C<chain> and C<drain>.
 
 =item C<Ekorn::Pipeline::Sinks>
 

@@ -41,18 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0018. Operators: `|`, `|=` and `@{}`
-
-**Size:** S (2)
-
-Ekorn::Pipeline::Operators, as the design's section 9 has it: `|`
-joining a source, stages and a sink, `|=`, and `@{}` reading a source
-through, in force lexically, with `chain` and `drain` for a package's
-own source class. Every stage in a chain is a `stage {...}` or a
-ready-made part, as `|` between two code references ORs their
-addresses, and the docs say so loudly. Done when the module, its POD,
-tests and docs are in, with coverage above the floors. Its
-[record](docs/changes/2026-0018-operators.md).
+Nothing yet.
 
 ## Next
 
