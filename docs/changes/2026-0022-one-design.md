@@ -646,7 +646,9 @@ D19 to D25 came from the third cold review, settled by Iain on
   Built: Iain's rename in Pipeline and Sink, with the rest in Sink,
   Factories, Sinks, Operators and Errors' internal list, and the
   tests. Design 4.4, 6.2, 17.23, 17.24 and 17.34, with the names
-  throughout.
+  throughout. Then, at Iain's asking, the drafts' prose: a scalar sink
+  is a sink of one, a list sink a sink of many, and the tables' roles
+  `one` and `many`; 17.23 and 17.24 keep D47's and D49's words.
 
 ## The plan
 

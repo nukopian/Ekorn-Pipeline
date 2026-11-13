@@ -218,13 +218,13 @@ A pipeline runs two ways (settled):
 - **Push:** called with values, `$p->(@values)`, it runs each through
   and returns what comes out. The values are the source. In scalar
   context it gives what its last stage says, if that's a sink: a
-  scalar sink's result, so `my $n = $p->(@values)` with `count_items` last is
-  the count (2026-0022's D17); or a list sink's list, as an array
+  the result of a sink of one, so `my $n = $p->(@values)` with `count_items` last is
+  the count (2026-0022's D17); or the list of a sink of many, as an array
   reference, so with `keep_all` last it's every item (D51). Otherwise
   it gives how many came out, as in v0.2.0. So a sink given last says
   what comes back, whatever the context, and counting is `count_items`'s job.
   A sink giving one value says so, with `sink_one`: one written with
-  `sink_many {...}` is a list sink (D47), and in scalar context gives its
+  `sink_many {...}` is a sink of many (D47), and in scalar context gives its
   one value in an array reference.
 - **Pull:** given a source, `$p->iterator($source)`, it returns an
   iterator that hands out one result per call, pulling from the source
@@ -245,7 +245,7 @@ wrapping anything of it (principles 2 and 3; the list settled by D5 to D7, D25 a
 | **Stage** | called with a value, in `$_` and `@_`; returns a list, of none, one or several values |
 | **Source** | called with nothing; returns the next value or values, or an empty list when there are no more |
 | **Made for a run** | an object offering a role by a method the core calls at the start of each run (section 5.2): `ekorn_source`, to be read from, returning its step, and, optionally, its end and a context; `ekorn_stage`, to pass values through, returning its step, and, optionally, a flush and an end; or, to be a sink, `ekorn_sink_one` or `ekorn_sink_many`, at most one of them, returning its step, its flush, and, optionally, an end. A stage and a sink go in the same place, so an object offers at most one of `ekorn_stage`, `ekorn_sink_one` and `ekorn_sink_many`, which is checked when the pipeline is made; `ekorn_source` can go with any of them (D19). The role it's given in decides which is called, so one object can be read from and written to. A code reference offers none, and takes the role it's given in, with no flush or end |
-| **Sink** | an object with `ekorn_sink_one`, its result one value, or `ekorn_sink_many`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. A scalar sink's flush gives exactly one value, `undef` when it has none, as `keep_first` with no values (D25) (sections 5.4, 9) |
+| **Sink** | an object with `ekorn_sink_one`, its result one value, or `ekorn_sink_many`, its result a list: its step's return is ignored, and its flush, called when its input runs out, gives the result. The flush of a sink of one gives exactly one value, `undef` when it has none, as `keep_first` with no values (D25) (sections 5.4, 9) |
 | **Stop** | thrown from a stage, with `Stop(...)`, to end the run, the values it carries going on (section 5.3) |
 | **What a stage may ask** | `Ekorn::Pipeline::ending()`, true while values come from a flush (section 5.6); and `Ekorn::Pipeline::run_context()`, the context its run's source gave, if any (section 12.7) |
 | **A run's context** | the third value `ekorn_source` may return, after its step and its end: anything the source knows about this run, such as a statement's columns, for its stages to ask for. An iterator used as a source passes on the context of the run inside it. The context describes the run's source, not the values: a stage that reshapes them doesn't change it (D46) |
@@ -382,7 +382,7 @@ for a sink, the sink stopped the run itself, as `keep_first` does
 flush returns goes on through the stages after it, and `ending()` is
 true while it runs and while its values go on. It isn't called if the
 input was cut short, or the run died first. It isn't told how the run
-ended, as the run hasn't. A scalar sink's flush gives one value,
+ended, as the run hasn't. The flush of a sink of one gives one value,
 `undef` if it has none (D25).
 
 **An end** (settled, Q4, D6, D11, D15):
@@ -435,7 +435,7 @@ run's stages, `finish` ends the run there and then: every end runs,
 while that stage is still running, and no later stage sees the value in
 flight. So an end can't rely on the stage that finished the run having
 returned. A run that ended by itself (section 5.4),
-with values still to hand out, such as a list sink's result, hands
+with values still to hand out, such as the result of a sink of many, hands
 them out as it's pulled: its ends have run, but its iterator hasn't
 finished. Perl calls `DESTROY` when the last reference
 goes, which is prompt for a lexical iterator. During global
@@ -478,7 +478,7 @@ made by its constructor, a class method that takes only real things
 | `Ekorn::Pipeline::Stage` | `new($code)` | settled (Q9, D4); wraps the code given, never blesses it (**Q9**); a run calls the code as it is |
 | `Ekorn::Pipeline::Gather` | `new($setup)` | as `gather` makes today, now an Element |
 | `Ekorn::Pipeline::Source` | `new($setup)` | settled (D5, D7); `$setup` returns the step, and, optionally, the end and a context |
-| `Ekorn::Pipeline::Sink` | `new_sink_many($setup)`, `new_sink_one($setup)` | settled (D6, D12, D47, D64): `new_sink_many` makes a list sink, offering `ekorn_sink_many`, and `new_sink_one` a scalar sink, offering `ekorn_sink_one`; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
+| `Ekorn::Pipeline::Sink` | `new_sink_many($setup)`, `new_sink_one($setup)` | settled (D6, D12, D47, D64): `new_sink_many` makes a sink of many, offering `ekorn_sink_many`, and `new_sink_one` a sink of one, offering `ekorn_sink_one`; `$setup` returns the step, the flush, giving the result, and, optionally, the end |
 
 And one more class method, which, with `named`, is all that reads
 names (settled in 2026-0021 as a class method taking the package, and
@@ -506,8 +506,8 @@ constructor (settled, 2026-0021):
 | `stage {...}` | a Stage | the stage itself, called with each value |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
-| `sink_many {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
-| `sink_one {...}` | a scalar Sink | the same, its flush giving one value (D47). Use it for a sink of one value: one written with `sink_many {...}`, in scalar context or at the end of a `\|` chain, gives its value in an array reference (D51) |
+| `sink_many {...}` | a Sink of many | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
+| `sink_one {...}` | a Sink of one | the same, its flush giving one value (D47). Use it for a sink of one value: one written with `sink_many {...}`, in scalar context or at the end of a `\|` chain, gives its value in an array reference (D51) |
 
 The rule for the blocks: **a word for something made afresh for each
 run takes a set-up; `stage` takes the stage itself.** A source with
@@ -624,25 +624,25 @@ reads, the other writes. Nothing exported by default.
 
 | Sink | Gives | Role | Stops the pull early? |
 |---|---|---|---|
-| `keep_all` | every item, as a list | list | no |
-| `keep_first` | the first item; `undef` if none | scalar | yes |
-| `keep_single` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | scalar | at a second |
-| `keep_last` | the last item, reading every one to find it; `undef` if none | scalar | no |
-| `keep($n)` | the first `$n` items, as a list: what `take($n)` passes on, kept as the run's result (D57) | list | yes, at `$n` |
-| `any_item(sub {...})` | true at the first item the sub is true of | scalar | yes |
-| `every_item(sub {...})` | false at the first item the sub is false of | scalar | yes |
-| `count_items` | how many items there were: it's what it is, not where it's put | scalar | no |
-| `fold($init, sub {...})` | a running total, of any kind | scalar | no |
-| `joined($separator)` | the items joined into one string | scalar | no |
-| `group_by(sub {...})` | a hash of arrays | scalar | no |
-| `for_each(sub {...})` | calls the sub with each item; gives how many | scalar | no |
+| `keep_all` | every item, as a list | many | no |
+| `keep_first` | the first item; `undef` if none | one | yes |
+| `keep_single` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | one | at a second |
+| `keep_last` | the last item, reading every one to find it; `undef` if none | one | no |
+| `keep($n)` | the first `$n` items, as a list: what `take($n)` passes on, kept as the run's result (D57) | many | yes, at `$n` |
+| `any_item(sub {...})` | true at the first item the sub is true of | one | yes |
+| `every_item(sub {...})` | false at the first item the sub is false of | one | yes |
+| `count_items` | how many items there were: it's what it is, not where it's put | one | no |
+| `fold($init, sub {...})` | a running total, of any kind | one | no |
+| `joined($separator)` | the items joined into one string | one | no |
+| `group_by(sub {...})` | a hash of arrays | one | no |
+| `for_each(sub {...})` | calls the sub with each item; gives how many | one | no |
 
 **Containers, named for where the items go:**
 
 | Sink | Gives | Role | Stops the pull early? |
 |---|---|---|---|
-| `to_fh($fh)` | prints each item to your filehandle, followed by `$/`; gives how many | scalar | no; you close it |
-| `to_file($path)` | writes each item to the file, followed by `$/`; gives how many | scalar | no; its end closes the file |
+| `to_fh($fh)` | prints each item to your filehandle, followed by `$/`; gives how many | one | no; you close it |
+| `to_file($path)` | writes each item to the file, followed by `$/`; gives how many | one | no; its end closes the file |
 
 `from_fh` and `from_file` remove `$/` from each record, and `to_fh` and
 `to_file` add it back, so a file read with one is written unchanged by
@@ -667,7 +667,7 @@ to right; other syntax may be explored beside it (2026-0022's D18).
 my $clean = $trim | $lowercase | $dedupe;               # Stage | Stage: a chain of stages
 my $names = $src | take(10) | stage { $_->{name} };    # Source | Stage: a source
 my $n     = $src | stage { $_->{name} } | count_items;       # Source | ... | Sink: the result
-my $names = $src | take(10) | keep_all;                # ... | list sink: every item, as an array reference
+my $names = $src | take(10) | keep_all;                # ... | sink of many: every item, as an array reference
 my @names = @{ $src | take(10) };                       # @{}: every item, read through, with no sink
 ```
 
@@ -705,7 +705,7 @@ my @names = @{ $src | take(10) };                       # @{}: every item, read 
   ready-made part, which section 8.1 makes objects.
 - **An operator returns one scalar,** so a chain ending in a sink
   gives one value, as a run asked for one value in scalar context does
-  (D51): a scalar sink's result, or a list sink's list as an array
+  (D51): the result of a sink of one, or the list of a sink of many as an array
   reference, so `$rows | keep_all` is every row. So a list assignment from a
   chain gets one element, the reference: `my @rows = $src | keep_all`
   is a trap, and `my @rows = @{ $src | keep_all }` what was meant.
@@ -1090,7 +1090,7 @@ before. A v0.2.x from `develop` in the meantime only fixes.
 | `iterator` returning an Iterator, an Element | no, unless code checks the type, with `ref` or `is_coderef` (**Q7**) |
 | Gather, and the canned stages made with it, become Elements | `ref` and `is_coderef` change: an object, called as a code reference |
 | `stages` returns Elements: a code reference given comes back as a Stage of it | code comparing them with what it gave |
-| A pushed run in scalar context gives a scalar sink's result, when one is last (D17), or a list sink's list, as an array reference (D51) | no: no v0.2.0 pipeline has a sink |
+| A pushed run in scalar context gives the result of a sink of one, when one is last (D17), or the list of a sink of many, as an array reference (D51) | no: no v0.2.0 pipeline has a sink |
 | `is_stage` takes objects offering a role method, not only code references and pipelines (D13) | no, unless code relied on such objects being refused |
 | `Stage->new` refuses Ekorn's own types, such as a gather (Q9) | no: new |
 | A Source called directly croaks; a Sink called with values gives its result (D42) | no: new |
@@ -1169,9 +1169,9 @@ whose it is and a recommendation.
 | **Q25** | Can the caller ask how a run ended? | D34: yes: `$next->ended`, for iterators only; what it says, D48 (section 5.5) |
 | **Q28** | What does `ended` tell the caller? | D48, revising D45: whether the source was read to its end, `stopped` too if `finish` dropped values still to be handed out; said once the iterator has given all it will (section 5.5) |
 | **Q29** | What does a context describe? | D46: the run's source, not the values: a stage that reshapes rows doesn't change it, so a stage after it reading the context reads the source's (4.4, 12.7); a way to replace it waits until a need is found |
-| **Q30** | How is a list sink declared? | D47: lists first: `Sink->new_sink_many` and `sink_many {...}` make a list sink, and `Sink->new_sink_one` and `sink_one {...}` a scalar one, scalars being the second-class citizen; asked for one value, a list sink gives its list as an array reference (D51) |
+| **Q30** | How is a sink of many declared? | D47: lists first: `Sink->new_sink_many` and `sink_many {...}` make a sink of many, and `Sink->new_sink_one` and `sink_one {...}` a scalar one, scalars being the second-class citizen; asked for one value, a sink of many gives its list as an array reference (D51) |
 | **Q31** | How is a part told from any object offering a method of the same name? | D49: the role methods are named for Ekorn, `ekorn_source`, `ekorn_stage`, `ekorn_sink_many`, `ekorn_sink_one` (17.24) |
-| **Q32** | What does a list sink give when one value is asked for? | D51: its list, as an array reference, in scalar context and at the end of a `\|` chain, revising D10 and D47; counting is `count_items`'s job (17.26) |
+| **Q32** | What does a sink of many give when one value is asked for? | D51: its list, as an array reference, in scalar context and at the end of a `\|` chain, revising D10 and D47; counting is `count_items`'s job (17.26) |
 | **Q33** | Does `@{}` stay, though it reads as a dereference? | D52: yes, explained in detail: it reads a source through, a run of its own each use; the docs lead with a sink, and show the alternatives, by what's wanted (section 9, 17.27) |
 | **Q2** | The lifecycle method's name? | D5: one method per role; their names, `ekorn_source`, `ekorn_stage`, `ekorn_sink_many` and `ekorn_sink_one`, by D49 |
 | **Q3** | Each part told how the run ended from where it stands? | D6 and D20: what `done`, `stopped` and `died` mean for each part, in section 5.3 |
@@ -1446,7 +1446,7 @@ Weighed and set aside:
   it: `push @mine, @{ $src | keep_all }` does it.
 - **`to_array` croaking at the end of `|`,** as D10 first settled,
   because its name would say a list and the result be a reference.
-  D51 revised it: every list sink, asked for one value, gives its list
+  D51 revised it: every sink of many, asked for one value, gives its list
   as an array reference, and an exception for one sink would be a
   surprise of its own (17.26).
 - **`to_hash(sub {...})`, keying each value by what a sub gives.** It
@@ -1584,7 +1584,7 @@ input had run out is told `done`, whatever follows it (D20). Set-ups
 run when the run starts (D21). A run's ends wait for its stages, and
 nothing is run early (D22). Stages chain with `|` as well as sources,
 into a pipeline of a subclass with `|` (D23). A pushed run has no
-context of its own (D24). A scalar sink always gives one value (D25).
+context of its own (D24). A sink of one always gives one value (D25).
 
 Weighed and set aside:
 
@@ -1604,7 +1604,7 @@ Weighed and set aside:
 - **A pushed run seeing the context of the run it's inside,** as D16
   first said. `pluck` in a pushed run fed other values would read the
   statement's columns and give wrong fields, without a word.
-- **A scalar sink giving nothing when it has no value.** "A result of
+- **A sink of one giving nothing when it has no value.** "A result of
   one value is a source of one value" would fail, and scalar context
   would give how many results there were, nought.
 
@@ -1657,7 +1657,7 @@ Weighed and set aside:
   like an empty source: the quiet failure the design removes
   elsewhere.
 - **Croaking whenever the run has ended.** A run can end with values
-  still to hand out, such as a list sink's result (D22), which must
+  still to hand out, such as the result of a sink of many (D22), which must
   still flow; so it's being spent, not ended, that counts.
 
 ### 17.22 Each type, called directly, does what its role means
@@ -1678,7 +1678,7 @@ Weighed and set aside:
 - **A Source called directly making a run of its own,** as the
   prototype first had it. The run is never ended, so a file it opened
   stays open while the Source lives.
-- **`is_sink` giving 1 or 2,** for a scalar or a list sink. Both true,
+- **`is_sink` giving 1 or 2,** for a scalar or a sink of many. Both true,
   as `'scalar'` and `'list'` are, but `is_sink($x) eq 'list'` reads
   better at the call.
 
@@ -1771,17 +1771,17 @@ List::Util has `any` and `all`; "all" is the items together, "every"
 each in turn; and the clash was "only a problem in test harness".
 `keep_all` (D55) has none.
 
-### 17.26 A list sink asked for one value gives a reference
+### 17.26 A sink of many asked for one value gives a reference
 
 (Sections 4.3 and 9; Iain, 2026-11-12, 2026-0022's D51, from
 DBIx-Squirrel's design, its Q22.) A sink given last says what comes
 back, whatever the context. In scalar context, and at the end of a
-`|` chain, which asks for one value too, a list sink gives its list
+`|` chain, which asks for one value too, a sink of many gives its list
 as an array reference: `my $rows = $p->(@values)` with `keep_all`
 last is every item, not how many. Counting is `count_items`'s job. A
 pipeline with no sink still gives how many came out, as in v0.2.0
-(D17). This revises D47, under which a list sink gave its count, and
-D10, under which a list sink croaked at the end of a chain.
+(D17). This revises D47, under which a sink of many gave its count, and
+D10, under which a sink of many croaked at the end of a chain.
 
 It costs two things, both documented: an empty result is true, as an
 array reference always is, so testing for none takes `@$rows`, or
@@ -1789,18 +1789,18 @@ array reference always is, so testing for none takes `@$rows`, or
 
 Weighed and set aside:
 
-- **A list sink giving its count,** as D47 had it, as Perl's lists
+- **A sink of many giving its count,** as D47 had it, as Perl's lists
   do. A quiet trap: `my $rows = ... keep_all` gave a number.
 - **`to_array` alone still croaking at the end of `|`,** as D10 had
-  it, its name saying a list. Every list sink is asked for one value
+  it, its name saying a list. Every sink of many is asked for one value
   the same way, and an exception for one sink is a surprise of its
   own. (`to_array` has since gone, with D54.)
-- **Croaking at a list sink in scalar context,** like `|` did. It
+- **Croaking at a sink of many in scalar context,** like `|` did. It
   breaks what reads naturally, `my $rows = ...`, for no gain once a
   reference is the obvious one value.
 
 `to_hash`, whose items are pairs, would have wanted a hash reference
-instead; it went with D54, so no list sink yet needs a way to say what
+instead; it went with D54, so no sink of many yet needs a way to say what
 it gives when asked for one value.
 
 ### 17.27 `@{}` stays, explained, and the docs lead with a sink
@@ -1889,7 +1889,7 @@ was built (D56).
 
 (Section 8.3; Iain, 2026-11-12, 2026-0022's D57, asked in
 DBIx-Squirrel's session.) "So we have `take` for stages, `keep...` for
-sinks." `keep($n)` is a list sink giving the first `$n` items, as
+sinks." `keep($n)` is a sink of many giving the first `$n` items, as
 `keep_all` gives every one, and an array reference where one value is
 asked for (D51). It stops the run once it has `$n`, as `take` and
 `keep_first` do, so a statement fetches no more rows than it keeps:
@@ -1979,7 +1979,9 @@ which Iain renamed in the code from `ekorn_sink_scalar` and
 what `is_sink` gives, `one` or `many`, from `scalar` or `list`. Each
 name says which kind it makes, so neither is the default, where D47
 put lists first. The role methods are a protocol, so a package's own
-sinks, DBIx::Squirrel's among them, offer the new names.
+sinks, DBIx::Squirrel's among them, offer the new names. The prose
+follows: a scalar sink is a sink of one, a list sink a sink of many,
+and the tables' roles are `one` and `many`.
 
 ## 18. Where each roadmap item lands
 
@@ -2174,7 +2176,7 @@ again when v0.3.0 is ready; designed in its own session:
   the run's context (Q14); `pluck` and `as_hash` ask `run_context()`;
   its result sinks are sinks of its own design; its iterator's `all`,
   `single` and `count` give way to Ekorn's `keep_all`, `keep_single`
-  and `count_items` (D50), a list sink last giving an array reference in
+  and `count_items` (D50), a sink of many last giving an array reference in
   scalar context (D51), its Q22; its facades go or
   stay as plain re-exports, as it chooses (D31).
 - **Its docs:** its README, reference and how-to for the above, and

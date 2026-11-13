@@ -123,7 +123,7 @@ say $next->();                      # Girls & Boys
 ```
 
 A sink last gives the run's result. In scalar context, a pushed run
-gives a scalar sink's result:
+gives the result of a sink of one:
 
 ```perl
 my $hits = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, count_items)->(@tracks);
@@ -512,8 +512,8 @@ makes a Stage, a pipeline, whose stages are spliced in, or a part
 offering a stage's or a sink's role method. It reads no names.
 
 Called with values, a pipeline pushes them through. In list context it
-returns what comes out; in scalar context, a scalar sink's result, if
-one is last (D17), a list sink's list as an array reference, if one is
+returns what comes out; in scalar context, the result of a sink of one, if
+one is last (D17), the list of a sink of many as an array reference, if one is
 last (D51), or otherwise how many came out.
 `iterator($source)` pulls instead: `$source` is a code reference, or
 anything offering `ekorn_source`, an iterator included. `stages` returns
@@ -554,7 +554,7 @@ source to another run, which ends it, through `finish`, when that run
 ends, and passes on its context (section 6.8). Once it's spent, having
 handed out all it will, been finished, or died, its `ekorn_source`
 croaks rather than give nothing (D41); an iterator whose run has ended
-with values still to give, such as a list sink's, isn't spent until
+with values still to give, such as a sink of many's result, isn't spent until
 they've gone. As a source, it has `|` and `@{}`, once Operators is
 loaded, as Ekorn's other sources have.
 
@@ -710,7 +710,7 @@ gives Ekorn's sources `|` and `@{}`, and its stages, gathers and sinks
 | Written | Gives |
 |---|---|
 | `$source \| $stage` | a chain: a source of the values from `$source` through the stage |
-| `$source \| ... \| $sink` | at once, a scalar sink's result, or a list sink's list as an array reference (D51) |
+| `$source \| ... \| $sink` | at once, the result of a sink of one, or the list of a sink of many as an array reference (D51) |
 | `$stage \| $stage` | a chain of stages: a pipeline, of a subclass that has `\|` |
 | `@{ $source }` | every value the source gives, as an array, read through by `drain`, a run of its own each use (D52) |
 
@@ -1036,7 +1036,7 @@ valid, as v0.3.0 changes.
 | A spent iterator is no source for another run | read in part, it goes on; spent or finished, it croaks; ended with values still to give, it gives them | 4.2, D41 |
 | A part called directly | a sink gives its result, tested on its own; a source croaks; `is_sink` | D42, D43 |
 | Fixes from the fourth review | a stop from an end or a set-up an error, not a raw stop; an iterator chaining and draining; a spent or died iterator refused; a pipeline made with `new` with no `\|`; a sink's code reference outliving it | D16, D23, D32, D41, D42 |
-| Sinks and context | a list sink's list as an array reference at the end of a chain and in scalar context, called directly too; a scalar sink of nothing; precedence | D10, D17, D25, D51 |
+| Sinks and context | the list of a sink of many as an array reference at the end of a chain and in scalar context, called directly too; a sink of one of nothing; precedence | D10, D17, D25, D51 |
 | Chains | chains of stages; `@{}`; a plain code reference on the left; `\|` where Operators isn't in force | 9, D14, D23, Q23 |
 | Ekorn's types are Elements, offering role methods | Stages made of code; each type's role; a source as a stage; a part with two stage-place roles | D4, D5, D13, D19 |
 | A package delivers parts, using Ekorn as it is | section 7's pattern: `ekorn_source` with a context, `run_context()` behind an iterator, each run's own, none in a pushed run; `chain` and `drain` | D1, D5, D7, D24 |
@@ -1065,8 +1065,8 @@ Status: **built** as the design says; **built, differs**, with how;
 | 4.2 | the six types; a sink usually last, its result going on | built: section 6.3 |
 | 4.2, 19.2 | a complete pipeline, pulled, is a source, its run ending as its result is ready | built: section 6.8 |
 | 4.2 | a pipeline holds no source; a source joined to one is a source (D33) | built: `new` refuses a source as a stage; a chain and an iterator are sources |
-| 4.3 | push and pull; in scalar context, a scalar sink's result (D17), or a list sink's list as an array reference (D51) | built |
-| 4.4 | the protocols, by role methods (D5), with a context (D7); one stage-place method (D19); a scalar sink giving one value (D25) | built |
+| 4.3 | push and pull; in scalar context, the result of a sink of one (D17), or the list of a sink of many as an array reference (D51) | built |
+| 4.4 | the protocols, by role methods (D5), with a context (D7); one stage-place method (D19); a sink of one giving one value (D25) | built |
 | 5.2 | made for a run by role methods; set-ups as the run starts (D21) | built |
 | 5.3 | how each part is told the run ended (D20) | built |
 | 5.4 | a flush and an end (D6, D12); a run ends when nothing can act (D15, D22); the source's end first (D11); an end dying during a die warns, naming it (D27); stops from a source, a flush, an end (D16) | built |
@@ -1076,12 +1076,12 @@ Status: **built** as the design says; **built, differs**, with how;
 | 5.6 | `ending()`, true while a flush runs and its values go on | built |
 | 6.1 | Element, and the Stage, Gather, Source, Sink classes | built: Sink's roles by its subclasses, Scalar and List |
 | 6.1 | `pipeline_in` (D37) | not built |
-| 6.2 | the words, `sink_many` for a list sink and `sink_one` for a scalar one (D47, D64) | built, differs: no `pipeline` in Factories |
+| 6.2 | the words, `sink_many` for a sink of many and `sink_one` for a sink of one (D47, D64) | built, differs: no `pipeline` in Factories |
 | 7 | names per package | built, differs: names are still per class, as 2026-0020 built them |
 | 8.1 | canned stages as objects (Q12, settled by D4) | built, differs: those made with `gather` are; `take_while`, `drop_while` and the taps written as plain subs aren't |
 | 8.2 | sources | built: `from_arrayref`, `from_file`. Not built: `from_array`, `from_fh`, `from_hash`, `from_hashref`, `counter`, `unfold`, `cycle`, `concat`, `interleave` |
 | 8.3 | sinks, in two families (D50, D53, D54, D55, D56, D57) | built: `keep_all`, `keep($n)`, `keep_first`, `keep_last`, `keep_single`, `count_items`, `to_file`. Not built: `any_item`, `every_item`, `fold`, `joined`, `group_by`, `for_each`, `to_fh` |
-| 9 | chains from a source or a stage (D14, D23); a list sink at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
+| 9 | chains from a source or a stage (D14, D23); a sink of many at the end giving an array reference (D51, revising D10); `@{}` reading a source through, a run each use (D52); `chain` and `drain` for a package's class; in force lexically (Q23) | built |
 | 9 | `\|=` | built: Perl makes it from `\|` |
 | 10 | Sugar | not built |
 | 12 | DBIx::Squirrel as a user of Ekorn | built, as a stand-in: section 7 |

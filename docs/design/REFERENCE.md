@@ -35,8 +35,8 @@ subclass, go, as does Pipes' `pipeline_class`.
   with nothing until it gives an empty list. Any code reference, or
   one made with `source`.
 - **Sink:** a part that consumes every value and, when they run out,
-  gives its result: one value, such as a count, for a scalar sink, or
-  a list, such as every value, for a list sink, which, asked for one
+  gives its result: one value, such as a count, for a sink of one, or
+  a list, such as every value, for a sink of many, which, asked for one
   value, gives its list as an array reference. Usually the last stage,
   when its result is what the run gives; anywhere else, its result
   goes on through the stages after it. Made with `sink_one` or `sink_many`, or ready-made, such as `count_items`.
@@ -123,7 +123,7 @@ A flush, a gather's or a sink's, is called once its input runs out
 normally: when the values ran out, after a stop in a stage before it,
 or, for a sink, when the sink stopped the run, as `keep_first` does.
 What it returns goes on through the stages after it, and while it
-runs, and they do, [`ending`](#ending) is true. A scalar sink's flush
+runs, and they do, [`ending`](#ending) is true. The flush of a sink of one
 gives one value, `undef` if it has none. It isn't told how the run ended, as the
 run hasn't. A gather's flush is what v0.2.0 called its end function,
 as [End functions](#end-functions) describes.
@@ -215,8 +215,8 @@ exported by default.
 | `stage {...}` | a Stage | the stage itself |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
 | `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
-| `sink_many {...}` | a list Sink | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
-| `sink_one {...}` | a scalar Sink | the same, its flush giving one value |
+| `sink_many {...}` | a Sink of many | a set-up, returning the step, the flush, giving the result, a list, and, optionally, the end |
+| `sink_one {...}` | a Sink of one | the same, its flush giving one value |
 
 ### pipeline
 
@@ -324,7 +324,7 @@ ignored; its flush, called when its input runs out, giving its result;
 and, optionally, its end, told how the run ended once it has. A sink
 made with `sink_many` gives a list; one made with `sink_one` gives one
 value. Asked for one value, in scalar context or at the end of a `|`
-chain, a list sink gives its list as an array reference, so write a
+chain, a sink of many gives its list as an array reference, so write a
 sink of one value with `sink_one`: one written with `sink_many` would
 give its value in an array reference. Last, the result is all the run
 gives; anywhere else, it goes on through the stages after it.
@@ -508,8 +508,8 @@ with `Ekorn::Pipeline::Operators::chain`, and `@{}` with
 expression in parentheses.
 
 An operator gives one scalar, so a chain ending in a sink gives one
-value: a scalar sink's, such as `count_items`'s, or a list sink's list, such
-as `keep_all`'s, as an array reference. Nothing can be chained after
+value: the result of a sink of one, such as `count_items`, or the
+list of a sink of many, such as `keep_all`, as an array reference. Nothing can be chained after
 a sink: a chain ending in one has already run, and gives its result.
 
 ```perl
