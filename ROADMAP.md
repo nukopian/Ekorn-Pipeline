@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0030.
+Last id: 2026-0031.
 
 Items come in four groups:
 
@@ -41,12 +41,27 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
+### 2026-0031. Ekorn::Pipeline::Tooling, one module to import from
+
+**Size:** M (3)
+
+What a caller imports is spread over many modules, so a pipeline with
+a source, a filter and a sink can need five `use` lines.
+Ekorn::Pipeline::Tooling exports the words, stages, sources and sinks
+callers use to do work, by tags that follow the modules, such as
+`:stages`, `:sources`, `:sinks` and `:all`, and nothing by default;
+the operators stay a pragma of their own. Each word is still made in
+one module. Done when Tooling ships with its tests, POD and a section
+in the reference, and the docs show it. See its
+[record](docs/changes/2026-0031-tooling.md).
+
 ### 2026-0025. Release v0.3.0
 
 **Size:** S (2)
 
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
-2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029
+2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029,
+2026-0031
 
 The design's release. `pipeline-experimental` merges to `develop` by a
 fast-forward, after a commit deleting `docs/design/`, which a tag,
