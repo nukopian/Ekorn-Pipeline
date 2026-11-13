@@ -41,10 +41,6 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0025. Release v0.3.0
 
 **Size:** S (2)
@@ -52,15 +48,16 @@ Nothing yet.
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
 2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029
 
-The design's release: the README rewritten for the stream concept
-(the design's 20.1), `Changes`' precis naming the items it ships, the
-manuals made again, and `docs/design/` left on `pipeline-experimental`,
-not merged, as Iain decided. Then `pipeline-experimental` merges
-to `develop`, v0.3.0 is released, and DBIx-Squirrel is handed a task
-to test against it and move its range. It's v0.3.0, not v1.0.0, so
-the design can settle first, as Iain decided on 2026-11-13; see its
-[record](docs/changes/2026-0025-release-v0-3-0.md). Done when v0.3.0 is
-on CPAN, and DBIx-Squirrel has its task.
+The design's release. `pipeline-experimental` merges to `develop` by a
+fast-forward, after a commit deleting `docs/design/`, which a tag,
+`archive/pipeline-experimental`, keeps; DBIx-Squirrel tests against
+Ekorn's `develop`, and merges its own branch; the docs are swept as a
+whole, with what it turned up; and v0.3.0 is released, with a task for
+DBIx-Squirrel to move its range. It's v0.3.0, not v1.0.0, so the design
+can settle first; see its [record](docs/changes/2026-0025-release-v0-3-0.md).
+Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
+
+## Next
 
 ### 2026-0010. Named pipelines at compile time
 
