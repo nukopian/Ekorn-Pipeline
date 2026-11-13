@@ -41,23 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0014. The lifecycle: sources, stages, sinks and their ends
-
-**Size:** L (5)
-
-The core of the design approved on 2026-11-13 (2026-0022), finished
-from its prototype on `pipeline-experimental`: a run made of a source,
-stages and sinks, each made for the run by its role method
-(`ekorn_source`, `ekorn_stage`, `ekorn_sink_one`, `ekorn_sink_many`),
-with a flush and an end told how the run ended, `done`, `stopped` or
-`died`; Ekorn's types as Elements; and the Iterator, with `ended`,
-`finish`, `all`, `first` and `single`. Why: a source can close its
-file however a run ends, and a sink commit or roll back, which no
-caller can do in v0.2.0. Done when its code has its POD, its tests
-hold the design's proofs (section 19) and keep coverage above the
-floors, and the reference and how-to take in its share of the
-drafts, with `Changes`. Its record:
-[2026-0014](docs/changes/2026-0014-lifecycle.md).
+Nothing yet.
 
 ## Next
 

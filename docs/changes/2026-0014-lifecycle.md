@@ -1,6 +1,6 @@
 # 2026-0014. The lifecycle: sources, stages, sinks and their ends
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** the design's (2026-0022, D1 to D70) settle it; D1, a
 gather's message reworded for the flush and the end.
@@ -10,6 +10,8 @@ gather's message reworded for the flush and the end.
 from the design approved on 2026-11-13 (2026-0022)
 
 **Started:** 2026-11-13
+
+**Finished:** 2026-11-13
 
 ## Background
 
@@ -132,3 +134,22 @@ Nothing ships now: it stays in Now, and its `Changes` entries, with a
 precis naming what changes for users (a gather and an iterator are
 objects, `stages` returns Elements, a gather's message names the flush
 and the end), are written when it ships.
+
+**Shipped, 2026-11-13,** as Iain asked later that day, on
+`pipeline-experimental`, to be released in v0.3.0 (2026-0025). Against
+Done when:
+
+- **Its code has its POD:** met, for Ekorn::Pipeline, Element, Source,
+  Stage, Sink, Iterator and Gather.
+- **Its tests hold the design's proofs:** met, in `t/15-proofs.t`,
+  with the run's edges in `t/16-run.t`.
+- **Coverage above the floors:** met for its modules, each covered in
+  full on every criterion; not for `lib/` as a whole, which
+  `scripts/coverage` checks, as Factories, Sources, Sinks and
+  Operators fall below the floors for branches and POD. Those are
+  2026-0021's, 2026-0016's, 2026-0017's and 2026-0018's, whose own
+  Done when keeps coverage above the floors, so `scripts/coverage`
+  passes once they ship.
+- **The reference and how-to take in its share of the drafts:** met.
+- **`Changes`:** met, with a precis naming the item, and its changes
+  for users marked "Changed".

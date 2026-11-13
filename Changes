@@ -10,11 +10,21 @@ Unreleased
     the how-to says where a stage belongs. Stages::Flow has
     take_first, take_last and take_single.
 
-    It ships two roadmap items, 2026-0009 and 2026-0011, and a task
-    from DBIx-Squirrel, 2026-0020. Existing code runs as before, and
-    every message a pipeline gives today reads as before, but one: a
-    gather's, for a block returning the wrong things, now names the
-    flush and the end (roadmap 2026-0014).
+    A run's parts can be made afresh for it, and told how it ended:
+    sources that close what they open, however the run ends; sinks
+    that consume every value and give a result, committing only when
+    the run is done; and gathers with an end as well as a flush, what
+    v0.2.0 called the end function. An iterator is an object, which
+    can read what's left in one call, end its run early, and say how
+    it ended, and which ends its run when it's let go.
+
+    It ships three roadmap items, 2026-0009, 2026-0011 and 2026-0014,
+    and a task from DBIx-Squirrel, 2026-0020. It changes what some
+    code sees, as the entries marked "Changed" say: a gather, an
+    iterator and the stages a pipeline gives back are objects, called
+    as code references, not code references themselves; and a
+    gather's message names the flush and the end. Otherwise, existing
+    code runs as before.
 
     - The message for a gather's block that returns the wrong things
       now ends "and optionally a flush and an end", where it ended
@@ -22,6 +32,50 @@ Unreleased
       function is now the flush, and an end, told how the run ended,
       may follow it. Code matching the old wording must change.
       (roadmap 2026-0014)
+    - A run's parts can be made for it. Ekorn::Pipeline::Source makes
+      a source from a set-up, called at the start of each run, which
+      returns its step and, optionally, its end and a context;
+      iterator takes one, or anything offering ekorn_source. A source
+      given to new as a stage croaks. (roadmap 2026-0014)
+    - Ekorn::Pipeline::Sink makes sinks, with new_sink_one, giving one
+      value, and new_sink_many, giving a list: a set-up returns the
+      step, the flush, giving the result, and optionally an end. A
+      pipeline ending in a sink gives its result: in scalar context, a
+      sink of one's value, or a sink of many's list as an array
+      reference. is_sink, exported on request, says "one", "many" or
+      false. (roadmap 2026-0014)
+    - Each end, a source's, a gather's or a sink's, is called once,
+      when the run has ended, however it ended, told "done", "stopped"
+      or "died", the source's first. A run that dies calls every end,
+      told "died", before throwing its error; an end that dies is
+      reported as "Pipeline end of %s failed at %s line %d:", or, in a
+      run already dying, warns "The end of %s died while the run was
+      already dying: %s". A gather's block may return an end, third,
+      after its flush. (roadmap 2026-0014)
+    - new takes, as a stage, any object offering ekorn_stage,
+      ekorn_sink_one or ekorn_sink_many, called at the start of each
+      run, so a package can deliver parts for Ekorn without using its
+      classes; one offering more than one croaks. is_stage is true for
+      them. run_context gives a stage the context its run's source
+      gave. (roadmap 2026-0014)
+    - Changed: iterator returns an Ekorn::Pipeline::Iterator, an object
+      called as a code reference, as before, with all, first, single,
+      finish and ended. Let go before its values run out, it ends its
+      run, so a source closes what it opened. An iterator can be a
+      source for another pipeline, once. (roadmap 2026-0014)
+    - Changed: a gather is an Ekorn::Pipeline::Gather object, called
+      as a code reference, not a blessed code reference, and stages
+      returns a pipeline's stages as objects: a code reference given
+      to new comes back as an Ekorn::Pipeline::Stage of it. Code
+      testing them with is_coderef or ref sees the change. (roadmap
+      2026-0014)
+    - New messages, for sources, sinks, parts and ends, are listed in
+      the POD's DIAGNOSTICS and the reference's Diagnostics. (roadmap
+      2026-0014)
+    - The reference has a section, Runs and how they end, and another,
+      Delivering parts for Ekorn; the how-to has recipes for sources
+      and sinks that close and commit however a run ends, and for
+      reading an iterator's values in one call. (roadmap 2026-0014)
     - Ekorn::Pipeline exports pipeline() on request. It makes a new
       pipeline from stages, as new does, but a stage can also be the
       name of a pipeline: pipeline('clean', take(5)). (roadmap
