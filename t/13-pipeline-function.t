@@ -2,10 +2,12 @@ use v5.36;
 use Test2::V0;
 use Test2::Plugin::NoWarnings;
 
-# pipeline(), named pipelines, and a pipeline given last as stages
-# (roadmap 2026-0011).
+# pipeline(), from Factories, pipeline_in, named pipelines, kept per
+# package, and a pipeline given last as stages (roadmap 2026-0011, moved
+# to Factories by 2026-0021).
 
-use Ekorn::Pipeline qw(is_stage pipeline);
+use Ekorn::Pipeline            qw(is_stage);
+use Ekorn::Pipeline::Factories qw(pipeline);
 use Ekorn::Pipeline::Gather;
 use Ekorn::Pipeline::Stages::Flow;
 
@@ -13,7 +15,7 @@ my $class = 'Ekorn::Pipeline';
 my $file  = __FILE__;
 my $same  = sub { $_ };
 
-# A subclass, for named on a class of your own.
+# A subclass, for named and pipeline_in on a class of your own.
 package My::Pipeline {
     our @ISA = 'Ekorn::Pipeline';
 }
@@ -81,7 +83,7 @@ subtest 'A name is resolved when the pipeline is made' => sub {
 subtest 'Names are kept per package' => sub {
 
     package My::Music {
-        use Ekorn::Pipeline qw(pipeline);
+        use Ekorn::Pipeline::Factories qw(pipeline);
         Ekorn::Pipeline->named(loud => sub { uc });
         sub find ($name) { pipeline($name) }
     }
@@ -97,11 +99,43 @@ subtest 'Names are kept per package' => sub {
         'named can define in another package with a qualified name';
 
     package My::Other {
-        use Ekorn::Pipeline qw(pipeline);
+        use Ekorn::Pipeline::Factories qw(pipeline);
         Ekorn::Pipeline->named(loud => sub { "$_!" });
     }
     is [pipeline('My::Other::loud')->('d')], ['d!'],
         'so the same name in two packages names two pipelines';
+};
+
+subtest 'Names are the package\'s, whatever class defined them' => sub {
+    My::Pipeline->named(sub_named => sub { "sub $_" });
+    is [pipeline('sub_named')->('x')], ['sub x'],
+        "a subclass's name is found by Factories' pipeline";
+    like dies {
+        $class->named(sub_named => sub { $_ })
+    },
+        qr( \A A\ pipeline\ named\ main::sub_named\ is\ already\ defined\  )x,
+        'and is the same name as any class\'s';
+};
+
+subtest 'pipeline_in: the one method reading names' => sub {
+    $class->named('My::Place::here' => sub { "here $_" });
+    my $p = $class->pipeline_in('My::Place', 'here', take(1));
+    isa_ok $p, $class;
+    is [$p->('a', 'b')], ['here a'], 'looks names up in the package given';
+    isa_ok $class->pipeline_in('My::Place'), $class;
+    isa_ok(
+        My::Pipeline->pipeline_in('My::Place', 'here'), ['My::Pipeline'],
+        "and makes its invocant's class",
+    );
+    like dies { $class->pipeline_in('main', 'here') },
+        qr( \A No\ pipeline\ named\ main::here\  )x,
+        'and nowhere else';
+};
+
+subtest 'Ekorn::Pipeline no longer exports pipeline' => sub {
+    like dies { Ekorn::Pipeline->import('pipeline') },
+        qr( "pipeline" \  is \  not \  exported )x,
+        'it comes from Factories';
 };
 
 subtest 'What isn\'t a stage or a name croaks' => sub {

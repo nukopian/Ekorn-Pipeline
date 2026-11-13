@@ -4,14 +4,9 @@ package Ekorn::Pipeline::Pipes;
 
 use Ekorn::Pipeline qw();
 
-# The class of the pipelines pipe and tap make, for a subclass to override.
-sub pipeline_class ($self) {
-    return 'Ekorn::Pipeline';
-}
-
 # Run the invocant through a pipeline of stages.
 sub pipe ($self, @stages) {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
-    my $pipeline = $self->pipeline_class->new(@stages);
+    my $pipeline = Ekorn::Pipeline->new(@stages);
     my @results  = $pipeline->($self);
     return wantarray ? @results : $results[0];
 }
@@ -19,7 +14,7 @@ sub pipe ($self, @stages) {    ## no critic (Subroutines::ProhibitBuiltinHomonym
 # Run the invocant through a pipeline of stages for their side effects, and
 # return the invocant.
 sub tap ($self, @stages) {
-    my $pipeline = $self->pipeline_class->new(@stages);
+    my $pipeline = Ekorn::Pipeline->new(@stages);
     $pipeline->($self);
     return $self;
 }
@@ -83,18 +78,6 @@ Runs the invocant through a pipeline of C<@stages> for their side
 effects, and returns the invocant, whatever the stages return. A chain
 of method calls can carry on after it.
 
-=head2 pipeline_class
-
-    $class = $object->pipeline_class;
-
-The class of the pipelines C<pipe> and C<tap> make: Ekorn::Pipeline.
-A subclass overrides it to make pipelines of a subclass of its own, so
-that C<pipe> and C<tap> run with whatever that subclass changes about
-how its pipelines behave:
-
-    sub pipeline_class ($self) { 'My::Pipeline' }
-
-It's new in v0.2.1.
 =head1 SEE ALSO
 
 L<Ekorn::Pipeline>, L<Ekorn::Pipeline::Stages::Taps>
