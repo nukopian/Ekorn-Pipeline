@@ -44,6 +44,10 @@ L<At a glance|/"At a glance">
 
 =item *
 
+L<Importing: Ekorn::Pipeline::Tooling|/"Importing: Ekorn::Pipeline::Tooling">
+
+=item *
+
 L<Terms|/"Terms">
 
 =item *
@@ -124,11 +128,7 @@ L<The modules|/"The modules">
 
     use v5.36;
     use Ekorn::Pipeline;
-    use Ekorn::Pipeline::Stop;                                       # Stop
-    use Ekorn::Pipeline::Gather;                                     # gather
-    use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_if, drop_if, take_while, drop_while
-    use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
-    use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
+    use Ekorn::Pipeline::Tooling qw(:all);    # every stage, source, sink and word
 
     # A pipeline: a list of stages. A stage is a code reference given one
     # value, in $_ and as its argument, returning nothing, one value or
@@ -152,6 +152,105 @@ L<The modules|/"The modules">
     # A function of your own, taking stages from its caller.
     sub numbers (@stages) { Ekorn::Pipeline->new(@stages)->(1 .. 10) }
     say join ' ', numbers(drop(2), take(3));    # 3 4 5
+
+=head1 Importing: Ekorn::Pipeline::Tooling
+
+    use Ekorn::Pipeline::Tooling qw(:all);              # everything below
+    use Ekorn::Pipeline::Tooling qw(:stages :sinks);    # or some tags
+    use Ekorn::Pipeline::Tooling qw(take keep_all);     # or some names
+
+What a caller uses to do work is made in several modules, each
+described below. Ekorn::Pipeline::Tooling exports all of it, from one
+place, by tags that follow the modules that make it:
+
+=over 4
+
+=item C<:core>
+
+B<Holds:> C<Stop>, C<gather>
+
+B<Made in:> L<Stop|/"Stopping a pipeline: Ekorn::Pipeline::Stop">, L<Gather|/"Gathering: Ekorn::Pipeline::Gather">
+
+=item C<:flow>
+
+B<Holds:> C<take>, C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<take_while>, C<drop>, C<drop_if>, C<drop_while>
+
+B<Made in:> L<Stages::Flow|/"Ekorn::Pipeline::Stages::Flow">
+
+=item C<:batch>
+
+B<Holds:> C<batch>, C<collect>
+
+B<Made in:> L<Stages::Batch|/"Ekorn::Pipeline::Stages::Batch">
+
+=item C<:taps>
+
+B<Holds:> C<peek>, C<count_into>, C<dump_to>
+
+B<Made in:> L<Stages::Taps|/"Ekorn::Pipeline::Stages::Taps">
+
+=item C<:stages>
+
+B<Holds:> C<:flow>, C<:batch> and C<:taps>
+
+=item C<:sources>
+
+B<Holds:> C<from_array>, C<from_fh>, C<from_file>, C<counter>
+
+B<Made in:> L<Sources|/"Sources: Ekorn::Pipeline::Sources">
+
+=item C<:sinks>
+
+B<Holds:> C<count_items>, C<keep>, C<keep_all>, C<keep_first>, C<keep_last>, C<keep_single>, C<to_fh>, C<to_file>
+
+B<Made in:> L<Sinks|/"Sinks: Ekorn::Pipeline::Sinks">
+
+=item C<:words>
+
+B<Holds:> C<pipeline>, C<stage>, C<gather>, C<source>, C<generator>, C<yield>, C<sink_one>, C<sink_many>
+
+B<Made in:> L<Factories|/"Words: Ekorn::Pipeline::Factories">
+
+=item C<:all>
+
+B<Holds:> all of the above
+
+=back
+
+=over 4
+
+=item *
+
+B<Nothing by default.> Ask for tags, names, or both. An unknown tag
+or name is Exporter's error: it warns C<"%s" is not defined in
+%Ekorn::Pipeline::Tooling::EXPORT_TAGS>, or C<"%s" is not exported by
+the Ekorn::Pipeline::Tooling module>, and dies C<Can't continue after
+import errors>.
+
+=item *
+
+B<The same subs.> Each name is the sub its own module exports,
+prototype and all, so C<take_if { ... }> and C<stage { ... }> parse as
+they do imported from there, and importing a name from both does no
+harm.
+
+=item *
+
+B<A tag holds every name its module exports,> by default or on
+request. What a tag holds is part of the interface: a name may be
+added to one in a release that only adds, but is dropped or renamed
+only in one that moves the middle number of the version.
+
+=item *
+
+B<What it leaves out:> what's for extending the package rather than
+using it, C<is_stage> and C<is_sink>, from Ekorn::Pipeline, and
+C<croakf>, from Ekorn::Pipeline::Errors, which you import from their
+modules; and the operators, which only C<use
+Ekorn::Pipeline::Operators> puts in force, in its own scope (see
+L<Operators|/"Operators: Ekorn::Pipeline::Operators">).
+
+=back
 
 =head1 Terms
 
@@ -3047,6 +3146,14 @@ B<By default:> nothing
 
 B<On request:> C<is_stage>, C<is_sink>
 
+=item C<Ekorn::Pipeline::Tooling>
+
+B<By default:> nothing
+
+B<On request:> every name below but C<is_stage>, C<is_sink>, C<chain>, C<drain> and C<croakf>
+
+B<Tags:> C<:core>, C<:flow>, C<:batch>, C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:words>, C<:all>
+
 =item C<Ekorn::Pipeline::Factories>
 
 B<By default:> nothing
@@ -3133,6 +3240,10 @@ empty list: C<use Ekorn::Pipeline::Stop ();>.
 =item C<Ekorn::Pipeline>
 
 Runs values through a list of stages: C<new>, C<pipeline_in>, C<named>, C<iterator>, C<stages>, C<is_stage>, C<is_sink>, C<ending> and C<run_context>.
+
+=item C<Ekorn::Pipeline::Tooling>
+
+Exports what callers use to do work, from one place, by tags: see L<Importing|/"Importing: Ekorn::Pipeline::Tooling">.
 
 =item C<Ekorn::Pipeline::Operators>
 

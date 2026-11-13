@@ -41,20 +41,6 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0031. Ekorn::Pipeline::Tooling, one module to import from
-
-**Size:** M (3)
-
-What a caller imports is spread over many modules, so a pipeline with
-a source, a filter and a sink can need five `use` lines.
-Ekorn::Pipeline::Tooling exports the words, stages, sources and sinks
-callers use to do work, by tags that follow the modules, such as
-`:stages`, `:sources`, `:sinks` and `:all`, and nothing by default;
-the operators stay a pragma of their own. Each word is still made in
-one module. Done when Tooling ships with its tests, POD and a section
-in the reference, and the docs show it. See its
-[record](docs/changes/2026-0031-tooling.md).
-
 ### 2026-0025. Release v0.3.0
 
 **Size:** S (2)

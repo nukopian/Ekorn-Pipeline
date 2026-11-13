@@ -13,8 +13,7 @@ what they want, beside the call, and the function does only what it
 alone can.
 
     use Ekorn::Pipeline;
-    use Ekorn::Pipeline::Sources qw(from_file);
-    use Ekorn::Pipeline::Stages::Flow qw(take drop take_if);
+    use Ekorn::Pipeline::Tooling qw(:all);
 
     # The author's function: it reads log lines, and nothing else.
     sub log_lines ($file, @stages) {
@@ -31,6 +30,10 @@ alone can.
 
 The file is read only as far as the tenth error, and closed there,
 however the caller's loop ends.
+
+Every stage, source, sink and word here comes from one module,
+[Ekorn::Pipeline::Tooling](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ATooling), by tags, and the examples below assume
+it; the sections say which module makes each.
 
 ## The problem it solves
 
@@ -208,8 +211,6 @@ already out are kept, and any values the stop carries go on through
 the rest of the stages. Nothing else is made: once a stage has stopped
 it, a pulled pipeline never calls its source again.
 
-    use Ekorn::Pipeline::Stop;
-
     sub ($user) { $user->{id} == $wanted ? Stop($user) : () }    # find one, then stop
 
 This is how a caller's stages save the author's work. With
@@ -252,8 +253,6 @@ told how: `done`, `stopped` or `died`, so a stage can tidy up.
 The parts are given by name, in a hash reference, or as a list in that
 order:
 
-    use Ekorn::Pipeline::Gather;
-
     sub batches_of ($size) {
         return gather {
             my @batch;    # this run's
@@ -291,8 +290,6 @@ own. Its block is the source's set-up, and returns its step, which
 gives the next value or an empty list at the end, and, if it needs one,
 its end:
 
-    use Ekorn::Pipeline::Factories qw(source);
-
     sub lines_of ($file) {
         return source {
             open my $fh, '<', $file or die "Can't read $file: $!\n";
@@ -326,8 +323,6 @@ as a list, or as an array reference in scalar context;
 - `to_file($path, $layers)` and `to_fh($fh)`, writing each
 value on a line of its own, and giving how many.
 
-    use Ekorn::Pipeline::Sinks qw(count_items keep_first);
-
     my $errors = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, count_items)->(@lines);
     my $first  = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, keep_first)->(@lines);
 
@@ -347,9 +342,6 @@ join with `|`, as commands do in a Unix shell. A chain from a source
 to a sink runs at once, and gives the sink's result:
 
     use Ekorn::Pipeline::Operators;
-    use Ekorn::Pipeline::Factories qw(stage);
-    use Ekorn::Pipeline::Sources   qw(from_file);
-    use Ekorn::Pipeline::Sinks     qw(count_items keep_all);
 
     my $errors = from_file('app.log') | take_if { m( \A ERROR )x };
     say $errors | count_items;
@@ -386,8 +378,6 @@ function on CPAN whose author has never heard of it.
 A pipeline you use often can be given a name, and used by it. The word
 `pipeline` makes a pipeline in which a name stands for the pipeline it
 names:
-
-    use Ekorn::Pipeline::Factories qw(pipeline);
 
     Ekorn::Pipeline->named(active_names => only_active, value_of('name'));
     my @names = users(pipeline('active_names', take(10)));
@@ -480,6 +470,9 @@ as a stage that's neither a code reference nor a pipeline, or
 
 ## What comes with it
 
+- [Ekorn::Pipeline::Tooling](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ATooling): everything below but the
+operators, from one module, by tags: `:core`, `:flow`, `:batch`,
+`:taps`, `:stages`, `:sources`, `:sinks`, `:words` and `:all`.
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
 `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`,
 `take_while` and `drop_while`, which pass values on by their position

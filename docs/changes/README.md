@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [Ekorn::Pipeline::Tooling, one module to import from](2026-0031-tooling.md),
-  roadmap 2026-0031: open.
+  roadmap 2026-0031: shipped, unreleased.
 - [take_if and drop_if](2026-0030-take-if.md), roadmap 2026-0030: shipped,
   unreleased.
 - [A single name gives the pipeline it names](2026-0029-single-name.md),

@@ -10,6 +10,8 @@ Unreleased
     sink_many. The README's CPAN badge keeps up with releases, and the
     how-to says where a stage belongs. Stages::Flow has take_first,
     take_last and take_single, and take_if and drop_if, which filter.
+    Ekorn::Pipeline::Tooling exports every stage, source, sink and
+    word from one module, by tags.
 
     A run's parts can be made afresh for it, and told how it ended:
     sources that close what they open, however the run ends; sinks
@@ -25,9 +27,10 @@ Unreleased
 
     Pushing values through plain subs is several times faster.
 
-    It ships fourteen roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    It ships fifteen roadmap items, 2026-0009, 2026-0011, 2026-0013,
     2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021, 2026-0024,
-    2026-0026, 2026-0027, 2026-0028, 2026-0029 and 2026-0030. It changes what some code
+    2026-0026, 2026-0027, 2026-0028, 2026-0029, 2026-0030 and
+    2026-0031. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -37,6 +40,16 @@ Unreleased
     stages are numbered where it's given. Otherwise,
     existing code runs as before.
 
+    - Ekorn::Pipeline::Tooling exports what callers use to do work,
+      from one module, so there's nothing to remember about which
+      module makes which: tags :core (Stop and gather), :flow, :batch
+      and :taps, :stages for the three, :sources, :sinks, :words (the
+      factories) and :all. Each tag holds every name its module
+      exports, as the same sub, and nothing is exported by default.
+      It leaves out is_stage, is_sink and croakf, which are for
+      extending the package, and the operators, which stay a pragma.
+      The user guide's examples, the README's and the reference's
+      At a glance import from it. (roadmap 2026-0031)
     - The role methods, by which any object can be a source, a stage
       or a sink, are named in capitals, EKORN_SOURCE, EKORN_STAGE,
       EKORN_SINK_ONE and EKORN_SINK_MANY, as Perl names subs that its

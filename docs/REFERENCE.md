@@ -28,6 +28,7 @@ says what each release changed.
 ## Contents
 
 - [At a glance](#at-a-glance)
+- [Importing: Ekorn::Pipeline::Tooling](#importing-ekornpipelinetooling)
 - [Terms](#terms)
 - [Pipelines: Ekorn::Pipeline](#pipelines-ekornpipeline)
 - [Words: Ekorn::Pipeline::Factories](#words-ekornpipelinefactories)
@@ -53,11 +54,7 @@ says what each release changed.
 ```perl
 use v5.36;
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Stop;                                       # Stop
-use Ekorn::Pipeline::Gather;                                     # gather
-use Ekorn::Pipeline::Stages::Flow qw(:all);                      # take, drop, take_first, take_last, take_single, take_if, drop_if, take_while, drop_while
-use Ekorn::Pipeline::Stages::Batch;                              # batch, collect
-use Ekorn::Pipeline::Stages::Taps qw(:all);                      # peek, count_into, dump_to
+use Ekorn::Pipeline::Tooling qw(:all);    # every stage, source, sink and word
 
 # A pipeline: a list of stages. A stage is a code reference given one
 # value, in $_ and as its argument, returning nothing, one value or
@@ -82,6 +79,50 @@ say "@squares";    # 1 4 9
 sub numbers (@stages) { Ekorn::Pipeline->new(@stages)->(1 .. 10) }
 say join ' ', numbers(drop(2), take(3));    # 3 4 5
 ```
+
+## Importing: Ekorn::Pipeline::Tooling
+
+```perl
+use Ekorn::Pipeline::Tooling qw(:all);              # everything below
+use Ekorn::Pipeline::Tooling qw(:stages :sinks);    # or some tags
+use Ekorn::Pipeline::Tooling qw(take keep_all);     # or some names
+```
+
+What a caller uses to do work is made in several modules, each
+described below. Ekorn::Pipeline::Tooling exports all of it, from one
+place, by tags that follow the modules that make it:
+
+| Tag | Holds | Made in |
+|---|---|---|
+| `:core` | `Stop`, `gather` | [Stop](#stopping-a-pipeline-ekornpipelinestop), [Gather](#gathering-ekornpipelinegather) |
+| `:flow` | `take`, `take_first`, `take_last`, `take_single`, `take_if`, `take_while`, `drop`, `drop_if`, `drop_while` | [Stages::Flow](#ekornpipelinestagesflow) |
+| `:batch` | `batch`, `collect` | [Stages::Batch](#ekornpipelinestagesbatch) |
+| `:taps` | `peek`, `count_into`, `dump_to` | [Stages::Taps](#ekornpipelinestagestaps) |
+| `:stages` | `:flow`, `:batch` and `:taps` | |
+| `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
+| `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
+| `:words` | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | [Factories](#words-ekornpipelinefactories) |
+| `:all` | all of the above | |
+
+- **Nothing by default.** Ask for tags, names, or both. An unknown tag
+  or name is Exporter's error: it warns `"%s" is not defined in
+  %Ekorn::Pipeline::Tooling::EXPORT_TAGS`, or `"%s" is not exported by
+  the Ekorn::Pipeline::Tooling module`, and dies `Can't continue after
+  import errors`.
+- **The same subs.** Each name is the sub its own module exports,
+  prototype and all, so `take_if { ... }` and `stage { ... }` parse as
+  they do imported from there, and importing a name from both does no
+  harm.
+- **A tag holds every name its module exports,** by default or on
+  request. What a tag holds is part of the interface: a name may be
+  added to one in a release that only adds, but is dropped or renamed
+  only in one that moves the middle number of the version.
+- **What it leaves out:** what's for extending the package rather than
+  using it, `is_stage` and `is_sink`, from Ekorn::Pipeline, and
+  `croakf`, from Ekorn::Pipeline::Errors, which you import from their
+  modules; and the operators, which only `use
+  Ekorn::Pipeline::Operators` puts in force, in its own scope (see
+  [Operators](#operators-ekornpipelineoperators)).
 
 ## Terms
 
@@ -2366,6 +2407,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 | Module | By default | On request | Tags |
 |---|---|---|---|
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
+| `Ekorn::Pipeline::Tooling` | nothing | every name below but `is_stage`, `is_sink`, `chain`, `drain` and `croakf` | `:core`, `:flow`, `:batch`, `:taps`, `:stages`, `:sources`, `:sinks`, `:words`, `:all` |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | `from_array`, `from_fh`, `from_file`, `counter` | `:all` |
 | `Ekorn::Pipeline::Operators` | nothing: loading it puts the operators in force | `chain` and `drain`, by their full names, for your own overloads | |
@@ -2387,6 +2429,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | Module | What it is |
 |---|---|
 | `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline_in`, `named`, `iterator`, `stages`, `is_stage`, `is_sink`, `ending` and `run_context`. |
+| `Ekorn::Pipeline::Tooling` | Exports what callers use to do work, from one place, by tags: see [Importing](#importing-ekornpipelinetooling). |
 | `Ekorn::Pipeline::Operators` | `\|`, `\|=` and `@{}` for Ekorn's types, in force lexically: `chain` and `drain`. |
 | `Ekorn::Pipeline::Sinks` | Ready-made sinks: `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file`. |
 | `Ekorn::Pipeline::Sources` | Ready-made sources: `from_array`, `from_fh`, `from_file`, `counter`. |

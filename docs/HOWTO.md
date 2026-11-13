@@ -28,6 +28,7 @@ full. This guide is the tour; the reference is the map.
 
 - [The layers, at a glance](#the-layers-at-a-glance)
 - [The examples' data](#the-examples-data)
+- [Import everything from one place](#import-everything-from-one-place)
 - [1. Stages: one value at a time](#1-stages-one-value-at-a-time)
 - [2. Pipelines: pushing values, pulling values](#2-pipelines-pushing-values-pulling-values)
 - [3. Stopping early](#3-stopping-early)
@@ -81,16 +82,17 @@ caller gives, and a file of their titles, one per line, in a temporary
 folder that's removed when the program ends.
 
 To try an example, put this at the top of a file, and the example
-after it. It imports `take` and `drop`, which chapter 3 introduces,
-because so many examples use them. Each example stands alone, given this, apart from a few that
-use a function an earlier one defined, which they say. To try several
-in one file, put each in braces, `{ ... }`, so their variables don't
-clash.
+after it. It imports every stage, source, sink and word the guide
+uses, from Ekorn::Pipeline::Tooling, so the examples needn't (see
+[Import everything from one place](#import-everything-from-one-place)).
+Each example stands alone, given this, apart from a few that use a
+function an earlier one defined, which they say. To try several in one
+file, put each in braces, `{ ... }`, so their variables don't clash.
 
 ```perl
 use v5.36;
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Stages::Flow;    # take and drop, from chapter 3
+use Ekorn::Pipeline::Tooling qw(:all);    # every stage, source, sink and word
 use File::Temp qw(tempdir);
 
 my @tracks = (
@@ -114,6 +116,41 @@ open my $out, '>', $setlist or die "Can't write $setlist: $!\n";
 print {$out} map { "$_->{title}\n" } @tracks;
 close $out or die "Can't write $setlist: $!\n";
 ```
+
+## Import everything from one place
+
+What you use to do work with Ekorn::Pipeline is made in several
+modules, one for each kind of thing, and the chapters below say which.
+You needn't remember them: Ekorn::Pipeline::Tooling exports all of it,
+by tags that follow the modules:
+
+| Tag | What it gives you | Made in |
+|---|---|---|
+| `:core` | `Stop` and `gather` | Ekorn::Pipeline::Stop and ::Gather |
+| `:flow` | `take`, `drop`, `take_if`, `take_while` and the rest | Ekorn::Pipeline::Stages::Flow |
+| `:batch` | `batch` and `collect` | Ekorn::Pipeline::Stages::Batch |
+| `:taps` | `peek`, `count_into` and `dump_to` | Ekorn::Pipeline::Stages::Taps |
+| `:stages` | `:flow`, `:batch` and `:taps` | |
+| `:sources` | `from_array`, `from_file`, `from_fh` and `counter` | Ekorn::Pipeline::Sources |
+| `:sinks` | `count_items`, `keep_all`, `keep_first`, `to_file` and the rest | Ekorn::Pipeline::Sinks |
+| `:words` | `pipeline`, `stage`, `source`, `generator`, `sink_one` and the rest | Ekorn::Pipeline::Factories |
+| `:all` | all of the above | |
+
+Ask for what you need, by tag or by name. Nothing comes by default:
+
+```perl
+package My::Report {
+    use Ekorn::Pipeline::Tooling qw(:stages :sinks);
+    say scalar Ekorn::Pipeline->new(take_if { $_->{plays} > 6000 }, count_items)->(@tracks);    # 3
+}
+```
+
+Each name is the very sub its own module exports, so it makes no
+difference which you import it from. Two things Tooling leaves out:
+what's for extending Ekorn rather than using it, such as `is_stage`
+and `croakf`, which you import from their own modules when chapters 9
+and 10 need them; and `|`, which only `use Ekorn::Pipeline::Operators`
+puts in force, in its own scope, as chapter 8 explains.
 
 ## 1. Stages: one value at a time
 
@@ -469,8 +506,6 @@ asked for, so a source of every square number is fine, as long as
 something stops the run. Here `take`, from chapter 3, does:
 
 ```perl
-use Ekorn::Pipeline::Stages::Flow;    # take and drop
-
 my $n       = 0;
 my @squares = Ekorn::Pipeline->new(sub { $_ * $_ }, take(5))->iterator(sub { ++$n })->all;
 say "@squares";    # 1 4 9 16 25
@@ -564,8 +599,6 @@ Values given to it go on through the rest of the stages, as the run's
 last:
 
 ```perl
-use Ekorn::Pipeline::Stop;
-
 my($blur) = tracks(sub { $_->{artist} eq 'Blur' ? Stop($_) : () });
 say $blur->{title};    # Girls & Boys
 ```
@@ -599,8 +632,6 @@ saved.
 values, then stops. With an iterator, the source isn't called again:
 
 ```perl
-use Ekorn::Pipeline::Stages::Flow;    # take and drop
-
 my $read = 0;
 my @two  = Ekorn::Pipeline->new(take(2), sub { $_->{title} })
     ->iterator(sub { $read < @tracks ? $tracks[$read++] : () })->all;
@@ -636,8 +667,6 @@ Flow has three more stages for picking one value, imported on request:
   when you meant one, and want to hear about it if there are more.
 
 ```perl
-use Ekorn::Pipeline::Stages::Flow qw(take_first take_last take_single);
-
 say tracks(sub { $_->{title} }, take_first);                                  # Dancing Queen
 say tracks(sub { $_->{title} }, take_last);                                   # Sunshine of Your Love
 say tracks(sub { $_->{artist} eq 'Cream' ? $_->{title} : () }, take_single);    # Sunshine of Your Love
@@ -655,8 +684,6 @@ does. Compare `take_while`, in the next recipe, which stops at the
 first value its test fails:
 
 ```perl
-use Ekorn::Pipeline::Stages::Flow qw(take_if drop_if take_while);
-
 say join ', ', tracks(take_if { $_->{plays} >= 6000 }, sub { $_->{title} });
 # Dancing Queen, Girls & Boys, Sunshine of Your Love
 say join ', ', tracks(drop_if { $_->{artist} eq 'Blur' }, sub { $_->{title} });
@@ -678,8 +705,6 @@ reads an email's headers, which end at the first blank line, and never
 reads the body:
 
 ```perl
-use Ekorn::Pipeline::Stages::Flow qw(take_while drop_while);
-
 my $mail = <<~'END';
     From: abba@example.com
     Subject: Waterloo
@@ -775,8 +800,6 @@ run, and returns the stage. So whatever the block declares with `my`
 is fresh for each run:
 
 ```perl
-use Ekorn::Pipeline::Gather;
-
 sub numbered () {
     return gather {
         my $n = 0;    # this run's
@@ -841,7 +864,6 @@ one shorter if need be; `collect` holds every value, and passes on one
 array reference of them all, or what its block makes of them:
 
 ```perl
-use Ekorn::Pipeline::Stages::Batch;    # batch and collect
 use List::Util qw(sum0);
 
 my @batches = tracks(sub { $_->{title} }, batch(4));
@@ -870,8 +892,6 @@ To give an end without a flush, name the parts, in a hash reference,
 rather than listing them in order:
 
 ```perl
-use Ekorn::Pipeline::Stages::Flow;    # take and drop
-
 my @log;
 my $logged = gather {
     my $n = 0;
@@ -944,8 +964,6 @@ Ekorn::Pipeline::Stage from a block. It goes wherever a stage goes,
 and does what the block does:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(stage);
-
 my $title = stage { $_->{title} };
 say tracks($title, take(1));    # Dancing Queen
 ```
@@ -991,8 +1009,6 @@ ones, and the word `source` makes your own.
 run:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_array);
-
 my $source = from_array(@tracks);
 my $next   = Ekorn::Pipeline->new(sub { $_->{artist} })->iterator($source);
 say join ' ', $next->all;    # Abba Abba Blur Blur Blur Cream
@@ -1010,8 +1026,6 @@ lines run out, when a stage stops the run, when the iterator is
 finished or let go, or when a stage dies:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_file);
-
 my $next = Ekorn::Pipeline->new(take(2))->iterator(from_file($setlist));
 say join ' / ', $next->all;    # Dancing Queen / Knowing Me, Knowing You
 say $next->ended;              # stopped
@@ -1055,8 +1069,6 @@ socket. It leaves the handle open when the run ends, because you
 opened it, and may want to read on:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_fh);
-
 my $text = "one\ntwo\nthree\n";
 open my $fh, '<', \$text or die "Can't read the text: $!\n";
 my @first = Ekorn::Pipeline->new(take(1))->iterator(from_fh($fh))->all;
@@ -1070,8 +1082,6 @@ say "@first / @rest";    # one / two three
 default. Give it something that stops:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(counter);
-
 say join ' ', Ekorn::Pipeline->new(take(4))->iterator(counter(10, 5))->all;    # 10 15 20 25
 ```
 
@@ -1084,8 +1094,6 @@ empty list at the end, and, if it needs one, the *end*, which is told
 how the run ended:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(source);
-
 # The lines of a file, opened for each run, and closed once it ends,
 # noting how each run ended in @$closed.
 sub lines_of ($file, $closed = []) {
@@ -1174,8 +1182,6 @@ Some producers are easiest to write as a loop. `generator` takes a
 block that calls `yield` with each value, as a Python generator does:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(generator yield);
-
 my $pairs = generator {
     for my $x (1 .. 3) {
         for my $y ($x .. 3) { yield "$x$y" }
@@ -1221,8 +1227,6 @@ and `sink_many` make your own.
 `count_items`, `keep_first` and `keep_last` give one value each:
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(count_items keep_first keep_last);
-
 say scalar tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);    # 3
 say scalar tracks(sub { $_->{artist} }, keep_first);                         # Abba
 say scalar tracks(sub { $_->{artist} }, keep_last);                          # Cream
@@ -1238,8 +1242,6 @@ context, a list. Asked for one value, in scalar context, an array
 reference, so a list sink never gives you a mere count by accident:
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(keep_all keep);
-
 my @titles = tracks(sub { $_->{title} }, keep_all);
 my $titles = tracks(sub { $_->{title} }, keep_all);
 say scalar @titles, ' titles, and ', scalar @$titles, ' by reference';    # 6 titles, and 6 by reference
@@ -1258,8 +1260,6 @@ one. If there's a second, it warns, stops the run, and gives the
 first:
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(keep_single);
-
 say scalar tracks(sub { $_->{artist} eq 'Cream' ? $_->{title} : () }, keep_single);    # Sunshine of Your Love
 ```
 
@@ -1290,8 +1290,6 @@ it, and closes it however the run ends. `to_fh` writes to a filehandle
 you opened, and leaves it open:
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(to_file to_fh);
-
 my $hits = "$dir/hits.txt";
 my $n    = tracks(sub { $_->{plays} >= 6000 ? $_->{title} : () }, to_file($hits));
 say "$n written";    # 3 written
@@ -1317,8 +1315,6 @@ values run out, giving the result. `sink_one` makes a sink giving one
 value, and `sink_many` one giving a list:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(sink_one sink_many);
-
 my $longest = sink_one {
     my $max = '';
     return {
@@ -1502,8 +1498,6 @@ Ekorn::Pipeline::Factories, makes a pipeline in which a name stands for
 the pipeline it names. A named pipeline can be made from other names:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(pipeline);
-
 Ekorn::Pipeline->named(hit   => at_least(6000));
 Ekorn::Pipeline->named(title => value_of('title'));
 Ekorn::Pipeline->named(hit_titles => 'hit', 'title');
@@ -1557,9 +1551,6 @@ sink's result:
 
 ```perl
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_array);
-use Ekorn::Pipeline::Sinks     qw(count_items keep_first);
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
@@ -1575,9 +1566,6 @@ list:
 
 ```perl
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_array);
-use Ekorn::Pipeline::Sinks     qw(keep_all);
 
 my $titles = from_array(@tracks) | stage { $_->{title} } | take(2) | keep_all;
 say join ', ', @$titles;    # Dancing Queen, Knowing Me, Knowing You
@@ -1597,9 +1585,6 @@ chain from it is a run of its own:
 
 ```perl
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_array);
-use Ekorn::Pipeline::Sinks     qw(count_items keep_first);
 
 my $hits = from_array(@tracks) | stage { $_->{plays} >= 6000 ? $_->{title} : () };
 say $hits | count_items;    # 3
@@ -1621,9 +1606,6 @@ and use anywhere a pipeline goes. `|=` adds a stage to one:
 
 ```perl
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_array);
-use Ekorn::Pipeline::Sinks     qw(keep_all);
 
 my $steps = stage { $_->{title} } | stage { uc };
 $steps |= take(2);
@@ -1638,8 +1620,6 @@ value:
 
 ```perl
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sources   qw(from_file);
 
 my $loud = from_file($setlist) | stage { uc };
 my @all  = @{$loud};
@@ -1756,8 +1736,6 @@ your work too. Here a function reads a log file, closing it however
 its caller stops:
 
 ```perl
-use Ekorn::Pipeline::Sources qw(from_file);
-
 my $log = "$dir/app.log";
 open my $out, '>', $log or die "Can't write $log: $!\n";
 print {$out} map { "$_\n" } 'INFO started', 'ERROR disk full', 'INFO retrying', 'ERROR disk still full';
@@ -1839,8 +1817,6 @@ values, and the word `pipeline` makes one for the caller in a few
 characters:
 
 ```perl
-use Ekorn::Pipeline::Factories qw(pipeline);
-
 # What each callback returns, through the stages given last, as a pipeline.
 sub call_all (@callbacks) {
     my $stages = @callbacks && $callbacks[-1] isa 'Ekorn::Pipeline' ? pop @callbacks : pipeline();
@@ -1959,8 +1935,6 @@ starts afresh on each run, as chapter 4 showed. A stage that drops
 repeats is a good example:
 
 ```perl
-use Ekorn::Pipeline::Gather;
-
 sub distinct () {
     return gather {
         my %seen;    # this run's
@@ -1983,8 +1957,6 @@ its stop, as `take` does. Then the run ends without asking its source
 for one more:
 
 ```perl
-use Ekorn::Pipeline::Stop;
-
 sub up_to ($wanted) {
     return sub ($value) { $value eq $wanted ? Stop($value) : $value };
 }
@@ -2068,8 +2040,6 @@ package My::Chained::Queue {
 }
 
 use Ekorn::Pipeline::Operators;
-use Ekorn::Pipeline::Factories qw(stage);
-use Ekorn::Pipeline::Sinks     qw(keep_all);
 
 my $queue = My::Chained::Queue->new(qw(one two three));
 say join ' ', @{ $queue | stage { uc } | take(2) | keep_all };    # ONE TWO
@@ -2234,8 +2204,6 @@ each value, and passes the value on, whatever the block returns, so
 you can put it anywhere without changing what happens:
 
 ```perl
-use Ekorn::Pipeline::Stages::Taps;    # peek and count_into
-
 my @log;
 my @titles = tracks(peek { push @log, $_->{artist} }, sub { $_->{title} }, take(2));
 say "@log";    # Abba Abba
@@ -2263,8 +2231,6 @@ This uses `at_least`, from
 keys sorted, to a filehandle, or to STDERR if you give it none:
 
 ```perl
-use Ekorn::Pipeline::Stages::Taps qw(dump_to);
-
 open my $out, '>', \my $dumped or die "Can't write the dump: $!\n";
 tracks(take(1), dump_to($out));
 print $dumped;
