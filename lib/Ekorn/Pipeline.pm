@@ -1022,8 +1022,12 @@ Returns the pipeline's stages, in order. A pipeline that was given as
 a stage appears as the stages it was made of. In scalar context, it
 returns how many there are.
 
-The list can go anywhere stages go, including to a function that
-accepts only code references:
+The list can go anywhere stages go: to L</new>, or to a function that
+takes stages. Each is one of Ekorn's types, an object called as a code
+reference: a code reference given to C<new> comes back as an
+L<Ekorn::Pipeline::Stage> of it. So a function that takes only plain
+code references, testing them with C<is_coderef> or C<ref>, won't take
+them; v0.2.0 gave the code references themselves.
 
     my $clean  = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
     my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);

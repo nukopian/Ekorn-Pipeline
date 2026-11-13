@@ -89,7 +89,7 @@ What the tests found:
   run ended from outside hadn't died, before saying values were
   dropped, as a run that dies drops them itself; and an iterator's
   check that it had a way to end its run, which `new` always gives.
-  They're gone, each with a comment where it was.
+  They're gone, the run's two with a comment where they were.
 - **A stage of a stop in a flushed value is told `stopped`** if a value
   from an earlier flush was still waiting for it, as its input was cut
   short: the design's rule, which a first guess in the test had wrong.
@@ -97,3 +97,30 @@ What the tests found:
 Coverage of `lib/` as a whole is still below the floors for branches
 and POD, all in Factories, Sources, Sinks and Operators, which are
 2026-0021's, 2026-0016's, 2026-0017's and 2026-0018's.
+
+**The reference and the how-to, 2026-11-13.** The reference gains
+Runs and how they end (made for a run, how a run ends, flushes and
+ends, and sections for Source, Sink, the Iterator, and Stage and
+Element), `is_sink` and `run_context`, and Delivering parts for Ekorn,
+less its `|` for your sources, which is 2026-0018's. Terms, `new`,
+calling a pipeline, `iterator`, `is_stage`, `ending`, what a stop does,
+Gather, errors, writing stages, the diagnostics, the exports and the
+modules follow: a gather's *end function* is its flush, and it has an
+end. The how-to gains, under Pulling values one at a time, "Close a
+file however the run ends", "Don't leave a file open when you stop
+reading early" and "Read every value, or only the first", with `ended`
+in "Know when an iterator is done"; under Gathering values, "Clean up
+however the run ends" and "Write a sink of your own, and act on how
+the run ended"; and, for stage authors, "Deliver sources, sinks and
+stages for Ekorn". Each example was run.
+
+Their examples make sources and sinks with the classes,
+`Ekorn::Pipeline::Source->new` and `Ekorn::Pipeline::Sink->new_sink_one`,
+not Factories' words, which are 2026-0021's; it can change them to the
+words. The README is left for 2026-0025, which rewrites it.
+
+Found on the way: `stages` returns Elements, as the design settles
+(DESIGN.md's table of changes), but the reference and the POD still
+said its list could go to a function taking only code references.
+Both now say a code reference comes back as a Stage, and that v0.2.0
+gave the code references themselves.

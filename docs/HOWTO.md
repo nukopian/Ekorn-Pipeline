@@ -133,9 +133,9 @@ say "@with_it" eq "@with_name" ? 'the same' : 'different';    # the same
 alone, and a stage can call code that uses `$_` too.
 
 > **For stage authors:** a stage is always called with exactly one
-> argument, so a one-argument signature, `sub ($value)`, is safe. An
-> [end function](#do-something-once-the-values-run-out) is called with
-> none, so its signature is `sub ()`.
+> argument, so a one-argument signature, `sub ($value)`, is safe. A
+> [flush](#do-something-once-the-values-run-out) is called with none,
+> so its signature is `sub ()`.
 
 ### Pass on `undef`, 0 or an empty string
 
@@ -264,11 +264,93 @@ my($first) = $next->();
 say "$first after $calls call";    # A after 1 call
 ```
 
+### Close a file however the run ends
+
+A source made with Ekorn::Pipeline::Source is made afresh for each
+run, by a block that opens what the run needs, and returns the step,
+which gives the next value, and the end, which closes it. The end is
+called once the run has ended, however it ended: when the lines ran
+out, when a stage stopped the run, or when one died:
+
+```perl
+use Ekorn::Pipeline::Source;
+
+my $setlist = "Dancing Queen\nParklife\nCountry House\n";
+
+# The lines of a file, or of a string given by reference, each run
+# opening it afresh, and closing it once the run has ended.
+sub lines_of ($file) {
+    return Ekorn::Pipeline::Source->new(sub {
+        open my $fh, '<', $file or die "Can't read $file: $!\n";
+        return (
+            sub ()     { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
+            sub ($how) { close $fh },
+        );
+    });
+}
+
+my $next = Ekorn::Pipeline->new(take(2))->iterator(lines_of(\$setlist));
+while (my($title) = $next->()) {
+    say $title;    # Dancing Queen, then Parklife; the file is closed once take(2) stops
+}
+```
+
+Two iterators each open the file for themselves, and each closes it,
+once. The end is told how the run ended, as `done`, `stopped` or
+`died`, for a source that should do more than close.
+
+### Don't leave a file open when you stop reading early
+
+An iterator you stop reading before it's done ends its run when you're
+done with it, as Perl lets it go, and the source's end is called then:
+
+```perl
+{
+    my $next = Ekorn::Pipeline->new(sub { uc })->iterator(lines_of(\$setlist));
+    my($first) = $next->();
+    say $first;    # DANCING QUEEN
+}
+# $next has gone, so the file is closed
+```
+
+To end it sooner, while you still hold it, call `$next->finish`.
+
+### Read every value, or only the first
+
+An iterator can hand out what's left in one call. `all` reads the run
+to its end; `first` and `single` read one value, and end the run, so
+nothing more is read:
+
+```perl
+my @queue = @tracks;
+my @all   = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(sub { @queue ? shift @queue : () })->all;
+say scalar @all;    # 6
+
+my $first = Ekorn::Pipeline->new(sub { uc })->iterator(lines_of(\$setlist))->first;
+say $first;         # DANCING QUEEN
+```
+
+`all` gives an array reference in scalar context. `single` gives the
+next value as `first` does, but warns "Expected only one item, but
+there were more" if there's another, for a run that should give only
+one.
+
 ### Know when an iterator is done
 
 Once an iterator has handed out its last result, it returns an empty
 list on every call, and doesn't call its source again. To start again,
 make a new iterator; each is a run of its own.
+
+`ended` says how its run ended, once there's nothing more to come:
+`done` if the source was read to its end, `stopped` if a stop or
+`finish` cut it short, and `died` if anything died. Until then, it
+says nothing:
+
+```perl
+my $next = Ekorn::Pipeline->new(take(1))->iterator(lines_of(\$setlist));
+my @got  = $next->all;
+say $next->ended;    # stopped
+```
 
 The same goes once a stage has died. The call that asked for the
 result dies, and the iterator has ended, so catching the error and
@@ -475,9 +557,9 @@ in the reference has an example.
 
 ### Do something once the values run out
 
-A `gather` block can return a second function, an *end function*,
-called once the values run out. What it returns goes on through the
-rest of the stages, just like what a stage returns:
+A `gather` block can return a second function, its *flush*, called
+once the values run out. What it returns goes on through the rest of
+the stages, just like what a stage returns:
 
 ```perl
 sub titles_by_artist () {
@@ -487,10 +569,10 @@ sub titles_by_artist () {
             push @{ $titles{ $track->{artist} } }, $track->{title};
             return;    # hold every track; pass nothing on yet
         };
-        my $end = sub () {
+        my $flush = sub () {
             return map { "$_: " . join(', ', @{ $titles{$_} }) } sort keys %titles;
         };
-        return ($stage, $end);
+        return ($stage, $flush);
     };
 }
 
@@ -502,17 +584,86 @@ say for tracks(titles_by_artist());
 
 That's how `batch` and `collect` are made.
 
-> **For stage authors:** an end function is called even when no
-> values went by, so it can give an empty result, such as `[]`, or
-> nothing at all. It's called with no arguments, and with `$_`
-> undefined. The ends are called in order, first stage first. What one
-> returns goes through the stages after it before the next end is
-> called, so a `collect` after a `batch` gets the last batch too.
+v0.2.0 called the flush the *end function*; a gather written for it
+works as it did.
 
-### Tell values from an end apart
+> **For stage authors:** a flush is called even when no values went
+> by, so it can give an empty result, such as `[]`, or nothing at all.
+> It's called with no arguments, and with `$_` undefined. The flushes
+> are called in order, first stage first. What one returns goes through
+> the stages after it before the next flush is called, so a `collect`
+> after a `batch` gets the last batch too.
 
-While the values going through the stages come from an end function,
-rather than from the source, `Ekorn::Pipeline::ending()` is true:
+### Clean up however the run ends
+
+A flush isn't called when the run stops before its stage, or dies. For
+what must be done however the run ends, a `gather` block can return a
+third function, its *end*, called once the run has ended, and told
+how: `done`, `stopped` or `died`. Return `undef` for the flush if
+there's none:
+
+```perl
+my @log;
+my $logged = gather {
+    my $n = 0;
+    return (sub ($track) { $n++; $track }, undef, sub ($how) { push @log, "$n tracks, $how" });
+};
+
+tracks($logged);
+tracks($logged, take(2));
+eval { tracks($logged, sub { die "No more\n" if $_->{artist} eq 'Cream'; $_ }) };
+say for @log;
+# 6 tracks, done
+# 2 tracks, stopped
+# 6 tracks, died
+```
+
+`take(2)` stopped the second run while the gather still had tracks to
+come, so its end is told `stopped`. A stage after the stop, whose input
+ran out, would be told `done`.
+
+### Write a sink of your own, and act on how the run ended
+
+A sink takes every value, and gives one result once they run out. Make
+one with Ekorn::Pipeline::Sink: `new_sink_one` for a sink giving one
+value, as most do, or `new_sink_many` for one giving a list. Its block
+runs at the start of each run, and returns the step, called with each
+value; the flush, giving the result; and, if it needs one, the end,
+told how the run ended once it has. One that should take effect only
+if the whole run went through checks how, such as writing to a
+temporary file and moving it into place only when the run is `done`,
+so a run that dies, even after the sink, leaves the old file:
+
+```perl
+use Ekorn::Pipeline::Sink;
+use File::Temp qw(tempfile);
+
+sub save_to ($path) {
+    return Ekorn::Pipeline::Sink->new_sink_one(sub {
+        my($fh, $tmp) = tempfile();
+        my $n = 0;
+        return (
+            sub ($line) { say {$fh} $line; $n++ },
+            sub ()      { $n },
+            sub ($how) {
+                close $fh;
+                $how eq 'done' ? rename $tmp, $path : unlink $tmp;
+            },
+        );
+    });
+}
+
+say tracks(sub { $_->{title} }, save_to('titles.txt'));    # 6
+# titles.txt is replaced only if every title was written
+```
+
+A pipeline ending in a sink gives the sink's result, so `tracks` gives
+the count.
+
+### Tell values from a flush apart
+
+While the values going through the stages come from a flush, rather
+than from the source, `Ekorn::Pipeline::ending()` is true:
 
 ```perl
 my @lines = tracks(
@@ -524,7 +675,7 @@ say "@lines";    # total 36800
 ```
 
 It's for code that tells its stages more about each value, such as
-where it came from. A value from an end function has no such origin.
+where it came from. A value from a flush has no such origin.
 
 ## Watching values go by
 
@@ -921,7 +1072,7 @@ To run a pipeline on each value separately, call it from a stage:
 
 Calling a pipeline with values tests a stage, with no source to set
 up. Run it twice, to show it starts afresh, and with no values, to
-show what its end gives:
+show what its flush gives:
 
 ```perl
 use Test2::V0;
@@ -971,6 +1122,48 @@ Some things settle the cases in between:
   `Ekorn::Pipeline::Stages` reaches its users only once it's added to
   that list.
 
+### Deliver sources, sinks and stages for Ekorn
+
+If your package hands out values, as DBIx::Squirrel hands out rows,
+use Ekorn as it is: give your users the parts only you can make, and
+let them run them in Ekorn's pipelines, with Ekorn's parts and their
+own. Your parts say what they can be by their methods, and needn't
+load Ekorn to say it:
+
+1. **`ekorn_source`, for what you read.** It starts a run, and returns
+   its step, its end, closing what it opened, and a context, what your
+   stages may need to know about the run, as below.
+2. **`ekorn_sink_one` or `ekorn_sink_many`, for what you write.** A
+   sink's end is told how the run ended, so it can commit only when the
+   run is `done`.
+3. **Stages for what only you know,** asking
+   `Ekorn::Pipeline::run_context()` for what the source gave.
+4. **Functions that take stages,** if you like, finding them with
+   `is_stage` and running them with `Ekorn::Pipeline->new(@stages)`.
+5. **Ekorn's `@INTERNAL` in your `@CARP_NOT`,** so mistakes are
+   reported at your users' lines.
+
+A table's source, executing its statement for each run:
+
+```perl
+sub ekorn_source ($self) {
+    my $sth = $self->{sth};
+    $sth->execute;
+    return (sub () { $sth->fetchrow_arrayref // () }, sub ($how) { $sth->finish },
+        {columns => $sth->{NAME}});
+}
+```
+
+Don't subclass Ekorn's classes, or wrap them: your users take those
+from Ekorn, and compose your parts with them:
+
+```perl
+my $next = Ekorn::Pipeline->new(pluck('name'), take(5))->iterator($table);
+```
+
+[Delivering parts for Ekorn](REFERENCE.md#delivering-parts-for-ekorn)
+in the reference has the protocols in full.
+
 ### Publish a module of stages
 
 Export the stages a module is mostly used for by default, and the rest
@@ -1005,8 +1198,9 @@ The line is the one that ran the pipeline: here, the line in `tracks`
 that calls it, because `tracks` is in `main`. A module of functions
 that take stages can report its caller's line instead (see
 [Report your callers' mistakes at their own lines](#report-your-callers-mistakes-at-their-own-lines)).
-With an iterator, the line is the one that asked for the result. An
-end function that dies is named by its stage's position.
+With an iterator, the line is the one that asked for the result. A
+flush that dies is named by its stage's position, and an end that dies
+as the end of its stage: "Pipeline end of stage #2 failed at ...".
 
 A stage inside a pipeline used as a stage is named by its position in
 each pipeline. Here `$no_blur` is the second stage, and the stage that
