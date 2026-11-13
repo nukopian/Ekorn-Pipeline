@@ -162,6 +162,11 @@ Unreleased
       as how fast it is, how it compares with map, grep, options and
       callbacks, and where it falls short. Each of its examples runs,
       and prints what it says.
+    - The README is rewritten for this release. It shows the shape of
+      a run, from a source through stages to a sink, with sections on
+      parts made for each run, sources, sinks, joining them with |,
+      named pipelines, and parts for other packages, and lists the
+      modules that come with it.
     - The manuals' tables show a | written in them as |, not \|.
     - The reference has a section, Runs and how they end, and another,
       Delivering parts for Ekorn; the how-to has recipes for sources

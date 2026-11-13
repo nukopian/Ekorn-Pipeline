@@ -57,11 +57,12 @@ Every item v0.3.0 ships is in (2026-0013, 0014, 0016, 0017, 0018, 0021,
 need a sweep as a whole before the release (roadmap 2026-0025), which
 is held until then, as Iain decided on 2026-11-13.
 
-- **README.pod** (and the README.md Minilla makes from it): rewritten
-  for the stream concept, sources, stages and sinks, as the design's
-  20.1 has it, with a section on sources, sinks and the operators;
-  still on v0.2.0's model now. Whether Iain or Claude drafts it is his
-  call.
+- **README.pod** (and the README.md Minilla makes from it) was
+  rewritten for the shape of a run, source to stages to sink, on
+  2026-11-13, as Iain asked, with sections on parts made for each run,
+  sources, sinks, the operators and parts for other packages, and
+  every example run. It needs only a read for what DBIx-Squirrel's
+  changes turn up.
 - **docs/REFERENCE.md, next,** as Iain decided on 2026-11-13, deferring
   it to a later session. DBIx-Squirrel rewrote its own reference for
   v3 the same day (DBIx-Squirrel c498ff175759c4c7234b8204bf899b3d9e018fa0, roadmap 2026-0023, on its

@@ -14,13 +14,12 @@ what they want, beside the call, and the function does only what it
 alone can.
 
     use Ekorn::Pipeline;
-    use Ekorn::Pipeline::Stages::Flow;    # take and drop
+    use Ekorn::Pipeline::Sources qw(from_file);
+    use Ekorn::Pipeline::Stages::Flow qw(take drop take_if);
 
     # The author's function: it reads log lines, and nothing else.
     sub log_lines ($file, @stages) {
-        open my $fh, '<', $file or die "Can't read $file: $!\n";
-        return Ekorn::Pipeline->new(@stages)
-            ->iterator(sub { scalar(<$fh>) // () });
+        return Ekorn::Pipeline->new(@stages)->iterator(from_file($file));
     }
 
     # A caller's use of it: the first ten errors, as their messages.
@@ -30,6 +29,9 @@ alone can.
         take(10),                                    # ten, then stop reading
     );
     while (my($message) = $errors->()) { say $message }
+
+The file is read only as far as the tenth error, and closed there,
+however the caller's loop ends.
 
 =head2 The problem it solves
 
@@ -76,7 +78,7 @@ the values are made:
         return Ekorn::Pipeline->new(@stages)->(load_users());
     }
 
-    my @names = users(sub { $_->{active} ? $_ : () }, sub { $_->{name} }, take(10));
+    my @names = users(take_if { $_->{active} }, sub { $_->{name} }, take(10));
 
 The second C<users> does everything the first does, and everything it
 doesn't, without a line more. Its author is done with it. Whatever a
@@ -112,20 +114,38 @@ without ever seeing the handle they came from.
 count before or after C<active_only>? With stages, they run in the
 order the caller wrote them.
 
-=item * B<A stage is written once, for every function.> Stages are
-plain code references, or pipelines of them. A stage written for one
-function works with
-every function that takes stages, whoever wrote it. The canned stages
-here work with all of them.
+=item * B<A stage is written once, for every function.> A stage
+written for one function works with every function that takes stages,
+whoever wrote it. The ready-made stages here work with all of them.
 
 =back
 
+=head2 The shape of a run
+
+Every run of a pipeline has the same shape. Values come from
+somewhere, go through stages one at a time, and end up somewhere:
+
+    source  -->  stage  -->  stage  -->  stage  -->  sink
+   (where       (change, drop, multiply,          (where they
+  they come      or stop: one value at a time)      end up)
+    from)
+
+The I<stages> are the heart of it, and the only part a function that
+takes stages needs. The other two are optional. A I<source> is where
+a pulled pipeline gets its values, such as a file, opened as the run
+starts and closed however it ends. A I<sink>, given last, takes every
+value that comes out and gives one result, such as a count, the first
+value, or the number of lines written to a file. Without a sink, the
+run gives back whatever comes out of the last stage.
+
+The sections below take the parts in that order, after the stages:
+how a pipeline runs, how a stage stops it, parts made afresh for each
+run, sources, sinks, and joining them with C<|>.
+
 =head2 Stages
 
-A stage is either a code reference or another pipeline.
-
-A code reference is called with one value, as its argument and in
-C<$_>, and returns a list:
+A stage is most often a plain code reference. It's called with one
+value, as its argument and in C<$_>, and returns a list:
 
 =over
 
@@ -147,13 +167,32 @@ stage needs no wrapper to say which kind it is:
 
 Returning a list, rather than a value or C<undef>, is what makes this
 work. An empty list plainly means "nothing", so C<undef>, C<0> and the
-empty string are ordinary values, and can be passed on.
+empty string are ordinary values, and can be passed on. A test, which
+returns true or false, isn't a filter: give it to C<take_if> or
+C<drop_if>, from L<Ekorn::Pipeline::Stages::Flow>, as in
+C<take_if { $_-E<gt>{active} }>.
 
-A pipeline used as a stage stands for its own stages, spliced in where
-it's given. So stages you've put together once can be reused, in
-another pipeline or with any function that takes stages:
+A stage can also be:
 
-    my $active_names = Ekorn::Pipeline->new(sub { $_->{active} ? $_ : () }, sub { $_->{name} });
+=over
+
+=item * B<another pipeline,> which stands for its own stages, spliced
+in where it's given;
+
+=item * B<a stage made with a word,> such as C<stage { ... }> or
+C<gather { ... }>, from L<Ekorn::Pipeline::Factories>, or one of the
+ready-made stages, such as C<take(10)>;
+
+=item * B<any object with an C<EKORN_STAGE> method,> so another
+package can deliver stages without using Ekorn's classes (see
+L</Parts for other packages>).
+
+=back
+
+So stages you've put together once can be reused, in another pipeline
+or with any function that takes stages:
+
+    my $active_names = Ekorn::Pipeline->new(take_if { $_->{active} }, sub { $_->{name} });
     my @names = users($active_names, take(10));
 
 If a function accepts only code references, give it the pipeline's
@@ -175,16 +214,23 @@ out of the last stage.
 
     my @results = $pipeline->(@values);
 
-=item * B<Pulled:> given a I<source>, a function that returns the next
-value each time it's called, C<iterator> returns a function that hands
-out the results one per call. The source is called only when a result
-is wanted. A function reading a file, a socket or a database reads
-only as much as its caller asks for.
+=item * B<Pulled:> given a I<source>, C<iterator> returns an iterator,
+an object called as a function, which hands out the results one per
+call. The source is asked for values only when a result is wanted. A
+function reading a file, a socket or a database reads only as much as
+its caller asks for.
 
     my $next = $pipeline->iterator(sub { @queue ? shift @queue : () });
     while (my($result) = $next->()) { ... }
 
 =back
+
+The simplest source is a sub that returns the next value, or an empty
+list when there are no more. An iterator can also give everything
+that's left, with C<all>, or just the next, with C<first>; end its run
+early, with C<finish>; and say how the run ended, with C<ended>. An
+iterator let go before its values run out ends its run, so a source
+closes what it opened.
 
 =head2 Stopping early
 
@@ -219,37 +265,166 @@ Without stages, that function either fetches every page, or grows
 C<max_results>, C<max_pages> and C<on_result> options, for its author
 to write and maintain.
 
-=head2 Stages with state, and with an end
+=head2 Parts made for each run
 
 A stage is a closure, so it can keep state, such as a count. But a
 plain closure keeps its state from one run to the next, and can't tell
-when the last value has gone by. L<Ekorn::Pipeline::Gather> makes a
-stage afresh at the start of each run. The stage can also have an
-I<end function>, called once the values run out, whose values go on
-through the rest of the stages:
+when the last value has gone by, or how the run ended.
+L<Ekorn::Pipeline::Gather> makes a stage afresh at the start of each
+run. Its block is the stage's I<set-up>, and returns the stage's
+I<step>, called with each value, and, if it needs them:
+
+=over
+
+=item * B<a flush,> called once the values run out, whose values go on
+through the rest of the stages, so a stage can hold values back and
+hand them over at the end;
+
+=item * B<an end,> called once the run is over, however it ended, and
+told how: C<done>, C<stopped> or C<died>, so a stage can tidy up.
+
+=back
+
+The parts are given by name, in a hash reference, or as a list in that
+order:
 
     use Ekorn::Pipeline::Gather;
 
     sub batches_of ($size) {
         return gather {
             my @batch;    # this run's
-            return (
-                sub ($x) { push @batch, $x; @batch == $size ? [splice @batch] : () },
-                sub ()   { @batch ? [@batch] : () },    # the last, short batch
-            );
+            return {
+                step  => sub ($x) { push @batch, $x; @batch == $size ? [splice @batch] : () },
+                flush => sub ()   { @batch ? [@batch] : () },    # the last, short batch
+            };
         };
     }
 
-That's how C<batch>, C<collect>, C<take> and C<drop> are made.
+That's how C<batch>, C<collect>, C<take> and C<drop> are made. Sources
+and sinks are made the same way, from a set-up called at the start of
+each run, so every part of a run can have state of its own, and be
+told how the run ended.
+
+=head2 Sources
+
+A plain sub makes a fine source, but it's the same sub on every run,
+and it's never told when the run is over: a sub reading a file can't
+close it when the caller stops early. The sources in
+L<Ekorn::Pipeline::Sources> are made afresh for each run, and told
+when it ends:
+
+=over
+
+=item * C<from_array(@values)>, the values given, from the first, on
+each run;
+
+=item * C<from_file($path, $layers)>, a file's lines, without their
+newlines, opened as the run starts, through the I/O layers given, and
+closed however it ends;
+
+=item * C<from_fh($fh)>, the lines of a filehandle you opened, left
+open;
+
+=item * C<counter($start, $step)>, numbers without end.
+
+=back
+
+The word C<source>, from L<Ekorn::Pipeline::Factories>, makes your
+own. Its block is the source's set-up, and returns its step, which
+gives the next value or an empty list at the end, and, if it needs one,
+its end:
+
+    use Ekorn::Pipeline::Factories qw(source);
+
+    sub lines_of ($file) {
+        return source {
+            open my $fh, '<', $file or die "Can't read $file: $!\n";
+            return {
+                step => sub () { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
+                end  => sub ($how) { close $fh },
+            };
+        };
+    }
+
+The set-up can also give a I<context>, anything its stages may want
+to know about the run, such as a file's column names, which a stage
+asks for with C<Ekorn::Pipeline::run_context()>. And for a producer
+that's easiest written as a loop, the word C<generator> takes a block
+that calls C<yield> with each value.
+
+An iterator is a source too, so one pipeline's results can be read as
+another's values, and ending the outer run ends the inner one.
+
+=head2 Sinks
+
+A sink is the opposite of a source: given last in a pipeline, it takes
+every value that comes out, and gives one result, which is what the
+run gives. L<Ekorn::Pipeline::Sinks> has them ready-made:
+
+=over
+
+=item * C<count_items>, how many;
+
+=item * C<keep_first>, C<keep_last> and C<keep_single>, one value,
+C<keep_single> warning if there's a second;
+
+=item * C<keep_all> and C<keep($n)>, every value, or the first C<$n>,
+as a list, or as an array reference in scalar context;
+
+=item * C<to_file($path, $layers)> and C<to_fh($fh)>, writing each
+value on a line of its own, and giving how many.
+
+=back
+
+    use Ekorn::Pipeline::Sinks qw(count_items keep_first);
+
+    my $errors = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, count_items)->(@lines);
+    my $first  = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, keep_first)->(@lines);
+
+A sink that has what it needs, such as C<keep_first>, stops the run
+there, so a source is read no further.
+
+The words C<sink_one> and C<sink_many> make your own, giving one value
+or a list. The set-up returns the step, called with each value; the
+flush, giving the result; and optionally an end. A sink whose end is
+told C<done> knows every value arrived, so it can commit a
+transaction, or move a file into place, only then.
+
+=head2 Joining parts with C<|>
+
+With L<Ekorn::Pipeline::Operators> in scope, sources, stages and sinks
+join with C<|>, as commands do in a Unix shell. A chain from a source
+to a sink runs at once, and gives the sink's result:
+
+    use Ekorn::Pipeline::Operators;
+    use Ekorn::Pipeline::Factories qw(stage);
+    use Ekorn::Pipeline::Sources   qw(from_file);
+    use Ekorn::Pipeline::Sinks     qw(count_items keep_all);
+
+    my $errors = from_file('app.log') | take_if { m( \A ERROR )x };
+    say $errors | count_items;
+    say for @{ $errors | stage { s( \A ERROR \  )()xr } | take(10) | keep_all };
+
+A source joined to stages, with no sink, is a new source, which can be
+kept and ended in different sinks, each chain a run of its own. Stages
+joined with no source make a pipeline, and C<|=> adds to it.
+C<@{ $source }> reads a source to its end, and gives every value.
+
+It's a shorthand for the commonest shape, and everything it does can
+be done with C<new> and C<iterator>. Two things to mind, both Perl's:
+start a chain with one of Ekorn's types, a source, a stage made with
+C<stage>, or a ready-made one, as C<sub {...} | sub {...}> is Perl's
+bitwise OR of two addresses; and put a chain inside a larger
+expression in parentheses, as C<|> binds more loosely than C<.> and
+C<+>.
 
 =head2 Stages are values
 
-Stages are code references or pipelines, so they can be kept in
-variables, built by functions and passed around. A function that
-returns a stage is a word in a vocabulary, and the vocabulary grows in
-the caller's code, not the author's:
+Stages can be kept in variables, built by functions and passed around.
+A function that returns a stage is a word in a vocabulary, and the
+vocabulary grows in the caller's code, not the author's:
 
-    sub only_active ()    { sub { $_->{active} ? $_ : () } }
+    sub only_active ()    { take_if { $_->{active} } }
     sub value_of ($name)  { sub { $_->{$name} } }
 
     my @page  = (drop(20), take(10));
@@ -257,6 +432,19 @@ the caller's code, not the author's:
 
 A stage written for C<users> works for C<log_lines> too, or for a
 function on CPAN whose author has never heard of it.
+
+A pipeline you use often can be given a name, and used by it. The word
+C<pipeline> makes a pipeline in which a name stands for the pipeline it
+names:
+
+    use Ekorn::Pipeline::Factories qw(pipeline);
+
+    Ekorn::Pipeline->named(active_names => only_active, value_of('name'));
+    my @names = users(pipeline('active_names', take(10)));
+
+A name belongs to the package that defined it, unless it's qualified,
+so two modules can each have their own. A stage that dies inside a
+named pipeline is reported with its name.
 
 =head2 Writing a function that takes stages
 
@@ -271,7 +459,8 @@ returns its values unchanged, so there's nothing to special-case.
 already in memory, call the pipeline with them. If they're made one at
 a time, from a file, a socket, a database or a computation, give
 C<iterator> a source and return the iterator. Then a stage that stops
-saves the work of making the rest.
+saves the work of making the rest, and a source that closes what it
+opens closes it however the caller's use ends.
 
 =item * B<Let the stages do the optional work.> If you're about to add
 an option that filters, reshapes or limits what's returned, a stage
@@ -294,10 +483,8 @@ mustn't be code references or pipelines themselves.
 =item * B<Or take a pipeline given last.> If the values can be code
 references, such as callbacks, C<is_stage> can't tell them from
 stages. Take a pipeline given last as the stages instead, which your
-callers make with C<pipeline>, from Ekorn::Pipeline:
+callers make with the word C<pipeline>:
 C<call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))>.
-C<pipeline> can take the names of pipelines defined with C<named>,
-too.
 
 =back
 
@@ -305,6 +492,32 @@ A class of your own can have C<pipe> and C<tap> methods, from
 L<Ekorn::Pipeline::Pipes>, which run an object through stages. C<pipe>
 returns what comes out. C<tap> returns the object, so a chain of
 method calls can carry on after it.
+
+=head2 Parts for other packages
+
+Your own classes can be sources, stages and sinks, with no need to
+load Ekorn or inherit from anything. An object says what it can be by
+its methods, named in capitals because Ekorn calls them, not your
+users: C<EKORN_SOURCE>, to be read from; C<EKORN_STAGE>, to be a stage
+with state of its own; and C<EKORN_SINK_ONE> or C<EKORN_SINK_MANY>, to
+be written to. Each is called at the start of a run, and returns the
+parts, as a set-up does:
+
+    package My::Queue {
+        sub new ($class, @items) { bless {items => [@items]}, $class }
+
+        # Read: each item, taken off the front of the queue.
+        sub EKORN_SOURCE ($self) {
+            return {step => sub () { @{ $self->{items} } ? shift @{ $self->{items} } : () }};
+        }
+    }
+
+    my @loud = Ekorn::Pipeline->new(sub { uc })->iterator(My::Queue->new(qw(a b)))->all;
+
+The methods are the whole contract, so your package and Ekorn can
+each change their insides freely. A source class can also overload
+C<|> and C<@{}> with Operators' C<chain> and C<drain>, so its users
+can start a chain with it.
 
 =head2 Errors
 
@@ -315,13 +528,16 @@ message below:
     Pipeline stage #2 failed at app.pl line 12:
         No name for user 7 at app.pl line 9.
 
-An exception object is passed on unchanged. Either way the run ends,
-pushed or pulled, and an iterator returns nothing more. A mistake in
-making a pipeline or a canned stage, such as a stage that's neither a
-code reference nor a pipeline, or C<take(-1)>, is also reported at the
-caller's line.
+A stage inside a pipeline given as a stage is numbered within it, as
+C<#2.1>, and one inside a named pipeline is named with it, as
+C<#2.1 (main::clean#1)>. An exception object is passed on unchanged.
+Either way the run ends, pushed or pulled, an iterator returns nothing
+more, and every part's end is called, told C<died>, before the error
+is thrown. A mistake in making a pipeline or a ready-made part, such
+as a stage that's neither a code reference nor a pipeline, or
+C<take(-1)>, is also reported at the caller's line.
 
-=head2 Canned stages
+=head2 What comes with it
 
 =over
 
@@ -337,19 +553,28 @@ which gather values and pass them on together.
 C<dump_to>, which look at each value and pass it on, for logging,
 counting and debugging.
 
+=item * L<Ekorn::Pipeline::Sources> and L<Ekorn::Pipeline::Sinks>:
+the sources and sinks above.
+
+=item * L<Ekorn::Pipeline::Factories>: the words that make Ekorn's
+types, C<pipeline>, C<stage>, C<gather>, C<source>, C<generator> and
+C<yield>, C<sink_one> and C<sink_many>.
+
+=item * L<Ekorn::Pipeline::Operators>: C<|>, C<|=> and C<@{}>, in the
+scope that uses it.
+
 =back
 
 =head2 Stage modules of your own
 
-Stages are plain code references, or pipelines of them, so anyone can
-make them, in any namespace. Where a module of stages belongs depends on what its stages
-need to know:
+Anyone can make stages, in any namespace. Where a module of stages
+belongs depends on what its stages need to know:
 
 =over
 
 =item * B<Stages for any values> go under C<Ekorn::Pipeline::Stages>,
-like the canned stages. They work whatever the values are and wherever
-they come from.
+like the ready-made stages. They work whatever the values are and
+wherever they come from.
 
 =item * B<Stages for one kind of value, or one source,> go with the
 module that knows about it, under its namespace. DBIx::Squirrel's
@@ -360,11 +585,11 @@ format of your own might be in C<My::Log::Stages>.
 =back
 
 Wherever it goes, a module of stages is built from the same parts as
-the canned stages:
+the ready-made stages:
 
 =over
 
-=item * L<Ekorn::Pipeline::Gather>, for state and end functions;
+=item * L<Ekorn::Pipeline::Gather>, for state, flushes and ends;
 
 =item * L<Ekorn::Pipeline::Stop>, to end early;
 
@@ -374,7 +599,6 @@ in making a stage at the line of the caller who made it.
 =back
 
 Here's a small one:
-
 
     package My::Stages::Words;
 
@@ -400,14 +624,18 @@ clearer. Stages pay off where a function and its callers are written
 separately.
 
 =item * B<Tight loops over cheap values.> Each stage costs a
-subroutine call for each value. That's nothing beside reading a file
-or a socket, but it shows in a loop doing arithmetic on millions of
-numbers in memory.
+subroutine call for each value, and a pulled value costs a call of its
+own. That's nothing beside reading a file or a socket, but it shows in
+a loop doing arithmetic on millions of numbers in memory, where C<map>
+and C<grep> are many times faster.
 
 =item * B<Work that needs every value at once,> such as sorting. A
 stage sees one value at a time, so a sort has to wait for them all, as
 C<collect { sort @_ }> does, and saves nothing. Where the source can
 sort, as a database can with C<ORDER BY>, let it.
+
+=item * B<Concurrency.> A pipeline runs in the calling thread, one
+value at a time, and a stage that blocks blocks the run.
 
 =back
 
@@ -450,9 +678,7 @@ programming language system itself. See the file F<LICENSE>.
 
 =head2 Acknowledgements
 
-Written by Iain Campbell, with Claude, Anthropic's AI model. Claude
-reviews the code, and writes parts of it where Iain asks, often from
-his code in DBIx::Squirrel. It also helps with the Git Ops, the
-repository's setup, and the tests and documentation.
+Designed and created by Iain Campbell, in collaboration with Claude,
+Anthropic's AI model.
 
 =cut
