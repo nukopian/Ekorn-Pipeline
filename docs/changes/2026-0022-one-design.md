@@ -60,6 +60,7 @@ D62 settled: a step's many values are cheap, and `all` takes them in
 bulk. D63 settled: the `&{}` overload stays; `\&$next` is documented.
 D64 settled: a sink's kinds are one and many, in every name.
 D65 settled: `is_sink` keeps `one` and `many`, not 1 and 2.
+D66 settled: six sinks set aside for now.
 
 **Origin:** roadmap, added 2026-11-11
 
@@ -658,6 +659,14 @@ D19 to D25 came from the third cold review, settled by Iain on
   2 stands for, or constants to say it; and 1 would only seem to count
   a sink of one's values, as 2 counts nothing. Its false answer is
   already `!!0`, `''` as a string and 0 as a number. No code changes.
+- [x] **D66.** Which of the designed sinks stay? Iain set aside
+  `any_item`, `every_item`, `fold`, `joined`, `group_by` and `for_each`
+  "for now" on 2026-11-13. None was built; each can come back as an
+  item of its own. The design keeps the `keep` family, `count_items`
+  and the containers `to_fh` and `to_file`. Design 8.3, 17.12, 17.25
+  and 17.35; the draft reference and how-to, whose example now uses
+  `keep_first` and `keep_last`; IMPLEMENTATION.md; and the roadmap's
+  2026-0017.
 
 ## The plan
 

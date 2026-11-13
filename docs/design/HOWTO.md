@@ -142,11 +142,11 @@ A sink takes every value and turns them into its result, here a
 single value. Given last, its result is what the run gives:
 
 ```perl
-use Ekorn::Pipeline::Sinks qw(count_items fold joined);
+use Ekorn::Pipeline::Sinks qw(count_items keep_first keep_last);
 
-say tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);              # 3
-say tracks(sub { $_->{plays} }, fold(0, sub { $_[0] + $_[1] }));          # 36800
-say tracks(sub { $_->{artist} }, joined(', '));                           # Abba, Abba, Blur, Blur, Blur, Cream
+say tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);    # 3
+say tracks(sub { $_->{artist} }, keep_first);                         # Abba
+say tracks(sub { $_->{artist} }, keep_last);                          # Cream
 ```
 
 

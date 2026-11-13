@@ -177,8 +177,8 @@ The message, whole:
 
 `Ekorn::Pipeline::Sinks`, with names that can't clash with Perl's or
 List::Util's: `to_fh` and `to_file`, the counterparts of 2026-0016's
-`from_` sources, and `group_by`, `count_items`, `first_value`, `last_value`,
-`any_value`, `every_value`, `fold`, `joined` and `for_each`; those that can, stop the pull
+`from_` sources, and `count_items`, `first_value` and `last_value`
+(2026-0022's D66 set aside the rest for now); those that can, stop the pull
 early. Nothing exported by default. Layer 2 of DBIx-Squirrel's
 message, and the type DBIx-Squirrel 2026-0012, a database as a sink,
 `insert_into`, depends on. In scope, as 2026-0016 is.

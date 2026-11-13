@@ -578,7 +578,7 @@ again (Q11, 2026-0022's D35). A pipeline holds no source anyway
 
 `take`, `drop`, `take_first`, `take_last`, `take_single`,
 `take_while`, `drop_while`, `batch`, `collect`, `peek`, `count_into`,
-`dump_to`, in Ekorn::Pipeline::Stages::*. Every `keep` sink has a
+`dump_to`, in Ekorn::Pipeline::Stages::\*. Every `keep` sink has a
 `take` stage passing on what it would give, but `keep_all`, whose
 stage would be no stage (D58, 17.32).
 
@@ -629,13 +629,7 @@ reads, the other writes. Nothing exported by default.
 | `keep_single` | the one item; `undef` if none. At a second, it warns and stops, giving the first: for when you meant one item, and forgot to limit it to one | one | at a second |
 | `keep_last` | the last item, reading every one to find it; `undef` if none | one | no |
 | `keep($n)` | the first `$n` items, as a list: what `take($n)` passes on, kept as the run's result (D57) | many | yes, at `$n` |
-| `any_item(sub {...})` | true at the first item the sub is true of | one | yes |
-| `every_item(sub {...})` | false at the first item the sub is false of | one | yes |
 | `count_items` | how many items there were: it's what it is, not where it's put | one | no |
-| `fold($init, sub {...})` | a running total, of any kind | one | no |
-| `joined($separator)` | the items joined into one string | one | no |
-| `group_by(sub {...})` | a hash of arrays | one | no |
-| `for_each(sub {...})` | calls the sub with each item; gives how many | one | no |
 
 **Containers, named for where the items go:**
 
@@ -1428,10 +1422,10 @@ reference, a filehandle or a path goes in, and the family reads as
 one. The `to_` sinks, `to_fh` and `to_file`, are their counterparts
 for a filehandle and a file, named for where the values go, so a value
 read with one is written with the other. The other
-sinks are `keep_first`, `any_item`, `joined` and the like: each
-avoids a built-in (`join`, `each`, `keys`) or a List::Util
-function many import (`first`, `any`, `all`, `pairs`, `sum`,
-`reduce`). And nothing is exported by default, so a ready-made part
+sinks are `keep_first`, `keep_all`, `count_items` and the like: each
+avoids a built-in or a List::Util function many import (`first`,
+`all`). (`any_item`, `every_item`, `fold`, `joined`, `group_by` and
+`for_each` were set aside for now by D66, 17.35.) And nothing is exported by default, so a ready-made part
 never replaces a function already in the user's package. (2026-0016,
 2026-0017.)
 
@@ -1742,8 +1736,8 @@ Weighed and set aside:
 (Section 8.3; Iain, 2026-11-12, 2026-0022's D50, from DBIx-Squirrel's
 design, where its iterator's `all`, `single` and `count` give way to
 sinks.) Two families: sinks named for what they give, `keep_all`,
-`keep_first`, `keep_single`, `keep_last`, `any_item`, `every_item`,
-`count_items` and the rest, "item" replacing "value" (D55 and D56
+`keep_first`, `keep_single`, `keep_last`, `count_items` and the
+rest, "item" replacing "value" (D55 and D56
 since renamed four, as `keep_all`, `keep_first`, `keep_single` and
 `keep_last`, 17.30);
 and container sinks,
@@ -1982,6 +1976,15 @@ put lists first. The role methods are a protocol, so a package's own
 sinks, DBIx::Squirrel's among them, offer the new names. The prose
 follows: a scalar sink is a sink of one, a list sink a sink of many,
 and the tables' roles are `one` and `many`.
+
+### 17.35 Fewer sinks, for now
+
+(Section 8.3; Iain, 2026-11-13, 2026-0022's D66.) `any_item`,
+`every_item`, `fold`, `joined`, `group_by` and `for_each` are set
+aside for now. None was built. The sinks the design keeps are the
+`keep` family, `count_items` and the containers `to_fh` and
+`to_file`. Each of the six can come back as an item of its own, when
+a use asks for it.
 
 ## 18. Where each roadmap item lands
 

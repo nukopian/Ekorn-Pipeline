@@ -410,7 +410,7 @@ Ready-made sinks, usually given last in a pipeline. Nothing is
 exported by default. They come in two families. Those named for what
 they give, an item being a value, have names that can't clash with
 Perl's built-ins or List::Util's, which is why they're `keep_first`
-and `joined`, not `first` and `join`. The containers, named for where
+and `keep_all`, not `first` and `all`. The containers, named for where
 the items go, are the `to_` sinks, each the counterpart of a `from_`
 source: what one reads, the other writes.
 
@@ -421,13 +421,7 @@ source: what one reads, the other writes.
 | `keep_single` | the one item, or `undef` if none; at a second, a warning, and the first, for when you meant one and forgot to limit it | at a second |
 | `keep_last` | the last item, reading every one to find it, or `undef` if none | no |
 | `keep($n)` | the first `$n` items, as a list, as `take($n)` would pass on; it croaks "Expected a count of 0 or more" as `take` does | yes, at `$n` |
-| `any_item(sub {...})` | true at the first item the sub is true of, or false | yes, when true |
-| `every_item(sub {...})` | false at the first item the sub is false of, or true | yes, when false |
 | `count_items` | how many items there were | no |
-| `fold($init, sub {...})` | a running total of any kind, from `$init` | no |
-| `joined($separator)` | the items joined into one string | no |
-| `group_by(sub {...})` | a hash reference of arrays, grouped by what the sub gives | no |
-| `for_each(sub {...})` | calls the sub with each item, and gives how many | no |
 | `to_fh($fh)` | prints each item to your filehandle, followed by `$/`, and gives how many | no; you opened it, so you close it |
 | `to_file($path)` | writes each item to the file, followed by `$/`, and gives how many | no; it closes the file, however the run ends |
 
