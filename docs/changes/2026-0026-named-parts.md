@@ -2,7 +2,7 @@
 
 **Status:** open
 
-**Decisions:** D1 open: a hash reference only, or a list too. D2 open: the keys. D3 open: unknown keys croak? D4 open: gather's block and the words' set-ups too?
+**Decisions:** D1 settled: a hash reference as an alternative to the list. D2 settled: `step`, `flush`, `end` and `context`. D3 settled: unknown keys ignored, but the hash must hold what its role needs, or it croaks. D4 settled: everywhere parts are returned, for consistency. None open.
 
 **Origin:** roadmap, added 2026-11-13, from Iain, reading the sink
 protocols: "the three items we return need to be in a set order"
@@ -34,18 +34,30 @@ once.
 
 ## Decisions
 
-- [ ] **D1.** Does a role method return a hash reference only, or may
+- [x] **D1.** Does a role method return a hash reference only, or may
   it still return the list? A hash reference only is one way to read
   and document; both lets a plain step, the commonest case, stay a
-  bare `return sub {...}`, and adds rather than replaces.
-- [ ] **D2.** The keys: `step`, `flush`, `end` and `context`, the
-  design's names for the parts?
-- [ ] **D3.** Does a key Ekorn doesn't know, such as `flsuh`, croak,
+  bare `return sub {...}`, and adds rather than replaces. **Both:** a
+  hash reference is an alternative to the list, Iain decided on
+  2026-11-13. So the change only adds, and parts already written keep
+  working.
+- [x] **D2.** The keys: `step`, `flush`, `end` and `context`, the
+  design's names for the parts? **Yes,** Iain decided on 2026-11-13.
+- [x] **D3.** Does a key Ekorn doesn't know, such as `flsuh`, croak,
   naming it, or is it ignored, leaving room for a package's own?
-- [ ] **D4.** Does it apply to a `gather` block, and the set-ups of
+  **Ignored, but the hash must hold something meaningful for its role,
+  or it croaks,** Iain decided on 2026-11-13: "Ignore it, or check
+  there's something meaningful to handle it and croak if not." So a key
+  Ekorn doesn't read is left alone, and a hash without what its role
+  needs, a step, and a sink's flush, croaks with the role's message, as
+  a list without them does. `{step => ..., flsuh => ...}` for a sink
+  croaks, as it has no flush; for a stage, the misspelt flush is
+  ignored, and the stage has none.
+- [x] **D4.** Does it apply to a `gather` block, and the set-ups of
   `source`, `sink_one` and `sink_many`, as well as the role methods?
   They return the same parts, and a word's set-up is what a role
-  method calls.
+  method calls. **Yes, everywhere parts are returned,** Iain decided on
+  2026-11-13: "Be consistent in the ecosystem."
 
 ## The plan
 
