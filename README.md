@@ -553,11 +553,10 @@ counting and debugging.
 - [Ekorn::Pipeline::Sources](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASources) and [Ekorn::Pipeline::Sinks](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASinks):
 the sources and sinks above.
 - [Ekorn::Pipeline::JSON](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AJSON): `from_json` and `to_json`, which
-read and write JSON, as a source or a sink given a file or a
-filehandle, and as stages given neither. Reading works out whether it
-has JSON Lines, one array or one document; writing chooses JSON Lines
-or one array by the file's name. The how-to walks through how a module
-like it is put together.
+read and write one JSON document, and `from_jsonl` and `to_jsonl`,
+which read and write JSON Lines: each a source or a sink given a file
+or a filehandle, and a stage given neither. The how-to walks through
+how a module like it is put together.
 - [Ekorn::Pipeline::Factories](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AFactories): the words that make Ekorn's
 types, `pipeline`, `stage`, `gather`, `source`, `generator` and
 `yield`, `sink_one` and `sink_many`.

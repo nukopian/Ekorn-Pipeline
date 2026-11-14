@@ -222,7 +222,7 @@ B<Made in:> L<Sinks|/"Sinks: Ekorn::Pipeline::Sinks">
 
 =item C<:json>
 
-B<Holds:> C<from_json>, C<to_json>
+B<Holds:> C<from_json>, C<from_jsonl>, C<to_json>, C<to_jsonl>
 
 B<Made in:> L<JSON|/"JSON: Ekorn::Pipeline::JSON">
 
@@ -2293,107 +2293,70 @@ an empty prototype, so C<count_items + 0> reads as C<count_items() + 0>.
 
 =head1 JSON: Ekorn::Pipeline::JSON
 
-    use Ekorn::Pipeline::JSON qw(from_json to_json);
+    use Ekorn::Pipeline::JSON qw(from_json from_jsonl to_json to_jsonl);
     use Ekorn::Pipeline::Tooling qw(:json);    # the same
 
-Two functions, each making a different part by its options: given a
-C<file> or an C<fh>, C<from_json> makes a source and C<to_json> a sink;
-given neither, each makes a stage. Each part is made afresh for each
-run. Nothing is exported by default. Both are new in v0.3.0.
+Four functions, one for each direction and format, each making a
+different part by its options: given a C<file> or an C<fh>, a C<from_>
+function makes a source and a C<to_> function a sink; given neither,
+each makes a stage. Each part is made afresh for each run. Nothing is
+exported by default. All four are new in v0.3.0.
 
 =over 4
 
-=item C<< from_json(file => $path) >>, C<< from_json(fh => $fh) >>
+=item C<from_json>
 
-B<Is:> a source
+**Given a C<file> or an C<fh>:** a source of one document: an array's elements, or the document itself; none from an empty input
 
-B<Reads or writes:> the documents in the input, worked out as below
+B<Given neither, a stage:> decoding each value, one document, the same way
 
-=item C<from_json()>
+=item C<from_jsonl>
 
-B<Is:> a stage
+**Given a C<file> or an C<fh>:** a source of JSON Lines, a document a line, each as it is, read a block at a time as values are pulled
 
-B<Reads or writes:> each value a JSON text, passing on each document in it
+B<Given neither, a stage:> decoding each value, a text of one or more lines, into each line's document
 
-=item C<< to_json(file => $path) >>, C<< to_json(fh => $fh) >>
+=item C<to_json>
 
-B<Is:> a sink, giving how many
+**Given a C<file> or an C<fh>:** a sink writing every value as one array, as they come, and giving how many
 
-B<Reads or writes:> each value, encoded, as JSON Lines or one array
+B<Given neither, a stage:> gathering every value, and passing on one text, the array, once they've all come
 
-=item C<to_json()>
+=item C<to_jsonl>
 
-B<Is:> a stage
+**Given a C<file> or an C<fh>:** a sink writing each value as a line, and giving how many
 
-B<Reads or writes:> each value, encoded, as a file of its type would hold it
+B<Given neither, a stage:> passing on each value as its line, without its newline, ready for C<to_file>
 
 =back
+
+The C<json> functions read and write one JSON document; the C<jsonl>
+functions JSON Lines, also called NDJSON. A stage passes on what a file
+of its format would hold, so each C<to_> function's stage is undone by
+its C<from_> function's:
+
+    my @lines = Ekorn::Pipeline->new(to_jsonl(json => {canonical => 1}))->({b => 1, a => 2}, [3]);
+    say for @lines;    # {"a":2,"b":1} then [3]
+    my @back  = Ekorn::Pipeline->new(from_jsonl())->(@lines);    # {b => 1, a => 2}, [3]
+
+C<from_json> reads its input whole, and croaks if it holds more than
+one document, pointing to C<from_jsonl>. C<from_jsonl> keeps an array as
+one value, and reads documents simply written one after another, on a
+line or not, as it reads lines.
 
 The encoder is JSON::MaybeXS's: Cpanel::JSON::XS where it's installed,
 JSON::PP otherwise. Text is UTF-8 bytes, as C<encode_json> and
 C<decode_json> have it, and files are opened C<:raw>.
 
-B<Reading works out what it's reading.> The input is read as one
-document after another, which covers JSON Lines, also called NDJSON,
-documents simply written one after another, and one document alone. If
-it holds exactly one document, and that's an array, its elements are
-the values; otherwise each document is one:
-
-=over 4
-
-=item C<[{"a":1},{"a":2}]>
-
-C<< {a => 1} >>, C<< {a => 2} >>
-
-=item C<{"a":1}>
-
-C<< {a => 1} >>
-
-=item C<{"a":1}>, C<{"a":2}> and C<[3,4]>, a line each
-
-C<< {a => 1} >>, C<< {a => 2} >>, C<[3, 4]>
-
-=item nothing, or only whitespace
-
-none
-
-=back
-
-An array alone is read whole before its first element is given, as
-whether it's alone can't be known until the input ends; otherwise the
-input is read a block at a time, and only as values are pulled. A file
-named C<*.jsonl> or C<*.ndjson> is read as JSON Lines, each document a
-value, even an array alone.
-
-B<Writing chooses by the file's name.> A file named C<*.jsonl> or
-C<*.ndjson>, or a filehandle, gets JSON Lines, a value a line; any other
-file one array of the values, written as they come, so a file named
-C<.json> holds valid JSON. An encoder that indents has each value
-indented in the array, and can't write JSON Lines.
-
-B<As stages,> each passes on what a file would hold. C<from_json()>
-gives each document in each text: the one, usually, or each line's,
-from a text of JSON Lines; an array is one value. C<to_json()> gives
-each value as one line of text, without its newline, ready for
-C<to_file>. So the two undo each other:
-
-    my @lines = Ekorn::Pipeline->new(to_json(json => {canonical => 1}))->({b => 1, a => 2}, [3]);
-    say for @lines;    # {"a":2,"b":1} then [3]
-    my @back  = Ekorn::Pipeline->new(from_json())->(@lines);    # {b => 1, a => 2}, [3]
-
 =over 4
 
 =item C<file>
 
-the path of a file to read or write; opened as the run starts, and closed once it ends, however it ended
+the path of a file to read or write; opened as the run starts, emptied if it's written, and closed once the run ends, however it ended
 
 =item C<fh>
 
 an open filehandle, which is left open; C<:raw>, as the text is bytes
-
-=item C<type>
-
-C<json>, one document; C<jsonl> or C<ndjson>, which are the same, JSON Lines. Over a file's name, or each part's default
 
 =item C<json>
 
@@ -2401,29 +2364,9 @@ a hash reference of options for C<< JSON::MaybeXS->new >>, over the defaults C<u
 
 =back
 
-C<type> says how to read or write, over a file's name:
-
-=over 4
-
-=item *
-
-C<< from_json(type => 'json') >>: the input, or each text, is one
-document, an array giving its elements; more than one croaks.
-
-=item *
-
-C<< from_json(type => 'jsonl') >>: each document is a value, as it is.
-
-=item *
-
-C<< to_json(type => 'json') >>: a sink writes one array; a stage gathers
-every value, and passes on one text, an array, once they've all come.
-
-=item *
-
-C<< to_json(type => 'jsonl') >>: a value a line.
-
-=back
+An encoder that indents, such as with C<pretty>, has each value indented
+in C<to_json>'s array; C<to_jsonl> croaks given one, as JSON Lines can't
+be indented.
 
     my $count = Ekorn::Pipeline->new(
         sub { {title => $_->{title}} },
@@ -2431,10 +2374,11 @@ C<< to_json(type => 'jsonl') >>: a value a line.
     )->(@tracks);    # 6, written as one array
     my @titles = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_json(file => 'titles.json'))->all;
 
-An encoder object reading a source has its incremental parser reset
-for each run, so mustn't read two at once. JSON.pm exports a
-C<from_json> and a C<to_json> of its own by default: a module using both
-imports one under another name, or calls it by its full name.
+An encoder object reading a source, or decoding in C<from_jsonl>'s
+stage, has its incremental parser reset for each run, so mustn't serve
+two at once. JSON.pm exports a C<from_json> and a C<to_json> of its own
+by default: a module using both imports one under another name, or
+calls it by its full name.
 
 =head1 Operators: Ekorn::Pipeline::Operators
 
@@ -3615,13 +3559,13 @@ The first is the file's path, or "the filehandle".
 
 =item *
 
-B<Expected options as name =E<gt> value pairs:> C<from_json> or
-C<to_json> was given an odd number of arguments.
+B<Expected options as name =E<gt> value pairs:> a function was given
+an odd number of arguments.
 
 =item *
 
-B<Expected the options file, fh, type and json, not %s:> an option
-it doesn't know, named after "not".
+B<Expected the options file, fh and json, not %s:> an option it
+doesn't know, named after "not".
 
 =item *
 
@@ -3631,11 +3575,6 @@ C<file> and C<fh>.
 =item *
 
 B<Expected an open filehandle:> C<fh> was something else.
-
-=item *
-
-B<Expected a type of json, jsonl or ndjson, not %s:> C<type> was
-something else.
 
 =item *
 
@@ -3651,8 +3590,7 @@ message.
 =item *
 
 B<Expected an encoder that doesn't indent, to write JSON Lines:>
-C<to_json> was asked for JSON Lines, by its type or the file's name,
-with an encoder that indents.
+C<to_jsonl> was given an encoder that indents.
 
 =item *
 
@@ -3660,7 +3598,7 @@ B<Can't decode JSON from %s: %s:> what was read wasn't JSON; the
 first part is the file's path, "the filehandle", or "a value", for a
 stage, and the second the decoder's reason, "it ends inside a
 document" if it ended part way through one, or "it holds more than
-one document, and its type is json".
+one document; read JSON Lines with from_jsonl" from C<from_json>.
 
 =item *
 
@@ -3862,7 +3800,7 @@ B<Tags:> C<:all>
 
 B<By default:> nothing
 
-B<On request:> C<from_json>, C<to_json>
+B<On request:> C<from_json>, C<from_jsonl>, C<to_json>, C<to_jsonl>
 
 B<Tags:> C<:all>
 
@@ -3941,7 +3879,7 @@ Ready-made sources: C<from_array>, C<from_fh>, C<from_file>, C<counter>.
 
 =item C<Ekorn::Pipeline::JSON>
 
-Reads and writes JSON, as a source, a stage or a sink: C<from_json>, C<to_json>.
+Reads and writes JSON and JSON Lines, as sources, stages or sinks: C<from_json>, C<from_jsonl>, C<to_json>, C<to_jsonl>.
 
 =item C<Ekorn::Pipeline::Factories>
 

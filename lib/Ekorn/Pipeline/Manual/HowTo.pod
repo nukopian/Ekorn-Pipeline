@@ -1278,11 +1278,10 @@ default. Give it something that stops:
 
     say join ' ', Ekorn::Pipeline->new(take(4))->iterator(counter(10, 5))->all;    # 10 15 20 25
 
-=head2 Read JSON, whatever shape it's in
+=head2 Read JSON, or JSON Lines
 
-C<from_json> reads a file of JSON, and works out what it holds: one
-array, whose elements are the values; JSON Lines, a document a line,
-each a value; or one document alone:
+C<from_json> reads a file holding one JSON document. If it's an array,
+its elements are the values; otherwise the document is:
 
     my $chart = "$dir/chart.json";
     open my $fh, '>', $chart or die "Can't write $chart: $!\n";
@@ -1292,16 +1291,16 @@ each a value; or one document alone:
     my $next = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_json(file => $chart));
     say join ', ', $next->all;    # Waterloo, Parklife
 
-JSON Lines are read a block at a time, as the values are pulled, so a
-C<take> reads no more of a big file than it needs; one array is read
-whole, as whether it's alone can't be known until the file ends. A
-file named C<.jsonl> or C<.ndjson> is always read as JSON Lines, and
-C<< from_json(fh => $fh) >> reads a filehandle you opened, C<:raw>.
+C<from_jsonl> reads JSON Lines, a document a line, each as it is. It
+reads a block at a time, as the values are pulled, so a C<take> reads no
+more of a big file than it needs; C<from_json> has to read its document
+whole. Each takes C<< fh => $fh >> in place of C<file>, for a filehandle you
+opened, C<:raw>.
 
-Given no file, C<from_json> is a stage, decoding each value it's given:
+Given no file, each is a stage, decoding each value it's given:
 
     my @plays = Ekorn::Pipeline->new(
-        from_json(),
+        from_jsonl(),
         sub { $_->{plays} },
     )->('{"plays":8000}', '{"plays":5800}');
     say "@plays";    # 8000 5800
@@ -1539,17 +1538,16 @@ C<from_file> takes the newline off each line, and C<to_file> puts it
 back, so a file read with one and written with the other is copied
 line for line.
 
-=head2 Write JSON, as lines or as one array
+=head2 Write JSON, or JSON Lines
 
-C<to_json> writes each value as JSON, and gives how many. A file named
-C<.jsonl> or C<.ndjson> gets JSON Lines, a value a line; any other file
-one array, so a file named C<.json> is valid JSON. The C<json> option
-passes options to the encoder:
+C<to_jsonl> writes each value as a line of JSON Lines, and C<to_json>
+every value as one array, so the file is one JSON document. Each gives
+how many it wrote. The C<json> option passes options to the encoder:
 
     my $top = "$dir/top.jsonl";
     my $n   = tracks(
         sub { $_->{plays} >= 7000 ? {title => $_->{title}, plays => $_->{plays}} : () },
-        to_json(file => $top, json => {canonical => 1}),
+        to_jsonl(file => $top, json => {canonical => 1}),
     );
     say "$n written";    # 2 written
 
@@ -1558,16 +1556,14 @@ passes options to the encoder:
     # {"plays":9100,"title":"Dancing Queen"}
     # {"plays":7700,"title":"Sunshine of Your Love"}
 
-C<< type => 'json' >> or C<< type => 'jsonl' >> says which, whatever the file's
-name; a filehandle, C<< to_json(fh => $fh) >>, gets JSON Lines unless its
-type is C<json>. Given no file, C<to_json> is a stage, passing on each
-value as a line of JSON, ready for C<to_file>, or, with C<< type => 'json' >>,
-every value as one array, once they've all come:
+Given no file, each is a stage passing on what a file would hold:
+C<to_jsonl> each value as a line of JSON, ready for C<to_file>, and
+C<to_json> every value as one array, once they've all come:
 
     say tracks(
         sub { $_->{artist} },
         take(3),
-        to_json(type => 'json'),
+        to_json(),
     );
     # ["Abba","Abba","Blur"]
 
@@ -2442,8 +2438,8 @@ no more than it should.
 
 A module of parts is a few functions, each checking its options once
 and returning a part made with Ekorn's words. Here's one for JSON
-Lines, built in four steps: C<from_jsonl> reads them, and C<to_jsonl>
-writes them. Each is a source or a sink given a file, and a stage
+Lines, built in four steps: a cut-down C<from_jsonl>, which reads them,
+and C<to_jsonl>, which writes them, as Ekorn::Pipeline::JSON's do. Each is a source or a sink given a file, and a stage
 given none, so the caller gets one name for each direction, whatever
 they're doing.
 
@@ -2561,33 +2557,38 @@ Ekorn::Pipeline::JSON is built the same way, with more to it:
 
 =item *
 
-B<It works out what it reads,> so its source reads blocks, not
-lines, through the decoder's incremental parser, holding back the
-first document until it knows whether it's an array alone.
+B<A function for each format,> C<from_json> and C<to_json> for one
+document, and C<from_jsonl> and C<to_jsonl> for JSON Lines, so the
+name says what's read or written, with no option to set or
+guess.
 
 =item *
 
-**Its decoding stage is made with C<gather>,** not C<stage>, as the
+B<Its sources read blocks, not lines,> through the decoder's
+incremental parser, so a document can span lines.
+
+=item *
+
+**C<from_jsonl>'s stage is made with C<gather>,** not C<stage>, as the
 incremental parser holds what it has read: each run gets a parser of
 its own, made in the gather's block, so two runs never share one.
 State that lasts between values is the sign a part needs a set-up.
 
 =item *
 
-**Its writing stage of type C<json> needs a flush:** it holds every
-value until they've all come, and passes on one array then, which is
-C<gather>'s flush, the stage's counterpart of a sink's.
+**C<to_json>'s stage needs a flush:** it holds every value until
+they've all come, and passes on one array then, which is C<gather>'s
+flush, the stage's counterpart of a sink's.
 
 =item *
 
-B<Its options choose the format> by the file's name, and its
-encoder can be configured or replaced, and each option is checked as
-the function is called, with a message for each mistake, as
-C<_options> does here.
+B<Its encoder can be configured or replaced,> and each option is
+checked as the function is called, with a message for each mistake,
+as C<_options> does here.
 
 =back
 
-Read its source for the whole of it: it's one file, of about three
+Read its source for the whole of it: it's one file, of under three
 hundred lines of code.
 
 =head2 Publish a module of stages

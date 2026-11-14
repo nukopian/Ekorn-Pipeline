@@ -1152,11 +1152,10 @@ default. Give it something that stops:
 say join ' ', Ekorn::Pipeline->new(take(4))->iterator(counter(10, 5))->all;    # 10 15 20 25
 ```
 
-### Read JSON, whatever shape it's in
+### Read JSON, or JSON Lines
 
-`from_json` reads a file of JSON, and works out what it holds: one
-array, whose elements are the values; JSON Lines, a document a line,
-each a value; or one document alone:
+`from_json` reads a file holding one JSON document. If it's an array,
+its elements are the values; otherwise the document is:
 
 ```perl
 my $chart = "$dir/chart.json";
@@ -1168,17 +1167,17 @@ my $next = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_json(file =>
 say join ', ', $next->all;    # Waterloo, Parklife
 ```
 
-JSON Lines are read a block at a time, as the values are pulled, so a
-`take` reads no more of a big file than it needs; one array is read
-whole, as whether it's alone can't be known until the file ends. A
-file named `.jsonl` or `.ndjson` is always read as JSON Lines, and
-`from_json(fh => $fh)` reads a filehandle you opened, `:raw`.
+`from_jsonl` reads JSON Lines, a document a line, each as it is. It
+reads a block at a time, as the values are pulled, so a `take` reads no
+more of a big file than it needs; `from_json` has to read its document
+whole. Each takes `fh => $fh` in place of `file`, for a filehandle you
+opened, `:raw`.
 
-Given no file, `from_json` is a stage, decoding each value it's given:
+Given no file, each is a stage, decoding each value it's given:
 
 ```perl
 my @plays = Ekorn::Pipeline->new(
-    from_json(),
+    from_jsonl(),
     sub { $_->{plays} },
 )->('{"plays":8000}', '{"plays":5800}');
 say "@plays";    # 8000 5800
@@ -1437,18 +1436,17 @@ print $text;
 back, so a file read with one and written with the other is copied
 line for line.
 
-### Write JSON, as lines or as one array
+### Write JSON, or JSON Lines
 
-`to_json` writes each value as JSON, and gives how many. A file named
-`.jsonl` or `.ndjson` gets JSON Lines, a value a line; any other file
-one array, so a file named `.json` is valid JSON. The `json` option
-passes options to the encoder:
+`to_jsonl` writes each value as a line of JSON Lines, and `to_json`
+every value as one array, so the file is one JSON document. Each gives
+how many it wrote. The `json` option passes options to the encoder:
 
 ```perl
 my $top = "$dir/top.jsonl";
 my $n   = tracks(
     sub { $_->{plays} >= 7000 ? {title => $_->{title}, plays => $_->{plays}} : () },
-    to_json(file => $top, json => {canonical => 1}),
+    to_jsonl(file => $top, json => {canonical => 1}),
 );
 say "$n written";    # 2 written
 
@@ -1458,17 +1456,15 @@ print <$in>;
 # {"plays":7700,"title":"Sunshine of Your Love"}
 ```
 
-`type => 'json'` or `type => 'jsonl'` says which, whatever the file's
-name; a filehandle, `to_json(fh => $fh)`, gets JSON Lines unless its
-type is `json`. Given no file, `to_json` is a stage, passing on each
-value as a line of JSON, ready for `to_file`, or, with `type => 'json'`,
-every value as one array, once they've all come:
+Given no file, each is a stage passing on what a file would hold:
+`to_jsonl` each value as a line of JSON, ready for `to_file`, and
+`to_json` every value as one array, once they've all come:
 
 ```perl
 say tracks(
     sub { $_->{artist} },
     take(3),
-    to_json(type => 'json'),
+    to_json(),
 );
 # ["Abba","Abba","Blur"]
 ```
@@ -2362,8 +2358,8 @@ no more than it should.
 
 A module of parts is a few functions, each checking its options once
 and returning a part made with Ekorn's words. Here's one for JSON
-Lines, built in four steps: `from_jsonl` reads them, and `to_jsonl`
-writes them. Each is a source or a sink given a file, and a stage
+Lines, built in four steps: a cut-down `from_jsonl`, which reads them,
+and `to_jsonl`, which writes them, as Ekorn::Pipeline::JSON's do. Each is a source or a sink given a file, and a stage
 given none, so the caller gets one name for each direction, whatever
 they're doing.
 
@@ -2485,22 +2481,24 @@ print $@ =~ s( \ at \ .* )( at your line)xsr;    # Expected the option file, not
 
 Ekorn::Pipeline::JSON is built the same way, with more to it:
 
-- **It works out what it reads,** so its source reads blocks, not
-  lines, through the decoder's incremental parser, holding back the
-  first document until it knows whether it's an array alone.
-- **Its decoding stage is made with `gather`,** not `stage`, as the
+- **A function for each format,** `from_json` and `to_json` for one
+  document, and `from_jsonl` and `to_jsonl` for JSON Lines, so the
+  name says what's read or written, with no option to set or
+  guess.
+- **Its sources read blocks, not lines,** through the decoder's
+  incremental parser, so a document can span lines.
+- **`from_jsonl`'s stage is made with `gather`,** not `stage`, as the
   incremental parser holds what it has read: each run gets a parser of
   its own, made in the gather's block, so two runs never share one.
   State that lasts between values is the sign a part needs a set-up.
-- **Its writing stage of type `json` needs a flush:** it holds every
-  value until they've all come, and passes on one array then, which is
-  `gather`'s flush, the stage's counterpart of a sink's.
-- **Its options choose the format** by the file's name, and its
-  encoder can be configured or replaced, and each option is checked as
-  the function is called, with a message for each mistake, as
-  `_options` does here.
+- **`to_json`'s stage needs a flush:** it holds every value until
+  they've all come, and passes on one array then, which is `gather`'s
+  flush, the stage's counterpart of a sink's.
+- **Its encoder can be configured or replaced,** and each option is
+  checked as the function is called, with a message for each mistake,
+  as `_options` does here.
 
-Read its source for the whole of it: it's one file, of about three
+Read its source for the whole of it: it's one file, of under three
 hundred lines of code.
 
 ### Publish a module of stages

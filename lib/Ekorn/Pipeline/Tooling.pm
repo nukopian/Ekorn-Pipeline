@@ -30,7 +30,7 @@ our %EXPORT_TAGS = (
         qw(count_items keep keep_all keep_first keep_last keep_single),
         qw(to_fh to_file),
     ],
-    json  => [qw(from_json to_json)],
+    json  => [qw(from_json from_jsonl to_json to_jsonl)],
     words => [
         qw(pipeline stage gather source generator yield),
         qw(sink_one sink_many),
@@ -74,7 +74,7 @@ Ekorn::Pipeline::Tooling - Ekorn's stages, sources, sinks and words, from one mo
 What a caller uses to do work with Ekorn::Pipeline is made in several
 modules: stages in Ekorn::Pipeline::Stages::Flow, Batch and Taps,
 sources in Ekorn::Pipeline::Sources, sinks in Ekorn::Pipeline::Sinks,
-JSON's source, sink and stages in Ekorn::Pipeline::JSON, the words in
+JSON's sources, sinks and stages in Ekorn::Pipeline::JSON, the words in
 Ekorn::Pipeline::Factories, and C<Stop> and C<gather> in
 modules of their own. This module exports all of them, by the tags
 below, so there's one module to import from, and nothing to remember
@@ -136,9 +136,10 @@ C<to_fh> and C<to_file>.
 
 =item C<:json>
 
-Everything L<Ekorn::Pipeline::JSON> exports: C<from_json> and
-C<to_json>. L<JSON> exports names of its own the same, by default, so
-a module using both imports C<:all> from only one of them.
+Everything L<Ekorn::Pipeline::JSON> exports: C<from_json>,
+C<from_jsonl>, C<to_json> and C<to_jsonl>. L<JSON> exports a
+C<from_json> and a C<to_json> of its own, by default, so a module using
+both imports C<:all> from only one of them.
 
 =item C<:words>
 

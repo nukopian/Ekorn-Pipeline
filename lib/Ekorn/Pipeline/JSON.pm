@@ -13,7 +13,7 @@ use Ekorn::Pipeline::Errors    qw(croakf);
 use Ekorn::Pipeline::Factories qw(gather sink_one source stage);
 use namespace::clean -except => 'import';
 
-our @EXPORT_OK   = qw(from_json to_json);
+our @EXPORT_OK   = qw(from_json from_jsonl to_json to_jsonl);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 # Croak at the line that called Ekorn::Pipeline.
@@ -23,36 +23,57 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # line, so that no number is cut in two; the tests make it small.
 our $BLOCK = 65_536;
 
-# The types the type option may name, each as the format it means: one
-# document, or lines of them.
-my %FORMAT = (json => 'json', jsonl => 'lines', ndjson => 'lines');
-
-# A source of JSON: what it reads, decoded, its values. Given no file or
-# filehandle, a stage: each value, a JSON text, decoded.
+# A source of one JSON document, read from the file or filehandle: its
+# elements, if it's an array, or itself. Given neither, a stage decoding
+# each value, one document, the same way.
 sub from_json (@options) {
     my %option = _options(@options);
-    my $format = _format(\%option) // 'auto';
-    return _reader(\%option, $format) if defined $option{file} || $option{fh};
-    my $new = $option{new};
-    return gather {
-        my $json = $new->();    # this run's
-        return sub ($text) { _decoded($json, $text, $format) };
+    return _reader(\%option, 'json') if _has_input(\%option);
+    my $json = $option{new}->();
+    return stage {
+        my $document;
+        try {
+            $document = $json->decode($_);
+        }
+        catch ($e) {
+            _undecodable($json, 'a value', _unplaced($e));
+        }
+        return is_plain_arrayref($document) ? @$document : $document;
     };
 }
 
 
-# A sink of JSON: each value, encoded, written to the file or
-# filehandle, giving how many. Given neither, a stage: each value,
-# encoded, as a file of its type would hold it.
+# A source of the documents in a file or filehandle of JSON Lines, each
+# as it is. Given neither, a stage decoding each value, a text of one or
+# more lines, into each line's document.
+sub from_jsonl (@options) {
+    my %option = _options(@options);
+    return _reader(\%option, 'lines') if _has_input(\%option);
+    my $new = $option{new};
+    return gather {
+        my $json = $new->();    # this run's, as its parser holds what it's read
+        return sub ($text) {
+            my @documents;
+            try {
+                @documents = $json->incr_parse($text);
+            }
+            catch ($e) {
+                _undecodable($json, 'a value', _unplaced($e));
+            }
+            _complete($json, 'a value');
+            return @documents;
+        };
+    };
+}
+
+
+# A sink writing every value to the file or filehandle as one JSON
+# document, an array, giving how many. Given neither, a stage passing on
+# every value as that array's text, once they've all come.
 sub to_json (@options) {
     my %option = _options(@options);
-    my $format = _format(\%option) // (defined $option{file} ? 'json' : 'lines');
     my $json   = $option{new}->();
-    croakf 'Expected an encoder that doesn\'t indent, to write JSON Lines'
-        if $format eq 'lines' && _indents($json);
-    return _writer(\%option, $format, $json)
-        if defined $option{file} || $option{fh};
-    return stage { _encoded($json, $_) } if $format eq 'lines';
+    return _writer(\%option, 'json', $json) if _has_input(\%option);
     return gather {
         my @values;    # this run's
         return (
@@ -63,23 +84,32 @@ sub to_json (@options) {
 }
 
 
+# A sink writing each value to the file or filehandle as a line of JSON
+# Lines, giving how many. Given neither, a stage passing on each value
+# as its line, without its newline.
+sub to_jsonl (@options) {
+    my %option = _options(@options);
+    my $json   = $option{new}->();
+    croakf q(Expected an encoder that doesn't indent, to write JSON Lines)
+        if _indents($json);
+    return _writer(\%option, 'lines', $json) if _has_input(\%option);
+    return stage { _encoded($json, $_) };
+}
+
+
 # Return the options given, checked, with "new", a sub returning the
 # encoder: one made from json's options, over the defaults, or json's
 # object, as it is.
 sub _options (@given) {
     croakf 'Expected options as name => value pairs' if @given % 2;
-    my %option = @given;
-    my @unknown
-        = sort grep { !m( \A (?: file | fh | type | json ) \z )x } keys %option;
-    croakf 'Expected the options file, fh, type and json, not %s', join ', ',
-        @unknown
+    my %option  = @given;
+    my @unknown = sort grep { !m( \A (?: file | fh | json ) \z )x } keys %option;
+    croakf 'Expected the options file, fh and json, not %s', join ', ', @unknown
         if @unknown;
     croakf 'Expected a file or a filehandle, not both'
         if defined $option{file} && exists $option{fh};
     croakf 'Expected an open filehandle'
         if exists $option{fh} && !defined openhandle($option{fh});
-    croakf 'Expected a type of json, jsonl or ndjson, not %s', $option{type}
-        if defined $option{type} && !$FORMAT{$option{type}};
     my $json = $option{json};
     if (blessed($json)) {
         $option{new} = sub () { $json };
@@ -99,14 +129,9 @@ sub _options (@given) {
 }
 
 
-# Return the format the type option names, or a file's name ending in
-# .jsonl or .ndjson, if either does.
-sub _format ($option) {
-    return $FORMAT{$option->{type}} if defined $option->{type};
-    return 'lines'
-        if defined $option->{file}
-        && $option->{file} =~ m( \. (?: jsonl | ndjson ) \z )xi;
-    return;
+# Return true if the options name a file or a filehandle.
+sub _has_input ($option) {
+    return defined $option->{file} || !!$option->{fh};
 }
 
 
@@ -132,30 +157,6 @@ sub _undecodable ($json, $from, $why) {
 }
 
 
-# Return the documents in $text, a JSON text: each as it is, or, if the
-# format is one document, its elements, if it's an array.
-sub _decoded ($json, $text, $format) {
-    my @documents;
-    if ($format eq 'json') {
-        try {
-            @documents = $json->decode($text);
-        }
-        catch ($e) {
-            _undecodable($json, 'a value', _unplaced($e));
-        }
-        return is_plain_arrayref($documents[0]) ? @{ $documents[0] } : @documents;
-    }
-    try {
-        @documents = $json->incr_parse($text);
-    }
-    catch ($e) {
-        _undecodable($json, 'a value', _unplaced($e));
-    }
-    _complete($json, 'a value');
-    return @documents;
-}
-
-
 # Croak unless the decoder has a whole number of documents: it croaks,
 # asked for the text it holds, if it's inside one.
 sub _complete ($json, $from) {
@@ -169,9 +170,9 @@ sub _complete ($json, $from) {
 }
 
 
-# Return a source of the documents in the file or filehandle. In the
-# format "auto", the first is held back until a second is read, or the
-# input ends: one array alone gives its elements.
+# Return a source of the documents in the file or filehandle: as they
+# come, for JSON Lines; or, for one document, its elements, if it's an
+# array, or itself, once the input has ended.
 sub _reader ($option, $format) {
     my($path, $given, $new) = @{ $option }{qw(file fh new)};
     my $from = $path // 'the filehandle';
@@ -185,11 +186,9 @@ sub _reader ($option, $format) {
         my $json = $new->();            # this run's, or the caller's, reset
         $json->incr_reset;
         my(@documents, $ended);
-        my $seen = 0;
         my $step = sub () {
             while (1) {
-                return splice @documents
-                    if @documents && ($format eq 'lines' || $format eq 'auto' && $seen > 1);
+                return splice @documents if @documents && $format eq 'lines';
                 if ($ended) {
                     return unless @documents;
                     my($only) = splice @documents;
@@ -209,11 +208,10 @@ sub _reader ($option, $format) {
                     _undecodable($json, $from, _unplaced($e));
                 }
                 push @documents, @read;
-                $seen += @read;
                 _undecodable(
                     $json, $from,
-                    'it holds more than one document, and its type is json',
-                ) if $format eq 'json' && $seen > 1;
+                    'it holds more than one document; read JSON Lines with from_jsonl',
+                ) if $format eq 'json' && @documents > 1;
             }
         };
         return {step => $step, end => $path ? sub ($how) { close $fh } : undef};
@@ -291,46 +289,54 @@ sub _writer ($option, $format, $json) {
         };
     };
 }
-
 1;
 
 __END__
 
 =encoding utf8
 
-=for stopwords JSON JSONL NDJSON ndjson jsonl
+=for stopwords JSON JSONL NDJSON jsonl
 
 =head1 NAME
 
-Ekorn::Pipeline::JSON - read and write JSON, as a source, a stage or a sink
+Ekorn::Pipeline::JSON - read and write JSON and JSON Lines, as sources, stages or sinks
 
 =head1 SYNOPSIS
 
-    use Ekorn::Pipeline::JSON qw(from_json to_json);
+    use Ekorn::Pipeline::JSON qw(:all);
 
-    # A source: the documents in a file, whether JSON Lines, or one
-    # array, whose elements are the values.
-    my $next = Ekorn::Pipeline->new(@stages)->iterator(from_json(file => 'tracks.json'));
+    # Sources: one document, an array giving its elements; or JSON
+    # Lines, a document a line.
+    my $next  = Ekorn::Pipeline->new(@stages)->iterator(from_json(file => 'tracks.json'));
+    my $lines = Ekorn::Pipeline->new(@stages)->iterator(from_jsonl(file => 'events.jsonl'));
 
-    # A sink: each value written to a file, as JSON Lines, or one array,
-    # by the file's name; it gives how many.
-    my $written = Ekorn::Pipeline->new(@stages, to_json(file => 'out.jsonl'))->(@values);
+    # Sinks: one array of every value; or a value a line. Each gives how
+    # many it wrote.
+    my $n = Ekorn::Pipeline->new(@stages, to_json(file => 'out.json'))->(@values);
+    my $m = Ekorn::Pipeline->new(@stages, to_jsonl(file => 'out.jsonl'))->(@values);
 
-    # Stages: JSON texts decoded, and values encoded.
-    my @rows  = Ekorn::Pipeline->new(from_json())->(@texts);
-    my @lines = Ekorn::Pipeline->new(to_json(json => {canonical => 1}))->(@rows);
+    # Stages: decoding texts, and encoding values.
+    my @rows  = Ekorn::Pipeline->new(from_jsonl())->(@texts);
+    my @lines = Ekorn::Pipeline->new(to_jsonl(json => {canonical => 1}))->(@rows);
 
 =head1 DESCRIPTION
 
-Two functions, each making a different part by the options it's
-given. Given a C<file> or an C<fh>, C<from_json> makes a source and
-C<to_json> a sink; given neither, each makes a stage. Each part is made
-afresh for each run.
+Four functions, one for each direction and format, each making a
+different part by the options it's given. Given a C<file> or an C<fh>,
+a C<from_> function makes a source and a C<to_> function a sink; given
+neither, each makes a stage. Each part is made afresh for each run.
+
+The C<json> functions read and write one JSON document; the C<jsonl>
+functions JSON Lines, also called NDJSON: a document a line. A stage
+passes on what a file of its format would hold, so C<to_json> and
+C<from_json> undo each other, as C<to_jsonl> and C<from_jsonl> do.
 
 The encoder is L<JSON::MaybeXS>'s: L<Cpanel::JSON::XS> where it's
 installed, L<JSON::PP> otherwise. Text is UTF-8 bytes, as
 C<encode_json> and C<decode_json> have it, and files are opened
-C<:raw>.
+C<:raw>. A file is opened as the run starts, emptied if it's written,
+and closed once the run has ended, however it ended; a filehandle is
+left open, for its opener to close.
 
 Nothing is exported by default; ask for each, or for C<:all>, or import
 them from L<Ekorn::Pipeline::Tooling>'s C<:json>. L<JSON> exports a
@@ -346,28 +352,28 @@ name.
     from_json(fh => $fh, %options)
     from_json(%options)
 
+Given a C<file> or an C<fh>, a source of the one document read from
+it: its elements, if it's an array, or itself. An empty input gives
+none. The input is read whole before the first value is given, and one
+holding more than one document croaks, pointing to L</from_jsonl>.
+
+Given neither, a stage decoding each value, one JSON text, the same
+way: an array gives its elements, and anything else itself.
+
+=head2 from_jsonl
+
+    from_jsonl(file => $path, %options)
+    from_jsonl(fh => $fh, %options)
+    from_jsonl(%options)
+
 Given a C<file> or an C<fh>, a source of the documents read from it,
-decoded, which works out what it's reading. The input is read as one
-document after another, which covers JSON Lines, also called NDJSON,
-documents simply written one after another, and one document alone. If
-it holds exactly one document, and that's an array, its elements are
-the values; otherwise, each document is one. So a file of one array of
-records gives the records, and a file of JSON Lines gives each line's.
-An array alone is read whole before its first element is given, as
-whether it's alone can't be known until the input ends; otherwise, the
-input is read a block at a time.
+JSON Lines, each as it is: an array is one value. The input is read a
+block at a time, as values are pulled, so a stage that stops the run
+early stops the reading too. Documents simply written one after
+another, on a line or not, are read the same.
 
-A file whose name ends in C<.jsonl> or C<.ndjson> is read as JSON
-Lines: each document is a value, even an array alone. C<type> can say
-the same of any input, or say C<json>: one document, an array giving
-its elements.
-
-Given neither, a stage decoding each value, a JSON text, and passing on
-each document in it: the one, usually, or, from a text holding JSON
-Lines, each line's. An array is one value, not its elements, unless
-C<type> is C<json>, when each text must be one document. A filehandle
-is left open, for its opener to close; a file is opened as the run
-starts, and closed once it has ended, however it ended.
+Given neither, a stage decoding each value, a text of one or more
+lines, into each line's document.
 
 =head2 to_json
 
@@ -375,23 +381,26 @@ starts, and closed once it has ended, however it ended.
     to_json(fh => $fh, %options)
     to_json(%options)
 
-Given a C<file> or an C<fh>, a sink writing each value, encoded, and
-giving how many. A file whose name ends in C<.jsonl> or C<.ndjson>, or
-a filehandle, gets JSON Lines, each value a line; any other file one
-document, an array of the values, written as they come, so a file named
-C<.json> holds valid JSON. C<type> can say either of any of them. The
-file is opened, emptied, as the run starts, and closed once it has
-ended; a filehandle is left open.
+Given a C<file> or an C<fh>, a sink writing every value as one JSON
+document, an array, written as the values come, and giving how many.
+An encoder that indents, such as with C<pretty>, has each value
+indented in the array.
 
-Given neither, a stage passing on what a file of its type would hold:
-by default, or with C<type> C<jsonl> or C<ndjson>, each value as one
-line of text, without its newline, ready for
-L<Ekorn::Pipeline::Sinks/to_file>; with C<type> C<json>, every value,
-gathered, and passed on as one text, an array, once they've all come.
-So C<to_json> and C<from_json> of the same type undo each other.
+Given neither, a stage gathering every value, and passing on one text,
+the array, once they've all come.
 
-JSON Lines can't be indented, so C<to_json> croaks if asked for them
-with an encoder that indents.
+=head2 to_jsonl
+
+    to_jsonl(file => $path, %options)
+    to_jsonl(fh => $fh, %options)
+    to_jsonl(%options)
+
+Given a C<file> or an C<fh>, a sink writing each value as a line of
+JSON Lines, and giving how many.
+
+Given neither, a stage passing on each value as its line, without its
+newline, ready for L<Ekorn::Pipeline::Sinks/to_file>. JSON Lines can't
+be indented, so it croaks given an encoder that indents.
 
 =head1 OPTIONS
 
@@ -406,19 +415,15 @@ The path of a file to read or write.
 An open filehandle to read or write. It should be C<:raw>, as the text
 is bytes, unless the encoder's C<utf8> is off.
 
-=item type
-
-C<json>, one document; or C<jsonl> or C<ndjson>, which are the same,
-JSON Lines. See each function for what it means there, and its default.
-
 =item json
 
 The encoder: a hash reference of options for L<JSON::MaybeXS>'s C<new>,
 such as C<< {canonical => 1, pretty => 1} >>, given over the defaults
 C<utf8> and C<allow_nonref>; or an object of your own, such as a
 L<Cpanel::JSON::XS> or L<JSON::PP> you've set up, used as it is. An
-object reading a source has its incremental parser reset for each run,
-so mustn't read two at once.
+object reading a source, or decoding with L</from_jsonl>'s stage, has
+its incremental parser reset for each run, so mustn't serve two at
+once.
 
 =back
 
@@ -430,7 +435,7 @@ so mustn't read two at once.
 
 A function was given an odd number of arguments.
 
-=item Expected the options file, fh, type and json, not %s
+=item Expected the options file, fh and json, not %s
 
 A function was given an option it doesn't know, named after "not".
 
@@ -441,10 +446,6 @@ A function was given both C<file> and C<fh>.
 =item Expected an open filehandle
 
 C<fh> was something other than an open filehandle.
-
-=item Expected a type of json, jsonl or ndjson, not %s
-
-C<type> was something else.
 
 =item Expected json to be a hash reference of options, or an encoder object
 
@@ -457,16 +458,16 @@ the message is the encoder's.
 
 =item Expected an encoder that doesn't indent, to write JSON Lines
 
-L</to_json> was asked for JSON Lines, by its type or the file's name,
-with an encoder that indents, such as with C<pretty>.
+L</to_jsonl> was given an encoder that indents, such as with
+C<pretty>.
 
 =item Can't decode JSON from %s: %s
 
 What was read wasn't JSON: the first part is the file's path, "the
 filehandle", or "a value", for a stage, and the second the decoder's
 reason. It's "it ends inside a document" if the input ended part way
-through one, and "it holds more than one document, and its type is json" if it
-did, and its type is C<json>.
+through one, and "it holds more than one document; read JSON Lines
+with from_jsonl" if L</from_json> read more than one.
 
 =item Can't encode a value as JSON: %s
 
@@ -487,8 +488,8 @@ read or written; the second part says why.
 L<Ekorn::Pipeline>, L<Ekorn::Pipeline::Sources> and
 L<Ekorn::Pipeline::Sinks>, for files of lines, and L<JSON::MaybeXS>.
 
-The user guide's "Walk through a module of parts" builds this module,
-step by step.
+The user guide's "Walk through a module of parts" builds a smaller
+C<from_jsonl> and C<to_jsonl>, step by step.
 
 =head1 AUTHOR
 

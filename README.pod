@@ -585,11 +585,10 @@ counting and debugging.
 the sources and sinks above.
 
 =item * L<Ekorn::Pipeline::JSON>: C<from_json> and C<to_json>, which
-read and write JSON, as a source or a sink given a file or a
-filehandle, and as stages given neither. Reading works out whether it
-has JSON Lines, one array or one document; writing chooses JSON Lines
-or one array by the file's name. The how-to walks through how a module
-like it is put together.
+read and write one JSON document, and C<from_jsonl> and C<to_jsonl>,
+which read and write JSON Lines: each a source or a sink given a file
+or a filehandle, and a stage given neither. The how-to walks through
+how a module like it is put together.
 
 =item * L<Ekorn::Pipeline::Factories>: the words that make Ekorn's
 types, C<pipeline>, C<stage>, C<gather>, C<source>, C<generator> and

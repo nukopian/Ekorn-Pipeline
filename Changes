@@ -12,8 +12,7 @@ Unreleased
     take_last and take_single, and take_if and drop_if, which filter.
     Ekorn::Pipeline::Tooling exports every stage, source, sink and
     word from one module, by tags. Ekorn::Pipeline::JSON reads and
-    writes JSON, as a source, a stage or a sink, working out whether
-    it's reading JSON Lines or one array.
+    writes JSON and JSON Lines, as sources, stages or sinks.
 
     A run's parts can be made afresh for it, and told how it ended:
     sources that close what they open, however the run ends; sinks
@@ -43,17 +42,18 @@ Unreleased
     stages are numbered where it's given. Otherwise,
     existing code runs as before.
 
-    - Ekorn::Pipeline::JSON makes from_json and to_json, each a source
-      or a sink given a file or a filehandle, and a stage given
-      neither. Reading works out what it has: one array gives its
-      elements, and JSON Lines, or documents one after another, each
-      document; it's read a block at a time, as values are pulled.
-      Writing gives JSON Lines to a file named .jsonl or .ndjson, or a
-      filehandle, and one array to any other file; a type option says
-      which, for a source or a stage too. The encoder is
+    - Ekorn::Pipeline::JSON makes from_json and to_json, for one JSON
+      document, and from_jsonl and to_jsonl, for JSON Lines: each a
+      source or a sink given a file or a filehandle, and a stage given
+      neither. from_json gives an array's elements, or the document
+      itself; from_jsonl gives each line's document, read a block at a
+      time, as values are pulled. to_json writes every value as one
+      array, and to_jsonl a value a line. As stages, each passes on
+      what a file would hold, so to_json and from_json undo each
+      other, as to_jsonl and from_jsonl do. The encoder is
       JSON::MaybeXS's, configured by a json option, or replaced by an
-      object of the caller's. Tooling exports both, by a :json tag.
-      JSON::MaybeXS is a new dependency. The user guide reads and
+      object of the caller's. Tooling exports all four, by a :json
+      tag. JSON::MaybeXS is a new dependency. The user guide reads and
       writes JSON in chapters 5 and 6, and walks through how a module
       like it is put together in chapter 10. (roadmap 2026-0034)
     - Ekorn::Pipeline::Tooling exports what callers use to do work,
