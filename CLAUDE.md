@@ -298,7 +298,7 @@ what was Iain's.
 - **`croakf` raises our own errors.** A message Ekorn::Pipeline writes
   is raised with `croakf` from Ekorn::Pipeline::Errors, a `sprintf`
   format and its arguments, as in
-  `croakf 'Expected stage #%d to be a code reference', $n`, so each
+  `croakf 'Expected stage #%d to be a stage, not a source', $n`, so each
   message is one plain string, matching its DIAGNOSTICS entry. `croak`
   is for what we pass on, such as an exception object or a stop. A `%`
   in a message of our own is written `%%`. A new module that croaks

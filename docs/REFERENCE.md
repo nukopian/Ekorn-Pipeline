@@ -810,7 +810,11 @@ it, and the package gets a function of each name. New in v0.3.0.
   pipeline => {...})`, does what `use` does, for the package given in
   place of its caller: for a module whose own sugar takes pipelines and
   hands them on, so they're named in, and given to, the package using
-  that module.
+  that module. Names, and the package's functions, are checked before
+  anything is defined, but a bad stage, or a name another pipeline has,
+  is found only as its definition is made, so those before it stay
+  defined: no matter for `use`, as the program stops, but worth
+  knowing for an `eval`.
 
 A sub covers what it doesn't: a pipeline that makes its own values
 is `sub recent (@stages) { pipeline('top', @stages)->(load_recent()) }`.

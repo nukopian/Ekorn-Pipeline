@@ -1044,7 +1044,11 @@ are checked as C<pipeline> checks them.
 pipeline => {...}) >>, does what C<use> does, for the package given in
 place of its caller: for a module whose own sugar takes pipelines and
 hands them on, so they're named in, and given to, the package using
-that module.
+that module. Names, and the package's functions, are checked before
+anything is defined, but a bad stage, or a name another pipeline has,
+is found only as its definition is made, so those before it stay
+defined: no matter for C<use>, as the program stops, but worth
+knowing for an C<eval>.
 
 =back
 

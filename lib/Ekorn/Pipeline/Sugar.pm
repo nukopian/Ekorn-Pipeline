@@ -195,6 +195,13 @@ module whose own sugar takes pipelines, and hands them on, so they're
 named in, and given to, the package that uses that module. The names
 are read in C<$package>, as is a string naming a pipeline.
 
+The names, and the functions the package has already, are checked
+before any pipeline is defined. A stage that isn't one, or a name
+another pipeline has, is found only as its definition is made, so the
+definitions made before it stay made. For C<use>, that doesn't matter,
+as the program stops; a module calling this inside an C<eval> should
+know it.
+
 =head1 DIAGNOSTICS
 
 =over
