@@ -12,21 +12,23 @@ a time. It runs what it would return through them. The caller says
 what they want, beside the call, and the function does only what it
 alone can.
 
-    use Ekorn::Pipeline;
-    use Ekorn::Pipeline::Tooling qw(:all);
+```perl
+use Ekorn::Pipeline;
+use Ekorn::Pipeline::Tooling qw(:all);
 
-    # The author's function: it reads log lines, and nothing else.
-    sub log_lines ($file, @stages) {
-        return Ekorn::Pipeline->new(@stages)->iterator(from_file($file));
-    }
+# The author's function: it reads log lines, and nothing else.
+sub log_lines ($file, @stages) {
+    return Ekorn::Pipeline->new(@stages)->iterator(from_file($file));
+}
 
-    # A caller's use of it: the first ten errors, as their messages.
-    my $errors = log_lines(
-        'app.log',
-        sub { m( \A ERROR \  (.*) )x ? $1 : () },    # only errors, as messages
-        take(10),                                    # ten, then stop reading
-    );
-    while (my($message) = $errors->()) { say $message }
+# A caller's use of it: the first ten errors, as their messages.
+my $errors = log_lines(
+    'app.log',
+    sub { m( \A ERROR \  (.*) )x ? $1 : () },    # only errors, as messages
+    take(10),                                    # ten, then stop reading
+);
+while (my($message) = $errors->()) { say $message }
+```
 
 The file is read only as far as the tenth error, and closed there,
 however the caller's loop ends.
@@ -61,25 +63,27 @@ arguments, and runs each value it makes through them. The caller's
 processing happens _inside_ the function, one value at a time, as
 the values are made:
 
-    # Options
-    sub users (%opt) {
-        my @users = load_users();
-        @users = grep { $_->{active} } @users if $opt{active_only};
-        @users = map  { $_->{name} } @users   if $opt{names_only};
-        @users = splice @users, 0, $opt{limit} if $opt{limit};
-        return @users;
-    }
+```perl
+# Options
+sub users (%opt) {
+    my @users = load_users();
+    @users = grep { $_->{active} } @users if $opt{active_only};
+    @users = map  { $_->{name} } @users   if $opt{names_only};
+    @users = splice @users, 0, $opt{limit} if $opt{limit};
+    return @users;
+}
 
-    # Stages
-    sub users (@stages) {
-        return Ekorn::Pipeline->new(@stages)->(load_users());
-    }
+# Stages
+sub users (@stages) {
+    return Ekorn::Pipeline->new(@stages)->(load_users());
+}
 
-    my @names = users(
-        take_if { $_->{active} },
-        sub { $_->{name} },
-        take(10),
-    );
+my @names = users(
+    take_if { $_->{active} },
+    sub { $_->{name} },
+    take(10),
+);
+```
 
 The second `users` does everything the first does, and everything it
 doesn't, without a line more. Its author is done with it. Whatever a
@@ -117,10 +121,12 @@ whoever wrote it. The ready-made stages here work with all of them.
 Every run of a pipeline has the same shape. Values come from
 somewhere, go through stages one at a time, and end up somewhere:
 
-      source  -->  stage  -->  stage  -->  stage  -->  sink
-     (where       (change, drop, multiply,          (where they
-    they come      or stop: one value at a time)      end up)
-      from)
+```
+  source  -->  stage  -->  stage  -->  stage  -->  sink
+ (where       (change, drop, multiply,          (where they
+they come      or stop: one value at a time)      end up)
+  from)
+```
 
 The _stages_ are the heart of it, and the only part a function that
 takes stages needs. The other two are optional. A _source_ is where
@@ -147,9 +153,11 @@ stages by itself: a _flatMap_.
 One shape covers all three. A pipeline is just a list of stages, and a
 stage needs no wrapper to say which kind it is:
 
-    sub { $_ % 2 ? $_ : () }                # filter: the odd numbers
-    sub { $_ * 10 }                         # map: ten times each
-    sub ($user) { @{ $user->{roles} } }     # flatMap: each of a user's roles
+```perl
+sub { $_ % 2 ? $_ : () }                # filter: the odd numbers
+sub { $_ * 10 }                         # map: ten times each
+sub ($user) { @{ $user->{roles} } }     # flatMap: each of a user's roles
+```
 
 Returning a list, rather than a value or `undef`, is what makes this
 work. An empty list plainly means "nothing", so `undef`, `0` and the
@@ -172,14 +180,16 @@ package can deliver stages without using Ekorn's classes (see
 So stages you've put together once can be reused, in another pipeline
 or with any function that takes stages:
 
-    my $active_names = Ekorn::Pipeline->new(
-        take_if { $_->{active} },
-        sub { $_->{name} },
-    );
-    my @names = users(
-        $active_names,
-        take(10),
-    );
+```perl
+my $active_names = Ekorn::Pipeline->new(
+    take_if { $_->{active} },
+    sub { $_->{name} },
+);
+my @names = users(
+    $active_names,
+    take(10),
+);
+```
 
 If a function accepts only code references, give it the pipeline's
 stages instead: `users($active_names->stages, take(10))`.
@@ -196,7 +206,9 @@ A pipeline runs two ways:
 - **Pushed:** called with values, it returns the list that comes
 out of the last stage.
 
-        my @results = $pipeline->(@values);
+    ```perl
+    my @results = $pipeline->(@values);
+    ```
 
 - **Pulled:** given a _source_, `iterator` returns an iterator,
 an object called as a function, which hands out the results one per
@@ -204,8 +216,10 @@ call. The source is asked for values only when a result is wanted. A
 function reading a file, a socket or a database reads only as much as
 its caller asks for.
 
-        my $next = $pipeline->iterator(sub { @queue ? shift @queue : () });
-        while (my($result) = $next->()) { ... }
+    ```perl
+    my $next = $pipeline->iterator(sub { @queue ? shift @queue : () });
+    while (my($result) = $next->()) { ... }
+    ```
 
 The simplest source is a sub that returns the next value, or an empty
 list when there are no more. An iterator can also give everything
@@ -221,7 +235,9 @@ already out are kept, and any values the stop carries go on through
 the rest of the stages. Nothing else is made: once a stage has stopped
 it, a pulled pipeline never calls its source again.
 
-    sub ($user) { $user->{id} == $wanted ? Stop($user) : () }    # find one, then stop
+```perl
+sub ($user) { $user->{id} == $wanted ? Stop($user) : () }    # find one, then stop
+```
 
 This is how a caller's stages save the author's work. With
 `take(10)`, the function in the first example reads up to the tenth
@@ -231,15 +247,17 @@ option for it, and the caller wrote no `last`.
 It matters more where each value costs more. A function over a paged
 web API fetches a page only when its caller wants a result from it:
 
-    sub search ($query, @stages) {
-        my $page = 0;
-        return Ekorn::Pipeline->new(@stages)->iterator(sub {
-            return @{ fetch_page($query, ++$page) };    # a request; empty after the last page
-        });
-    }
+```perl
+sub search ($query, @stages) {
+    my $page = 0;
+    return Ekorn::Pipeline->new(@stages)->iterator(sub {
+        return @{ fetch_page($query, ++$page) };    # a request; empty after the last page
+    });
+}
 
-    my $hits = search('squirrels', take(10));
-    while (my($hit) = $hits->()) { say $hit->{title} }    # one request, if a page holds ten
+my $hits = search('squirrels', take(10));
+while (my($hit) = $hits->()) { say $hit->{title} }    # one request, if a page holds ten
+```
 
 Without stages, that function either fetches every page, or grows
 `max_results`, `max_pages` and `on_result` options, for its author
@@ -263,15 +281,17 @@ told how: `done`, `stopped` or `died`, so a stage can tidy up.
 The parts are given by name, in a hash reference, or as a list in that
 order:
 
-    sub batches_of ($size) {
-        return gather {
-            my @batch;    # this run's
-            return {
-                step  => sub ($x) { push @batch, $x; @batch == $size ? [splice @batch] : () },
-                flush => sub ()   { @batch ? [@batch] : () },    # the last, short batch
-            };
+```perl
+sub batches_of ($size) {
+    return gather {
+        my @batch;    # this run's
+        return {
+            step  => sub ($x) { push @batch, $x; @batch == $size ? [splice @batch] : () },
+            flush => sub ()   { @batch ? [@batch] : () },    # the last, short batch
         };
-    }
+    };
+}
+```
 
 That's how `batch`, `collect`, `take` and `drop` are made. Sources
 and sinks are made the same way, from a set-up called at the start of
@@ -300,15 +320,17 @@ own. Its block is the source's set-up, and returns its step, which
 gives the next value or an empty list at the end, and, if it needs one,
 its end:
 
-    sub lines_of ($file) {
-        return source {
-            open my $fh, '<', $file or die "Can't read $file: $!\n";
-            return {
-                step => sub () { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
-                end  => sub ($how) { close $fh },
-            };
+```perl
+sub lines_of ($file) {
+    return source {
+        open my $fh, '<', $file or die "Can't read $file: $!\n";
+        return {
+            step => sub () { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
+            end  => sub ($how) { close $fh },
         };
-    }
+    };
+}
+```
 
 The set-up can also give a _context_, anything its stages may want
 to know about the run, such as a file's column names, which a stage
@@ -333,14 +355,16 @@ as a list, or as an array reference in scalar context;
 - `to_file($path, $layers)` and `to_fh($fh)`, writing each
 value on a line of its own, and giving how many.
 
-    my $errors = Ekorn::Pipeline->new(
-        take_if { m( \A ERROR )x },
-        count_items,
-    )->(@lines);
-    my $first  = Ekorn::Pipeline->new(
-        take_if { m( \A ERROR )x },
-        keep_first,
-    )->(@lines);
+```perl
+my $errors = Ekorn::Pipeline->new(
+    take_if { m( \A ERROR )x },
+    count_items,
+)->(@lines);
+my $first = Ekorn::Pipeline->new(
+    take_if { m( \A ERROR )x },
+    keep_first,
+)->(@lines);
+```
 
 A sink that has what it needs, such as `keep_first`, stops the run
 there, so a source is read no further.
@@ -357,15 +381,17 @@ With [Ekorn::Pipeline::Operators](https://metacpan.org/pod/Ekorn%3A%3APipeline%3
 join with `|`, as commands do in a Unix shell. A chain from a source
 to a sink runs at once, and gives the sink's result:
 
-    use Ekorn::Pipeline::Operators;
+```perl
+use Ekorn::Pipeline::Operators;
 
-    my $errors = from_file('app.log') | take_if { m( \A ERROR )x };
-    say $errors | count_items;
-    my $messages = $errors
-        | stage { s( \A ERROR \  )()xr }
-        | take(10)
-        | keep_all;
-    say for @$messages;
+my $errors = from_file('app.log') | take_if { m( \A ERROR )x };
+say $errors | count_items;
+my $messages = $errors
+    | stage { s( \A ERROR \  )()xr }
+    | take(10)
+    | keep_all;
+say for @$messages;
+```
 
 A source joined to stages, with no sink, is a new source, which can be
 kept and ended in different sinks, each chain a run of its own. Stages
@@ -386,15 +412,17 @@ Stages can be kept in variables, built by functions and passed around.
 A function that returns a stage is a word in a vocabulary, and the
 vocabulary grows in the caller's code, not the author's:
 
-    sub only_active ()    { take_if { $_->{active} } }
-    sub value_of ($name)  { sub { $_->{$name} } }
+```perl
+sub only_active ()    { take_if { $_->{active} } }
+sub value_of ($name)  { sub { $_->{$name} } }
 
-    my @page  = (drop(20), take(10));
-    my @names = users(
-        only_active,
-        value_of('name'),
-        @page,
-    );
+my @page  = (drop(20), take(10));
+my @names = users(
+    only_active,
+    value_of('name'),
+    @page,
+);
+```
 
 A stage written for `users` works for `log_lines` too, or for a
 function on CPAN whose author has never heard of it.
@@ -403,14 +431,16 @@ A pipeline you use often can be given a name, and used by it. The word
 `pipeline` makes a pipeline in which a name stands for the pipeline it
 names:
 
-    Ekorn::Pipeline->named(active_names =>
-        only_active,
-        value_of('name'),
-    );
-    my @names = users(pipeline(
-        'active_names',
-        take(10),
-    ));
+```perl
+Ekorn::Pipeline->named(active_names =>
+    only_active,
+    value_of('name'),
+);
+my @names = users(pipeline(
+    'active_names',
+    take(10),
+));
+```
 
 A name belongs to the package that defined it, unless it's qualified,
 so two modules can each have their own. A stage that dies inside a
@@ -464,16 +494,18 @@ with state of its own; and `EKORN_SINK_ONE` or `EKORN_SINK_MANY`, to
 be written to. Each is called at the start of a run, and returns the
 parts, as a set-up does:
 
-    package My::Queue {
-        sub new ($class, @items) { bless {items => [@items]}, $class }
+```perl
+package My::Queue {
+    sub new ($class, @items) { bless {items => [@items]}, $class }
 
-        # Read: each item, taken off the front of the queue.
-        sub EKORN_SOURCE ($self) {
-            return {step => sub () { @{ $self->{items} } ? shift @{ $self->{items} } : () }};
-        }
+    # Read: each item, taken off the front of the queue.
+    sub EKORN_SOURCE ($self) {
+        return {step => sub () { @{ $self->{items} } ? shift @{ $self->{items} } : () }};
     }
+}
 
-    my @loud = Ekorn::Pipeline->new(sub { uc })->iterator(My::Queue->new(qw(a b)))->all;
+my @loud = Ekorn::Pipeline->new(sub { uc })->iterator(My::Queue->new(qw(a b)))->all;
+```
 
 The methods are the whole contract, so your package and Ekorn can
 each change their insides freely. A source class can also overload
@@ -489,8 +521,10 @@ A stage that dies is named by its position in the pipeline, and
 reported at the line of the caller's code that ran it, with its
 message below:
 
-    Pipeline stage #2 failed at app.pl line 12:
-        No name for user 7 at app.pl line 9.
+```perl
+Pipeline stage #2 failed at app.pl line 12:
+    No name for user 7 at app.pl line 9.
+```
 
 A stage inside a pipeline given as a stage is numbered within it, as
 `#2.1`, and one inside a named pipeline is named with it, as
@@ -547,19 +581,21 @@ in making a stage at the line of the caller who made it.
 
 Here's a small one:
 
-    package My::Stages::Words;
+```perl
+package My::Stages::Words;
 
-    use v5.36;
-    use Exporter qw(import);
-    use Ekorn::Pipeline::Errors qw(croakf);
+use v5.36;
+use Exporter qw(import);
+use Ekorn::Pipeline::Errors qw(croakf);
 
-    our @EXPORT_OK = qw(longer_than);
+our @EXPORT_OK = qw(longer_than);
 
-    sub longer_than ($length) {
-        croakf 'Expected a length of 0 or more, not %s', $length // 'undef'
-            unless defined $length && $length =~ m( \A \d+ \z )xa;
-        return sub ($word) { length $word > $length ? $word : () };
-    }
+sub longer_than ($length) {
+    croakf 'Expected a length of 0 or more, not %s', $length // 'undef'
+        unless defined $length && $length =~ m( \A \d+ \z )xa;
+    return sub ($word) { length $word > $length ? $word : () };
+}
+```
 
 ## When to use something else
 
@@ -603,11 +639,15 @@ authority where they differ.
 
 From CPAN:
 
-    cpanm Ekorn::Pipeline
+```
+cpanm Ekorn::Pipeline
+```
 
 Or the latest from GitHub:
 
-    cpanm https://github.com/nukopian/Ekorn-Pipeline.git
+```
+cpanm https://github.com/nukopian/Ekorn-Pipeline.git
+```
 
 It needs Perl 5.36 or later.
 

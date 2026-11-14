@@ -387,7 +387,7 @@ value on a line of its own, and giving how many.
         take_if { m( \A ERROR )x },
         count_items,
     )->(@lines);
-    my $first  = Ekorn::Pipeline->new(
+    my $first = Ekorn::Pipeline->new(
         take_if { m( \A ERROR )x },
         keep_first,
     )->(@lines);
