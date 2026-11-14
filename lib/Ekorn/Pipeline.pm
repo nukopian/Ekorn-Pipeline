@@ -827,7 +827,7 @@ __END__
 
 =encoding utf8
 
-=for stopwords flatMap
+=for stopwords flatMap invocant's
 
 =head1 NAME
 

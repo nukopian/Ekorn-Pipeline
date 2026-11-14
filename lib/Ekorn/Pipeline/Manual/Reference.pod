@@ -1,6 +1,6 @@
 =encoding utf8
 
-=for stopwords 21st
+=for stopwords 21st bitwise dereferences fh
 
 =for comment Made from docs/REFERENCE.md by scripts/manuals. Edit docs/REFERENCE.md and run
 the script, rather than editing this.

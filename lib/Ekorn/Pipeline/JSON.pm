@@ -297,7 +297,7 @@ __END__
 
 =encoding utf8
 
-=for stopwords JSON JSONL NDJSON jsonl
+=for stopwords JSON JSONL NDJSON jsonl fh
 
 =head1 NAME
 

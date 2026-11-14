@@ -282,6 +282,12 @@ the first line of each.
    remove the tarball, fix the problem on `develop`, and start again.
    `git status` should print nothing, as git ignores the tarball.
 
+   The build also runs Minilla's own tests, which CI doesn't, among
+   them a POD spelling test. A word it doesn't know, but that's right,
+   goes in the POD's `=for stopwords` line, or, for the manuals, in the
+   `<!-- stopwords: ... -->` comment at the top of the Markdown, which
+   `scripts/manuals` copies.
+
 4. **Rename it, and upload it.** `cpan-upload` reads the PAUSE account
    from `~/.pause`:
 

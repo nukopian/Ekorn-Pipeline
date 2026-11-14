@@ -1,6 +1,6 @@
 =encoding utf8
 
-=for stopwords backtrace flatMap Ekorn ekorn
+=for stopwords backtrace flatMap Ekorn ekorn bitwise discoverability
 
 =for comment Made from docs/HOWTO.md by scripts/manuals. Edit docs/HOWTO.md and run
 the script, rather than editing this.

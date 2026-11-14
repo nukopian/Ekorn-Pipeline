@@ -1,6 +1,6 @@
 # Ekorn::Pipeline reference
 
-<!-- stopwords: 21st -->
+<!-- stopwords: 21st bitwise dereferences fh -->
 
 Stages for any function: let the caller finish the job.
 

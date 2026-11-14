@@ -157,6 +157,8 @@ __END__
 
 =encoding utf8
 
+=for stopwords bitwise dereferencing
+
 =head1 NAME
 
 Ekorn::Pipeline::Operators - C<|>, C<|=> and C<@{}> for Ekorn's types

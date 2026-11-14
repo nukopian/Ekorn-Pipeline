@@ -1,6 +1,6 @@
 # Ekorn::Pipeline user guide
 
-<!-- stopwords: backtrace flatMap Ekorn ekorn -->
+<!-- stopwords: backtrace flatMap Ekorn ekorn bitwise discoverability -->
 
 Ekorn::Pipeline lets a function hand its values, one at a time,
 through a list of small steps chosen by whoever called it. The steps
