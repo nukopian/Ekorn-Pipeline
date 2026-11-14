@@ -270,6 +270,12 @@ B<What it gives you:> C<count_items>, C<keep_all>, C<keep_first>, C<to_file> and
 
 B<Made in:> Ekorn::Pipeline::Sinks
 
+=item C<:json>
+
+B<What it gives you:> C<from_json>, C<from_jsonl>, C<to_json> and C<to_jsonl>
+
+B<Made in:> Ekorn::Pipeline::JSON
+
 =item C<:words>
 
 B<What it gives you:> C<pipeline>, C<stage>, C<source>, C<generator>, C<sink_one> and the rest
