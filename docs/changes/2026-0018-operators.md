@@ -1,6 +1,6 @@
 # 2026-0018. Operators: `|`, `|=` and `@{}`
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** None of its own: the design's section 9 (2026-0022's
 D14, D18, D23, D32, D51 and D52) settles it.

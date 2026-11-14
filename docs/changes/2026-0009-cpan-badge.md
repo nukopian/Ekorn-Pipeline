@@ -1,6 +1,6 @@
 # 2026-0009. A CPAN badge that keeps up with releases
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** None.
 

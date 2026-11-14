@@ -1,6 +1,6 @@
 # 2026-0021. Ekorn::Pipeline::Factories
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: `pipeline` moves to a module of words. D2 settled: Ekorn::Pipeline::Factories, and DBIx::Squirrel::Factories. D3 settled: each word is one line over a class method taking the package; `new` stays strict. D4 settled: it exports `gather`, not `Stop`. D5 withdrawn: there are no `step` and `end`. D6 settled: `pipeline_in`. D7 settled: no.
 

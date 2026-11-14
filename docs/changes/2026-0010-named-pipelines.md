@@ -1,6 +1,6 @@
 # 2026-0010. Named pipelines at compile time
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** revisited on 2026-11-14, against the design of 2026-0022
 and the items since. D1 settled: stages after values, as a pipeline

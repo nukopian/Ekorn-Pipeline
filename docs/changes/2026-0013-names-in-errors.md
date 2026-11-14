@@ -1,6 +1,6 @@
 # 2026-0013. A named pipeline named in a stage's error
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: the place, then the innermost named pipeline and the place in it. D2 settled: the name qualified. D3 settled: a pipeline's first name.
 

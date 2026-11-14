@@ -2,6 +2,11 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.1 2026-11-14
+
+    Sources, stages, gathers and sinks, each made afresh for a run and
+    told how it ended, with words to make them and | to join them.
+
     Pipelines can be made with pipeline(), and named, and a function
     whose values can be code references can take its stages as a
     pipeline given last. pipeline() is one of the words in
@@ -23,27 +28,27 @@ Unreleased
     v0.2.0 called the end function; Sources and Sinks have them
     ready-made, and Operators joins them with |. A part's set-up, or
     a package's role method, can return its parts by name, as a hash
-    reference, rather than as a list in a set order.
-    An iterator is an object, which
-    can read what's left in one call, end its run early, and say how
-    it ended, and which ends its run when it's let go.
+    reference, rather than as a list in a set order. An iterator is an
+    object, which can read what's left in one call, end its run early,
+    and say how it ended, and which ends its run when it's let go.
 
-    Pushing values through plain subs is several times faster, and
-    reading an iterator's values in one call a tenth faster.
+    Pushing values through plain subs is several times faster, reading
+    an iterator's values in one call a tenth faster, and a stop about
+    three times cheaper.
 
-    It ships eighteen roadmap items, 2026-0009, 2026-0010, 2026-0011,
+    It ships nineteen roadmap items, 2026-0009, 2026-0010, 2026-0011,
     2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021,
-    2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029, 2026-0030,
-    2026-0031, 2026-0032 and 2026-0034. It changes what some code
-    sees, as the entries marked "Changed" say: a gather, an iterator,
-    every canned stage, and the stages a pipeline gives back are
-    objects, called as code references, not code references
+    2026-0024, 2026-0025, 2026-0026, 2026-0027, 2026-0028, 2026-0029,
+    2026-0030, 2026-0031, 2026-0032 and 2026-0034. It changes what
+    some code sees, as the entries marked "Changed" say: a gather, an
+    iterator, every canned stage, and the stages a pipeline gives back
+    are objects, called as code references, not code references
     themselves; a gather's message names the flush and the end; a
     stage's error names the named pipeline it's in; the messages for
     what isn't a stage or a source say what one is; and a pipeline
     named alone, pipeline('clean'), is the pipeline itself, so its
-    stages are numbered where it's given. Otherwise,
-    existing code runs as before.
+    stages are numbered where it's given. Otherwise, existing code
+    runs as before.
 
     - Ekorn::Pipeline::Sugar names pipelines as the program compiles:
       use Ekorn::Pipeline::Sugar pipeline => {name => [@stages]}, or an

@@ -1,6 +1,6 @@
 # 2026-0032. Faster pulled runs
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: before v0.3.0. D2 settled: no change anyone can see but speed. None open.
 

@@ -81,49 +81,49 @@ Steps, Done when.
 Newest id first.
 
 - [Ekorn::Pipeline::JSON](2026-0034-json.md), roadmap 2026-0034:
-  shipped, unreleased.
+  shipped in v0.3.1.
 - [One try for each pulled value](2026-0033-one-try.md), roadmap
   2026-0033: open, an idea.
 - [Faster pulled runs](2026-0032-faster-pulled-runs.md), roadmap
-  2026-0032: shipped, unreleased.
+  2026-0032: shipped in v0.3.1.
 - [Ekorn::Pipeline::Tooling, one module to import from](2026-0031-tooling.md),
-  roadmap 2026-0031: shipped, unreleased.
-- [take_if and drop_if](2026-0030-take-if.md), roadmap 2026-0030: shipped,
-  unreleased.
+  roadmap 2026-0031: shipped in v0.3.1.
+- [take_if and drop_if](2026-0030-take-if.md), roadmap 2026-0030: shipped in
+  v0.3.1.
 - [A single name gives the pipeline it names](2026-0029-single-name.md),
-  roadmap 2026-0029: shipped, unreleased.
-- [Fast paths](2026-0028-fast-paths.md), roadmap 2026-0028: shipped,
-  unreleased.
+  roadmap 2026-0029: shipped in v0.3.1.
+- [Fast paths](2026-0028-fast-paths.md), roadmap 2026-0028: shipped in
+  v0.3.1.
 - [The role methods in capitals](2026-0027-capital-role-methods.md),
-  roadmap 2026-0027: shipped, unreleased.
+  roadmap 2026-0027: shipped in v0.3.1.
 - [Release v0.3.0](2026-0025-release-v0-3-0.md), roadmap 2026-0025:
-  in progress.
+  shipped in v0.3.1.
 - [Role methods return their parts by name](2026-0026-named-parts.md),
-  roadmap 2026-0026: shipped, unreleased.
+  roadmap 2026-0026: shipped in v0.3.1.
 - [Operators: `|`, `|=` and `@{}`](2026-0018-operators.md),
-  roadmap 2026-0018: shipped, unreleased.
+  roadmap 2026-0018: shipped in v0.3.1.
 - [Sinks that come with Perl](2026-0017-sinks.md),
-  roadmap 2026-0017: shipped, unreleased.
+  roadmap 2026-0017: shipped in v0.3.1.
 - [Sources that come with Perl](2026-0016-sources.md),
-  roadmap 2026-0016: shipped, unreleased.
+  roadmap 2026-0016: shipped in v0.3.1.
 - [A named pipeline named in a stage's error](2026-0013-names-in-errors.md),
-  roadmap 2026-0013: shipped, unreleased.
+  roadmap 2026-0013: shipped in v0.3.1.
 - [Canned stages as objects, and a take stage for each keep sink](2026-0024-canned-stages.md),
-  roadmap 2026-0024: shipped, unreleased.
+  roadmap 2026-0024: shipped in v0.3.1.
 - [One design, end to end, before more is built](2026-0022-one-design.md),
   roadmap 2026-0022: approved, and split into items.
 - [Ekorn::Pipeline::Factories](2026-0021-factories.md), roadmap 2026-0021:
-  shipped, unreleased.
+  shipped in v0.3.1.
 - [pipeline() through a subclass makes the subclass](2026-0020-subclass-pipeline.md),
   a TODO task from DBIx-Squirrel: dropped: undone by 2026-0021, before any release.
 - [The lifecycle: sources, stages, sinks and their ends](2026-0014-lifecycle.md),
-  roadmap 2026-0014: shipped, unreleased.
+  roadmap 2026-0014: shipped in v0.3.1.
 - [A pipeline() function, and named pipelines](2026-0011-pipeline-function.md),
-  roadmap 2026-0011: shipped, unreleased.
+  roadmap 2026-0011: shipped in v0.3.1.
 - [Named pipelines at compile time](2026-0010-named-pipelines.md),
-  roadmap 2026-0010: shipped, unreleased.
+  roadmap 2026-0010: shipped in v0.3.1.
 - [A CPAN badge that keeps up with releases](2026-0009-cpan-badge.md),
-  roadmap 2026-0009: shipped, unreleased.
+  roadmap 2026-0009: shipped in v0.3.1.
 - [Messages that say what's accepted](2026-0008-messages-say-whats-accepted.md),
   roadmap 2026-0008: shipped in v0.2.0.
 - [A pipeline returned by a gather block](2026-0007-gather-pipeline.md),

@@ -1,6 +1,6 @@
 # 2026-0027. The role methods in capitals
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: all capitals, `EKORN_SOURCE` and the rest. D2 settled: records keep their names; `docs/design/` is renamed, but for its history of the names. None open.
 

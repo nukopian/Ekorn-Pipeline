@@ -1,6 +1,6 @@
 # 2026-0028. Fast paths
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** None.
 

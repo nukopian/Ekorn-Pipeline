@@ -41,23 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0025. Release v0.3.0
-
-**Size:** S (2)
-
-**Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
-2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029,
-2026-0031, 2026-0032, 2026-0034, 2026-0010
-
-The design's release. `pipeline-experimental` merges to `develop` by a
-fast-forward, after a commit deleting `docs/design/`, which a tag,
-`archive/pipeline-experimental`, keeps; DBIx-Squirrel tests against
-Ekorn's `develop`, and merges its own branch; the docs are swept as a
-whole, with what it turned up; and v0.3.0 is released, after a trial,
-with a task for DBIx-Squirrel to move its range. It's v0.3.0, not
-v1.0.0, so the design can settle first; see its
-[record](docs/changes/2026-0025-release-v0-3-0.md).
-Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
+Nothing yet.
 
 ## Next
 

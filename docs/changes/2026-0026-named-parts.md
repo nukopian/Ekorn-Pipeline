@@ -1,6 +1,6 @@
 # 2026-0026. Role methods return their parts by name
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: a hash reference as an alternative to the list. D2 settled: `step`, `flush`, `end` and `context`. D3 settled: unknown keys ignored, but the hash must hold what its role needs, or it croaks. D4 settled: everywhere parts are returned, for consistency. None open.
 

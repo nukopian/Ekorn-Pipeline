@@ -1,6 +1,6 @@
 # 2026-0024. Canned stages as objects, and a take stage for each keep sink
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** None of its own: the design's (2026-0022's D4, for its
 Q12, and D58) settle it.

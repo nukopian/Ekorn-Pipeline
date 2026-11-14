@@ -1,6 +1,6 @@
 # 2026-0014. The lifecycle: sources, stages, sinks and their ends
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** the design's (2026-0022, D1 to D70) settle it; D1, a
 gather's message reworded for the flush and the end.

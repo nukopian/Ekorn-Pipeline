@@ -1,6 +1,6 @@
 # 2026-0011. A pipeline() function, and named pipelines
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: every argument is a stage, a code
 reference, a pipeline or a name. D2 settled: a pipeline given last is

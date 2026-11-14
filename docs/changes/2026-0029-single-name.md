@@ -1,6 +1,6 @@
 # 2026-0029. A single name gives the pipeline it names
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.1
 
 **Decisions:** D1 settled: one name alone gives the pipeline named. D2 settled: only if it's of the invocant's class, or a subclass; otherwise wrapped, as now. None open.
 
