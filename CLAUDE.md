@@ -66,7 +66,7 @@ both:
   pipelines. It subclasses, wraps and remakes nothing of Ekorn's, and
   Ekorn changes nothing for it, adding only what any package could
   use. Ekorn's contract with other packages is its protocols, not its
-  classes, so a change to a protocol is a v0.3.0. This replaces the
+  classes, so a change to a protocol is a v0.4.0. This replaces the
   rule of 2026-11-11 that DBIx::Squirrel's modules were subclasses of
   Ekorn's, which tied the two designs together; the design (roadmap
   2026-0022), principle 2 and its 17.3, has why. It's in
@@ -84,22 +84,26 @@ both:
   change to them is a change DBIx-Squirrel will take on when it
   switches, so say so in the commit message and in `Changes`.
 - **The version says what DBIx-Squirrel can take.** DBIx::Squirrel
-  requires `>= v0.2.0, < v0.3.0`, as it moved the range on 2026-11-10,
-  once v0.2.0 was on CPAN; the range began at `>= v0.1.1, < v0.2.0`,
-  as Iain decided on 2026-11-07 and DBIx-Squirrel raised it on
-  2026-11-08. So a v0.2.x reaches its users with no release of
-  DBIx::Squirrel's. A v0.2.x only fixes or adds. A release that changes
+  requires `>= v0.3.0, < v0.4.0`, as it moved the range on 2026-11-14,
+  for its v3.0.0, the first built on Ekorn as it is. The range began at
+  `>= v0.1.1, < v0.2.0`, as Iain decided on 2026-11-07, and
+  DBIx-Squirrel raised it on 2026-11-08, and to `>= v0.2.0, < v0.3.0`
+  on 2026-11-10. So a v0.3.x reaches its users with no release of
+  DBIx::Squirrel's. A v0.3.x only fixes or adds. A release that changes
   behaviour users' stages depend on (when a `gather` stage is made,
   what a stop does, the order end functions run in, where errors are
   reported, the messages), or drops or renames a public name, is
-  v0.3.0, and comes with a task handed to DBIx-Squirrel, which tests it
-  and moves the range. DBIx::Squirrel imports the names it documents
-  by name: `Stop`, `gather`, `take`, `drop`, `take_while`,
-  `drop_while`, `batch`, `collect`, `peek`, `count_into` and
-  `dump_to`; and, since 2026-11-14, `from_json`, `from_jsonl`,
-  `to_json` and `to_jsonl`, which its Tooling exports by `:json`. A
-  stage added here doesn't appear there until it's added
-  to its list.
+  v0.4.0, and comes with a task handed to DBIx-Squirrel, which tests it
+  and moves the range. DBIx::Squirrel imports some of Ekorn's modules
+  by name and some whole. By name: `Stop` and `gather`; Flow's `take`,
+  `drop`, `take_first`, `take_last`, `take_single`, `take_while`,
+  `drop_while`, `take_if` and `drop_if`; Batch's `batch` and
+  `collect`; Taps' `peek`, `count_into` and `dump_to`; and Factories'
+  `pipeline`, `stage`, `source`, `generator`, `yield`, `sink_one` and
+  `sink_many`. Whole, by `:all`, in its Tooling: Sources, Sinks and
+  JSON, so a name added to one of those three reaches its users at
+  once, and must suit them. A name added anywhere else doesn't appear
+  there until it's added to its list.
 
 ## Who does what
 
