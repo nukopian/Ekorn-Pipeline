@@ -2,6 +2,8 @@ use v5.36;
 
 package Ekorn::Pipeline::Sugar;
 
+use experimental            qw(builtin);
+use builtin                 qw(refaddr);
 use Ref::Util               qw(is_plain_arrayref is_plain_hashref is_ref);
 use Sub::Util               qw(set_subname);
 use Ekorn::Pipeline         qw(is_stage);
@@ -112,12 +114,22 @@ sub _local_name ($package, $stage) {
 
 # Install a function of the full name given, running values through the
 # pipeline, and, given a pipeline last, through that after it.
+#
+# Making the pipeline of both costs more than running a few values
+# through it, so the last one made is kept, with the pipeline it was
+# made for, and used again while that's the one given, as in a loop.
+# Only the last is kept: the one made holds the one given, for naming
+# its stages in errors, so a cache of every one given would keep them
+# all for ever.
 sub _install ($name, $pipeline) {
+    my($given, $both);
     my $function = sub (@values) {
         return $pipeline->(@values)
             unless @values && $values[-1] isa 'Ekorn::Pipeline';
         my $more = pop @values;
-        return Ekorn::Pipeline->new($pipeline, $more)->(@values);
+        ($given, $both) = ($more, Ekorn::Pipeline->new($pipeline, $more))
+            unless $given && refaddr($given) == refaddr($more);
+        return $both->(@values);
     };
     no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
     *{ $name } = set_subname($name, $function);
@@ -180,6 +192,13 @@ values came out. Given a pipeline last, such as one made with the word
 C<pipeline>, it runs them through that too, after the named one, so a
 caller can add stages of their own. A pipeline is taken for stages
 only last, so any other value, a code reference included, is a value.
+
+Joining the two pipelines costs more than running a few values through
+them, so the function keeps the last one it was given, joined, and
+uses it again while that's the one given. Keep a pipeline you add
+stages with in a variable, such as in a loop, rather than making it in
+the call, and it's joined once. The function holds the last one given
+until it's given another.
 
 To pull values through it from a source, use the pipeline itself:
 C<< pipeline('name')->iterator($source) >>.

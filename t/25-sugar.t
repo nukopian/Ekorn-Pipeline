@@ -5,6 +5,9 @@ use Test2::Plugin::NoWarnings;
 # Ekorn::Pipeline::Sugar: pipelines named as the program compiles, each
 # with a function of its name (roadmap 2026-0010).
 
+use experimental qw(builtin);
+use builtin      qw(weaken);
+
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Factories    qw(pipeline);
 use Ekorn::Pipeline::Sinks        qw(count_items keep_all);
@@ -69,6 +72,34 @@ subtest 'Given a pipeline last, it runs the values through that too' => sub {
     my $code = sub { $_ };
     is [kept(1, $code)], [1, exact_ref($code)],
         'any other value is a value, a code reference too';
+};
+
+subtest 'A pipeline given last is used again while it is the one given' => sub {
+    my $tens = pipeline(sub { $_ * 10 });
+    my $neg  = pipeline(sub { -$_ });
+    is [plus_one(1, $tens)], [20], 'the first';
+    is [plus_one(2, $tens)], [30], 'the same again';
+    is [plus_one(1, $neg)],  [-2], 'another, not the one before';
+    is [plus_one(1, $tens)], [20], 'and the first again';
+
+    my $boom = pipeline(sub { die "boom\n" });    ## no critic (ErrorHandling::RequireCarping)
+    my $line = __LINE__ + 1;
+    is dies { plus_one(1, $boom) },
+        "Pipeline stage #2.1 failed at ${\ __FILE__ } line $line:\n    boom\n",
+        'its stages named as without it';
+    $line = __LINE__ + 1;
+    is dies { plus_one(1, $boom) },
+        "Pipeline stage #2.1 failed at ${\ __FILE__ } line $line:\n    boom\n",
+        'the second time too';
+
+    my $kept = pipeline(sub { $_ });
+    plus_one(1, $kept);
+    my $weak = $kept;
+    weaken($weak);
+    undef $kept;
+    ok defined $weak, 'the last one given is kept';
+    plus_one(1, $tens);
+    ok !defined $weak, 'until another is given';
 };
 
 subtest 'Each is named in the package that used the module' => sub {

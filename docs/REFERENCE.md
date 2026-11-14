@@ -793,7 +793,11 @@ it, and the package gets a function of each name. New in v0.3.0.
   pipeline does: a list in list context; in scalar context, a sink's
   result, or how many came out. Given a pipeline last, it runs them
   through that too, after its own. Only a pipeline last is taken for
-  stages; any other value, a code reference included, is a value.
+  stages; any other value, a code reference included, is a value. The
+  two are joined once for the pipeline given, and joined again only
+  when another is given, so a pipeline kept in a variable and given
+  again, as in a loop, costs less than one made in each call. The
+  function holds the last one given until it's given another.
 - **A string where a stage goes names a pipeline,** as in `pipeline`
   and `named`: one from the same `use`, or one defined before it. A
   definition can name any other in the same `use`, in either order:

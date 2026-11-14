@@ -251,4 +251,17 @@ run, with coverage above the floors, and DBIx-Squirrel has its message.
 - **Found:** Sub::Util comes with Perl, in the same distribution as
   Scalar::Util, but it's listed in `cpanfile` as a dependency of its
   own, as it's used by name.
+- **Made faster, the same day,** from the mini-washup's list: a
+  function given a pipeline last made a pipeline of the two at every
+  call, about 8 µs, more than running ten values through it. It now
+  keeps the last one it made, with the pipeline it was made for, and
+  uses it again while that's the one given: twice as fast, measured at
+  54,000 calls a second before and 111,000 after, for ten values and
+  the same pipeline given each time. A pipeline made in the call is new
+  each time, so gains nothing. Running the two pipelines one after the
+  other was set aside, as a stop in the second wouldn't stop the
+  first, the ends would be told otherwise, and stages would be named
+  differently in errors; and a cache of every pipeline given, as the
+  one made holds the one given, for naming its stages, so would keep
+  them all for ever.
 
