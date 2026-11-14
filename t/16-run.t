@@ -141,10 +141,10 @@ subtest 'Stage: what new takes' => sub {
     is $object->code, exact_ref($callable), 'kept as it is';
 
     like dies { Ekorn::Pipeline::Stage->new('uc') },
-        qr( \A Expected\ a\ code\ reference\ at\ ${\ __FILE__ } )x,
+        qr( \A Expected\ a\ code\ reference\ at\ \Q${\ __FILE__ }\E )x,
         'a string croaks';
     like dies { Ekorn::Pipeline::Stage->new($class->new) },
-        qr( \A Expected\ a\ code\ reference,\ not\ one\ of\ Ekorn's\ types\ at\ ${\ __FILE__ } )x,
+        qr( \A Expected\ a\ code\ reference,\ not\ one\ of\ Ekorn's\ types\ at\ \Q${\ __FILE__ }\E )x,
         "and one of Ekorn's own types, saying so";
 };
 
