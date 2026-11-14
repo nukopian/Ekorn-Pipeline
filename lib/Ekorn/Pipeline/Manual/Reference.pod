@@ -3420,8 +3420,9 @@ methods, so it couldn't say which it is.
 
 =item *
 
-B<Expected a code reference:> the source given to C<iterator> wasn't
-a code reference, or anything offering C<EKORN_SOURCE>.
+B<Expected a source: a code reference, or an object offering
+EKORN_SOURCE:> the source given to C<iterator> was something else,
+such as a stage, or a string.
 
 =item *
 

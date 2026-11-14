@@ -2690,8 +2690,9 @@ the line of the caller's code that caused it.
 - **Expected stage #%d to offer one of EKORN_STAGE, EKORN_SINK_ONE and
   EKORN_SINK_MANY, not %s:** a stage offered more than one of the role
   methods, so it couldn't say which it is.
-- **Expected a code reference:** the source given to `iterator` wasn't
-  a code reference, or anything offering `EKORN_SOURCE`.
+- **Expected a source: a code reference, or an object offering
+  EKORN_SOURCE:** the source given to `iterator` was something else,
+  such as a stage, or a string.
 - **Expected the source to return a code reference, and optionally an
   end and a context:** a source's `EKORN_SOURCE` returned something
   else. Reported when the run starts.

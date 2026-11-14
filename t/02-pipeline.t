@@ -186,7 +186,7 @@ subtest 'iterator stops calling the source after Stop' => sub {
 subtest 'iterator checks its source' => sub {
     my $line = __LINE__ + 1;
     is dies { $class->new->iterator('x') },
-        "Expected a code reference at ${\ __FILE__ } line $line.\n";
+        "Expected a source: a code reference, or an object offering EKORN_SOURCE at ${\ __FILE__ } line $line.\n";
 };
 
 subtest 'a stage that dies says which it was' => sub {

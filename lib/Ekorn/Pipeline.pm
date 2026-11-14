@@ -257,7 +257,7 @@ sub _composed ($pipeline) {
 # run through the stages: $source a code reference, or anything
 # offering a source's role method, an iterator included.
 sub iterator ($self, $source) {
-    croakf 'Expected a code reference'
+    croakf 'Expected a source: a code reference, or an object offering EKORN_SOURCE'
         unless is_coderef($source) || _is_source($source);
     return _iterator(
         $self, $self->{stages}, $self->{names}, $self->{within},
@@ -1446,10 +1446,10 @@ role methods, was given as a stage. Give it to L</iterator> instead.
 A stage offered more than one of the role methods, so it couldn't say
 which it is.
 
-=item Expected a code reference
+=item Expected a source: a code reference, or an object offering EKORN_SOURCE
 
-The source given to L</iterator> wasn't a code reference, or anything
-offering C<EKORN_SOURCE>.
+The source given to L</iterator> was something else, such as a stage,
+or a string.
 
 =item Expected the source to return a code reference, and optionally an end and a context
 

@@ -874,10 +874,10 @@ subtest "Ekorn's types are Elements, offering role methods (D5, D13, D19)" =>
         qr( \A Expected\ stage\ \#1\ to\ be\ a\ stage,\ not\ a\ source )x,
         'a source given as a stage croaks';
         like dies { $class->new->iterator($pipeline) },
-        qr( \A Expected\ a\ code\ reference )x,
+        qr( \A Expected\ a\ source:\ a\ code\ reference,\ or\ an\ object\ offering\ EKORN_SOURCE )x,
         'and a pipeline given as a source';
         like dies { $class->new->iterator(count_items) },
-        qr( \A Expected\ a\ code\ reference )x,
+        qr( \A Expected\ a\ source: )x,
         'and a sink';
 
         my $bind = bless [2], 'My::Set';
