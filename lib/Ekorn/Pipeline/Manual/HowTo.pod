@@ -2916,6 +2916,10 @@ the end.
 
 =back
 
+=head2 Is the author a Blur fan?
+
+No. They're in the examples because only they have three tracks.
+
 =head2 Where next?
 
 L<The reference|Ekorn::Pipeline::Manual::Reference> describes every module, function and

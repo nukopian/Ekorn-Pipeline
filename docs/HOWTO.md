@@ -2788,6 +2788,10 @@ It falls short:
   `@{ $source }` reads everything, and a generator runs its block to
   the end.
 
+### Is the author a Blur fan?
+
+No. They're in the examples because only they have three tracks.
+
 ### Where next?
 
 [The reference](REFERENCE.md) describes every module, function and
