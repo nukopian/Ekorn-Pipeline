@@ -59,8 +59,10 @@ Ekorn::Pipeline::Tooling - Ekorn's stages, sources, sinks and words, from one mo
     use Ekorn::Pipeline;
     use Ekorn::Pipeline::Tooling qw(:all);
 
-    my $first = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, keep_first)
-        ->iterator(from_file('app.log'))->();
+    my $first = Ekorn::Pipeline->new(
+        take_if { m( \A ERROR )x },
+        keep_first,
+    )->iterator(from_file('app.log'))->();
 
     use Ekorn::Pipeline::Tooling qw(:stages :sinks);    # or only some
     use Ekorn::Pipeline::Tooling qw(take keep_all);     # or by name

@@ -41,7 +41,10 @@ Ekorn::Pipeline::Pipes - pipe and tap methods, running an object through stages
     my $client = My::Client->new;
 
     # What the stages make of the object
-    my @names = $client->pipe(sub { $_->users }, sub { $_->{name} });
+    my @names = $client->pipe(
+        sub { $_->users },
+        sub { $_->{name} },
+    );
 
     # The object itself, after the stages have run for their side effects
     $client->tap(sub { $_->log('started') })->run;

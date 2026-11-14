@@ -75,7 +75,11 @@ the values are made:
         return Ekorn::Pipeline->new(@stages)->(load_users());
     }
 
-    my @names = users(take_if { $_->{active} }, sub { $_->{name} }, take(10));
+    my @names = users(
+        take_if { $_->{active} },
+        sub { $_->{name} },
+        take(10),
+    );
 
 The second `users` does everything the first does, and everything it
 doesn't, without a line more. Its author is done with it. Whatever a
@@ -168,8 +172,14 @@ package can deliver stages without using Ekorn's classes (see
 So stages you've put together once can be reused, in another pipeline
 or with any function that takes stages:
 
-    my $active_names = Ekorn::Pipeline->new(take_if { $_->{active} }, sub { $_->{name} });
-    my @names = users($active_names, take(10));
+    my $active_names = Ekorn::Pipeline->new(
+        take_if { $_->{active} },
+        sub { $_->{name} },
+    );
+    my @names = users(
+        $active_names,
+        take(10),
+    );
 
 If a function accepts only code references, give it the pipeline's
 stages instead: `users($active_names->stages, take(10))`.
@@ -323,8 +333,14 @@ as a list, or as an array reference in scalar context;
 - `to_file($path, $layers)` and `to_fh($fh)`, writing each
 value on a line of its own, and giving how many.
 
-    my $errors = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, count_items)->(@lines);
-    my $first  = Ekorn::Pipeline->new(take_if { m( \A ERROR )x }, keep_first)->(@lines);
+    my $errors = Ekorn::Pipeline->new(
+        take_if { m( \A ERROR )x },
+        count_items,
+    )->(@lines);
+    my $first  = Ekorn::Pipeline->new(
+        take_if { m( \A ERROR )x },
+        keep_first,
+    )->(@lines);
 
 A sink that has what it needs, such as `keep_first`, stops the run
 there, so a source is read no further.
@@ -345,7 +361,11 @@ to a sink runs at once, and gives the sink's result:
 
     my $errors = from_file('app.log') | take_if { m( \A ERROR )x };
     say $errors | count_items;
-    say for @{ $errors | stage { s( \A ERROR \  )()xr } | take(10) | keep_all };
+    my $messages = $errors
+        | stage { s( \A ERROR \  )()xr }
+        | take(10)
+        | keep_all;
+    say for @$messages;
 
 A source joined to stages, with no sink, is a new source, which can be
 kept and ended in different sinks, each chain a run of its own. Stages
@@ -370,7 +390,11 @@ vocabulary grows in the caller's code, not the author's:
     sub value_of ($name)  { sub { $_->{$name} } }
 
     my @page  = (drop(20), take(10));
-    my @names = users(only_active, value_of('name'), @page);
+    my @names = users(
+        only_active,
+        value_of('name'),
+        @page,
+    );
 
 A stage written for `users` works for `log_lines` too, or for a
 function on CPAN whose author has never heard of it.
@@ -379,8 +403,14 @@ A pipeline you use often can be given a name, and used by it. The word
 `pipeline` makes a pipeline in which a name stands for the pipeline it
 names:
 
-    Ekorn::Pipeline->named(active_names => only_active, value_of('name'));
-    my @names = users(pipeline('active_names', take(10)));
+    Ekorn::Pipeline->named(active_names =>
+        only_active,
+        value_of('name'),
+    );
+    my @names = users(pipeline(
+        'active_names',
+        take(10),
+    ));
 
 A name belongs to the package that defined it, unless it's qualified,
 so two modules can each have their own. A stage that dies inside a
@@ -416,8 +446,8 @@ mustn't be code references or pipelines themselves.
 - **Or take a pipeline given last.** If the values can be code
 references, such as callbacks, `is_stage` can't tell them from
 stages. Take a pipeline given last as the stages instead, which your
-callers make with the word `pipeline`:
-`call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)))`.
+callers make with the word `pipeline`: `call_all(@callbacks,
+pipeline(sub { $_ * 10 }, take(2)))`.
 
 A class of your own can have `pipe` and `tap` methods, from
 [Ekorn::Pipeline::Pipes](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3APipes), which run an object through stages. `pipe`

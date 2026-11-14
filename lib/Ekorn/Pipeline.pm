@@ -534,6 +534,7 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
             1,
         );
         # A set-up runs before the run has values, so has nothing to stop.
+
         croakf 'Expected no stop in a set-up, as the run has nothing yet to stop'
             if $e isa 'Ekorn::Pipeline::Stop';
         croak $e if is_ref($e);
@@ -841,21 +842,24 @@ Ekorn::Pipeline - run values through a list of stages
     use Ekorn::Pipeline::Factories qw(pipeline);
 
     Ekorn::Pipeline->named(clean => sub { s( \A \s+ | \s+ \z )()xgr });
-    my @first = pipeline('clean', sub { length ? $_ : () })->(@lines);
+    my @first = pipeline(
+        'clean',
+        sub { length ? $_ : () },
+    )->(@lines);
 
 =head1 DESCRIPTION
 
 A pipeline is a list of stages. A stage is a code reference; another
-pipeline, which stands for its own stages (see
-L</A pipeline as a stage>); a stage made for each run, with
-L<Ekorn::Pipeline::Gather>; or a sink, which consumes the values and
-gives a result (see L<Ekorn::Pipeline::Sink>).
+pipeline, which stands for its own stages (see L</A pipeline as a
+stage>); a stage made for each run, with L<Ekorn::Pipeline::Gather>;
+or a sink, which consumes the values and gives a result (see
+L<Ekorn::Pipeline::Sink>).
 
-A code reference is called with one value, both as its argument and
-in C<$_>. It can name the value with a signature,
-C<sub ($row) { $row-E<gt>[1] }>, or use C<$_>, C<sub { $_-E<gt>[1] }>.
-C<$_> is localised for each call, so the caller's is left alone. It
-returns a list:
+A code reference is called with one value, both as its argument and in
+C<$_>. It can name the value with a signature, C<sub ($row) {
+$row-E<gt>[1] }>, or use C<$_>, C<sub { $_-E<gt>[1] }>. C<$_> is
+localised for each call, so the caller's is left alone. It returns a
+list:
 
 =over
 
@@ -896,7 +900,10 @@ want:
         return Ekorn::Pipeline->new(@stages)->(load_bands());
     }
 
-    my @names = bands(sub { $_->{name} }, take(5));
+    my @names = bands(
+        sub { $_->{name} },
+        take(5),
+    );
 
 With L</iterator>, the values are made one at a time, as the caller
 asks for them. A function reading a file or a socket reads no more
@@ -950,10 +957,19 @@ list as an array reference:
 You can give C<new> a pipeline wherever it takes a stage. Its stages
 are spliced in where it stands, so these two run the same:
 
-    my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+    my $clean = Ekorn::Pipeline->new(
+        sub { s( \A \s+ | \s+ \z )()xgr },
+        sub { length ? $_ : () },
+    );
 
-    Ekorn::Pipeline->new($clean, take(10));
-    Ekorn::Pipeline->new($clean->stages, take(10));
+    Ekorn::Pipeline->new(
+        $clean,
+        take(10),
+    );
+    Ekorn::Pipeline->new(
+        $clean->stages,
+        take(10),
+    );
 
 The spliced stages belong to the new pipeline's run. A C<take> inside
 C<$clean> limits the whole run, not each value.
@@ -1004,8 +1020,7 @@ C<clean>.
 
 =item * C<named> keeps a name in the package that called it, and
 the word C<pipeline> and C<named> look one up in the package that
-called them,
-so two modules can each have a C<clean> of their own.
+called them, so two modules can each have a C<clean> of their own.
 
 =item * A qualified name, such as C<My::Module::clean>, is that
 package's, wherever it's used. Code that names or looks up pipelines on
@@ -1049,10 +1064,19 @@ class otherwise:
 
     use Ekorn::Pipeline::Factories qw(pipeline);
 
-    pipeline(sub { uc }, take(5))                # new, from stages
-    pipeline('clean')                            # the pipeline named clean
-    pipeline('clean', take(5))                   # it, then more
-    pipeline('My::Module::clean', sub {...})     # another package's
+    pipeline(
+        sub { uc },
+        take(5),
+    )    # new, from stages
+    pipeline('clean')    # the pipeline named clean
+    pipeline(
+        'clean',
+        take(5),
+    )    # it, then more
+    pipeline(
+        'My::Module::clean',
+        sub {...},
+    )     # another package's
 
 Call it from code the user calls directly, passing the user's package,
 as the word does with C<scalar caller>. Code that passes stages
@@ -1072,7 +1096,10 @@ stages, which a caller makes with C<pipeline>:
         return $stages->(map { $_->() } @callbacks);
     }
 
-    call_all(@callbacks, pipeline(sub { $_ * 10 }, take(2)));
+    call_all(@callbacks, pipeline(
+        sub { $_ * 10 },
+        take(2),
+    ));
 
 It's new in v0.3.0, as is the word C<pipeline>.
 
@@ -1125,8 +1152,14 @@ L<Ekorn::Pipeline::Stage> of it. So a function that takes only plain
 code references, testing them with C<is_coderef> or C<ref>, won't take
 them; v0.2.0 gave the code references themselves.
 
-    my $clean  = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
-    my @titles = Ekorn::Pipeline->new($clean->stages, take(10))->(@raw);
+    my $clean  = Ekorn::Pipeline->new(
+        sub { s( \A \s+ | \s+ \z )()xgr },
+        sub { length ? $_ : () },
+    );
+    my @titles = Ekorn::Pipeline->new(
+        $clean->stages,
+        take(10),
+    )->(@raw);
 
 To give C<new> the pipeline itself, see L</A pipeline as a stage>.
 Either way, the stages run as if they had been written out in full:
@@ -1204,9 +1237,8 @@ name. Parts by name are new in v0.3.0.
 Any object can take part, by offering a role method that does what a
 set-up does, returning the same parts, as a list or by name:
 C<EKORN_SOURCE>, C<EKORN_STAGE>, C<EKORN_SINK_ONE> or
-C<EKORN_SINK_MANY>.
-L<Ekorn::Pipeline::Manual::Reference/Delivering parts for Ekorn> has
-how.
+C<EKORN_SINK_MANY>. L<Ekorn::Pipeline::Manual::Reference/Delivering
+parts for Ekorn> has how.
 
 =head2 How a run ends
 
@@ -1230,7 +1262,10 @@ sink that stops the run itself.
 So a stop ends the stream early for what's before it, and normally
 for what's after it. In
 
-    my $n = Ekorn::Pipeline->new(take(5), count_items)->iterator($lines)->();
+    my $n = Ekorn::Pipeline->new(
+        take(5),
+        count_items,
+    )->iterator($lines)->();
 
 C<$lines> is told C<stopped>, and closes its file, and C<count_items>,
 after C<take(5)>, is told C<done>, and gives 5.
@@ -1356,10 +1391,9 @@ something that isn't a code reference.
 
 =item Expected stage #%d to be a code reference, a pipeline or the name of one
 
-A stage given to L</pipeline_in>, and so to the word C<pipeline>, or to
-L</named> after the name, was
-none of them. For C<named>, stages are counted from the first after
-the name.
+A stage given to L</pipeline_in>, and so to the word C<pipeline>, or
+to L</named> after the name, was none of them. For C<named>, stages
+are counted from the first after the name.
 
 =item No pipeline named %s
 
@@ -1447,11 +1481,11 @@ C<#2> for the second stage, or C<#2.3> for the third stage of a
 pipeline given as the second stage.
 
 A stage within a named pipeline, or of the named pipeline run, is
-named with it too: after its position, the innermost named pipeline it's
-in, by its L</name>, and its position there, as
-C<#1.2 (main::clean#2)> for the second stage of the pipeline named
-C<clean>, given as the first stage. It's the name the pipeline has
-when the stage dies.
+named with it too: after its position, the innermost named pipeline
+it's in, by its L</name>, and its position there, as C<#1.2
+(main::clean#2)> for the second stage of the pipeline named C<clean>,
+given as the first stage. It's the name the pipeline has when the
+stage dies.
 
 =back
 

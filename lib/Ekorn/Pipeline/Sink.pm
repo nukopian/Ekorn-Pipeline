@@ -87,8 +87,11 @@ Ekorn::Pipeline::Sink - a sink made afresh for each run
         return (sub ($x) { $sum += $x }, sub () { $sum });
     });
 
-    my $sum = Ekorn::Pipeline->new(sub { $_ * 2 }, $total)->(1 .. 4);    # 20
-    $total->(1 .. 4);                                                     # 10
+    my $sum = Ekorn::Pipeline->new(
+        sub { $_ * 2 },
+        $total,
+    )->(1 .. 4);    # 20
+    $total->(1 .. 4);    # 10
 
     # A list: each value, written as it comes, given back
     sub logged_to ($path) {
@@ -161,9 +164,8 @@ L<Ekorn::Pipeline::Sinks> has ready-made ones.
 A class of your own needn't be one of these to be a sink. Any object
 with an C<EKORN_SINK_ONE> or an C<EKORN_SINK_MANY> method, returning
 the step, the flush, and optionally the end, as a list or by name, is
-one. Offering both, or
-either with C<EKORN_STAGE>, croaks where it's given as a stage, as it
-couldn't say which it is.
+one. Offering both, or either with C<EKORN_STAGE>, croaks where it's
+given as a stage, as it couldn't say which it is.
 
 =head1 METHODS
 

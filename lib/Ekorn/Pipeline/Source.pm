@@ -88,9 +88,9 @@ columns.
 =back
 
 It returns them as a list, in that order, giving C<undef> for the end
-to give only a context, or by name, as a hash reference, as in
-C<< {step => $step, context => $columns} >>:
-L<Ekorn::Pipeline/Made for a run> has how.
+to give only a context, or by name, as a hash reference, as in C<<
+{step => $step, context => $columns} >>: L<Ekorn::Pipeline/Made for a
+run> has how.
 
 So two iterators of the same pipeline, reading the same source, each
 get their own filehandle, and each closes its own, when its run ends.
@@ -128,8 +128,7 @@ reference, as L</DESCRIPTION> describes. Anything else croaks.
     my @parts = $source->EKORN_SOURCE;
 
 Calls the set-up, for a new run, and returns what it returns: the
-parts, as a list or by name. A run
-calls it as it starts; you needn't.
+parts, as a list or by name. A run calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS
 

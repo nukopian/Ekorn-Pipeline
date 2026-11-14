@@ -148,7 +148,10 @@ Ekorn::Pipeline::Stages::Flow - stages taking or dropping values: take, drop, ta
     use Ekorn::Pipeline::Stages::Flow;    # take and drop
 
     # The third page of ten
-    my @page = Ekorn::Pipeline->new(drop(20), take(10))->(@names);
+    my @page = Ekorn::Pipeline->new(
+        drop(20),
+        take(10),
+    )->(@names);
 
     use Ekorn::Pipeline::Stages::Flow qw(:DEFAULT take_while drop_while);
 
@@ -168,18 +171,17 @@ reference, so it goes wherever a stage goes. Code testing it with
 C<ref> or C<is_coderef> sees an object: v0.2.0 gave code references.
 
 C<take>, C<drop>, C<take_last>, C<take_single> and C<drop_while> keep
-state, so they're made with
-L<Ekorn::Pipeline::Gather> and start afresh on each run. A run is a
-call of a pipeline with values, or an iterator made from it.
+state, so they're made with L<Ekorn::Pipeline::Gather> and start
+afresh on each run. A run is a call of a pipeline with values, or an
+iterator made from it.
 
 C<take_if> and C<drop_if> test every value; C<take_while> and
 C<drop_while> stop testing at the first value the test fails, one by
 ending the pipeline there, the other by passing on everything after.
 
 C<take>, C<take_first>, C<take_single> and C<take_while> end the
-pipeline with
-L<Ekorn::Pipeline::Stop> once they've passed on all they will, so an
-iterator stops calling its source.
+pipeline with L<Ekorn::Pipeline::Stop> once they've passed on all they
+will, so an iterator stops calling its source.
 
 =head1 FUNCTIONS
 

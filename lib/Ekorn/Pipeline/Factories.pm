@@ -94,7 +94,11 @@ Ekorn::Pipeline::Factories - words that make Ekorn's types
 
     use Ekorn::Pipeline::Factories qw(:all);
 
-    my $p = pipeline(stage { uc }, 'clean', take(5));    # a pipeline, names looked up here
+    my $p = pipeline(
+        stage { uc },
+        'clean',
+        take(5),
+    );    # a pipeline, names looked up here
 
     my $lines = source {
         open my $fh, '<', $path or die "Can't read $path: $!\n";    # this run's
@@ -154,8 +158,8 @@ words of its own for Ekorn's types.
 Returns a new pipeline of C<@stages>, each a code reference, a
 pipeline, or the name of one, looked up now, in the package that
 called C<pipeline>, unless it's qualified; or, given one name alone,
-the pipeline it names, itself. It's
-C<< Ekorn::Pipeline->pipeline_in(scalar caller, @stages) >>, as
+the pipeline it names, itself. It's C<<
+Ekorn::Pipeline->pipeline_in(scalar caller, @stages) >>, as
 L<Ekorn::Pipeline/pipeline_in> describes, with named pipelines.
 
 =head2 stage

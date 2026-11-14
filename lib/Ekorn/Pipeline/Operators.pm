@@ -169,9 +169,14 @@ Ekorn::Pipeline::Operators - C<|>, C<|=> and C<@{}> for Ekorn's types
 
     my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-    my $n      = from_array(@tracks) | $blur | count_items;      # a number
-    my $titles = from_array(@tracks) | $blur | stage { $_->{title} } | keep_all;    # an array reference
-    my @all    = @{ from_array(@tracks) | $blur };                # every value, read through
+    my $n = from_array(@tracks)
+        | $blur
+        | count_items;    # a number
+    my $titles = from_array(@tracks)
+        | $blur
+        | stage { $_->{title} }
+        | keep_all;    # an array reference
+    my @all = @{ from_array(@tracks) | $blur };    # every value, read through
 
 =head1 DESCRIPTION
 
@@ -211,10 +216,10 @@ can be anything that goes where a stage goes, a plain code reference
 or a package's own part included.
 
 B<Never start a chain with a plain code reference.> Perl calls an
-overload only when one side is an object, so
-C<sub { ... } | sub { ... }> is Perl's bitwise OR of two addresses: a
-meaningless number, with no error. Write C<stage { uc }>, never
-C<sub { uc }>, first. A pipeline made with C<new> has no operators.
+overload only when one side is an object, so C<sub { ... } | sub { ...
+}> is Perl's bitwise OR of two addresses: a meaningless number, with
+no error. Write C<stage { uc }>, never C<sub { uc }>, first. A
+pipeline made with C<new> has no operators.
 
 =head2 What a chain gives
 

@@ -60,9 +60,8 @@ were made with L<Ekorn::Pipeline::Gather>.
     Stop(@values);
 
 Throws a stop carrying C<@values>, the last values of the stage that
-throws it. It's the same as
-C<< Ekorn::Pipeline::Stop->throw(@values) >>. It's exported by
-default.
+throws it. It's the same as C<< Ekorn::Pipeline::Stop->throw(@values)
+>>. It's exported by default.
 
 To keep it out of your namespace:
 

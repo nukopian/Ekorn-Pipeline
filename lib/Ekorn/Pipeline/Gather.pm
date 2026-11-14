@@ -151,7 +151,10 @@ or choose one:
     sub first_numbered ($n) {
         return gather {
             my $i = 0;    # this run's
-            Ekorn::Pipeline->new(sub { ++$i . ". $_" }, take($n));
+            Ekorn::Pipeline->new(
+                sub { ++$i . ". $_" },
+                take($n),
+            );
         };
     }
 
@@ -207,8 +210,7 @@ set-up.
     my @parts = $stage->EKORN_STAGE;
 
 Calls the set-up, for a new run, and returns what it returns: the
-parts, as a list or by name. A run
-calls it as it starts; you needn't.
+parts, as a list or by name. A run calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS
 
@@ -220,11 +222,10 @@ C<gather> was given something other than a block or code reference.
 
 =item Expected stage #%s, made with gather, to return a code reference or a pipeline, and optionally a flush and an end
 
-A block given to C<gather> returned something else. It's reported
-when a run starts: when the
-pipeline is called with values, or an iterator is made from it. The
-stage is named by its position, as L<Ekorn::Pipeline/DIAGNOSTICS>
-describes.
+A block given to C<gather> returned something else. It's reported when
+a run starts: when the pipeline is called with values, or an iterator
+is made from it. The stage is named by its position, as
+L<Ekorn::Pipeline/DIAGNOSTICS> describes.
 
 =back
 

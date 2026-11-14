@@ -141,7 +141,11 @@ Ask for what you need, by tag or by name. Nothing comes by default:
 ```perl
 package My::Report {
     use Ekorn::Pipeline::Tooling qw(:stages :sinks);
-    say scalar Ekorn::Pipeline->new(take_if { $_->{plays} > 6000 }, count_items)->(@tracks);    # 3
+    say scalar Ekorn::Pipeline->new(
+        take_if { $_->{plays} > 6000 },
+        count_items,
+    )->(@tracks);
+    # 3
 }
 ```
 
@@ -332,8 +336,8 @@ The differences show once the job grows:
   function. You can hand it stages, and it runs its values through
   them (see [9. Functions that take stages](#9-functions-that-take-stages)).
 - **Speed.** `map` and `grep` are faster, by a long way, for trivial
-  steps over values already in memory.
-  [How fast is it?](#how-fast-is-it) has numbers.
+  steps over values already in memory. [How fast is
+  it?](#how-fast-is-it) has numbers.
 
 ## 2. Pipelines: pushing values, pulling values
 
@@ -388,7 +392,10 @@ A pipeline is a value: keep it in a variable, pass it around, and call
 it whenever you like. Each call is a run of its own:
 
 ```perl
-my $loud = Ekorn::Pipeline->new(sub { uc }, sub { "$_!" });
+my $loud = Ekorn::Pipeline->new(
+    sub { uc },
+    sub { "$_!" },
+);
 say join ' ', $loud->('hey'), $loud->('ho');    # HEY! HO!
 ```
 
@@ -507,7 +514,10 @@ something stops the run. Here `take`, from chapter 3, does:
 
 ```perl
 my $n       = 0;
-my @squares = Ekorn::Pipeline->new(sub { $_ * $_ }, take(5))->iterator(sub { ++$n })->all;
+my @squares = Ekorn::Pipeline->new(
+    sub { $_ * $_ },
+    take(5),
+)->iterator(sub { ++$n })->all;
 say "@squares";    # 1 4 9 16 25
 ```
 
@@ -552,7 +562,7 @@ my $next  = Ekorn::Pipeline->new->iterator(sub { @queue ? shift @queue : () });
 $next->();
 say $next->ended // 'still running';    # still running
 $next->finish;
-say $next->ended;                       # stopped
+say $next->ended;    # stopped
 ```
 
 An iterator you let go of, by letting its variable go out of scope,
@@ -633,8 +643,10 @@ values, then stops. With an iterator, the source isn't called again:
 
 ```perl
 my $read = 0;
-my @two  = Ekorn::Pipeline->new(take(2), sub { $_->{title} })
-    ->iterator(sub { $read < @tracks ? $tracks[$read++] : () })->all;
+my @two  = Ekorn::Pipeline->new(
+    take(2),
+    sub { $_->{title} },
+)->iterator(sub { $read < @tracks ? $tracks[$read++] : () })->all;
 say join ', ', @two;      # Dancing Queen, Knowing Me, Knowing You
 say "read $read of 6";    # read 2 of 6
 ```
@@ -648,7 +660,11 @@ advises, so the third track is never read.
 Together with `take`, it gives a page:
 
 ```perl
-my @page2 = tracks(drop(2), take(2), sub { $_->{title} });
+my @page2 = tracks(
+    drop(2),
+    take(2),
+    sub { $_->{title} },
+);
 say join ', ', @page2;    # Girls & Boys, Parklife
 ```
 
@@ -667,9 +683,23 @@ Flow has three more stages for picking one value, imported on request:
   when you meant one, and want to hear about it if there are more.
 
 ```perl
-say tracks(sub { $_->{title} }, take_first);                                  # Dancing Queen
-say tracks(sub { $_->{title} }, take_last);                                   # Sunshine of Your Love
-say tracks(sub { $_->{artist} eq 'Cream' ? $_->{title} : () }, take_single);    # Sunshine of Your Love
+say tracks(
+    sub { $_->{title} },
+    take_first,
+);
+# Dancing Queen
+
+say tracks(
+    sub { $_->{title} },
+    take_last,
+);
+# Sunshine of Your Love
+
+say tracks(
+    sub { $_->{artist} eq 'Cream' ? $_->{title} : () },
+    take_single,
+);
+# Sunshine of Your Love
 ```
 
 Each is a stage, so more stages can follow it. Chapter 6's sinks,
@@ -684,11 +714,22 @@ does. Compare `take_while`, in the next recipe, which stops at the
 first value its test fails:
 
 ```perl
-say join ', ', tracks(take_if { $_->{plays} >= 6000 }, sub { $_->{title} });
+say join ', ', tracks(
+    take_if { $_->{plays} >= 6000 },
+    sub { $_->{title} },
+);
 # Dancing Queen, Girls & Boys, Sunshine of Your Love
-say join ', ', tracks(drop_if { $_->{artist} eq 'Blur' }, sub { $_->{title} });
+
+say join ', ', tracks(
+    drop_if { $_->{artist} eq 'Blur' },
+    sub { $_->{title} },
+);
 # Dancing Queen, Knowing Me, Knowing You, Sunshine of Your Love
-say join ', ', tracks(take_while { $_->{plays} >= 6000 }, sub { $_->{title} });
+
+say join ', ', tracks(
+    take_while { $_->{plays} >= 6000 },
+    sub { $_->{title} },
+);
 # Dancing Queen
 ```
 
@@ -713,8 +754,10 @@ my $mail = <<~'END';
     END
 open my $fh, '<', \$mail or die "Can't read the mail: $!\n";
 
-my @headers = Ekorn::Pipeline->new(take_while { m( \S )x }, sub { s( \n \z )()xr })
-    ->iterator(sub { scalar(<$fh>) // () })->all;
+my @headers = Ekorn::Pipeline->new(
+    take_while { m( \S )x },
+    sub { s( \n \z )()xr },
+)->iterator(sub { scalar(<$fh>) // () })->all;
 say join ' | ', @headers;    # From: abba@example.com | Subject: Waterloo
 ```
 
@@ -866,11 +909,17 @@ array reference of them all, or what its block makes of them:
 ```perl
 use List::Util qw(sum0);
 
-my @batches = tracks(sub { $_->{title} }, batch(4));
+my @batches = tracks(
+    sub { $_->{title} },
+    batch(4),
+);
 say scalar @batches, ' batches, the last: ', "@{ $batches[-1] }";
 # 2 batches, the last: Country House Sunshine of Your Love
 
-my($total) = tracks(sub { $_->{plays} }, collect { sum0 @_ });
+my($total) = tracks(
+    sub { $_->{plays} },
+    collect { sum0 @_ },
+);
 say $total;    # 36800
 ```
 
@@ -902,8 +951,14 @@ my $logged = gather {
 };
 
 tracks($logged);
-tracks($logged, take(2));
-eval { tracks($logged, sub { die "No more\n" if $_->{artist} eq 'Cream'; $_ }) };
+tracks(
+    $logged,
+    take(2),
+);
+eval { tracks(
+    $logged,
+    sub { die "No more\n" if $_->{artist} eq 'Cream'; $_ },
+) };
 say for @log;
 # 6 tracks, done
 # 2 tracks, stopped
@@ -930,7 +985,11 @@ sub told ($name, $log) {
 }
 
 my @told;
-Ekorn::Pipeline->new(told('before', \@told), take(2), told('after', \@told))->(1 .. 5);
+Ekorn::Pipeline->new(
+    told('before', \@told),
+    take(2),
+    told('after', \@told),
+)->(1 .. 5);
 say "@told";    # before stopped after done
 ```
 
@@ -947,7 +1006,10 @@ or build, the stages each run gets:
 ```perl
 my $quiet = 1;
 my $voice = gather {
-    $quiet ? Ekorn::Pipeline->new(sub { lc }) : Ekorn::Pipeline->new(sub { uc }, sub { "$_!" });
+    $quiet ? Ekorn::Pipeline->new(sub { lc }) : Ekorn::Pipeline->new(
+        sub { uc },
+        sub { "$_!" },
+    );
 };
 
 my $p = Ekorn::Pipeline->new($voice);
@@ -965,7 +1027,11 @@ and does what the block does:
 
 ```perl
 my $title = stage { $_->{title} };
-say tracks($title, take(1));    # Dancing Queen
+say tracks(
+    $title,
+    take(1),
+);
+# Dancing Queen
 ```
 
 A plain sub works as well in a pipeline, so why bother? Two reasons.
@@ -1056,9 +1122,9 @@ close $out or die "Can't write $verses: $!\n";
     say scalar @paragraphs;    # 2
 }
 {
-    local $/;         # the whole file, as one record
+    local $/;    # the whole file, as one record
     my($all) = Ekorn::Pipeline->new->iterator(from_file($verses))->all;
-    say length $all;           # 57
+    say length $all;    # 57
 }
 ```
 
@@ -1227,9 +1293,23 @@ and `sink_many` make your own.
 `count_items`, `keep_first` and `keep_last` give one value each:
 
 ```perl
-say scalar tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items);    # 3
-say scalar tracks(sub { $_->{artist} }, keep_first);                         # Abba
-say scalar tracks(sub { $_->{artist} }, keep_last);                          # Cream
+say scalar tracks(
+    sub { $_->{artist} eq 'Blur' ? $_ : () },
+    count_items,
+);
+# 3
+
+say scalar tracks(
+    sub { $_->{artist} },
+    keep_first,
+);
+# Abba
+
+say scalar tracks(
+    sub { $_->{artist} },
+    keep_last,
+);
+# Cream
 ```
 
 `keep_first` and `keep_last` give `undef` when there were no values;
@@ -1242,11 +1322,20 @@ context, a list. Asked for one value, in scalar context, an array
 reference, so a list sink never gives you a mere count by accident:
 
 ```perl
-my @titles = tracks(sub { $_->{title} }, keep_all);
-my $titles = tracks(sub { $_->{title} }, keep_all);
+my @titles = tracks(
+    sub { $_->{title} },
+    keep_all,
+);
+my $titles = tracks(
+    sub { $_->{title} },
+    keep_all,
+);
 say scalar @titles, ' titles, and ', scalar @$titles, ' by reference';    # 6 titles, and 6 by reference
 
-my $two = tracks(sub { $_->{title} }, keep(2));
+my $two = tracks(
+    sub { $_->{title} },
+    keep(2),
+);
 say join ', ', @$two;    # Dancing Queen, Knowing Me, Knowing You
 ```
 
@@ -1260,7 +1349,11 @@ one. If there's a second, it warns, stops the run, and gives the
 first:
 
 ```perl
-say scalar tracks(sub { $_->{artist} eq 'Cream' ? $_->{title} : () }, keep_single);    # Sunshine of Your Love
+say scalar tracks(
+    sub { $_->{artist} eq 'Cream' ? $_->{title} : () },
+    keep_single,
+);
+# Sunshine of Your Love
 ```
 
 Asked for "the track by Blur", it would warn "Expected only one item,
@@ -1273,8 +1366,10 @@ they need, so a source is read no further:
 
 ```perl
 my $read  = 0;
-my $first = Ekorn::Pipeline->new(sub { $_->{plays} > 6000 ? $_ : () }, keep_first)
-    ->iterator(sub { $read < @tracks ? $tracks[$read++] : () })->();
+my $first = Ekorn::Pipeline->new(
+    sub { $_->{plays} > 6000 ? $_ : () },
+    keep_first,
+)->iterator(sub { $read < @tracks ? $tracks[$read++] : () })->();
 say "$first->{title}, after reading $read";    # Dancing Queen, after reading 1
 ```
 
@@ -1291,7 +1386,10 @@ you opened, and leaves it open:
 
 ```perl
 my $hits = "$dir/hits.txt";
-my $n    = tracks(sub { $_->{plays} >= 6000 ? $_->{title} : () }, to_file($hits));
+my $n    = tracks(
+    sub { $_->{plays} >= 6000 ? $_->{title} : () },
+    to_file($hits),
+);
 say "$n written";    # 3 written
 
 open my $fh, '>', \my $text or die "Can't write the text: $!\n";
@@ -1322,7 +1420,11 @@ my $longest = sink_one {
         flush => sub ()       { $max },
     };
 };
-say scalar tracks(sub { $_->{title} }, $longest);    # Knowing Me, Knowing You
+say scalar tracks(
+    sub { $_->{title} },
+    $longest,
+);
+# Knowing Me, Knowing You
 
 my $artists = sink_many {
     my %seen;
@@ -1363,8 +1465,16 @@ sub save_to ($path) {
 }
 
 my $titles = "$dir/titles.txt";
-say scalar tracks(sub { $_->{title} }, save_to($titles));    # 6
-eval { tracks(sub { die "Not today\n" if $_->{artist} eq 'Cream'; $_->{title} }, save_to($titles)) };
+say scalar tracks(
+    sub { $_->{title} },
+    save_to($titles),
+);
+# 6
+
+eval { tracks(
+    sub { die "Not today\n" if $_->{artist} eq 'Cream'; $_->{title} },
+    save_to($titles),
+) };
 say scalar Ekorn::Pipeline->new(count_items)->iterator(from_file($titles))->();    # 6
 ```
 
@@ -1379,7 +1489,12 @@ A sink needn't be last. Anywhere else, its result goes on through the
 stages after it, as any value does:
 
 ```perl
-say tracks(sub { $_->{artist} eq 'Blur' ? $_ : () }, count_items, sub { "$_ by Blur" });    # 3 by Blur
+say tracks(
+    sub { $_->{artist} eq 'Blur' ? $_ : () },
+    count_items,
+    sub { "$_ by Blur" },
+);
+# 3 by Blur
 ```
 
 ### Use the stage that matches a sink
@@ -1435,9 +1550,15 @@ where it stands, and run as part of the new pipeline, just as if you'd
 written them out:
 
 ```perl
-my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+my $clean = Ekorn::Pipeline->new(
+    sub { s( \A \s+ | \s+ \z )()xgr },
+    sub { length ? $_ : () },
+);
 
-my @titles = Ekorn::Pipeline->new($clean, take(2))->('  Parklife ', '   ', 'Tender', 'Waterloo');
+my @titles = Ekorn::Pipeline->new(
+    $clean,
+    take(2),
+)->('  Parklife ', '   ', 'Tender', 'Waterloo');
 say join '|', @titles;    # Parklife|Tender
 ```
 
@@ -1450,7 +1571,10 @@ run, and a `gather` among them starts afresh with it.
 won't take a pipeline, or for when you want to add to them:
 
 ```perl
-my $clean = Ekorn::Pipeline->new(sub { s( \A \s+ | \s+ \z )()xgr }, sub { length ? $_ : () });
+my $clean = Ekorn::Pipeline->new(
+    sub { s( \A \s+ | \s+ \z )()xgr },
+    sub { length ? $_ : () },
+);
 my @more  = ($clean->stages, sub { uc });
 say join '|', Ekorn::Pipeline->new(@more)->(' tender ', ' ');    # TENDER
 say scalar $clean->stages;                                       # 2
@@ -1463,11 +1587,20 @@ own, for that one value. The difference shows with a stage that stops,
 or keeps state:
 
 ```perl
-my $two_words = Ekorn::Pipeline->new(sub { split ' ' }, take(2));
+my $two_words = Ekorn::Pipeline->new(
+    sub { split ' ' },
+    take(2),
+);
 
-my @spliced  = tracks(sub { $_->{title} }, $two_words);
-my @separate = tracks(sub { $_->{title} }, sub { join ' ', $two_words->($_) });
-say "@spliced";                  # Dancing Queen
+my @spliced  = tracks(
+    sub { $_->{title} },
+    $two_words,
+);
+my @separate = tracks(
+    sub { $_->{title} },
+    sub { join ' ', $two_words->($_) },
+);
+say "@spliced";    # Dancing Queen
 say join ' / ', @separate[0, 1];    # Dancing Queen / Knowing Me,
 ```
 
@@ -1485,7 +1618,12 @@ sub by       ($artist) { sub { $_->{artist} eq $artist ? $_ : () } }
 sub value_of ($field)  { sub { $_->{$field} } }
 sub at_least ($plays)  { sub { $_->{plays} >= $plays ? $_ : () } }
 
-say join ', ', tracks(by('Blur'), at_least(5000), value_of('title'));    # Girls & Boys, Parklife
+say join ', ', tracks(
+    by('Blur'),
+    at_least(5000),
+    value_of('title'),
+);
+# Girls & Boys, Parklife
 ```
 
 The same words work with every function that takes stages, whoever
@@ -1500,9 +1638,16 @@ the pipeline it names. A named pipeline can be made from other names:
 ```perl
 Ekorn::Pipeline->named(hit   => at_least(6000));
 Ekorn::Pipeline->named(title => value_of('title'));
-Ekorn::Pipeline->named(hit_titles => 'hit', 'title');
+Ekorn::Pipeline->named(hit_titles =>
+    'hit',
+    'title',
+);
 
-say join ', ', tracks(pipeline('hit_titles', take(2)));    # Dancing Queen, Girls & Boys
+say join ', ', tracks(pipeline(
+    'hit_titles',
+    take(2),
+));
+# Dancing Queen, Girls & Boys
 ```
 
 This uses `at_least` and `value_of`, from the recipe before. To name a
@@ -1554,8 +1699,16 @@ use Ekorn::Pipeline::Operators;
 
 my $blur = stage { $_->{artist} eq 'Blur' ? $_ : () };
 
-say from_array(@tracks) | $blur | count_items;                                    # 3
-say from_array(@tracks) | $blur | stage { $_->{title} } | keep_first;             # Girls & Boys
+my $count = from_array(@tracks)
+    | $blur
+    | count_items;
+say $count;    # 3
+
+my $first = from_array(@tracks)
+    | $blur
+    | stage { $_->{title} }
+    | keep_first;
+say $first;    # Girls & Boys
 ```
 
 ### Get a list from a chain
@@ -1567,11 +1720,18 @@ list:
 ```perl
 use Ekorn::Pipeline::Operators;
 
-my $titles = from_array(@tracks) | stage { $_->{title} } | take(2) | keep_all;
+my $titles = from_array(@tracks)
+    | stage { $_->{title} }
+    | take(2)
+    | keep_all;
 say join ', ', @$titles;    # Dancing Queen, Knowing Me, Knowing You
 
-my @titles = @{ from_array(@tracks) | stage { $_->{title} } | keep_all };
-say scalar @titles;         # 6
+my @titles = @{
+    from_array(@tracks)
+        | stage { $_->{title} }
+        | keep_all
+};
+say scalar @titles;    # 6
 ```
 
 `my @titles = ... | keep_all`, without the `@{ }`, gets one element:
@@ -1607,10 +1767,14 @@ and use anywhere a pipeline goes. `|=` adds a stage to one:
 ```perl
 use Ekorn::Pipeline::Operators;
 
-my $steps = stage { $_->{title} } | stage { uc };
+my $steps = stage { $_->{title} }
+    | stage { uc };
 $steps |= take(2);
-say join ', ', tracks($steps);                                 # DANCING QUEEN, KNOWING ME, KNOWING YOU
-say join ', ', @{ from_array(@tracks) | $steps | keep_all };    # DANCING QUEEN, KNOWING ME, KNOWING YOU
+say join ', ', tracks($steps);    # DANCING QUEEN, KNOWING ME, KNOWING YOU
+my $titles = from_array(@tracks)
+    | $steps
+    | keep_all;
+say join ', ', @$titles;    # DANCING QUEEN, KNOWING ME, KNOWING YOU
 ```
 
 ### Read a source through with `@{}`
@@ -1681,8 +1845,14 @@ sub tracks_by ($artist, @stages) {
     return Ekorn::Pipeline->new(@stages)->(@by);
 }
 
-say join ', ', tracks_by('Blur', sub { $_->{title} }, take(2));    # Girls & Boys, Parklife
-say scalar tracks_by('Abba');                                       # 2
+say join ', ', tracks_by(
+    'Blur',
+    sub { $_->{title} },
+    take(2),
+);
+# Girls & Boys, Parklife
+
+say scalar tracks_by('Abba');    # 2
 ```
 
 A caller who wants nothing done gives no stages, and gets the values
@@ -1711,15 +1881,19 @@ sub hits_by_stage (@stages) {
 }
 
 my @a = hits_by_option(min_plays => 6000, titles => 1, limit => 2);
-my @b = hits_by_stage(at_least(6000), value_of('title'), take(2));
+my @b = hits_by_stage(
+    at_least(6000),
+    value_of('title'),
+    take(2),
+);
 say "@a" eq "@b" ? 'the same' : 'different';    # the same
 ```
 
-This uses `at_least` and `value_of`, from
-[Build a vocabulary of stages](#build-a-vocabulary-of-stages). The
-second function does everything the first does, and everything it
-doesn't, without a line more; its stages run in the order the caller
-wrote them, so there's no question to answer about order.
+This uses `at_least` and `value_of`, from [Build a vocabulary of
+stages](#build-a-vocabulary-of-stages). The second function does
+everything the first does, and everything it doesn't, without a line
+more; its stages run in the order the caller wrote them, so there's no
+question to answer about order.
 
 The catch, to be fair: options are easier to discover, as a list in
 the documentation, and a caller of `hits_by_stage` has to know what a
@@ -1746,7 +1920,11 @@ sub log_lines ($file, @stages) {
     return Ekorn::Pipeline->new(@stages)->iterator(from_file($file));
 }
 
-my $first_error = log_lines($log, sub { m( \A ERROR \  (.*) )x ? $1 : () }, take(1));
+my $first_error = log_lines(
+    $log,
+    sub { m( \A ERROR \  (.*) )x ? $1 : () },
+    take(1),
+);
 say $first_error->all;    # disk full
 ```
 
@@ -1824,7 +2002,11 @@ sub call_all (@callbacks) {
 }
 
 my @plays = map { my $track = $_; sub { $track->{plays} } } @tracks;
-say join ', ', call_all(@plays, pipeline(sub { $_ > 6000 ? $_ : () }, take(2)));    # 9100, 6100
+say join ', ', call_all(@plays, pipeline(
+    sub { $_ > 6000 ? $_ : () },
+    take(2),
+));
+# 9100, 6100
 ```
 
 ### Report errors at your caller's line
@@ -1865,7 +2047,10 @@ package Playlist {
 }
 
 my $list    = Playlist->new(@tracks[0 .. 2]);
-my @artists = $list->pipe(sub { $_->tracks }, sub { $_->{artist} });
+my @artists = $list->pipe(
+    sub { $_->tracks },
+    sub { $_->{artist} },
+);
 say "@artists";    # Abba Abba Blur
 
 say $list->tap(sub { warn "a long list\n" if $_->size > 10; $_ })->size;    # 3
@@ -2004,7 +2189,13 @@ package My::Queue {
 }
 
 my $queue = My::Queue->new('Waterloo');
-say scalar tracks(sub { $_->{title} }, take(2), $queue);    # 2
+say scalar tracks(
+    sub { $_->{title} },
+    take(2),
+    $queue,
+);
+# 2
+
 say join ', ', Ekorn::Pipeline->new(sub { uc })->iterator($queue)->all;
 # WATERLOO, DANCING QUEEN, KNOWING ME, KNOWING YOU
 ```
@@ -2042,7 +2233,11 @@ package My::Chained::Queue {
 use Ekorn::Pipeline::Operators;
 
 my $queue = My::Chained::Queue->new(qw(one two three));
-say join ' ', @{ $queue | stage { uc } | take(2) | keep_all };    # ONE TWO
+my $words = $queue
+    | stage { uc }
+    | take(2)
+    | keep_all;
+say join ' ', @$words;    # ONE TWO
 ```
 
 This uses `My::Queue`, from the recipe before.
@@ -2116,7 +2311,10 @@ A stage that dies is named by its place in the pipeline, with its own
 message below, indented:
 
 ```perl
-eval { tracks(sub { $_->{title} }, sub { die "No more Blur\n" if m( Boys )x; $_ }) };
+eval { tracks(
+    sub { $_->{title} },
+    sub { die "No more Blur\n" if m( Boys )x; $_ },
+) };
 print $@ =~ s( \ at \ \S+ \ line \ \d+ )( at ... line ...)xr;
 # Pipeline stage #2 failed at ... line ...:
 #     No more Blur
@@ -2135,14 +2333,23 @@ a pipeline with a name is named too, which is easier to find than a
 number:
 
 ```perl
-my $no_blur = Ekorn::Pipeline->new(sub { $_->{title} }, sub { die "No more Blur\n" if m( Boys )x; $_ });
-eval { tracks(sub { $_ }, $no_blur) };
+my $no_blur = Ekorn::Pipeline->new(
+    sub { $_->{title} },
+    sub { die "No more Blur\n" if m( Boys )x; $_ },
+);
+eval { tracks(
+    sub { $_ },
+    $no_blur,
+) };
 print $@ =~ s( \ at \ \S+ \ line \ \d+ )( at ... line ...)xr;
 # Pipeline stage #2.2 failed at ... line ...:
 #     No more Blur
 
 $no_blur->named('no_blur');
-eval { tracks(sub { $_ }, $no_blur) };
+eval { tracks(
+    sub { $_ },
+    $no_blur,
+) };
 print $@ =~ s( \ at \ \S+ \ line \ \d+ )( at ... line ...)xr;
 # Pipeline stage #2.2 (main::no_blur#2) failed at ... line ...:
 #     No more Blur
@@ -2205,7 +2412,11 @@ you can put it anywhere without changing what happens:
 
 ```perl
 my @log;
-my @titles = tracks(peek { push @log, $_->{artist} }, sub { $_->{title} }, take(2));
+my @titles = tracks(
+    peek { push @log, $_->{artist} },
+    sub { $_->{title} },
+    take(2),
+);
 say "@log";    # Abba Abba
 ```
 
@@ -2218,12 +2429,16 @@ say "@log";    # Abba Abba
 
 ```perl
 my($read, $kept);
-tracks(count_into(\$read), at_least(6000), count_into(\$kept));
+tracks(
+    count_into(\$read),
+    at_least(6000),
+    count_into(\$kept),
+);
 say "$kept of $read";    # 3 of 6
 ```
 
-This uses `at_least`, from
-[Build a vocabulary of stages](#build-a-vocabulary-of-stages).
+This uses `at_least`, from [Build a vocabulary of
+stages](#build-a-vocabulary-of-stages).
 
 ### Dump values while debugging
 
@@ -2232,7 +2447,10 @@ keys sorted, to a filehandle, or to STDERR if you give it none:
 
 ```perl
 open my $out, '>', \my $dumped or die "Can't write the dump: $!\n";
-tracks(take(1), dump_to($out));
+tracks(
+    take(1),
+    dump_to($out),
+);
 print $dumped;
 # {
 #   'artist' => 'Abba',
