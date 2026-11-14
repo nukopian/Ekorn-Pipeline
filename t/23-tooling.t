@@ -19,6 +19,7 @@ my %module = (
     taps    => ['Ekorn::Pipeline::Stages::Taps'],
     sources => ['Ekorn::Pipeline::Sources'],
     sinks   => ['Ekorn::Pipeline::Sinks'],
+    json    => ['Ekorn::Pipeline::JSON'],
     words   => ['Ekorn::Pipeline::Factories'],
 );
 

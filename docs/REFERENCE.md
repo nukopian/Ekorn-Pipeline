@@ -40,6 +40,7 @@ says what each release changed.
 - [Canned stages](#canned-stages)
 - [Sources: Ekorn::Pipeline::Sources](#sources-ekornpipelinesources)
 - [Sinks: Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks)
+- [JSON: Ekorn::Pipeline::JSON](#json-ekornpipelinejson)
 - [Operators: Ekorn::Pipeline::Operators](#operators-ekornpipelineoperators)
 - [Errors: Ekorn::Pipeline::Errors](#errors-ekornpipelineerrors)
 - [Writing stages](#writing-stages)
@@ -109,6 +110,7 @@ place, by tags that follow the modules that make it:
 | `:stages` | `:flow`, `:batch` and `:taps` | |
 | `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
 | `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
+| `:json` | `from_json`, `to_json` | [JSON](#json-ekornpipelinejson) |
 | `:words` | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | [Factories](#words-ekornpipelinefactories) |
 | `:all` | all of the above | |
 
@@ -1845,6 +1847,95 @@ write %s: %s" if it can't, as both do if they can't write, and
 `to_file` if it can't close the file. Each sink taking no arguments has
 an empty prototype, so `count_items + 0` reads as `count_items() + 0`.
 
+## JSON: Ekorn::Pipeline::JSON
+
+```perl
+use Ekorn::Pipeline::JSON qw(from_json to_json);
+use Ekorn::Pipeline::Tooling qw(:json);    # the same
+```
+
+Two functions, each making a different part by its options: given a
+`file` or an `fh`, `from_json` makes a source and `to_json` a sink;
+given neither, each makes a stage. Each part is made afresh for each
+run. Nothing is exported by default. Both are new in v0.3.0.
+
+| Made by | Is | Reads or writes |
+|---|---|---|
+| `from_json(file => $path)`, `from_json(fh => $fh)` | a source | the documents in the input, worked out as below |
+| `from_json()` | a stage | each value a JSON text, passing on each document in it |
+| `to_json(file => $path)`, `to_json(fh => $fh)` | a sink, giving how many | each value, encoded, as JSON Lines or one array |
+| `to_json()` | a stage | each value, encoded, as a file of its type would hold it |
+
+The encoder is JSON::MaybeXS's: Cpanel::JSON::XS where it's installed,
+JSON::PP otherwise. Text is UTF-8 bytes, as `encode_json` and
+`decode_json` have it, and files are opened `:raw`.
+
+**Reading works out what it's reading.** The input is read as one
+document after another, which covers JSON Lines, also called NDJSON,
+documents simply written one after another, and one document alone. If
+it holds exactly one document, and that's an array, its elements are
+the values; otherwise each document is one:
+
+| The input holds | The values |
+|---|---|
+| `[{"a":1},{"a":2}]` | `{a => 1}`, `{a => 2}` |
+| `{"a":1}` | `{a => 1}` |
+| `{"a":1}`, `{"a":2}` and `[3,4]`, a line each | `{a => 1}`, `{a => 2}`, `[3, 4]` |
+| nothing, or only whitespace | none |
+
+An array alone is read whole before its first element is given, as
+whether it's alone can't be known until the input ends; otherwise the
+input is read a block at a time, and only as values are pulled. A file
+named `*.jsonl` or `*.ndjson` is read as JSON Lines, each document a
+value, even an array alone.
+
+**Writing chooses by the file's name.** A file named `*.jsonl` or
+`*.ndjson`, or a filehandle, gets JSON Lines, a value a line; any other
+file one array of the values, written as they come, so a file named
+`.json` holds valid JSON. An encoder that indents has each value
+indented in the array, and can't write JSON Lines.
+
+**As stages,** each passes on what a file would hold. `from_json()`
+gives each document in each text: the one, usually, or each line's,
+from a text of JSON Lines; an array is one value. `to_json()` gives
+each value as one line of text, without its newline, ready for
+`to_file`. So the two undo each other:
+
+```perl
+my @lines = Ekorn::Pipeline->new(to_json(json => {canonical => 1}))->({b => 1, a => 2}, [3]);
+say for @lines;    # {"a":2,"b":1} then [3]
+my @back  = Ekorn::Pipeline->new(from_json())->(@lines);    # {b => 1, a => 2}, [3]
+```
+
+| Option | Is |
+|---|---|
+| `file` | the path of a file to read or write; opened as the run starts, and closed once it ends, however it ended |
+| `fh` | an open filehandle, which is left open; `:raw`, as the text is bytes |
+| `type` | `json`, one document; `jsonl` or `ndjson`, which are the same, JSON Lines. Over a file's name, or each part's default |
+| `json` | a hash reference of options for `JSON::MaybeXS->new`, over the defaults `utf8` and `allow_nonref`, such as `{canonical => 1}`; or an encoder object of your own, used as it is |
+
+`type` says how to read or write, over a file's name:
+
+- `from_json(type => 'json')`: the input, or each text, is one
+  document, an array giving its elements; more than one croaks.
+- `from_json(type => 'jsonl')`: each document is a value, as it is.
+- `to_json(type => 'json')`: a sink writes one array; a stage gathers
+  every value, and passes on one text, an array, once they've all come.
+- `to_json(type => 'jsonl')`: a value a line.
+
+```perl
+my $count = Ekorn::Pipeline->new(
+    sub { {title => $_->{title}} },
+    to_json(file => 'titles.json'),
+)->(@tracks);    # 6, written as one array
+my @titles = Ekorn::Pipeline->new(sub { $_->{title} })->iterator(from_json(file => 'titles.json'))->all;
+```
+
+An encoder object reading a source has its incremental parser reset
+for each run, so mustn't read two at once. JSON.pm exports a
+`from_json` and a `to_json` of its own by default: a module using both
+imports one under another name, or calls it by its full name.
+
 ## Operators: Ekorn::Pipeline::Operators
 
 ```perl
@@ -2692,6 +2783,35 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
   `to_file` couldn't open or close its file; the second part says why.
   The first is the file's path, or "the filehandle".
 
+### Ekorn::Pipeline::JSON
+
+- **Expected options as name => value pairs:** `from_json` or
+  `to_json` was given an odd number of arguments.
+- **Expected the options file, fh, type and json, not %s:** an option
+  it doesn't know, named after "not".
+- **Expected a file or a filehandle, not both:** it was given both
+  `file` and `fh`.
+- **Expected an open filehandle:** `fh` was something else.
+- **Expected a type of json, jsonl or ndjson, not %s:** `type` was
+  something else.
+- **Expected json to be a hash reference of options, or an encoder
+  object:** `json` was something else.
+- **Expected json options the encoder knows: %s:** `json`'s options
+  included one the encoder doesn't have; the rest is the encoder's
+  message.
+- **Expected an encoder that doesn't indent, to write JSON Lines:**
+  `to_json` was asked for JSON Lines, by its type or the file's name,
+  with an encoder that indents.
+- **Can't decode JSON from %s: %s:** what was read wasn't JSON; the
+  first part is the file's path, "the filehandle", or "a value", for a
+  stage, and the second the decoder's reason, "it ends inside a
+  document" if it ended part way through one, or "it holds more than
+  one document, and its type is json".
+- **Can't encode a value as JSON: %s:** a value couldn't be encoded,
+  such as an object, by default.
+- **Can't read %s: %s** and **Can't write %s: %s:** a file couldn't be
+  opened, read, written or closed, or a filehandle read or written.
+
 ### Ekorn::Pipeline::Sources
 
 - **Expected an open filehandle:** `from_fh` was given something other
@@ -2758,11 +2878,12 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 | Module | By default | On request | Tags |
 |---|---|---|---|
 | `Ekorn::Pipeline` | nothing | `is_stage`, `is_sink` | |
-| `Ekorn::Pipeline::Tooling` | nothing | every name below but `is_stage`, `is_sink`, `chain`, `drain` and `croakf` | `:core`, `:flow`, `:batch`, `:taps`, `:stages`, `:sources`, `:sinks`, `:words`, `:all` |
+| `Ekorn::Pipeline::Tooling` | nothing | every name below but `is_stage`, `is_sink`, `chain`, `drain` and `croakf` | `:core`, `:flow`, `:batch`, `:taps`, `:stages`, `:sources`, `:sinks`, `:json`, `:words`, `:all` |
 | `Ekorn::Pipeline::Factories` | nothing | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | `:all` |
 | `Ekorn::Pipeline::Sources` | nothing | `from_array`, `from_fh`, `from_file`, `counter` | `:all` |
 | `Ekorn::Pipeline::Operators` | nothing: loading it puts the operators in force | `chain` and `drain`, by their full names, for your own overloads | |
 | `Ekorn::Pipeline::Sinks` | nothing | `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file` | `:all` |
+| `Ekorn::Pipeline::JSON` | nothing | `from_json`, `to_json` | `:all` |
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
@@ -2784,6 +2905,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Operators` | `\|`, `\|=` and `@{}` for Ekorn's types, in force lexically: `chain` and `drain`. |
 | `Ekorn::Pipeline::Sinks` | Ready-made sinks: `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file`. |
 | `Ekorn::Pipeline::Sources` | Ready-made sources: `from_array`, `from_fh`, `from_file`, `counter`. |
+| `Ekorn::Pipeline::JSON` | Reads and writes JSON, as a source, a stage or a sink: `from_json`, `to_json`. |
 | `Ekorn::Pipeline::Factories` | The words that make Ekorn's types: `pipeline`, `stage`, `gather`, `source`, `generator` and `yield`, `sink_one`, `sink_many`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |
 | `Ekorn::Pipeline::Gather` | Makes a stage afresh for each run, with a flush called when its values run out, and an end: `gather`. |

@@ -80,8 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
-- [Ekorn::Pipeline::JSON](2026-0034-json.md), roadmap 2026-0034: in
-  progress.
+- [Ekorn::Pipeline::JSON](2026-0034-json.md), roadmap 2026-0034:
+  shipped, unreleased.
 - [One try for each pulled value](2026-0033-one-try.md), roadmap
   2026-0033: open, an idea.
 - [Faster pulled runs](2026-0032-faster-pulled-runs.md), roadmap

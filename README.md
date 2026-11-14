@@ -539,7 +539,8 @@ as a stage that's neither a code reference nor a pipeline, or
 
 - [Ekorn::Pipeline::Tooling](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ATooling): everything below but the
 operators, from one module, by tags: `:core`, `:flow`, `:batch`,
-`:taps`, `:stages`, `:sources`, `:sinks`, `:words` and `:all`.
+`:taps`, `:stages`, `:sources`, `:sinks`, `:json`, `:words` and
+`:all`.
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
 `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`,
 `take_while` and `drop_while`, which pass values on by their position
@@ -551,6 +552,12 @@ which gather values and pass them on together.
 counting and debugging.
 - [Ekorn::Pipeline::Sources](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASources) and [Ekorn::Pipeline::Sinks](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASinks):
 the sources and sinks above.
+- [Ekorn::Pipeline::JSON](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AJSON): `from_json` and `to_json`, which
+read and write JSON, as a source or a sink given a file or a
+filehandle, and as stages given neither. Reading works out whether it
+has JSON Lines, one array or one document; writing chooses JSON Lines
+or one array by the file's name. The how-to walks through how a module
+like it is put together.
 - [Ekorn::Pipeline::Factories](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AFactories): the words that make Ekorn's
 types, `pipeline`, `stage`, `gather`, `source`, `generator` and
 `yield`, `sink_one` and `sink_many`.

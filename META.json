@@ -60,6 +60,7 @@
             "Carp" : "0",
             "Data::Dumper" : "0",
             "Exporter" : "0",
+            "JSON::MaybeXS" : "0",
             "Ref::Util" : "0",
             "Scalar::Util" : "0",
             "experimental" : "0",

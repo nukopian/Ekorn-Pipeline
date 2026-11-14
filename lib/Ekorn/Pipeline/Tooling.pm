@@ -15,6 +15,7 @@ use Ekorn::Pipeline::Stages::Taps  qw(:all);
 use Ekorn::Pipeline::Sources       qw(:all);
 use Ekorn::Pipeline::Sinks         qw(:all);
 use Ekorn::Pipeline::Factories     qw(:all);
+use Ekorn::Pipeline::JSON          qw(:all);
 
 our %EXPORT_TAGS = (
     core => [qw(Stop gather)],
@@ -29,6 +30,7 @@ our %EXPORT_TAGS = (
         qw(count_items keep keep_all keep_first keep_last keep_single),
         qw(to_fh to_file),
     ],
+    json  => [qw(from_json to_json)],
     words => [
         qw(pipeline stage gather source generator yield),
         qw(sink_one sink_many),
@@ -40,7 +42,7 @@ $EXPORT_TAGS{stages} = [map { @{ $EXPORT_TAGS{$_} } } qw(flow batch taps)];
 our @EXPORT_OK = do {
     my %seen;
     grep { !$seen{$_}++ }
-        map { @{ $EXPORT_TAGS{$_} } } qw(core stages sources sinks words);
+        map { @{ $EXPORT_TAGS{$_} } } qw(core stages sources sinks json words);
 };
 $EXPORT_TAGS{all} = [@EXPORT_OK];
 
@@ -72,7 +74,8 @@ Ekorn::Pipeline::Tooling - Ekorn's stages, sources, sinks and words, from one mo
 What a caller uses to do work with Ekorn::Pipeline is made in several
 modules: stages in Ekorn::Pipeline::Stages::Flow, Batch and Taps,
 sources in Ekorn::Pipeline::Sources, sinks in Ekorn::Pipeline::Sinks,
-the words in Ekorn::Pipeline::Factories, and C<Stop> and C<gather> in
+JSON's source, sink and stages in Ekorn::Pipeline::JSON, the words in
+Ekorn::Pipeline::Factories, and C<Stop> and C<gather> in
 modules of their own. This module exports all of them, by the tags
 below, so there's one module to import from, and nothing to remember
 about which module makes which.
@@ -130,6 +133,12 @@ C<from_fh>, C<from_file> and C<counter>.
 Everything L<Ekorn::Pipeline::Sinks> exports: C<count_items>,
 C<keep>, C<keep_all>, C<keep_first>, C<keep_last>, C<keep_single>,
 C<to_fh> and C<to_file>.
+
+=item C<:json>
+
+Everything L<Ekorn::Pipeline::JSON> exports: C<from_json> and
+C<to_json>. L<JSON> exports names of its own the same, by default, so
+a module using both imports C<:all> from only one of them.
 
 =item C<:words>
 

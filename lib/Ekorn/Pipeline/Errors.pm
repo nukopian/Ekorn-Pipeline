@@ -24,7 +24,7 @@ our @INTERNAL = qw(
     Ekorn::Pipeline::Sink::Many Ekorn::Pipeline::Sink::One
     Ekorn::Pipeline::Operators::Stages
     Ekorn::Pipeline::Source Ekorn::Pipeline::Sources
-    Ekorn::Pipeline::Stage
+    Ekorn::Pipeline::Stage  Ekorn::Pipeline::JSON
 );
 our @CARP_NOT = @INTERNAL;
 

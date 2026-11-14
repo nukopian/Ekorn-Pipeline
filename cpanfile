@@ -2,6 +2,7 @@ requires 'perl', '5.036';
 requires 'Carp';
 requires 'Data::Dumper';
 requires 'Exporter';
+requires 'JSON::MaybeXS';
 requires 'Ref::Util';
 requires 'Scalar::Util';
 requires 'experimental';

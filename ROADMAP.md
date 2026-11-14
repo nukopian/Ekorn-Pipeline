@@ -58,21 +58,6 @@ DBIx-Squirrel to move its range. It's v0.3.0, not v1.0.0, so the design
 can settle first; see its [record](docs/changes/2026-0025-release-v0-3-0.md).
 Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
 
-### 2026-0034. Ekorn::Pipeline::JSON
-
-**Size:** L (5)
-
-A module making `from_json` and `to_json`: each a source or a sink when
-given a file or a filehandle, and a stage otherwise. Reading works out
-whether its input is JSON Lines, documents one after another, or one
-array or object; writing chooses JSON Lines or one array by the file's
-extension, or a `type` option; and the encoder is JSON::MaybeXS, with
-options or an encoder of the caller's own. Why: JSON is how most values
-reach a program and leave it, and the module is the worked example of
-how a module of parts is put together, which the how-to walks through.
-Done when the module, its tests and its docs are in, with coverage
-above the floors; see its [record](docs/changes/2026-0034-json.md).
-
 ## Next
 
 ### 2026-0010. Named pipelines at compile time

@@ -566,7 +566,8 @@ C<take(-1)>, is also reported at the caller's line.
 
 =item * L<Ekorn::Pipeline::Tooling>: everything below but the
 operators, from one module, by tags: C<:core>, C<:flow>, C<:batch>,
-C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:words> and C<:all>.
+C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:json>, C<:words> and
+C<:all>.
 
 =item * L<Ekorn::Pipeline::Stages::Flow>: C<take>, C<drop>,
 C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<drop_if>,
@@ -582,6 +583,13 @@ counting and debugging.
 
 =item * L<Ekorn::Pipeline::Sources> and L<Ekorn::Pipeline::Sinks>:
 the sources and sinks above.
+
+=item * L<Ekorn::Pipeline::JSON>: C<from_json> and C<to_json>, which
+read and write JSON, as a source or a sink given a file or a
+filehandle, and as stages given neither. Reading works out whether it
+has JSON Lines, one array or one document; writing chooses JSON Lines
+or one array by the file's name. The how-to walks through how a module
+like it is put together.
 
 =item * L<Ekorn::Pipeline::Factories>: the words that make Ekorn's
 types, C<pipeline>, C<stage>, C<gather>, C<source>, C<generator> and
