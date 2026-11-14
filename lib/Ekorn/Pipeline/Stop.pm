@@ -2,7 +2,6 @@ use v5.36;
 
 package Ekorn::Pipeline::Stop;
 
-use Carp     qw(croak);
 use Exporter qw(import);
 
 use namespace::clean -except => 'import';
@@ -17,8 +16,15 @@ sub Stop (@data) {
 }
 
 # Throws an exception that stops a pipeline early.
+#
+# It's thrown with die, not croak, though croak is our rule for what we
+# pass on. Given an object, croak dies with it unchanged, adding no
+# location, so it gives catchers nothing die doesn't; but it does
+# Carp's work first, which made a stop about three times dearer: 1.4
+# microseconds against 0.42, as DBIx-Squirrel measured on 2026-11-14,
+# on Perl 5.36 and 5.44.
 sub throw ($class, @data) {
-    croak bless([$class, @data], $class);
+    die bless([$class, @data], $class);    ## no critic (ErrorHandling::RequireCarping)
 }
 
 1;

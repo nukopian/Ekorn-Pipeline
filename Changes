@@ -172,6 +172,10 @@ Unreleased
       rather than a call for each, about a tenth faster through one
       plain stage, and each pull copies less. Nothing else changes.
       (roadmap 2026-0032)
+    - Faster: a stop, thrown with die rather than Carp's croak, which
+      added nothing to it but cost, about three times cheaper, as
+      DBIx-Squirrel measured it. A catcher gets the same object as
+      before.
     - Changed: pipeline_in, and so the word pipeline, given one name
       and nothing else, returns the pipeline named itself, not a new
       pipeline holding it, if it's of the invocant's class or a

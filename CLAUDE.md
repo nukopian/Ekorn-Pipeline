@@ -300,7 +300,10 @@ what was Iain's.
   format and its arguments, as in
   `croakf 'Expected stage #%d to be a stage, not a source', $n`, so each
   message is one plain string, matching its DIAGNOSTICS entry. `croak`
-  is for what we pass on, such as an exception object or a stop. A `%`
+  is for what we pass on, such as an exception object or a stop. A new
+  stop is thrown with `die`, as Iain decided on 2026-11-14: given an
+  object, `croak` adds nothing, and tripled a stop's cost
+  (`Stop->throw`'s comment has the measurement). A `%`
   in a message of our own is written `%%`. A new module that croaks
   goes in `@Ekorn::Pipeline::Errors::INTERNAL`, and takes that list as
   its `@CARP_NOT`, so errors are reported at the caller's line.
