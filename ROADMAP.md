@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0032.
+Last id: 2026-0034.
 
 Items come in four groups:
 
@@ -47,7 +47,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
 2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029,
-2026-0031, 2026-0032
+2026-0031, 2026-0032, 2026-0034
 
 The design's release. `pipeline-experimental` merges to `develop` by a
 fast-forward, after a commit deleting `docs/design/`, which a tag,
@@ -57,6 +57,21 @@ whole, with what it turned up; and v0.3.0 is released, with a task for
 DBIx-Squirrel to move its range. It's v0.3.0, not v1.0.0, so the design
 can settle first; see its [record](docs/changes/2026-0025-release-v0-3-0.md).
 Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
+
+### 2026-0034. Ekorn::Pipeline::JSON
+
+**Size:** L (5)
+
+A module making `from_json` and `to_json`: each a source or a sink when
+given a file or a filehandle, and a stage otherwise. Reading works out
+whether its input is JSON Lines, documents one after another, or one
+array or object; writing chooses JSON Lines or one array by the file's
+extension, or a `type` option; and the encoder is JSON::MaybeXS, with
+options or an encoder of the caller's own. Why: JSON is how most values
+reach a program and leave it, and the module is the worked example of
+how a module of parts is put together, which the how-to walks through.
+Done when the module, its tests and its docs are in, with coverage
+above the floors; see its [record](docs/changes/2026-0034-json.md).
 
 ## Next
 
@@ -100,3 +115,14 @@ need with plain subs: not now, as Iain decided on 2026-11-12
 (2026-0022's D38). From DBIx-Squirrel's message, part 4.
 The message, whole:
 `git show 7cf473408d73add0eda3eae5ca3e0be6afaaf122:TODO.md`.
+
+### 2026-0033. One try for each pulled value
+
+**Added:** 2026-11-14. **Size:** S (2)
+
+Run a source's step in the same `try` as the stages, so each pulled
+value enters one, not two. Tried on 2026-11-14 for 2026-0025's D7: 1
+to 2% faster with stages and 6% slower with none, for a more intricate
+loop, so set aside until after v0.3.0. Its
+[record](docs/changes/2026-0033-one-try.md) has the measurements, and
+what might yet pay.
