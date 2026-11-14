@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0034.
+Last id: 2026-0035.
 
 Items come in four groups:
 
@@ -83,3 +83,15 @@ to 2% faster with stages and 6% slower with none, for a more intricate
 loop, so set aside until after v0.3.0. Its
 [record](docs/changes/2026-0033-one-try.md) has the measurements, and
 what might yet pay.
+
+### 2026-0035. Subs by name as stages
+
+**Added:** 2026-11-14. **Size:** S (2)
+
+Let `pipeline`, through `pipeline_in`, take a name that isn't a named
+pipeline as the sub of that name in the caller's package, so plain
+subs read as a path: `pipeline(trim => normalise => top5 =>)`. Named
+pipelines win, so nothing that works now changes; to settle: builtins
+such as `uc`, by `\&CORE::uc`, or not; looked up as the pipeline is
+made, as names are now, so a typo croaks at once; `new` left as it is;
+and the messages that say what a stage may be.
