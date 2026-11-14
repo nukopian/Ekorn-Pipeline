@@ -63,6 +63,7 @@
             "JSON::MaybeXS" : "0",
             "Ref::Util" : "0",
             "Scalar::Util" : "0",
+            "Sub::Util" : "0",
             "experimental" : "0",
             "namespace::clean" : "0",
             "perl" : "v5.36.0"

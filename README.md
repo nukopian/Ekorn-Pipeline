@@ -444,7 +444,16 @@ my @names = users(pipeline(
 
 A name belongs to the package that defined it, unless it's qualified,
 so two modules can each have their own. A stage that dies inside a
-named pipeline is reported with its name.
+named pipeline is reported with its name. [Ekorn::Pipeline::Sugar](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASugar)
+names pipelines as the program compiles, and gives your package a
+function of each name:
+
+```perl
+use Ekorn::Pipeline::Sugar pipeline => {
+    active_names => [only_active, value_of('name')],
+};
+my @names = active_names(@users);
+```
 
 ## Writing a function that takes stages
 
@@ -557,6 +566,8 @@ read and write one JSON document, and `from_jsonl` and `to_jsonl`,
 which read and write JSON Lines: each a source or a sink given a file
 or a filehandle, and a stage given neither. The how-to walks through
 how a module like it is put together.
+- [Ekorn::Pipeline::Sugar](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASugar): pipelines named as the program
+compiles, each with a function of its name.
 - [Ekorn::Pipeline::Factories](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AFactories): the words that make Ekorn's
 types, `pipeline`, `stage`, `gather`, `source`, `generator` and
 `yield`, `sink_one` and `sink_many`.

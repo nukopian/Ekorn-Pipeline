@@ -5,6 +5,7 @@ requires 'Exporter';
 requires 'JSON::MaybeXS';
 requires 'Ref::Util';
 requires 'Scalar::Util';
+requires 'Sub::Util';
 requires 'experimental';
 requires 'namespace::clean';
 

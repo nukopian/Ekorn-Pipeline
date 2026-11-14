@@ -1746,6 +1746,37 @@ even if a name is defined later. That's a deliberate trade: no
 surprises at run time, in return for a little care in setting names
 up.
 
+### Name pipelines as the program compiles
+
+Ekorn::Pipeline::Sugar names pipelines as the program compiles, and
+gives your package a function of each name, so a pipeline you use in
+several places is called like any other function:
+
+```perl
+use Ekorn::Pipeline::Sugar pipeline => {
+    song_titles => [sub { $_->{title} }],
+    first_two   => ['song_titles', take(2)],
+};
+
+say join ', ', first_two(@tracks);    # Dancing Queen, Knowing Me, Knowing You
+say scalar first_two(@tracks);        # 2
+say join ', ', first_two(@tracks, pipeline(sub { uc }));
+# DANCING QUEEN, KNOWING ME, KNOWING YOU
+```
+
+Each function runs its values through the pipeline, and returns what
+calling the pipeline would: a list, or, asked for one value, how many
+came out, or a sink's result. Give it a pipeline last, and it runs the
+values through that too, so callers can add stages of their own.
+
+A string names a pipeline, as in `pipeline`: one from the same `use`,
+in any order, or one defined before it. Each is named in your package,
+too, so `pipeline('first_two')->iterator($source)` pulls values
+through it. Give the definitions as an array of pairs, `[...]`, to
+read them in the order you wrote them. A mistake, such as a name
+already taken, or two pipelines that name each other, stops the
+program as it compiles, at the `use` line.
+
 ## 8. Chaining with |
 
 With Ekorn::Pipeline::Operators in scope, sources, stages and sinks

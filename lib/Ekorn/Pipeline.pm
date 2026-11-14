@@ -1521,7 +1521,8 @@ stage dies.
 =head1 SEE ALSO
 
 L<Ekorn::Pipeline::Tooling>, to import everything from one place;
-L<Ekorn::Pipeline::Factories>, the words; L<Ekorn::Pipeline::Gather>,
+L<Ekorn::Pipeline::Factories>, the words; L<Ekorn::Pipeline::Sugar>,
+pipelines named as the program compiles; L<Ekorn::Pipeline::Gather>,
 L<Ekorn::Pipeline::Stop>, L<Ekorn::Pipeline::Source>,
 L<Ekorn::Pipeline::Sink> and L<Ekorn::Pipeline::Iterator>, the types;
 L<Ekorn::Pipeline::Stages::Flow>, L<Ekorn::Pipeline::Stages::Batch>,

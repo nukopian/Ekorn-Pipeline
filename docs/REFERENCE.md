@@ -32,6 +32,7 @@ says what each release changed.
 - [Terms](#terms)
 - [Pipelines: Ekorn::Pipeline](#pipelines-ekornpipeline)
 - [Words: Ekorn::Pipeline::Factories](#words-ekornpipelinefactories)
+- [Named at compile time: Ekorn::Pipeline::Sugar](#named-at-compile-time-ekornpipelinesugar)
 - [How values go through stages](#how-values-go-through-stages)
 - [Runs and how they end](#runs-and-how-they-end)
 - [Stopping a pipeline: Ekorn::Pipeline::Stop](#stopping-a-pipeline-ekornpipelinestop)
@@ -767,6 +768,52 @@ my $longest = sink_one {
 
 say Ekorn::Pipeline->new($longest)->(qw(a bbb cc));    # bbb
 ```
+
+## Named at compile time: Ekorn::Pipeline::Sugar
+
+```perl
+use Ekorn::Pipeline::Sugar pipeline => {
+    titles => [sub { $_->{title} }],
+    top    => ['titles', take(3)],
+};
+
+my @top  = top(@tracks);                         # the first three titles
+my @loud = top(@tracks, pipeline(sub { uc }));    # and more stages
+my $next = pipeline('top')->iterator($source);    # pulled
+```
+
+`use Ekorn::Pipeline::Sugar` takes `pipeline` and the definitions after
+it, each a name and an array of stages: a hash, `{...}`, or an array of
+pairs, `[...]`, to read in order. Each pipeline is named in the package
+that uses the module, as `named` names one, so `pipeline('name')` finds
+it, and the package gets a function of each name. New in v0.3.0.
+
+- **The function** runs the values it's given through the pipeline, and
+  returns what comes out, in the caller's context, as calling the
+  pipeline does: a list in list context; in scalar context, a sink's
+  result, or how many came out. Given a pipeline last, it runs them
+  through that too, after its own. Only a pipeline last is taken for
+  stages; any other value, a code reference included, is a value.
+- **A string where a stage goes names a pipeline,** as in `pipeline`
+  and `named`: one from the same `use`, or one defined before it. A
+  definition can name any other in the same `use`, in either order:
+  each is defined once those it names are.
+- **A name** is a word, of letters, digits and underscores, not starting
+  with a digit, as a function's must be.
+- **Mistakes croak as the `use` compiles,** at its line: a name that
+  can't be a function's, one given twice, one the package has a
+  function of already, its own or one it inherits, one a pipeline has
+  already, a definition that isn't an array, pipelines that name each
+  other in a circle, and a name defined nowhere. A pipeline's stages
+  are checked as `pipeline` checks them.
+- **`import_into`,** `Ekorn::Pipeline::Sugar->import_into($package,
+  pipeline => {...})`, does what `use` does, for the package given in
+  place of its caller: for a module whose own sugar takes pipelines and
+  hands them on, so they're named in, and given to, the package using
+  that module.
+
+A sub covers what it doesn't: a pipeline that makes its own values
+is `sub recent (@stages) { pipeline('top', @stages)->(load_recent()) }`.
 
 ## How values go through stages
 
@@ -2733,6 +2780,30 @@ stage. Within a named pipeline, the innermost one's name and the
 stage's position there follow, as `#1.2 (main::clean#2)` (see
 [When a stage dies](#when-a-stage-dies)).
 
+### Ekorn::Pipeline::Sugar
+
+- **Expected pipeline, not %s:** `use` was given something other than
+  `pipeline` and its definitions.
+- **Expected the pipelines after pipeline in a HASH or an ARRAY of
+  pairs:** `pipeline` was followed by something else.
+- **Expected the pipelines after pipeline in pairs of a name and an
+  ARRAY:** an array of definitions had an odd number of items.
+- **Expected a name for a pipeline (%s):** a name can't be a
+  function's.
+- **Expected a pipeline defined once (%s):** an array of definitions
+  gave the name twice.
+- **Expected the pipeline %s in an ARRAY:** a definition wasn't an
+  array reference of stages.
+- **Expected no function of the name in %s already (%s):** the package
+  has a function of that name, its own or one it inherits.
+- **Expected pipelines that don't name each other in a circle (%s):**
+  the definitions named, those left undefined, name each other,
+  through others or not.
+
+Ekorn::Pipeline's messages for stages and names are raised for a
+definition as for `pipeline`, such as "No pipeline named %s" and "A
+pipeline named %s is already defined".
+
 ### Ekorn::Pipeline::Factories
 
 - **Expected a code reference:** a word was given something other
@@ -2864,6 +2935,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 | `Ekorn::Pipeline::Operators` | nothing: loading it puts the operators in force | `chain` and `drain`, by their full names, for your own overloads | |
 | `Ekorn::Pipeline::Sinks` | nothing | `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file` | `:all` |
 | `Ekorn::Pipeline::JSON` | nothing | `from_json`, `from_jsonl`, `to_json`, `to_jsonl` | `:all` |
+| `Ekorn::Pipeline::Sugar` | nothing: `use` defines the names it's given, a function of each | `import_into`, as a class method | |
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
@@ -2885,6 +2957,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Operators` | `\|`, `\|=` and `@{}` for Ekorn's types, in force lexically: `chain` and `drain`. |
 | `Ekorn::Pipeline::Sinks` | Ready-made sinks: `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file`. |
 | `Ekorn::Pipeline::Sources` | Ready-made sources: `from_array`, `from_fh`, `from_file`, `counter`. |
+| `Ekorn::Pipeline::Sugar` | Names pipelines as the program compiles, each with a function of its name: `import_into`. |
 | `Ekorn::Pipeline::JSON` | Reads and writes JSON and JSON Lines, as sources, stages or sinks: `from_json`, `from_jsonl`, `to_json`, `to_jsonl`. |
 | `Ekorn::Pipeline::Factories` | The words that make Ekorn's types: `pipeline`, `stage`, `gather`, `source`, `generator` and `yield`, `sink_one`, `sink_many`. |
 | `Ekorn::Pipeline::Stop` | Ends a pipeline early: `Stop` and `throw`. |

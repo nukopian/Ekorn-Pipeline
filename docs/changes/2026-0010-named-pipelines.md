@@ -1,6 +1,6 @@
 # 2026-0010. Named pipelines at compile time
 
-**Status:** open
+**Status:** shipped, unreleased
 
 **Decisions:** revisited on 2026-11-14, against the design of 2026-0022
 and the items since. D1 settled: stages after values, as a pipeline
@@ -19,6 +19,10 @@ Ekorn::Pipeline::Sugar. None open.
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
 make and name pipelines at compile time
+
+**Started:** 2026-11-14
+
+**Finished:** 2026-11-14
 
 **Depends on:** 2026-0011, which makes `pipeline(...)` and keeps the
 names
@@ -194,3 +198,57 @@ which is core.
   DBIx::Squirrel::Sugar, so a `use` of either reads alike. Its
   `import` isn't a word, so it's a module of its own, not part of
   Factories.
+
+## The plan
+
+**What:** Ekorn::Pipeline::Sugar. `use Ekorn::Pipeline::Sugar pipeline
+=> {...}`, or `=> [...]`, pairs of a name and an array of stages,
+names each pipeline in the package that uses it, with
+`Ekorn::Pipeline->named`, and gives that package a function of each
+name. The function runs the values it's given through the pipeline,
+in the caller's context, as calling the pipeline does; given a
+pipeline last, it runs them through that too. A string where a stage
+goes names a pipeline, from this `use` or defined before it; each is
+defined once those it names from the same `use` are, and a cycle, a
+name defined nowhere, a name that can't be a function's, one given
+twice, or one the package has a function of already, croaks at the
+`use`. `import` is a thin wrapper around a public
+`import_into($package, ...)`, for other modules' sugar.
+
+**Why:** a pipeline used in several places needn't be kept in a
+variable or wrapped in a sub, and DBIx::Squirrel's Sugar can define
+pipelines through it.
+
+**Steps:**
+
+1. The module, using `pipeline_in`, which reads names in a package
+   it's given, and `named`; its POD and DIAGNOSTICS; its messages as
+   DBIx::Squirrel::Sugar's, where they meet.
+2. Its tests, keeping coverage above the floors.
+3. The reference, a section; the how-to, a recipe in chapter 7; the
+   README; `Changes`.
+4. A message to DBIx-Squirrel, with what it needs to add a `pipeline`
+   key to its Sugar, as Iain asked.
+
+**Done when** the module, its tests and its docs are in, every example
+run, with coverage above the floors, and DBIx-Squirrel has its message.
+
+## What happened
+
+- **Outcome:** as Done when. Ekorn::Pipeline::Sugar, its POD and
+  DIAGNOSTICS; `t/25-sugar.t`, with statements and branches covered in
+  full; a section in the reference, a recipe in the how-to's chapter
+  7, and a paragraph in the README, each example run; and
+  DBIx-Squirrel's message. Tests pass on 5.36 to 5.44.
+- **As planned,** but for two details:
+  - A definition that's a name alone, `again => ['plus_one']`, is a
+    new pipeline made of the one named, as `named` makes one, not the
+    named pipeline itself, which `pipeline_in` gives for one name
+    since 2026-0029, so a name never aliases another.
+  - A name in the definitions can be qualified with the package's own
+    name, `'My::Module::half'`, and still counts as one from the same
+    `use`, for the order they're defined in.
+- **Found:** Sub::Util comes with Perl, in the same distribution as
+  Scalar::Util, but it's listed in `cpanfile` as a dependency of its
+  own, as it's used by name.
+

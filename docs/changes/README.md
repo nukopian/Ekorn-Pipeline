@@ -121,7 +121,7 @@ Newest id first.
 - [A pipeline() function, and named pipelines](2026-0011-pipeline-function.md),
   roadmap 2026-0011: shipped, unreleased.
 - [Named pipelines at compile time](2026-0010-named-pipelines.md),
-  roadmap 2026-0010: open.
+  roadmap 2026-0010: shipped, unreleased.
 - [A CPAN badge that keeps up with releases](2026-0009-cpan-badge.md),
   roadmap 2026-0009: shipped, unreleased.
 - [Messages that say what's accepted](2026-0008-messages-say-whats-accepted.md),

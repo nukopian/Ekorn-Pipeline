@@ -58,23 +58,6 @@ DBIx-Squirrel to move its range. It's v0.3.0, not v1.0.0, so the design
 can settle first; see its [record](docs/changes/2026-0025-release-v0-3-0.md).
 Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
 
-### 2026-0010. Named pipelines at compile time
-
-**Size:** S (2)
-
-**Depends on:** 2026-0011
-
-A module like DBIx::Squirrel::Sugar for pipelines:
-`use Ekorn::Pipeline::Sugar pipeline => {name => [@stages]}` names
-pipelines as the program compiles, with 2026-0011's names, and gives
-the package a function of each name, which runs values through it,
-taking more stages as a pipeline after them. Why: a pipeline used in
-several places needn't be kept in a variable or wrapped in a sub.
-Done when the module, its tests and its docs are in, with coverage
-above the floors. Its questions were settled again on 2026-11-14, and
-it ships in v0.3.0: see its
-[record](docs/changes/2026-0010-named-pipelines.md).
-
 ## Next
 
 Nothing yet.
