@@ -153,8 +153,11 @@ what was Iain's.
   warnings, `say` and signatures. `try`/`catch` is still experimental
   in 5.36, and is used anyway, as DBIx-Squirrel decided on 2026-10-28:
   a module that needs it adds `use experimental qw(try);`, which also
-  allows `finally`. Once the floor reaches 5.40, `use v5.40` turns on
-  `try`/`catch` by itself, and the line is needed only for `finally`.
+  allows `finally`, but only after a `catch`: `try {...} finally {...}`
+  is a syntax error on every Perl from 5.36 to 5.44, so code that only
+  cleans up catches and throws again, then cleans up after. Once the
+  floor reaches 5.40, `use v5.40` turns on `try`/`catch` by itself,
+  and the line is needed only for `finally`, still experimental.
   `builtin::` functions are used the same way, in place of
   Scalar::Util: a module adds `use experimental qw(builtin);` and
   imports what it needs, such as `use builtin qw(weaken);`. Only
