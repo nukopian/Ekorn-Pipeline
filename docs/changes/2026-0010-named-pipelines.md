@@ -2,17 +2,19 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: stages after values, as a pipeline given
-last. D2 moved to 2026-0012: a source of its own. D3 settled: names
-per package, which can be qualified. D4 settled: no pull form;
-`pipeline('name')->iterator`. D5 settled: one definition can name any
-other in the same `use`, in a hash or an array of pairs, defined in
-the order they need. D6 settled: nothing yet; `import_into`, though
-D10 has DBIx::Squirrel's Sugar define its own pipelines. D7 settled: a string where a stage
-goes names a pipeline. D8 settled: names checked, and clashes
-reported, exactly as DBIx::Squirrel::Sugar does. D9 settled: it ships
-in a v0.2.x. D10 settled: only Ekorn::Pipelines; DBIx::Squirrel's Sugar defines its
-own.
+**Decisions:** revisited on 2026-11-14, against the design of 2026-0022
+and the items since. D1 settled: stages after values, as a pipeline
+given last. D2 settled: no source of its own; 2026-0012 was dropped.
+D3 settled: names per package, which can be qualified. D4 settled: no
+pull form; `pipeline('name')->iterator`. D5 settled: one definition
+can name any other in the same `use`, in a hash or an array of pairs,
+defined in the order they need. D6 settled: a public `import_into`,
+which DBIx::Squirrel's Sugar can use for a `pipeline` key. D7 settled:
+a string where a stage goes names a pipeline. D8 settled: names
+checked, and clashes reported, as DBIx::Squirrel::Sugar does, with
+the helpers kept private. D9 settled: in v0.3.0. D10 settled: plain
+Ekorn::Pipelines, as DBIx::Squirrel's are now. D11 settled: called
+Ekorn::Pipeline::Sugar. None open.
 
 **Origin:** roadmap, added 2026-11-10, from Iain: the one feature
 Ekorn-Pipeline lacks is something like DBIx::Squirrel::Sugar, to
@@ -76,6 +78,9 @@ which is core.
   how a source is told from a first stage, such as by a key, `recent
   => [source => sub {...}, @stages]`. Until then, a function covers
   it: `sub recent (@stages) { pipeline(@stages)->(load_recent()) }`.
+  **Revisited on 2026-11-14:** 2026-0012 was dropped by 2026-0022's
+  D35 ("if there's a need, it'll be found again"), so a named pipeline
+  has no source of its own, and the function above is the way.
 - [x] **D3.** Where do names live? In the package that defines them,
   decided on 2026-11-10, so two modules can't clash; a qualified name,
   `pipeline('My::Module::active_roles')`, reaches another package's.
@@ -130,6 +135,18 @@ which is core.
   - its docs could show a named pipeline as a statement's stages.
 
   Whether to do any of it is for DBIx-Squirrel's session and Iain.
+
+  **Revisited on 2026-11-14:** D10 had set this aside, as
+  DBIx::Squirrel then made its own pipelines. Since 2026-11-12
+  DBIx::Squirrel uses Ekorn as it is, so its pipelines are
+  Ekorn::Pipelines, and handing a `pipeline` key to this module is
+  again the simple way. So `import_into($package, pipeline => {...})`
+  is public, as Iain decided, documented for any module that adds to
+  the sugar, which fits the rule that Ekorn adds only what any package
+  could use; `import` is a thin wrapper around it. When it ships, a
+  message tells DBIx-Squirrel it can, and that a statement naming a
+  pipeline from the same `use` needs the `pipeline` key defined
+  first. Whether to use it is for DBIx-Squirrel's session.
 - [x] **D7.** How does a definition name another in the same `use`?
   By a string where a stage goes, decided on 2026-11-10, as
   2026-0011's D1 makes a name a stage everywhere:
@@ -143,8 +160,17 @@ which is core.
   databases, statements and pipelines reports mistakes alike, and
   DBIx::Squirrel can take `install_sub` and `is_name` from here with
   no change its users see.
+
+  **Revisited on 2026-11-14:** alike, but not shared, as Iain decided.
+  The rule for a name and the clash message match DBIx::Squirrel's,
+  so mistakes read alike, but `install_sub` and `is_name` stay
+  private: they aren't about pipelines, and exported, they'd be part
+  of Ekorn's contract with other packages, its protocols, which a
+  change would make a new middle version.
 - [x] **D9.** What version does it ship in? A v0.2.x, decided on
-  2026-11-10, as 2026-0011's D7: it only adds.
+  2026-11-10, as 2026-0011's D7: it only adds. **Revisited on
+  2026-11-14:** v0.2.x has passed; it ships in v0.3.0, as Iain
+  decided, which now depends on it.
 - [x] **D10.** What class are its pipelines made with?
   Ekorn::Pipeline, always, decided on 2026-11-11 with 2026-0020's D4,
   that DBIx::Squirrel's things stay in its namespace. This module
@@ -159,3 +185,12 @@ which is core.
   same day: a `pipeline_class` method on this module, overridden by a
   subclass of DBIx::Squirrel's, and a class passed to `import_into`;
   both would have this module make DBIx::Squirrel's pipelines.
+  **Revisited on 2026-11-14:** `DBIx::Squirrel::Pipeline` is gone;
+  since 2026-11-12, DBIx::Squirrel uses Ekorn as it is, so its
+  pipelines are Ekorn::Pipelines too, and this holds with nothing to
+  set aside. D6's `import_into` is how its Sugar would define them.
+- [x] **D11.** What's the module called? **Ekorn::Pipeline::Sugar,**
+  Iain decided on 2026-11-14, as the item has it, matching
+  DBIx::Squirrel::Sugar, so a `use` of either reads alike. Its
+  `import` isn't a word, so it's a module of its own, not part of
+  Factories.

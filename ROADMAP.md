@@ -47,7 +47,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
 2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029,
-2026-0031, 2026-0032, 2026-0034
+2026-0031, 2026-0032, 2026-0034, 2026-0010
 
 The design's release. `pipeline-experimental` merges to `develop` by a
 fast-forward, after a commit deleting `docs/design/`, which a tag,
@@ -57,8 +57,6 @@ whole, with what it turned up; and v0.3.0 is released, with a task for
 DBIx-Squirrel to move its range. It's v0.3.0, not v1.0.0, so the design
 can settle first; see its [record](docs/changes/2026-0025-release-v0-3-0.md).
 Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
-
-## Next
 
 ### 2026-0010. Named pipelines at compile time
 
@@ -73,8 +71,13 @@ the package a function of each name, which runs values through it,
 taking more stages as a pipeline after them. Why: a pipeline used in
 several places needn't be kept in a variable or wrapped in a sub.
 Done when the module, its tests and its docs are in, with coverage
-above the floors. Its questions are settled: see its
+above the floors. Its questions were settled again on 2026-11-14, and
+it ships in v0.3.0: see its
 [record](docs/changes/2026-0010-named-pipelines.md).
+
+## Next
+
+Nothing yet.
 
 ## Later
 
