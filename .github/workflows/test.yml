@@ -38,6 +38,31 @@ jobs:
       - name: yath
         run: yath test
 
+  # The tests on Windows, at the floor and the newest Perl, as CPAN
+  # Testers found what Linux and macOS don't: text mode writes "\r\n".
+  # yath doesn't support Windows, so prove runs t/, as an installer
+  # would, without the develop modules. Git is told not to turn LF
+  # into CRLF, so the files are as the tarball has them.
+  windows:
+    name: perl ${{ matrix.perl }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025]
+        perl: ["5.36", "5.44"]
+    steps:
+      - name: LF as it is
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
+        with:
+          perl-version: ${{ matrix.perl }}
+      - name: dependencies
+        run: cpanm --notest --installdeps .
+      - name: prove
+        run: prove -l t
+
   # Perl::Critic and Perl::Tidy, with the repository's profiles, on the
   # newest Perl. A file perltidy would change fails, showing the diff.
   style:
