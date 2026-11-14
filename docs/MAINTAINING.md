@@ -48,7 +48,7 @@ linear history (no merge commits) and CI passing on every job. It
 can't be force-pushed or deleted, by admins either. To see the
 settings:
 
-```
+```sh
 gh api repos/nukopian/Ekorn-Pipeline/branches/main/protection --jq '{signatures: .required_signatures.enabled, linear: .required_linear_history.enabled, checks: .required_status_checks.contexts, force_push: .allow_force_pushes.enabled, admins: .enforce_admins.enabled}'
 ```
 
@@ -61,7 +61,7 @@ dependencies, including the maintainers' tools, and Minilla, which
 builds the distribution. Minilla isn't in `cpanfile`, so installing
 from `cpanfile` shows that the distribution needs nothing else:
 
-```
+```sh
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 git config user.name nukopian
 git config user.email nukopian@users.noreply.github.com
@@ -82,7 +82,7 @@ the library gets the default Perl and its modules. The `.envrc` is
 git-ignored, so each clone writes its own. direnv loads it once it's
 allowed:
 
-```
+```sh
 cat > ~/Git/github.com/nukopian/Ekorn-Pipeline/.envrc <<'EOF'
 unset PERL5LIB
 source /Users/icampbell/perl5/perlbrew/etc/bashrc
@@ -104,7 +104,7 @@ Perl::Critic knows a Perl's builtins from that Perl, so a sub named for
 a newer keyword passes on 5.36. The loop prints a diff for each file
 perltidy would change.
 
-```
+```sh
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 perlbrew exec --with perl-5.36.3@ekorn-pipeline yath test -L
 perlbrew exec --with perl-5.44.0@ekorn-pipeline perlcritic lib
@@ -113,7 +113,7 @@ for f in $(git ls-files 'lib/*.pm' 't/*.t' 'xt/*.t'); do perlbrew exec --quiet -
 
 To run the tests on every Perl CI covers, each in its own library:
 
-```
+```sh
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 for p in perl-5.36.3 perl-5.38.5 perl-5.40.5 perl-5.42.3 perl-5.44.0; do perlbrew exec --quiet --with "${p}@ekorn-pipeline" yath test || echo "FAILED on ${p}"; done
 ```
@@ -126,13 +126,13 @@ below any of them. New code comes with tests that keep coverage above
 the floors. When coverage rises, raise the floors to just under it.
 Lower one only with the reason in the commit message.
 
-```
+```sh
 perlbrew exec --with perl-5.36.3@ekorn-pipeline ~/Git/github.com/nukopian/Ekorn-Pipeline/scripts/coverage
 ```
 
 To see which lines and branches the tests miss, after it has run:
 
-```
+```sh
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 perlbrew exec --with perl-5.36.3@ekorn-pipeline cover -report text -select_re '^lib/'
 ```
@@ -142,7 +142,7 @@ that `cpanm` can install from GitHub. After a change to `cpanfile`,
 `minil.toml`, `README.pod` or the main module's POD, generate them
 again. Commit what changes with the change that caused it:
 
-```
+```sh
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 perlbrew exec --with perl-5.36.3@ekorn-pipeline minil build
 git status --short
@@ -153,13 +153,13 @@ Minilla gets the branch for `README.md`'s CI badge from GitHub, with
 `master` instead, and the badge breaks. Before committing, check that
 this prints `branch=main`:
 
-```
+```sh
 head -1 ~/Git/github.com/nukopian/Ekorn-Pipeline/README.md | grep -o 'branch=[a-z]*'
 ```
 
 If it prints `branch=master`, put `main` back:
 
-```
+```sh
 sed -i '' '1s/branch=master/branch=main/' ~/Git/github.com/nukopian/Ekorn-Pipeline/README.md
 ```
 
@@ -174,7 +174,7 @@ refuses anything else, naming it. If Minilla's spelling test flags a
 word in a manual, add it to the Markdown as
 `<!-- stopwords: word another -->`.
 
-```
+```sh
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 perlbrew exec --with perl-5.36.3@ekorn-pipeline scripts/manuals
 git status --short
@@ -185,7 +185,7 @@ Commits are signed, and use conventional prefixes (`feat:`, `fix:`,
 why as well as what. To check the signatures of the last ten (`G` is
 good, `N` is none):
 
-```
+```sh
 git log --format='%h %G? %s' -10
 ```
 
@@ -227,7 +227,7 @@ and the same holds here.
    on the first line, then commit and push, and wait for CI to pass on
    the commit before going on:
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    perlbrew exec --with perl-5.36.3@ekorn-pipeline minil prepare "$v" </dev/null
@@ -240,7 +240,7 @@ and the same holds here.
 3. **Build the tarball, and check its tests passed.** Set the version
    on the first line:
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    perlbrew exec --with perl-5.36.3@ekorn-pipeline minil dist > "$TMPDIR/dist-$v.log" 2>&1
@@ -252,7 +252,7 @@ and the same holds here.
 
 4. **Rename it, and upload it:**
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    mv "Ekorn-Pipeline-$v.tar.gz" "Ekorn-Pipeline-$v-TRIAL.tar.gz"
@@ -264,7 +264,7 @@ and the same holds here.
    first command counts each version's reports by grade; the second
    lists those that didn't pass, with a link to each:
 
-   ```
+   ```sh
    curl -sSf https://api.cpantesters.org/v3/summary/Ekorn-Pipeline | jq -r 'group_by(.version)[] | group_by(.grade)[] | "\(.[0].version) \(.[0].grade): \(length)"'
    curl -sSf https://api.cpantesters.org/v3/summary/Ekorn-Pipeline | jq -r '.[] | select(.grade != "pass") | "\(.version) \(.grade) \(.osname) perl \(.perl) https://www.cpantesters.org/cpan/report/\(.guid)"'
    ```
@@ -294,7 +294,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
 1. **Check `develop`:** CI is green on its last commit, there's no
    `TODO.md`, and the history has no secrets.
 
-   ```
+   ```sh
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    git switch develop
    git pull --ff-only
@@ -310,7 +310,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    and regenerates `META.json`, `Build.PL` and `README.md`. Set the
    version on the first line:
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    perlbrew exec --with perl-5.36.3@ekorn-pipeline minil prepare "$v" </dev/null
@@ -328,7 +328,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
 
    The entry's lines stay indented by four spaces:
 
-   ```
+   ```text
    Unreleased
 
    v0.1.0 2026-11-07
@@ -348,7 +348,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    the heading doesn't match the version. Set the version on the first
    line:
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    v=$v perl -0777 -ne 'print "$1\n" =~ s/^    //mgr if /^\Q$ENV{v}\E [^\n]*\n\n(.*?)\n*(?=^\S|\z)/ms' Changes > "$TMPDIR/notes-$v.txt"
@@ -362,7 +362,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    `main`'s protection refuses the push until it isn't. This lists each
    check once, from `develop`'s push:
 
-   ```
+   ```sh
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    gh api "repos/nukopian/Ekorn-Pipeline/commits/$(git rev-parse develop)/check-runs" --jq '.check_runs[] | "\(.name) \(.status) \(.conclusion)"'
    ```
@@ -373,7 +373,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    `develop`, with their signatures. Set the version on the first
    line:
 
-   ```
+   ```sh
    v=v0.1.0
    git switch main
    git pull --ff-only
@@ -393,7 +393,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    `cpan-upload` reads the PAUSE account from `~/.pause`. Set the version
    on the first line:
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    git switch --detach "$v"
@@ -407,7 +407,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    tarball, fix the problem on `develop`, and start again. If it
    passed, upload:
 
-   ```
+   ```sh
    v=v0.1.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    perlbrew exec --with perl-5.36.3@ekorn-pipeline cpan-upload "Ekorn-Pipeline-$v.tar.gz"
@@ -420,7 +420,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    `Ekorn::Pipeline` namespace to Iain's PAUSE account. Then MetaCPAN
    shows the new version, with the repository's URL:
 
-   ```
+   ```sh
    curl -sSf https://fastapi.metacpan.org/v1/release/Ekorn-Pipeline | jq -r '"\(.name) \(.date) \(.resources.repository.web)"'
    ```
 
@@ -441,7 +441,7 @@ the list below to the jobs' names, and run it. It replaces the whole
 list, so keep `secrets`, `style` and `coverage` in it. It's a GitHub
 setting, so Iain runs it, or says Claude may:
 
-```
+```sh
 gh api --method PATCH repos/nukopian/Ekorn-Pipeline/branches/main/protection/required_status_checks --silent --input - <<'EOF'
 {
   "strict": false,
@@ -488,7 +488,7 @@ this list.
   `develop`, and put `main` back. Do this only if `main` hasn't been pushed
   since:
 
-  ```
+  ```sh
   git switch develop
   git cherry-pick main
   git branch -f main origin/main
@@ -502,7 +502,7 @@ this list.
   said it was, and enabling it in the tab fixed it. To test a commit
   meanwhile, start a run by hand, then watch it:
 
-  ```
+  ```sh
   cd ~/Git/github.com/nukopian/Ekorn-Pipeline
   gh workflow run test.yml --ref develop
   gh run list --branch develop --limit 1
@@ -512,7 +512,7 @@ this list.
   marked it complete. Re-run that job alone. This finds every unfinished
   check on `develop`'s commit and re-runs it:
 
-  ```
+  ```sh
   cd ~/Git/github.com/nukopian/Ekorn-Pipeline
   gh api "repos/nukopian/Ekorn-Pipeline/commits/$(git rev-parse develop)/check-runs" --jq '.check_runs[] | select(.status != "completed") | .details_url' | sed -E 's|.*/runs/([0-9]+)/job/([0-9]+).*|\1 \2|' | while read run job; do gh run rerun "$run" --job "$job"; done
   ```
@@ -524,7 +524,7 @@ this list.
   then push `main` to the tagged commit, make the release, and go on
   with step 6. Set the version on the first line:
 
-  ```
+  ```sh
   v=v0.1.0
   cd ~/Git/github.com/nukopian/Ekorn-Pipeline
   git switch main
@@ -550,7 +550,7 @@ this list.
 
 To see the settings, and any open alerts:
 
-```
+```sh
 gh api repos/nukopian/Ekorn-Pipeline --jq '.security_and_analysis | to_entries[] | "\(.key) \(.value.status)"'
 gh api repos/nukopian/Ekorn-Pipeline/vulnerability-alerts --silent && echo "Dependabot alerts on"
 gh api repos/nukopian/Ekorn-Pipeline/dependabot/alerts --jq '.[] | select(.state == "open") | "\(.number) \(.security_advisory.summary)"'
