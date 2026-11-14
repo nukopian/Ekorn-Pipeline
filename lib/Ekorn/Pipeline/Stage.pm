@@ -21,8 +21,9 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 sub new ($class, $code) {
     my $callable
         = is_coderef($code) || (blessed($code) && overload::Method($code, '&{}'));
-    croakf 'Expected a code reference'
-        if !$callable || $code isa 'Ekorn::Pipeline::Element';
+    croakf 'Expected a code reference' unless $callable;
+    croakf q(Expected a code reference, not one of Ekorn's types)
+        if $code isa 'Ekorn::Pipeline::Element';
     return bless {call => is_coderef($code) ? $code : \&$code, code => $code},
         $class;
 }
@@ -107,8 +108,13 @@ starts; you needn't.
 
 =item Expected a code reference
 
-L</new> was given something other than a code reference, or one of
-Ekorn's own types.
+L</new> was given something that can't be called as code, such as a
+string.
+
+=item Expected a code reference, not one of Ekorn's types
+
+L</new> was given one of Ekorn's own types, which is already what it
+is.
 
 =back
 

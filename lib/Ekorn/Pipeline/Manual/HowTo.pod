@@ -2706,7 +2706,8 @@ that isn't one, or C<take(-1)>, is reported at once, at the line that
 made it, before any value goes through:
 
     eval { Ekorn::Pipeline->new(sub { $_ }, 'title') };
-    print $@ =~ s( \ at \ .* )()xsr, "\n";    # Expected stage #2 to be a code reference or a pipeline
+    print $@ =~ s( \ at \ .* )()xsr, "\n";
+    # Expected stage #2 to be a stage: a code reference, a pipeline, or an object offering a stage's role method
 
     eval { take(-1) };
     print $@ =~ s( \ at \ .* )()xsr, "\n";    # Expected a count of 0 or more

@@ -106,6 +106,8 @@ sub _options (@given) {
     my @unknown = sort grep { !m( \A (?: file | fh | json ) \z )x } keys %option;
     croakf 'Expected the options file, fh and json, not %s', join ', ', @unknown
         if @unknown;
+    croakf 'Expected file to be a path'
+        if exists $option{file} && !defined $option{file};
     croakf 'Expected a file or a filehandle, not both'
         if defined $option{file} && exists $option{fh};
     croakf 'Expected an open filehandle'
@@ -438,6 +440,10 @@ A function was given an odd number of arguments.
 =item Expected the options file, fh and json, not %s
 
 A function was given an option it doesn't know, named after "not".
+
+=item Expected file to be a path
+
+C<file> was undefined.
 
 =item Expected a file or a filehandle, not both
 

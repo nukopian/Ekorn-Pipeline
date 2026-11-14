@@ -211,8 +211,9 @@ Returns a pipeline that runs values through `@stages`, in order. Each
 stage must be something [is_stage](#is_stage) is true for: a code
 reference, a pipeline, or a part offering a stage's or a sink's role
 method, such as a gather or a sink. Anything else croaks, naming its
-position: "Expected stage #2 to be a code reference or a pipeline". A
-source croaks too: "Expected stage #2 to be a stage, not a source".
+position: "Expected stage #2 to be a stage: a code reference, a
+pipeline, or an object offering a stage's role method". A source
+croaks too: "Expected stage #2 to be a stage, not a source".
 
 Any code reference will do: an anonymous `sub`, a reference to a named
 one such as `\&trim`, or a stage made by a function such as
@@ -2665,12 +2666,15 @@ the line of the caller's code that caused it.
 
 ### Ekorn::Pipeline
 
-- **Expected stage #%d to be a code reference or a pipeline:** a stage
-  given to `new` wasn't a code reference or a pipeline. It's also
-  raised for a pipeline whose overridden `stages` method returned
-  something that isn't a code reference.
-- **Expected stage #%d to be a code reference, a pipeline or the name
-  of one:** a stage given to `pipeline_in`, and so to the word
+- **Expected stage #%d to be a stage: a code reference, a pipeline, or
+  an object offering a stage's role method:** a stage given to `new`
+  was something else, such as a string.
+- **Expected stage #%d, a pipeline, to give only stages from its stages
+  method:** a stage given to `new` was a pipeline whose overridden
+  `stages` method returned something that isn't a stage.
+- **Expected stage #%d to be a stage: a code reference, a pipeline or
+  its name, or an object offering a stage's role method:** a stage
+  given to `pipeline_in`, and so to the word
   `pipeline`, or to `named` after the name, was none of them. For
   `named`, stages are counted from the first after the name.
 - **No pipeline named %s:** a name given to `pipeline_in`, and so to
@@ -2765,6 +2769,7 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
   an odd number of arguments.
 - **Expected the options file, fh and json, not %s:** an option it
   doesn't know, named after "not".
+- **Expected file to be a path:** `file` was undefined.
 - **Expected a file or a filehandle, not both:** it was given both
   `file` and `fh`.
 - **Expected an open filehandle:** `fh` was something else.
@@ -2808,8 +2813,10 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 
 ### Ekorn::Pipeline::Stage
 
-- **Expected a code reference:** `new` was given something other than
-  a code reference, or one of Ekorn's own types.
+- **Expected a code reference:** `new` was given something that can't
+  be called as code, such as a string.
+- **Expected a code reference, not one of Ekorn's types:** `new` was
+  given one of Ekorn's own types, which is already what it is.
 
 ### Ekorn::Pipeline::Iterator
 

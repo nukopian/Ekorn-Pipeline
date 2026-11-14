@@ -2610,7 +2610,8 @@ made it, before any value goes through:
 
 ```perl
 eval { Ekorn::Pipeline->new(sub { $_ }, 'title') };
-print $@ =~ s( \ at \ .* )()xsr, "\n";    # Expected stage #2 to be a code reference or a pipeline
+print $@ =~ s( \ at \ .* )()xsr, "\n";
+# Expected stage #2 to be a stage: a code reference, a pipeline, or an object offering a stage's role method
 
 eval { take(-1) };
 print $@ =~ s( \ at \ .* )()xsr, "\n";    # Expected a count of 0 or more

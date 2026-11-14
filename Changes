@@ -37,8 +37,8 @@ Unreleased
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
     themselves; a gather's message names the flush and the end; a
-    stage's error names the named pipeline it's in; iterator's message
-    for what isn't a source says what a source is; and a pipeline
+    stage's error names the named pipeline it's in; the messages for
+    what isn't a stage or a source say what one is; and a pipeline
     named alone, pipeline('clean'), is the pipeline itself, so its
     stages are numbered where it's given. Otherwise,
     existing code runs as before.
@@ -120,6 +120,17 @@ Unreleased
       scope, for %s". A package's own source class chains by
       overloading | and @{} with Operators' chain and drain. (roadmap
       2026-0018)
+    - Changed: a stage that isn't one croaks "Expected stage #%d to be
+      a stage: a code reference, a pipeline, or an object offering a
+      stage's role method", where it said "Expected stage #%d to be a
+      code reference or a pipeline", and, given to pipeline or named,
+      "... a pipeline or its name, or an object offering a stage's role
+      method"; both left out the parts made for a run. A pipeline whose
+      overridden stages method returns something that isn't a stage has
+      a message of its own, "Expected stage #%d, a pipeline, to give
+      only stages from its stages method", in place of one saying it
+      should be a pipeline. Stage->new, given one of Ekorn's types,
+      croaks "Expected a code reference, not one of Ekorn's types".
     - Changed: iterator, given something other than a source, croaks
       "Expected a source: a code reference, or an object offering
       EKORN_SOURCE", where it said "Expected a code reference", which

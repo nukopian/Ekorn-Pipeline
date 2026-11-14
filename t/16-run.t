@@ -144,8 +144,8 @@ subtest 'Stage: what new takes' => sub {
         qr( \A Expected\ a\ code\ reference\ at\ ${\ __FILE__ } )x,
         'a string croaks';
     like dies { Ekorn::Pipeline::Stage->new($class->new) },
-        qr( \A Expected\ a\ code\ reference )x,
-        "and one of Ekorn's own types";
+        qr( \A Expected\ a\ code\ reference,\ not\ one\ of\ Ekorn's\ types\ at\ ${\ __FILE__ } )x,
+        "and one of Ekorn's own types, saying so";
 };
 
 subtest 'Source and Sink: a set-up is a code reference' => sub {
@@ -391,7 +391,7 @@ subtest 'Iterator: made with new, as the run makes it' => sub {
 subtest "A pipeline whose stages aren't stages" => sub {
     my $odd = My::Odd->new(sub { $_ });
     like dies { $class->new($odd) },
-        qr( \A Expected\ stage\ \#1\ to\ be\ a\ code\ reference\ or\ a\ pipeline\  )x,
+        qr( \A Expected\ stage\ \#1,\ a\ pipeline,\ to\ give\ only\ stages\ from\ its\ stages\ method\  )x,
         'croaks given as a stage';
 };
 

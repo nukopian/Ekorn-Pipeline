@@ -85,7 +85,9 @@ sub _check_stage ($stage, $n) {
         if @roles > 1;
     croakf 'Expected stage #%d to be a stage, not a source', $n
         if !@roles && _is_source($stage);
-    croakf 'Expected stage #%d to be a code reference or a pipeline', $n
+    croakf
+        q(Expected stage #%d to be a stage: a code reference, a pipeline, or an object offering a stage's role method),
+        $n
         unless is_stage($stage);
     return;
 }
@@ -103,7 +105,9 @@ sub new ($class, @given) {
         _check_stage($stage, $n);
         if ($stage isa 'Ekorn::Pipeline') {
             my($inner, $inner_names, $inner_within) = _composed($stage);
-            croakf 'Expected stage #%d to be a code reference or a pipeline', $n
+            croakf
+                'Expected stage #%d, a pipeline, to give only stages from its stages method',
+                $n
                 unless $inner_names;
             push @stages, map { _element($_) } @$inner;
             push @names,  map { "$n.$_" } @$inner_names;
@@ -176,7 +180,7 @@ sub _resolved ($package, @given) {
         }
         my $name = _qualified($stage, $package);
         croakf
-            'Expected stage #%d to be a code reference, a pipeline or the name of one',
+            q(Expected stage #%d to be a stage: a code reference, a pipeline or its name, or an object offering a stage's role method),
             $n
             unless defined $name;
         my $pipeline = $named{$name};
@@ -1405,13 +1409,16 @@ run's. It isn't exported.
 
 =over
 
-=item Expected stage #%d to be a code reference or a pipeline
+=item Expected stage #%d to be a stage: a code reference, a pipeline, or an object offering a stage's role method
 
-A stage given to L</new> wasn't a code reference or a pipeline. It's
-also raised for a pipeline whose overridden C<stages> method returned
-something that isn't a code reference.
+A stage given to L</new> was something else, such as a string.
 
-=item Expected stage #%d to be a code reference, a pipeline or the name of one
+=item Expected stage #%d, a pipeline, to give only stages from its stages method
+
+A stage given to L</new> was a pipeline whose overridden C<stages>
+method returned something that isn't a stage.
+
+=item Expected stage #%d to be a stage: a code reference, a pipeline or its name, or an object offering a stage's role method
 
 A stage given to L</pipeline_in>, and so to the word C<pipeline>, or
 to L</named> after the name, was none of them. For C<named>, stages

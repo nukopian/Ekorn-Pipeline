@@ -311,6 +311,7 @@ subtest 'Mistakes are reported at the caller\'s line' => sub {
         'Expected the options file, fh and json, not flie'    => [flie => 1],
         'Expected the options file, fh and json, not a, type' =>
             [type => 1, a => 2],
+        'Expected file to be a path'                => [file => undef],
         'Expected a file or a filehandle, not both' => [file => 'x', fh => \*STDIN],
         'Expected an open filehandle'               => [fh   => undef],
         'Expected json to be a hash reference of options, or an encoder object' =>

@@ -163,21 +163,21 @@ subtest 'Ekorn::Pipeline no longer exports pipeline' => sub {
 subtest 'What isn\'t a stage or a name croaks' => sub {
     my $line = __LINE__ + 1;
     is dies { pipeline($same, 'not a name') },
-        "Expected stage #2 to be a code reference, a pipeline or the name of one at $file line $line.\n",
+        "Expected stage #2 to be a stage: a code reference, a pipeline or its name, or an object offering a stage's role method at $file line $line.\n",
         'in pipeline, at the caller\'s line';
     for my $bad (undef, '', '1 2', '42', 'a::', '::a', 'a::1', [], {}) {
         like dies { pipeline($bad) },
-            qr( \A Expected\ stage\ \#1\ to\ be\ a\ code\ reference,\ a\ pipeline\ or\ the\ name\ of\ one\  )x,
+            qr( \A Expected\ stage\ \#1\ to\ be\ a\ stage:\ a\ code\ reference,\ a\ pipeline\ or\ its\ name,\ or\ an\ object\ offering\ a\ stage's\ role\ method\  )x,
             'not ' . (defined $bad ? "'$bad'" : 'undef');
     }
     like dies {
         $class->named(bad => sub { $_ }, 42)
     },
-        qr( \A Expected\ stage\ \#2\ to\ be\ a\ code\ reference,\ a\ pipeline\ or\ the\ name\ of\ one\  )x,
+        qr( \A Expected\ stage\ \#2\ to\ be\ a\ stage:\ a\ code\ reference,\ a\ pipeline\ or\ its\ name,\ or\ an\ object\ offering\ a\ stage's\ role\ method\  )x,
         'in named, counting the stages after the name';
     ok !is_stage('doubled'), 'and is_stage stays false for a name';
     like dies { $class->new('doubled') },
-        qr( \A Expected\ stage\ \#1\ to\ be\ a\ code\ reference\ or\ a\ pipeline\  )x,
+        qr( \A Expected\ stage\ \#1\ to\ be\ a\ stage:\ a\ code\ reference,\ a\ pipeline,\ or\ an\ object\ offering\ a\ stage's\ role\ method\  )x,
         'as new reads no names';
 };
 

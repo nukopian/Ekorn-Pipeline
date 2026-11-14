@@ -391,8 +391,9 @@ Returns a pipeline that runs values through C<@stages>, in order. Each
 stage must be something L<is_stage|/"is_stage"> is true for: a code
 reference, a pipeline, or a part offering a stage's or a sink's role
 method, such as a gather or a sink. Anything else croaks, naming its
-position: "Expected stage #2 to be a code reference or a pipeline". A
-source croaks too: "Expected stage #2 to be a stage, not a source".
+position: "Expected stage #2 to be a stage: a code reference, a
+pipeline, or an object offering a stage's role method". A source
+croaks too: "Expected stage #2 to be a stage, not a source".
 
 Any code reference will do: an anonymous C<sub>, a reference to a named
 one such as C<\&trim>, or a stage made by a function such as
@@ -3371,15 +3372,21 @@ the line of the caller's code that caused it.
 
 =item *
 
-B<Expected stage #%d to be a code reference or a pipeline:> a stage
-given to C<new> wasn't a code reference or a pipeline. It's also
-raised for a pipeline whose overridden C<stages> method returned
-something that isn't a code reference.
+B<Expected stage #%d to be a stage: a code reference, a pipeline, or
+an object offering a stage's role method:> a stage given to C<new>
+was something else, such as a string.
 
 =item *
 
-B<Expected stage #%d to be a code reference, a pipeline or the name
-of one:> a stage given to C<pipeline_in>, and so to the word
+B<Expected stage #%d, a pipeline, to give only stages from its stages
+method:> a stage given to C<new> was a pipeline whose overridden
+C<stages> method returned something that isn't a stage.
+
+=item *
+
+B<Expected stage #%d to be a stage: a code reference, a pipeline or
+its name, or an object offering a stage's role method:> a stage
+given to C<pipeline_in>, and so to the word
 C<pipeline>, or to C<named> after the name, was none of them. For
 C<named>, stages are counted from the first after the name.
 
@@ -3570,6 +3577,10 @@ doesn't know, named after "not".
 
 =item *
 
+B<Expected file to be a path:> C<file> was undefined.
+
+=item *
+
 B<Expected a file or a filehandle, not both:> it was given both
 C<file> and C<fh>.
 
@@ -3667,8 +3678,13 @@ given something other than a code reference.
 
 =item *
 
-B<Expected a code reference:> C<new> was given something other than
-a code reference, or one of Ekorn's own types.
+B<Expected a code reference:> C<new> was given something that can't
+be called as code, such as a string.
+
+=item *
+
+B<Expected a code reference, not one of Ekorn's types:> C<new> was
+given one of Ekorn's own types, which is already what it is.
 
 =back
 
