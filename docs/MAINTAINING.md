@@ -264,6 +264,15 @@ the first line of each.
    and wait for CI to pass on the commit before going on. `Changes`
    isn't touched: the trial has no entry of its own.
 
+   **A version outside DBIx::Squirrel's range needs a task to it
+   first,** before the commit is pushed. While its CI installs Ekorn
+   from our `develop`, as it does while it needs what isn't released,
+   `cpanm --installdeps` replaces a version its `cpanfile` doesn't
+   take with the last release from CPAN, leaving a mix of the two that
+   fails to load. So hand it a task to move its range, as CLAUDE.md's
+   Planned work says, and push the version once it has. v0.3.0's
+   trial didn't, and broke its CI on every Perl until it did.
+
 3. **Build the tarball, and check its tests passed.**
    `--skip-prepare` builds from the files as committed, as a release
    does from its tag:
@@ -314,7 +323,7 @@ the first line of each.
    CLAUDE.md's Planned work says: which trial is on CPAN, and that
    `cpanm --dev Ekorn::Pipeline` installs it, if it wants to test
    against it. It needs no work of its own, so it's a message, not a
-   task; the task to move its range comes with the release.
+   task, unless step 2's task to move its range hasn't been sent.
 
 7. **Read the reports,** as they come in over the next few days. The
    first command counts each version's reports by grade; the second
@@ -368,8 +377,10 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    where CLAUDE.md says, and delete the file before going on.
 
 2. **Set the version.** `minil prepare` writes it into the main module,
-   and regenerates `META.json`, `Build.PL` and `README.md`. Set the
-   version on the first line:
+   and regenerates `META.json`, `Build.PL` and `README.md`. A version
+   outside DBIx::Squirrel's range needs a task to it first, as step 2
+   of [A trial release](#a-trial-release) says, unless its trial has
+   set it already. Set the version on the first line:
 
    ```sh
    v=v0.1.0
