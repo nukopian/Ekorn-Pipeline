@@ -43,6 +43,11 @@ jobs:
   # yath doesn't support Windows, so prove runs t/, as an installer
   # would, without the develop modules. Git is told not to turn LF
   # into CRLF, so the files are as the tarball has them.
+  #
+  # On 5.44, Variable::Magic 0.65 crashes perl as it exits, with an
+  # access violation, so anything using namespace::clean does too, as
+  # its B::Hooks::EndOfScope loads it. That job uses EndOfScope's pure
+  # Perl version instead; 5.36 keeps the XS one, as installers have it.
   windows:
     name: perl ${{ matrix.perl }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -51,6 +56,13 @@ jobs:
       matrix:
         os: [windows-2025]
         perl: ["5.36", "5.44"]
+        include:
+          - perl: "5.36"
+            endofscope: XS
+          - perl: "5.44"
+            endofscope: PP
+    env:
+      B_HOOKS_ENDOFSCOPE_IMPLEMENTATION: ${{ matrix.endofscope }}
     steps:
       - name: LF as it is
         run: git config --global core.autocrlf false
