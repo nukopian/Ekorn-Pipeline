@@ -712,7 +712,12 @@ subtest 'from_file and to_file take I/O layers, for bytes or text (D69)' =>
         my $n    = from_array($word) | to_file("$dir/text", ':encoding(UTF-8)');
         is [$class->new->iterator(from_file("$dir/text", ':encoding(UTF-8)'))->all],
         [$word], 'text, encoded and decoded as UTF-8';
-        is -s "$dir/text", 10, 'written as UTF-8: 9 bytes, then $/';
+        # The line ends in the platform's text mode: "\r\n" on Windows.
+        open $fh, '<:raw', "$dir/text" or die "Can't read $dir/text: $!";
+        my $written = do { local $/ = undef; <$fh> };
+        close $fh;
+        like $written, qr( \A caf\xc3\xa9 \  \xe2\x98\x83 \r? \n \z )x,
+        'written as UTF-8: 9 bytes, then $/';
     };
 
 subtest 'generator: a source of what its block yields (D70)' => sub {

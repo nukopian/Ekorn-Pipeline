@@ -375,7 +375,9 @@ subtest 'In a chain, with Ekorn::Pipeline::Sinks' => sub {
     my $path = path('.jsonl');
     $class->new(to_jsonl(json => {canonical => 1}), to_file($path))
         ->({a => 1}, {b => 2});
-    is slurp($path), qq({"a":1}\n{"b":2}\n), 'the stage, written by to_file';
+    # to_file writes in the platform's text mode: "\r\n" on Windows.
+    is slurp($path) =~ s( \r\n )(\n)gxr, qq({"a":1}\n{"b":2}\n),
+        'the stage, written by to_file';
     is [$class->new(keep_all)->iterator(from_jsonl(file => $path))->all],
         [{a => 1}, {b => 2}], 'read back';
 };
