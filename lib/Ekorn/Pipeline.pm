@@ -637,10 +637,30 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
         $finish->(0);
         return;
     };
+    # Where all collects every value still to come, while it does: the
+    # loop pushes them onto it, with no return between values. Otherwise,
+    # the loop returns the next value.
+    my $into;
     my $next = sub () {
         return if $outside;
         while (1) {
-            my($n, $value, $from_flush, $flush, $sink_flush);
+            if ($into) {
+                # All takes at once a step's values where there are no
+                # stages, and the values already at the end, such as a list
+                # sink's result.
+                if (!@stages && @from_source) {
+                    push @$into, splice @from_source;
+                    next;
+                }
+                if (@todo && $todo[-1][0] == @stages) {
+                    while (@todo && $todo[-1][0] == @stages) {
+                        push @$into, (pop @todo)->[1];
+                        $waiting_at[@stages]--;
+                    }
+                    next;
+                }
+            }
+            my($n, $value, $from_flush, $flush);
             if (@todo) {
                 ($n, $value, $from_flush) = @{ pop @todo };
                 $waiting_at[$n]--;
@@ -649,9 +669,9 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
                 ($n, $value) = (0, shift @from_source);
             }
             elsif (!$done) {
-                my @values;
+                # Straight onto @from_source, which is empty here.
                 try {
-                    @values = $pull->();
+                    @from_source = $pull->();
                 }
                 catch ($e) {
                     if ($e isa 'Ekorn::Pipeline::Stop') {
@@ -668,12 +688,11 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
                     croak $e if is_ref($e);
                     die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
                 }
-                unless (@values) {
+                unless (@from_source) {
                     ($done, $source_done) = (1, 1);
                     next;
                 }
-                ($n, $value) = (0, shift @values);
-                @from_source = @values;
+                ($n, $value) = (0, shift @from_source);
             }
             else {
                 $n = $flush_at->();
@@ -688,7 +707,9 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
             if ($n == @stages) {
                 # Nothing can end while the source is still being read.
                 $end_if_ended->() if $done;
-                return $value;
+                return $value     unless $into;
+                push @$into, $value;
+                next;
             }
             # Set only when it changes, as most values come from the source,
             # and most runs, and the code running them, have no context.
@@ -750,7 +771,8 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
             return if $outside;
             if ($kept) {
                 $end_if_ended->() if $done;
-                return $value;
+                return $value     unless $into;
+                push @$into, $value;
             }
         }
         # Everything has been handed out: the iterator is spent.
@@ -758,26 +780,18 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
         return;
     };
     # Every value the run has still to give, as $next would give them one
-    # at a time, but taking those already at the end, such as a list sink's
-    # result, and a step's values where there are no stages, in one go.
+    # at a time, but in one call of it.
     my $all = sub () {
         my @all;
-        while (!$outside) {
-            if (!@stages && @from_source) {
-                push @all, splice @from_source;
-                next;
-            }
-            if (@todo && $todo[-1][0] == @stages) {
-                while (@todo && $todo[-1][0] == @stages) {
-                    push @all, (pop @todo)->[1];
-                    $waiting_at[@stages]--;
-                }
-                next;
-            }
-            my @one = $next->();
-            last unless @one;
-            push @all, @one;
+        $into = \@all;
+        try {
+            $next->();
         }
+        catch ($e) {
+            $into = undef;
+            die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
+        }
+        $into = undef;
         return @all;
     };
     # Ended from outside, by the iterator's finish or as it's let go, the

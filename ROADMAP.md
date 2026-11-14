@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0031.
+Last id: 2026-0032.
 
 Items come in four groups:
 
@@ -47,7 +47,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 **Depends on:** 2026-0013, 2026-0014, 2026-0016, 2026-0017, 2026-0018,
 2026-0021, 2026-0024, 2026-0026, 2026-0027, 2026-0028, 2026-0029,
-2026-0031
+2026-0031, 2026-0032
 
 The design's release. `pipeline-experimental` merges to `develop` by a
 fast-forward, after a commit deleting `docs/design/`, which a tag,

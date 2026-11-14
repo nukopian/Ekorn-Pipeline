@@ -25,12 +25,13 @@ Unreleased
     can read what's left in one call, end its run early, and say how
     it ended, and which ends its run when it's let go.
 
-    Pushing values through plain subs is several times faster.
+    Pushing values through plain subs is several times faster, and
+    reading an iterator's values in one call a tenth faster.
 
-    It ships fifteen roadmap items, 2026-0009, 2026-0011, 2026-0013,
+    It ships sixteen roadmap items, 2026-0009, 2026-0011, 2026-0013,
     2026-0014, 2026-0016, 2026-0017, 2026-0018, 2026-0021, 2026-0024,
-    2026-0026, 2026-0027, 2026-0028, 2026-0029, 2026-0030 and
-    2026-0031. It changes what some code
+    2026-0026, 2026-0027, 2026-0028, 2026-0029, 2026-0030, 2026-0031
+    and 2026-0032. It changes what some code
     sees, as the entries marked "Changed" say: a gather, an iterator,
     every canned stage, and the stages a pipeline gives back are
     objects, called as code references, not code references
@@ -123,6 +124,11 @@ Unreleased
       and a half times. Every other run is a little faster too: a push
       hands its values over at once, and less is done for each value.
       Nothing else changes. (roadmap 2026-0028)
+    - Faster: pulled runs, as DBIx-Squirrel measured them. An
+      iterator's all collects every value in one pass of the run,
+      rather than a call for each, about a tenth faster through one
+      plain stage, and each pull copies less. Nothing else changes.
+      (roadmap 2026-0032)
     - Changed: pipeline_in, and so the word pipeline, given one name
       and nothing else, returns the pipeline named itself, not a new
       pipeline holding it, if it's of the invocant's class or a
