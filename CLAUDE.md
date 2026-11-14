@@ -96,7 +96,9 @@ both:
   and moves the range. DBIx::Squirrel imports the names it documents
   by name: `Stop`, `gather`, `take`, `drop`, `take_while`,
   `drop_while`, `batch`, `collect`, `peek`, `count_into` and
-  `dump_to`. A stage added here doesn't appear there until it's added
+  `dump_to`; and, since 2026-11-14, `from_json`, `from_jsonl`,
+  `to_json` and `to_jsonl`, which its Tooling exports by `:json`. A
+  stage added here doesn't appear there until it's added
   to its list.
 
 ## Who does what
