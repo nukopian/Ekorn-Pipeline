@@ -88,7 +88,7 @@
          "web" : "https://github.com/nukopian/Ekorn-Pipeline"
       }
    },
-   "version" : "v0.2.0",
+   "version" : "v0.3.0",
    "x_serialization_backend" : "JSON::PP version 4.18",
    "x_static_install" : 1
 }
