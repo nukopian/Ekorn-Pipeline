@@ -159,9 +159,9 @@ or choose one:
     }
 
 The block's flush, if it returns one, is called after the flushes of
-the pipeline's own stages, and its end after their ends. A stage inside the pipeline is named in
-messages by its position in each, as C<#2.3> for the third stage of
-the pipeline returned by stage #2.
+the pipeline's own stages, and its end after their ends. A stage
+inside the pipeline is named in messages by its position in each, as
+C<#2.3> for the third stage of the pipeline returned by stage #2.
 
 =head2 Stopping
 

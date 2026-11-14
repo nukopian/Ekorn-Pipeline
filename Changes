@@ -50,6 +50,16 @@ Unreleased
       extending the package, and the operators, which stay a pragma.
       The user guide's examples, the README's and the reference's
       At a glance import from it. (roadmap 2026-0031)
+    - The reference has a section, Making each kind of part, for
+      developers: a table of what each piece of a part, its set-up,
+      step, flush, end and context, is called with, returns, and
+      whether it may stop the run, and a worked example of each kind
+      of part, made with a word and as a class, from a stage with
+      state to an object that's both a source and a sink, committing
+      only a run that went through. Every example in the README, the
+      user guide, the reference and the modules' POD writes a
+      pipeline of two or more stages a stage to a line, and
+      paragraphs are filled evenly again.
     - The role methods, by which any object can be a source, a stage
       or a sink, are named in capitals, EKORN_SOURCE, EKORN_STAGE,
       EKORN_SINK_ONE and EKORN_SINK_MANY, as Perl names subs that its

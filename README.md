@@ -479,6 +479,9 @@ The methods are the whole contract, so your package and Ekorn can
 each change their insides freely. A source class can also overload
 `|` and `@{}` with Operators' `chain` and `drain`, so its users
 can start a chain with it.
+[The reference's "Making each kind of part"](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AManual%3A%3AReference#Making-each-kind-of-part)
+has what each method is called with and must return, with a worked
+example of each.
 
 ## Errors
 
@@ -578,9 +581,10 @@ value at a time, and a stage that blocks blocks the run.
 
 ## Where it came from
 
-The pipeline began in [DBIx::Squirrel](https://metacpan.org/dist/DBIx-Squirrel),
-where stages written beside a query shape the rows it returns. None of
-it needs a database, so it's here on its own, for any function to use,
+The pipeline began in
+[DBIx::Squirrel](https://metacpan.org/dist/DBIx-Squirrel), where
+stages written beside a query shape the rows it returns. None of it
+needs a database, so it's here on its own, for any function to use,
 and to grow beyond what rows need. DBIx::Squirrel now uses it, in
 place of its own copy, from v2.0.5.
 

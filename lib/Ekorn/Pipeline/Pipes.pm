@@ -67,9 +67,10 @@ methods, and are where they began.
     $first   = $object->pipe(@stages);
 
 Runs the invocant through a pipeline of C<@stages>, and returns what
-comes out of the last stage. The stages are what L<Ekorn::Pipeline/new>
-takes: code references and pipelines, not names. To use a named
-pipeline, pass C<pipeline('clean')> (see L<Ekorn::Pipeline/pipeline>). In scalar context, it returns the first
+comes out of the last stage. The stages are what
+L<Ekorn::Pipeline/new> takes: code references and pipelines, not
+names. To use a named pipeline, pass C<pipeline('clean')> (see
+L<Ekorn::Pipeline/pipeline>). In scalar context, it returns the first
 result, or C<undef> if there are none. With no stages, it returns the
 invocant.
 

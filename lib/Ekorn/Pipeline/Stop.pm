@@ -48,9 +48,9 @@ Ekorn::Pipeline::Stop - end a pipeline early
 A stop is the exception that ends a pipeline early and quietly. The
 rest of the stage that throws it doesn't run. The values already out
 of the pipeline are kept, and the values the stop carries go on
-through the stages after it. Nothing else is processed. Stages after
-the one that stopped still have their end functions called, if they
-were made with L<Ekorn::Pipeline::Gather>.
+through the stages after it. Nothing else is processed. The stages
+after the one that stopped still have their flushes called, and every
+part of the run has its end called, told how the run ended.
 
 =head1 FUNCTIONS
 

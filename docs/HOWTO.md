@@ -334,7 +334,8 @@ The differences show once the job grows:
   isn't fetched (see [3. Stopping early](#3-stopping-early)).
 - **Passing them on.** You can't hand a `grep` to someone else's
   function. You can hand it stages, and it runs its values through
-  them (see [9. Functions that take stages](#9-functions-that-take-stages)).
+  them (see [9. Functions that take
+  stages](#9-functions-that-take-stages)).
 - **Speed.** `map` and `grep` are faster, by a long way, for trivial
   steps over values already in memory. [How fast is
   it?](#how-fast-is-it) has numbers.
@@ -1655,7 +1656,8 @@ pipeline you already have, call `named` on it:
 `$clean->named('clean')`.
 
 A named pipeline's name also appears in error messages, which makes a
-failing stage easier to find (see [Find the stage that failed](#find-the-stage-that-failed)).
+failing stage easier to find (see [Find the stage that
+failed](#find-the-stage-that-failed)).
 
 ### Know whose name it is
 
@@ -2203,7 +2205,9 @@ say join ', ', Ekorn::Pipeline->new(sub { uc })->iterator($queue)->all;
 Your users run your objects in Ekorn's pipelines, with Ekorn's stages
 and their own. Don't subclass Ekorn's classes or wrap them to do this:
 the methods are the whole contract, so your package and Ekorn can each
-change their insides freely.
+change their insides freely. The reference's [Making each kind of
+part](REFERENCE.md#making-each-kind-of-part) says what each method is
+called with and must return, with a worked example of each.
 
 ### Tell your stages about the run
 
@@ -2281,9 +2285,10 @@ done_testing;
 # 1..3
 ```
 
-This uses `distinct`, from [Keep a stage's state with `gather`](#keep-a-stages-state-with-gather).
-Test a stage that stops through an iterator too, counting the
-source's calls, to show it reads no more than it should.
+This uses `distinct`, from [Keep a stage's state with
+`gather`](#keep-a-stages-state-with-gather). Test a stage that stops
+through an iterator too, counting the source's calls, to show it reads
+no more than it should.
 
 ### Publish a module of stages
 
@@ -2526,8 +2531,8 @@ It works with values from anywhere.
 
 Not directly, as a method needs its object, but a stage can call one:
 `sub { $formatter->format($_) }`. A class whose objects should work as
-stages, sources or sinks themselves can offer the methods in
-[Make your objects sources and sinks](#make-your-objects-sources-and-sinks).
+stages, sources or sinks themselves can offer the methods in [Make
+your objects sources and sinks](#make-your-objects-sources-and-sinks).
 
 ### Is it safe to keep a pipeline and use it again?
 
@@ -2567,9 +2572,10 @@ It falls short:
 - **on discoverability,** as a caller has to learn what a stage is,
   where an option would be listed in the documentation;
 - **in a few sharp corners,** most of them Perl's: a test isn't a
-  filter (give it to `take_if`), a plain closure keeps its state between runs, `sub {...} |
-  sub {...}` is a bitwise OR, `@{ $source }` reads everything, and a
-  generator runs its block to the end.
+  filter (give it to `take_if`), a plain closure keeps its state
+  between runs, `sub {...} | sub {...}` is a bitwise OR,
+  `@{ $source }` reads everything, and a generator runs its block to
+  the end.
 
 ### Where next?
 

@@ -1064,19 +1064,26 @@ class otherwise:
 
     use Ekorn::Pipeline::Factories qw(pipeline);
 
+    # A new pipeline, from stages:
     pipeline(
         sub { uc },
         take(5),
-    )    # new, from stages
-    pipeline('clean')    # the pipeline named clean
+    );
+
+    # The pipeline named clean, itself:
+    pipeline('clean');
+
+    # A new pipeline: the one named clean, then more stages:
     pipeline(
         'clean',
         take(5),
-    )    # it, then more
+    );
+
+    # Another package's, qualified:
     pipeline(
         'My::Module::clean',
         sub {...},
-    )     # another package's
+    );
 
 Call it from code the user calls directly, passing the user's package,
 as the word does with C<scalar caller>. Code that passes stages
@@ -1115,16 +1122,16 @@ an C<EKORN_SOURCE> method, such as an L<Ekorn::Pipeline::Source>, made
 for the run and told when it ends, or another iterator. It's called
 only once the values from its last call have all been handed out.
 
-The closure returns an empty list when the values run out, and on
+The iterator returns an empty list when the values run out, and on
 every call after that. After a stop, it returns an empty list once the
 values the stop carried are handed out, and the source isn't called
-again. Read the closure in list context, so that an C<undef> value
-isn't mistaken for the end:
+again. Read it in list context, so that an C<undef> value isn't
+mistaken for the end:
 
     while (my($x) = $next->()) { ... }
 
 The flushes of gathers and sinks are called once their input runs
-out, before the closure returns an empty list. The run's ends are
+out, before the iterator returns an empty list. The run's ends are
 called as it ends, as L</RUNS AND HOW THEY END> describes. The
 iterator has methods of its own, to pull every value still to come,
 or the first, and to end the run early: see
@@ -1368,8 +1375,9 @@ value from a flush has no such origin. It isn't exported.
 Returns the context the run's source gave, if any: its C<context>, or
 the third part its C<EKORN_SOURCE> method returned as a list, such as
 a statement's column names. It's for stages that need to know about
-the values' source, called as they run. Each run has its own. A pushed run has none, and an iterator
-used as a source passes on its own run's. It isn't exported.
+the values' source, called as they run. Each run has its own. A pushed
+run has none, and an iterator used as a source passes on its own
+run's. It isn't exported.
 
     sub pluck ($name) {
         return sub ($row) {
@@ -1493,8 +1501,8 @@ stage dies.
 
 L<Ekorn::Pipeline::Gather>, L<Ekorn::Pipeline::Stop>,
 L<Ekorn::Pipeline::Source>, L<Ekorn::Pipeline::Sink>,
-L<Ekorn::Pipeline::Iterator>, L<Ekorn::Pipeline::Pipes>, and L<DBIx::Squirrel>, where the pipeline
-began
+L<Ekorn::Pipeline::Iterator>, L<Ekorn::Pipeline::Pipes>, and
+L<DBIx::Squirrel>, where the pipeline began
 
 L<Ekorn::Pipeline::Manual::HowTo>, the user guide, tours the package
 from the bottom up, with recipes, and

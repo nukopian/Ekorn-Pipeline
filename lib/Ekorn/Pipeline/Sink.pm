@@ -191,7 +191,8 @@ has an C<EKORN_SINK_MANY> method of its own.
     my @parts = $sink->EKORN_SINK_ONE;
 
 A sink of one's: calls the set-up, for a new run, and returns what it
-returns: the parts, as a list or by name. A run calls it as it starts; you needn't.
+returns: the parts, as a list or by name. A run calls it as it starts;
+you needn't.
 
 =head2 EKORN_SINK_MANY
 

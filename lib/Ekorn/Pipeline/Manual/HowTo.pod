@@ -487,7 +487,8 @@ isn't fetched (see L<3. Stopping early|/"3. Stopping early">).
 
 B<Passing them on.> You can't hand a C<grep> to someone else's
 function. You can hand it stages, and it runs its values through
-them (see L<9. Functions that take stages|/"9. Functions that take stages">).
+them (see L<9. Functions that take
+stages|/"9. Functions that take stages">).
 
 =item *
 
@@ -1741,7 +1742,8 @@ pipeline you already have, call C<named> on it:
 C<< $clean->named('clean') >>.
 
 A named pipeline's name also appears in error messages, which makes a
-failing stage easier to find (see L<Find the stage that failed|/"Find the stage that failed">).
+failing stage easier to find (see L<Find the stage that
+failed|/"Find the stage that failed">).
 
 =head2 Know whose name it is
 
@@ -2287,7 +2289,9 @@ written to:
 Your users run your objects in Ekorn's pipelines, with Ekorn's stages
 and their own. Don't subclass Ekorn's classes or wrap them to do this:
 the methods are the whole contract, so your package and Ekorn can each
-change their insides freely.
+change their insides freely. The reference's L<Making each kind of
+part|Ekorn::Pipeline::Manual::Reference/"Making each kind of part"> says what each method is
+called with and must return, with a worked example of each.
 
 =head2 Tell your stages about the run
 
@@ -2369,9 +2373,10 @@ show what it does with none:
     # ok 3 - nothing, from nothing
     # 1..3
 
-This uses C<distinct>, from L<Keep a stage's state with C<gather>|/"Keep a stage's state with gather">.
-Test a stage that stops through an iterator too, counting the
-source's calls, to show it reads no more than it should.
+This uses C<distinct>, from L<Keep a stage's state with
+C<gather>|/"Keep a stage's state with gather">. Test a stage that stops
+through an iterator too, counting the source's calls, to show it reads
+no more than it should.
 
 =head2 Publish a module of stages
 
@@ -2622,8 +2627,8 @@ It works with values from anywhere.
 
 Not directly, as a method needs its object, but a stage can call one:
 C<< sub { $formatter->format($_) } >>. A class whose objects should work as
-stages, sources or sinks themselves can offer the methods in
-L<Make your objects sources and sinks|/"Make your objects sources and sinks">.
+stages, sources or sinks themselves can offer the methods in L<Make
+your objects sources and sinks|/"Make your objects sources and sinks">.
 
 =head2 Is it safe to keep a pipeline and use it again?
 
@@ -2691,9 +2696,10 @@ where an option would be listed in the documentation;
 =item *
 
 B<in a few sharp corners,> most of them Perl's: a test isn't a
-filter (give it to C<take_if>), a plain closure keeps its state between runs, C<sub {...} |
-sub {...}> is a bitwise OR, C<@{ $source }> reads everything, and a
-generator runs its block to the end.
+filter (give it to C<take_if>), a plain closure keeps its state
+between runs, C<sub {...} | sub {...}> is a bitwise OR,
+C<@{ $source }> reads everything, and a generator runs its block to
+the end.
 
 =back
 

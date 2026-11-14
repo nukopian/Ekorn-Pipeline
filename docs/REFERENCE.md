@@ -45,6 +45,7 @@ says what each release changed.
 - [Writing stages](#writing-stages)
 - [Writing functions that take stages](#writing-functions-that-take-stages)
 - [Delivering parts for Ekorn](#delivering-parts-for-ekorn)
+- [Making each kind of part](#making-each-kind-of-part)
 - [Diagnostics](#diagnostics)
 - [Exports](#exports)
 - [The modules](#the-modules)
@@ -310,7 +311,7 @@ reference".
   values from its last call have all gone through the stages. A source
   reading a file, a socket or a database reads no more than its caller
   asks for.
-- The closure returns one result per call. Once the results run out,
+- The iterator returns one result per call. Once the results run out,
   it returns an empty list, on every call. Read it in list context, as
   `my($x) = $next->()`, so that a result of `undef`, 0 or `''` isn't
   taken for the end.
@@ -441,10 +442,11 @@ Ekorn::Pipeline->new(@stages)->named('clean');    # name one you have
 ```
 
 Names a pipeline, and returns it. On the class, it makes a pipeline of
-the stages after the name, which `pipeline` would take, names included,
-looked up in its caller's package, so a pipeline can be defined from
-others. A subclass makes one of its own class. On a pipeline, it names that one, and croaks if given
-stages after the name.
+the stages after the name, which `pipeline` would take, names
+included, looked up in its caller's package, so a pipeline can be
+defined from others. A subclass makes one of its own class. On a
+pipeline, it names that one, and croaks if given stages after the
+name.
 
 The name is kept in the caller's package, unless it's qualified, as
 [Named pipelines](#named-pipelines) explains. A name is identifiers,
@@ -520,8 +522,8 @@ source. It's exported on request.
 
 Use it in a function that takes its stages from the end of its
 arguments, so that it accepts the same stages `new` does, pipelines
-included. [Writing functions that take stages](#writing-functions-that-take-stages)
-has an example.
+included. [Writing functions that take
+stages](#writing-functions-that-take-stages) has an example.
 
 ```perl
 say join ' ', map { is_stage($_) ? 'yes' : 'no' }
@@ -582,10 +584,10 @@ Ekorn::Pipeline::run_context()
 Returns the context the run's source gave, if any: its `context`, or
 the third part its `EKORN_SOURCE` returned as a list, such as a
 statement's column names. It's for stages that need to know about the
-values' source, called as they run. Each run has its own. A pushed run has none, and an iterator used as a
-source passes on its own run's. It isn't exported, and is new in
-v0.3.0. [Stages that ask about their run](#stages-that-ask-about-their-run)
-has an example.
+values' source, called as they run. Each run has its own. A pushed run
+has none, and an iterator used as a source passes on its own run's. It
+isn't exported, and is new in v0.3.0. [Stages that ask about their
+run](#stages-that-ask-about-their-run) has an example.
 
 ## Words: Ekorn::Pipeline::Factories
 
@@ -631,19 +633,26 @@ or the name of one, looked up now, in the package that called
 pipeline it names, itself, as [pipeline_in](#pipeline_in) describes:
 
 ```perl
+# A new pipeline, from stages:
 pipeline(
     sub { uc },
     take(5),
-)    # new, from stages
-pipeline('clean')    # the pipeline named clean
+);
+
+# The pipeline named clean, itself:
+pipeline('clean');
+
+# A new pipeline: the one named clean, then more stages:
 pipeline(
     'clean',
     take(5),
-)    # it, then more
+);
+
+# Another package's, qualified:
 pipeline(
     'My::Module::clean',
     sub {...},
-)     # another package's
+);
 ```
 
 It's `Ekorn::Pipeline->pipeline_in(scalar caller, @stages)` (see
@@ -1065,9 +1074,9 @@ stop the run, with `Stop`, once it has all it wants: it still gives its
 result, and is told `done`.
 
 The words [sink_one and sink_many](#sink_one-and-sink_many) make them
-from a block. A sink can be called as a code reference with values, as a pipeline of
-the one sink would be, and gives its result, from a fresh sink of its
-set-up each time.
+from a block. A sink can be called as a code reference with values, as
+a pipeline of the one sink would be, and gives its result, from a
+fresh sink of its set-up each time.
 
 Called on a subclass with an `EKORN_SINK_ONE` or `EKORN_SINK_MANY`
 method of its own, `new_sink_one` or `new_sink_many` makes the
@@ -1361,9 +1370,9 @@ A gather's end, its third, is told how the run ended, as every end is
 sub average () {
     return gather {
         my($sum, $n) = (0, 0);
-        my $stage = sub ($x) { $sum += $x; $n++; return };
-        my $end   = sub ()   { $n ? $sum / $n : () };
-        return ($stage, $end);
+        my $step  = sub ($x) { $sum += $x; $n++; return };
+        my $flush = sub ()   { $n ? $sum / $n : () };
+        return ($step, $flush);
     };
 }
 
@@ -1385,16 +1394,19 @@ choose one:
 ```perl
 my $run   = 0;
 my $alter = Ekorn::Pipeline->new(gather {
-    Ekorn::Pipeline->new($run++ % 2 ? sub { uc } : sub { lc }, take(2))
+    Ekorn::Pipeline->new(
+        $run++ % 2 ? sub { uc } : sub { lc },
+        take(2),
+    );
 });
 say join ' ', $alter->(qw(A b C));    # a b
 say join ' ', $alter->(qw(A b C));    # A B
 ```
 
 The block's flush, if it returns one, is called after the flushes of
-the pipeline's own stages, and its end after their ends. A stage inside the pipeline is named in
-messages by its position in each, as `#2.3` for the third stage of the
-pipeline returned by stage #2.
+the pipeline's own stages, and its end after their ends. A stage
+inside the pipeline is named in messages by its position in each, as
+`#2.3` for the third stage of the pipeline returned by stage #2.
 
 > **For stage authors:** a stage that holds values should give them
 > up in its flush, as `batch` and `collect` do, so none are lost when
@@ -1790,7 +1802,7 @@ Asked for one value, in scalar context, a sink giving a list gives it
 as an array reference; for how many, use `count_items`:
 
 ```perl
-my $p      = Ekorn::Pipeline->new(
+my $p = Ekorn::Pipeline->new(
     sub { $_->{title} },
     keep_all,
 );
@@ -1840,13 +1852,14 @@ use Ekorn::Pipeline::Operators;
 ```
 
 It puts `|`, `|=` and `@{}` in force for Ekorn's sources, stages,
-gathers and chains, for the rest of the scope it's used in; `no
-Ekorn::Pipeline::Operators` takes them out again. Written where
+gathers and chains, for the rest of the scope it's used in;
+`no Ekorn::Pipeline::Operators` takes them out again. Written where
 they're not in force, they croak: "Expected use
 Ekorn::Pipeline::Operators in scope". They're new in v0.3.0, and a
-shorthand for the commonest shapes, not the whole of Ekorn: a pipeline made with `new` can have stages after a
-sink, give a list as a list, and, pulled with `iterator`, be a source
-that gives a sink's result, none of which a chain can.
+shorthand for the commonest shapes, not the whole of Ekorn: a pipeline
+made with `new` can have stages after a sink, give a list as a list,
+and, pulled with `iterator`, be a source that gives a sink's result,
+none of which a chain can.
 
 | Written | Gives |
 |---|---|
@@ -1873,9 +1886,10 @@ Ekorn](#delivering-parts-for-ekorn)).
 expression in parentheses.
 
 An operator gives one scalar, so a chain ending in a sink gives one
-value: the result of a sink of one, such as `count_items`, or the
-list of a sink of many, such as `keep_all`, as an array reference.
-Nothing can be chained after a sink: a chain ending in one has already run, and gives its result.
+value: the result of a sink of one, such as `count_items`, or the list
+of a sink of many, such as `keep_all`, as an array reference. Nothing
+can be chained after a sink: a chain ending in one has already run,
+and gives its result.
 
 ```perl
 my $n      = $source | count_items;          # a number
@@ -1927,10 +1941,12 @@ What to write, by what's wanted:
 | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |
 
 ```perl
-my @all   = @{$source};                                      # every value
-my $first = $source | keep_first;                            # the first, reading only one
+my @all   = @{$source};               # every value
+my $first = $source | keep_first;     # the first, reading only one
 my $next  = Ekorn::Pipeline->new->iterator($source);
-while (my ($value) = $next->()) { say $value }    # each, as it comes
+while (my ($value) = $next->()) {     # each, as it comes
+    say $value;
+}
 ```
 
 ## Errors: Ekorn::Pipeline::Errors
@@ -2200,7 +2216,9 @@ For the author of a package that hands out values, such as
 DBIx::Squirrel, or a module reading CSV or JSON. Use Ekorn as it is:
 deliver sources, sinks and stages that keep its protocols, and let your
 users run them in Ekorn's pipelines, with Ekorn's parts and their own.
-Don't subclass Ekorn's classes, or wrap them.
+Don't subclass Ekorn's classes, or wrap them. [Making each kind of
+part](#making-each-kind-of-part) has what each piece is called with
+and returns, with a worked example of each kind of part.
 
 ### The protocols
 
@@ -2296,6 +2314,284 @@ Ekorn's freely.
 Put `@Ekorn::Pipeline::Errors::INTERNAL` in your modules' `@CARP_NOT`,
 so a mistake is reported at your users' lines.
 
+## Making each kind of part
+
+This section is for developers making parts for others: what each
+part of a run is called with, what it must return, and a worked
+example of each kind, made with a word and as a class of your own.
+Each example runs as it stands, given
+`use Ekorn::Pipeline; use Ekorn::Pipeline::Tooling qw(:all);`, and its
+comments say what it prints.
+
+### What each piece is called with, and returns
+
+A part made for a run, whether by a word or by a role method, is a
+set of pieces. The set-up makes them at the start of each run, and the
+run calls them:
+
+| Piece | When it's called | What it's given | What it returns | Can it stop the run? |
+|---|---|---|---|---|
+| **set-up** (a word's block, or a role method) | once, at the start of each run, before any value | nothing; a role method, its object | the part's pieces, as a list or by name | no: it croaks "Expected no stop in a set-up, as the run has nothing yet to stop" |
+| a source's **step** | each time the run wants more values | nothing | the next value, or several; an empty list when there are no more | yes: the values its stop carries are its last, and its end is told `done` |
+| a stage's **step** | once for each value | the value, in `$_` and as its only argument | a list: none drops the value, one passes it on, several go on one at a time | yes |
+| a sink's **step** | once for each value | the value, in `$_` and as its only argument | nothing that's used: what it returns is ignored | yes: the sink still gives its result, and its end is told `done` |
+| a gather's **flush** | once, when its input runs out: not if a stop at or after its stage cut its input short, or the run died | nothing, with `$_` undefined | values to go on through the stages after it, as a step's do | yes |
+| a sink's **flush** | the same | nothing, with `$_` undefined | the result: one value for a sink of one, a list for a sink of many | no need: its input has run out |
+| an **end** | once, when the run has ended, however it ended | how it ended, from where the part stands: `done`, `stopped` or `died` | nothing that's used | no: it croaks "Expected no stop in an end, as the run has ended" |
+| a source's **context** | read by stages, while the run lasts | | any value: stages ask for it with `Ekorn::Pipeline::run_context()` | |
+
+What each part's set-up returns, as a list in this order, or as a
+hash reference with these keys:
+
+| Part | Made with | Its pieces, in order | Required |
+|---|---|---|---|
+| a source | `source {...}`, or `EKORN_SOURCE` | `step`, `end`, `context` | the step |
+| a stage | `gather {...}`, or `EKORN_STAGE` | `step`, `flush`, `end` | the step |
+| a sink | `sink_one {...}` or `sink_many {...}`, or `EKORN_SINK_ONE` or `EKORN_SINK_MANY` | `step`, `flush`, `end` | the step and the flush |
+
+Six rules hold for every part:
+
+- **What a run needs goes in the set-up,** declared with `my`, and
+  the pieces are closures sharing it. Never keep a run's state in the
+  object, or in the closure around the set-up: a part may be in two
+  runs at once, as when two iterators of one pipeline are read in turn.
+- **By name, give only the pieces you have.** As a list, leave out
+  pieces from the end, and give `undef` for one you leave out before
+  one you give: `return ($step, undef, $end)`.
+- **Ends run in order,** the source's first, then each stage's, first
+  stage first, and each is told how the run ended from where it
+  stands: the source and the stages up to the one that stopped the
+  run, itself included, are told `stopped`, if they still had values
+  to come, and the stages after it, `done`.
+- **An end can't undo the run, but it can choose what to keep.** A
+  sink that writes somewhere commits in its end only when told `done`,
+  and throws away what it wrote otherwise.
+- **A piece that dies ends the run.** Every end is still called, told
+  `died`, and then the error is thrown, naming the part, as in
+  "Pipeline stage #2 failed at ...". An end that dies in a run that
+  hadn't died ends it with its error; in a run already dying, it's a
+  warning.
+- **Only a `gather` block may return a pipeline,** in place of its
+  step, so that its stages are made for the run. A role method returns
+  code references.
+
+### A stage, with the word `gather`
+
+A stage that numbers each value, says how many there were once the
+values run out, and notes in a log of your choosing how each run
+ended:
+
+```perl
+sub numbered ($log) {
+    return gather {
+        my $n = 0;    # this run's
+        return {
+            step  => sub ($value) { ++$n . ". $value" },
+            flush => sub ()       { "($n in all)" },
+            end   => sub ($how)   { push @$log, "numbered: $how" },
+        };
+    };
+}
+
+my @log;
+say for Ekorn::Pipeline->new(numbered(\@log))->(qw(a b));
+# 1. a
+# 2. b
+# (2 in all)
+
+say for Ekorn::Pipeline->new(
+    numbered(\@log),
+    take(1),
+)->(qw(a b));
+# 1. a
+
+say for Ekorn::Pipeline->new(
+    take(1),
+    numbered(\@log),
+)->(qw(a b));
+# 1. a
+# (1 in all)
+
+say "@log";    # numbered: done numbered: stopped numbered: done
+```
+
+In the second run, `take(1)`, after the numbering stage, stopped the
+run while `b` was still to come, so the numbering stage's input was
+cut short: its flush wasn't called, and its end was told `stopped`. In
+the third, `take(1)` comes first, so the numbering stage got all the
+values it was going to get: its flush was called, and its end was told
+`done`.
+
+### The same stage, as a class
+
+A class of your own can be the same stage, with no word and nothing of
+Ekorn's loaded, by offering `EKORN_STAGE`. It's called at the start of
+each run, with the object, and returns the pieces, as the set-up did:
+
+```perl
+package My::Numbered {
+    sub new ($class, %options) { bless {from => $options{from} // 1}, $class }
+
+    sub EKORN_STAGE ($self) {
+        my $n = $self->{from};    # this run's, starting where the object says
+        return {step => sub ($value) { $n++ . ". $value" }};
+    }
+}
+
+my $numbered = My::Numbered->new(from => 10);
+my $p        = Ekorn::Pipeline->new($numbered);
+say join ', ', $p->(qw(a b));    # 10. a, 11. b
+say join ', ', $p->(qw(c));      # 10. c
+```
+
+The object keeps its settings, such as where to count from, and each
+run keeps its own count, as `$n` is declared in the method.
+
+### A source, with the word `source`
+
+A source of the lines of a text, which closes what it opened however
+the run ends, and tells its stages the text's name, as the run's
+context:
+
+```perl
+sub lines_in ($name, $text) {
+    return source {
+        open my $fh, '<', \$text or die "Can't read $name: $!\n";    # this run's
+        return {
+            step    => sub () { my $line = readline $fh; defined $line ? $line =~ s( \n \z )()xr : () },
+            end     => sub ($how) { close $fh },
+            context => {name => $name},
+        };
+    };
+}
+
+my $where = sub ($line) { Ekorn::Pipeline::run_context()->{name} . ": $line" };
+my $next  = Ekorn::Pipeline->new($where)->iterator(lines_in('verse', "one\ntwo\n"));
+say for $next->all;
+# verse: one
+# verse: two
+say $next->ended;    # done
+```
+
+Its step is called with nothing, and returns the next line, or an
+empty list once there are none. Returning an empty list is the only
+way a source says it has finished: `undef`, 0 and the empty string are
+values.
+
+### A sink of one and a sink of many, with the words
+
+`sink_one` makes a sink giving one value, and `sink_many` one giving a
+list. The step is given each value, and what it returns is ignored;
+the flush gives the result:
+
+```perl
+my $longest = sink_one {
+    my $longest = '';
+    return {
+        step  => sub ($word) { $longest = $word if length $word > length $longest },
+        flush => sub ()      { $longest },
+    };
+};
+
+my $distinct = sink_many {
+    my(%seen, @order);
+    return {
+        step  => sub ($word) { push @order, $word unless $seen{$word}++ },
+        flush => sub ()      { @order },
+    };
+};
+
+my @words = qw(the cat sat on the mat);
+say scalar Ekorn::Pipeline->new($longest)->(@words);     # the
+say join ' ', Ekorn::Pipeline->new($distinct)->(@words);    # the cat sat on mat
+my $list = Ekorn::Pipeline->new($distinct)->(@words);
+say scalar @$list;    # 5
+```
+
+Asked for one value, a pipeline ending in a sink of many gives its
+list as an array reference, so it can never be mistaken for a count.
+`$longest` gives the first of the longest, as it keeps a word only if
+it's longer than the one it has.
+
+### A class that's both a source and a sink
+
+One object can offer `EKORN_SOURCE` and a sink's method, as a shelf of
+books can be read from and added to. This one adds what it's given
+only if the whole run went through, so a run that dies, or is cut
+short, leaves the shelf as it was:
+
+```perl
+package My::Shelf {
+    sub new ($class, @books) { bless {books => [@books]}, $class }
+
+    sub books ($self) { @{ $self->{books} } }
+
+    # Read: each book on the shelf, in order.
+    sub EKORN_SOURCE ($self) {
+        my $i = 0;    # this run's place
+        return {step => sub () { $i < @{ $self->{books} } ? $self->{books}[$i++] : () }};
+    }
+
+    # Write: the books given, put on the shelf only once the run is done.
+    sub EKORN_SINK_ONE ($self) {
+        my @pending;
+        return {
+            step  => sub ($book) { push @pending, $book },
+            flush => sub ()      { scalar @pending },
+            end   => sub ($how)  { push @{ $self->{books} }, @pending if $how eq 'done' },
+        };
+    }
+}
+
+my $shelf = My::Shelf->new('Emma');
+say scalar Ekorn::Pipeline->new($shelf)->('Dune', 'Ulysses');    # 2
+say join ', ', $shelf->books;    # Emma, Dune, Ulysses
+
+eval {
+    Ekorn::Pipeline->new(
+        sub { die "Torn\n" if $_ eq 'Torn'; $_ },
+        $shelf,
+    )->('Ivanhoe', 'Torn');
+};
+say join ', ', $shelf->books;    # Emma, Dune, Ulysses
+
+say join ', ', Ekorn::Pipeline->new(sub { uc })->iterator($shelf)->all;
+# EMMA, DUNE, ULYSSES
+```
+
+The second run died at its second book, so the sink's end was told
+`died`, and `Ivanhoe` was never put on the shelf.
+
+### Your source, chained with `|`
+
+To let your users start a chain with your source, overload `|` and
+`@{}` with Operators' `chain` and `drain`. Load Operators with an empty
+import list, so that it doesn't put the operators in force in your
+package:
+
+```perl
+package My::Chained::Shelf {
+    our @ISA = ('My::Shelf');
+    use Ekorn::Pipeline::Operators ();
+    use overload
+        '|'   => \&Ekorn::Pipeline::Operators::chain,
+        '@{}' => \&Ekorn::Pipeline::Operators::drain;
+}
+
+use Ekorn::Pipeline::Operators;
+
+my $shelf  = My::Chained::Shelf->new('Emma', 'Dune', 'Ulysses');
+my $titles = $shelf
+    | take_if { length > 4 }
+    | stage { uc }
+    | keep_all;
+say "@$titles";    # ULYSSES
+say scalar @{$shelf};    # 3
+```
+
+This uses `My::Shelf`, from the example before. Your users need `use
+Ekorn::Pipeline::Operators` in their own scope, as for any chain.
+
 ## Diagnostics
 
 Every message Ekorn::Pipeline writes, by module. Each is reported at
@@ -2318,8 +2614,8 @@ the line of the caller's code that caused it.
   reaches (see [Named pipelines](#named-pipelines)).
 - **A pipeline named %s is already defined:** `named` was given a name
   already defined for another pipeline.
-- **Expected a name, made of words joined by ::** (from `named`): it was given
-  something other than a name.
+- **Expected a name, made of words joined by ::** (from `named`): it
+  was given something other than a name.
 - **Expected only a name, naming a pipeline you have:** `named`, on a
   pipeline, was given stages after the name.
 - **Expected stage #%d to be a stage, not a source:** a source,
@@ -2447,7 +2743,8 @@ stage's position there follow, as `#1.2 (main::clean#2)` (see
 - **Expected a batch size of 1 or more:** `batch` was given something
   other than a whole number above 0.
 - **Expected a code reference:** `take_if`, `drop_if`, `take_while`,
-  `drop_while`, `collect` or `peek` was given something other than a block or code reference.
+  `drop_while`, `collect` or `peek` was given something other than a
+  block or code reference.
 - **Expected only one item, but there were more:** a warning, not an
   error: `take_single` was given a second value, and stopped the
   pipeline, passing on only the first.
