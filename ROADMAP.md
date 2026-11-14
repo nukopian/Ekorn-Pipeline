@@ -53,9 +53,10 @@ The design's release. `pipeline-experimental` merges to `develop` by a
 fast-forward, after a commit deleting `docs/design/`, which a tag,
 `archive/pipeline-experimental`, keeps; DBIx-Squirrel tests against
 Ekorn's `develop`, and merges its own branch; the docs are swept as a
-whole, with what it turned up; and v0.3.0 is released, with a task for
-DBIx-Squirrel to move its range. It's v0.3.0, not v1.0.0, so the design
-can settle first; see its [record](docs/changes/2026-0025-release-v0-3-0.md).
+whole, with what it turned up; and v0.3.0 is released, after a trial,
+with a task for DBIx-Squirrel to move its range. It's v0.3.0, not
+v1.0.0, so the design can settle first; see its
+[record](docs/changes/2026-0025-release-v0-3-0.md).
 Done when v0.3.0 is on CPAN, and DBIx-Squirrel has its task.
 
 ## Next

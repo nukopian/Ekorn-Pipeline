@@ -198,69 +198,119 @@ entry's precis, and takes it off [ROADMAP.md](../ROADMAP.md).
 
 A trial puts a version on CPAN for CPAN Testers to test, on platforms
 CI doesn't cover, such as Windows and the BSDs. CPAN doesn't index it,
-so `cpanm Ekorn::Pipeline` still installs the last release. PAUSE
-treats a tarball whose name ends `-TRIAL` as a trial; that's all
-`minil release --trial` does. There's no tag and no GitHub release,
-and `main` doesn't move.
+so `cpanm Ekorn::Pipeline` still installs the last release, and
+DBIx::Squirrel's range doesn't take it. There's no tag and no GitHub
+release, `main` doesn't move, and `Changes` keeps its Unreleased
+heading.
 
-PAUSE never takes the same file name twice, so each trial has its own
-version, and the release uses the version of its last trial. A change
-after a trial moves the version on for the next one.
+What makes it a trial is the tarball's name: PAUSE treats one ending
+`-TRIAL` as a trial. That's all `minil release --trial` does, and
+`minil dist` has no `--trial`, so we rename the tarball by hand. The
+`META.json` inside still says `"release_status" : "stable"`, as it
+would from `minil release --trial`. PAUSE and MetaCPAN go by the name:
+v0.1.0-TRIAL and v0.1.1-TRIAL went up this way, and MetaCPAN lists
+both as developer releases.
+
+The release uses the version of its last trial: v0.1.1 followed
+v0.1.1-TRIAL, as PAUSE takes the two names as different files. It
+never takes the same file name twice, though, so a second trial needs
+a new version. A change to code or tests after a trial moves the
+version on, as v0.1.0's trial was followed by v0.1.1's.
 
 A change that touches only POD or documentation needs no new trial,
 as Iain decided on 2026-11-08, since CPAN Testers test code, not
 prose. Check the POD with `podchecker`, and say in the release's
-commit that it differs from the trial in its documentation. A change
-to code or tests needs a new trial.
+commit that it differs from the trial in its documentation.
 
-Don't use an underscore version, such as `v0.1.0_1`, for a trial of
-v0.1.0. `version.pm` reads it as v0.1.1, so it would rank above the
+Don't use an underscore version, such as `v0.3.0_1`, for a trial of
+v0.3.0. `version.pm` reads it as v0.3.1, so it would rank above the
 release it was a trial of. DBIx-Squirrel decided this on 2026-11-06,
 and the same holds here.
 
-1. **Check `develop`,** as in step 1 of
-   [Making a release](#making-a-release), with the working tree clean,
-   so the tarball is built from a commit CI has passed.
+The commands below are for v0.3.0's trial. For another version, change
+the first line of each.
 
-2. **Set the version, if it has had a trial.** The version is the one
-   in the main module. If PAUSE already has a trial of it, set the next
-   on the first line, then commit and push, and wait for CI to pass on
-   the commit before going on:
+1. **Check `develop`:** CI is green on its last commit, the working
+   tree is clean, and the history has no secrets, since the tarball is
+   published.
 
    ```sh
-   v=v0.1.0
+   cd ~/Git/github.com/nukopian/Ekorn-Pipeline
+   git switch develop
+   git pull --ff-only
+   git status --short
+   gh run list --branch develop --limit 1
+   gitleaks git --redact --no-banner .
+   ```
+
+   Unlike a release, a trial doesn't wait for `TODO.md` to go:
+   `minil.toml` leaves it out of the tarball, and `main` doesn't move.
+   But a task that changes code is done first, or the trial tests
+   something other than what's released.
+
+2. **Set the version,** unless the main module has it already. For
+   v0.3.0's first trial it says v0.2.0, so it's set. `minil prepare`
+   writes it into the main module, and regenerates `META.json`,
+   `Build.PL` and `README.md`:
+
+   ```sh
+   v=v0.3.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    perlbrew exec --with perl-5.36.3@ekorn-pipeline minil prepare "$v" </dev/null
    git status --short
    ```
 
-   Commit what changed as `chore: version v0.1.0, for a trial`, with
-   the version.
+   Commit what changed as `chore: version v0.3.0, for a trial`, push,
+   and wait for CI to pass on the commit before going on. `Changes`
+   isn't touched: the trial has no entry of its own.
 
-3. **Build the tarball, and check its tests passed.** Set the version
-   on the first line:
+3. **Build the tarball, and check its tests passed.**
+   `--skip-prepare` builds from the files as committed, as a release
+   does from its tag:
 
    ```sh
-   v=v0.1.0
+   v=v0.3.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
-   perlbrew exec --with perl-5.36.3@ekorn-pipeline minil dist > "$TMPDIR/dist-$v.log" 2>&1
+   perlbrew exec --with perl-5.36.3@ekorn-pipeline minil dist --skip-prepare > "$TMPDIR/dist-$v.log" 2>&1
    grep '^Result:' "$TMPDIR/dist-$v.log"
+   tar -xOzf "Ekorn-Pipeline-$v.tar.gz" "Ekorn-Pipeline-$v/META.json" | jq -r .version
+   git status --short
    ```
 
-   It must print `Result: PASS`: `minil dist` exits 0 even when the
-   tests fail.
+   It must print `Result: PASS`, then the version: `minil dist` exits
+   0, and writes the tarball, even when the tests fail. On a failure,
+   remove the tarball, fix the problem on `develop`, and start again.
+   `git status` should print nothing, as git ignores the tarball.
 
-4. **Rename it, and upload it:**
+4. **Rename it, and upload it.** `cpan-upload` reads the PAUSE account
+   from `~/.pause`:
 
    ```sh
-   v=v0.1.0
+   v=v0.3.0
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    mv "Ekorn-Pipeline-$v.tar.gz" "Ekorn-Pipeline-$v-TRIAL.tar.gz"
    perlbrew exec --with perl-5.36.3@ekorn-pipeline cpan-upload "Ekorn-Pipeline-$v-TRIAL.tar.gz"
    rm "Ekorn-Pipeline-$v-TRIAL.tar.gz"
    ```
 
-5. **Read the reports,** as they come in over the next few days. The
+5. **Check that CPAN has it, as a trial.** PAUSE emails when it has
+   the upload, usually within the hour. Then MetaCPAN lists it, and
+   `developer` says it's a trial:
+
+   ```sh
+   curl -sSf https://fastapi.metacpan.org/v1/release/versions/Ekorn-Pipeline | jq -r '.releases[] | "\(.name) \(.maturity) \(.status) \(.date)"'
+   ```
+
+   The first line should be `Ekorn-Pipeline-v0.3.0-TRIAL developer cpan`,
+   and v0.2.0's should still say `latest`.
+
+6. **Tell DBIx-Squirrel,** with a message in its `TODO.md`, as
+   CLAUDE.md's Planned work says: which trial is on CPAN, and that
+   `cpanm --dev Ekorn::Pipeline` installs it, if it wants to test
+   against it. It needs no work of its own, so it's a message, not a
+   task; the task to move its range comes with the release.
+
+7. **Read the reports,** as they come in over the next few days. The
    first command counts each version's reports by grade; the second
    lists those that didn't pass, with a link to each:
 
@@ -269,9 +319,14 @@ and the same holds here.
    curl -sSf https://api.cpantesters.org/v3/summary/Ekorn-Pipeline | jq -r '.[] | select(.grade != "pass") | "\(.version) \(.grade) \(.osname) perl \(.perl) https://www.cpantesters.org/cpan/report/\(.guid)"'
    ```
 
-   A failure is fixed on `develop`, and a new trial uploaded, with a
-   version of its own, before the release. An `na` from a Perl older
+   A failure is fixed on `develop`, and a new trial uploaded, as
+   v0.3.1, from step 2, before the release. An `na` from a Perl older
    than 5.36 is expected, and needs nothing.
+
+8. **Release it,** once the reports are in and clean, as
+   [Making a release](#making-a-release) says, with the trial's
+   version. Its step 2's `minil prepare` then changes nothing, as the
+   version is already set.
 
 ## Making a release
 
