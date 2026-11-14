@@ -16,10 +16,10 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # returns its step, its flush, giving its result, and, optionally, its
 # end. new_sink_many makes one whose result is a list, offered by
 # EKORN_SINK_MANY; new_sink_one makes one whose result is one value,
-# offered by EKORN_SINK_ONE. Called with
-# values, a sink pushes them through a fresh sink of its set-up, as a
-# pipeline of the one sink would, and gives its result: the closure
-# holds the set-up, not the sink, so it works however long it's kept.
+# offered by EKORN_SINK_ONE. Called with values, a sink pushes them
+# through a fresh sink of its set-up, as a pipeline of the one sink
+# would, and gives its result: the closure holds the set-up, not the
+# sink, so it works however long it's kept.
 sub new_sink_many ($class, $setup) {
     return _made(
         $class->can('EKORN_SINK_MANY') ? $class : 'Ekorn::Pipeline::Sink::Many',

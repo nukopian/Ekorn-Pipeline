@@ -17,8 +17,8 @@ our @EXPORT = qw(gather);    ## no critic (Modules::ProhibitAutomaticExportation
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a stage a pipeline makes afresh for each run, by calling the
-# block given, which returns the stage, and optionally a function called
-# when the values run out.
+# block given, which returns the stage's step, and optionally its flush
+# and its end.
 sub gather : prototype(&) ($block) {
     return __PACKAGE__->new($block);
 }

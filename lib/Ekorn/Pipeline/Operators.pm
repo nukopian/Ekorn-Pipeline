@@ -44,8 +44,9 @@ sub _check_in_force ($operator) {
 
 # The | of two parts. From a source: with a scalar sink, the sink's
 # result, at once; with a list sink, its list, as an array reference;
-# with a stage, a chain, a source of the values through it. From a stage: a chain of stages, a pipeline with |. A class of
-# sources of its own can overload | with this, to chain as Ekorn's do.
+# with a stage, a chain, a source of the values through it. From a
+# stage: a chain of stages, a pipeline with |. A class of sources of its
+# own can overload | with this, to chain as Ekorn's do.
 sub chain ($before, $after, $swapped = undef, @) {
     _check_in_force('|');
     ($before, $after) = ($after, $before) if $swapped;

@@ -2689,7 +2689,8 @@ filter and a multiplication, on a recent laptop:
 - **pushed,** a pipeline runs about 2.3 million values a second, about
   twelve times slower than the same work with `map` and `grep`;
 - **pulled** through an iterator, about a million a second, about
-  thirty times slower, as each value handed out is a call of its own.
+  twenty-five times slower, as each value handed out is a call of its
+  own.
 
 A push through plain subs takes a fast path, a plain loop with none of
 the machinery for flushes, ends and sinks. A run with a part made for
@@ -2705,9 +2706,9 @@ Against a database row, the pipeline's share is lost in the noise. And
 a pipeline that stops early does less work than code that can't:
 `take(10)` over a million rows reads ten.
 
-Only the commonest case, a push through plain subs, has been optimised
-so far, so the other figures describe the code as it is, not a limit
-of the design.
+Pushes through plain subs, and pulls, have been made faster so far.
+Runs with parts made for them haven't yet, so their figures describe
+the code as it is, not a limit of the design.
 
 ### How much memory does it use?
 

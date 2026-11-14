@@ -171,7 +171,7 @@ code reference once, and call it directly:
 
 Keep C<$next> while you use C<$pull>: the code reference doesn't keep
 the iterator, and an iterator let go ends its run, after which C<$pull>
-gives nothing. Over 300,000 values, this saves about 0.03 s.
+gives nothing. Over 300,000 values, this saves about 0.02 s.
 
 =head2 An iterator as a source
 

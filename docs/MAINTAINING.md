@@ -280,11 +280,11 @@ with a GitHub release for it. Versions are dotted, as in `v0.1.0`, in
 the main module's `$VERSION`, the tag and the tarball's name alike.
 Claude asks before tagging.
 
-DBIx::Squirrel requires `>= v0.1.1, < v0.2.0`, so choose the version
+DBIx::Squirrel requires `>= v0.2.0, < v0.3.0`, so choose the version
 by what changed since the last release (CLAUDE.md has the rule). A fix
-or an addition moves the last number, as in v0.1.1. A change of
+or an addition moves the last number, as in v0.2.1. A change of
 behaviour, or a public name dropped or renamed, moves the middle
-number, as in v0.2.0. That needs a task for DBIx-Squirrel, to test it
+number, as in v0.3.0. That needs a task for DBIx-Squirrel, to test it
 and move its range.
 
 Releases don't use `minil release`, which makes its own commit and an

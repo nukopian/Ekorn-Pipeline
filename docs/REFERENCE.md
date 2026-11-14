@@ -1145,7 +1145,7 @@ while (my($value) = $pull->()) { ... }
 
 Keep `$next` while you use `$pull`: the code reference doesn't keep
 the iterator, and an iterator let go ends its run, after which `$pull`
-gives nothing. Over 300,000 values, this saves about 0.03 s.
+gives nothing. Over 300,000 values, this saves about 0.02 s.
 
 An iterator is a source too, so it can be given to another pipeline's
 `iterator`. Its values go through the second pipeline's stages, its

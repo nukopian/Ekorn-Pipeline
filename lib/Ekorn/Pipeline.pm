@@ -1513,10 +1513,16 @@ stage dies.
 
 =head1 SEE ALSO
 
-L<Ekorn::Pipeline::Gather>, L<Ekorn::Pipeline::Stop>,
-L<Ekorn::Pipeline::Source>, L<Ekorn::Pipeline::Sink>,
-L<Ekorn::Pipeline::Iterator>, L<Ekorn::Pipeline::Pipes>, and
-L<DBIx::Squirrel>, where the pipeline began
+L<Ekorn::Pipeline::Tooling>, to import everything from one place;
+L<Ekorn::Pipeline::Factories>, the words; L<Ekorn::Pipeline::Gather>,
+L<Ekorn::Pipeline::Stop>, L<Ekorn::Pipeline::Source>,
+L<Ekorn::Pipeline::Sink> and L<Ekorn::Pipeline::Iterator>, the types;
+L<Ekorn::Pipeline::Stages::Flow>, L<Ekorn::Pipeline::Stages::Batch>,
+L<Ekorn::Pipeline::Stages::Taps>, L<Ekorn::Pipeline::Sources>,
+L<Ekorn::Pipeline::Sinks> and L<Ekorn::Pipeline::JSON>, the
+ready-made parts; L<Ekorn::Pipeline::Operators>, for C<|>;
+L<Ekorn::Pipeline::Pipes>; and L<DBIx::Squirrel>, where the pipeline
+began
 
 L<Ekorn::Pipeline::Manual::HowTo>, the user guide, tours the package
 from the bottom up, with recipes, and
