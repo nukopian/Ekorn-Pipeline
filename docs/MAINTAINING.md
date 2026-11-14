@@ -525,6 +525,8 @@ gh api --method PATCH repos/nukopian/Ekorn-Pipeline/branches/main/protection/req
     {"context": "perl 5.42 (ubuntu-24.04)", "app_id": 15368},
     {"context": "perl 5.44 (ubuntu-24.04)", "app_id": 15368},
     {"context": "perl 5.44 (macos-26)", "app_id": 15368},
+    {"context": "perl 5.36 (windows-2025)", "app_id": 15368},
+    {"context": "perl 5.44 (windows-2025)", "app_id": 15368},
     {"context": "style", "app_id": 15368},
     {"context": "coverage", "app_id": 15368}
   ]
