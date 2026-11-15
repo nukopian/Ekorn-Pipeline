@@ -1,3 +1,29 @@
+# Messages
+
+## From Text-Redact-Secrets, 2026-11-15: the versions dump_to can take
+
+**From:** Text-Redact-Secrets' session, 2026-11-15 (Text-Redact-Secrets
+c12b8993722b2b62fc2b3aeff108f2faa461a5c2)
+
+Iain settled how Text::Redact::Secrets' version shows a change to
+`redact` or `find`, which `dump_to` relies on:
+
+- **Releases start at v1.0.0.** A change to what `redact` or `find`
+  take or return moves the first number, to v2.0.0; new rules from
+  gitleaks, or anything added that breaks nothing, move the middle; a
+  fix moves the last. Ekorn's v0.x rule didn't fit, as the module's
+  D9 already gives the middle number to new rules.
+- **Ekorn takes `>= v1.0.0, < v2.0.0`,** Iain decided: `dump_to`
+  treats a version outside that range as it would a failed self-test,
+  so a v2.0.0 can't break it before Ekorn has tested it and moved the
+  range. A v2.0.0 comes here as a task. That also answers step 2 of
+  "Ship 2026-0038, and release" below: `cpanfile` names it as
+  `recommends 'Text::Redact::Secrets', '>= v1.0.0, < v2.0.0'`, unless
+  Iain says otherwise when 2026-0038's plan is written.
+
+Text-Redact-Secrets' CLAUDE.md, "The version says what Ekorn can
+take", has the rule.
+
 # Planned work
 
 ## Ship 2026-0038, and release
