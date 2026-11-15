@@ -2,14 +2,14 @@
 
 **Status:** open
 
-**Decisions:** D1 settled: a distribution and repository of its own.
-D2 settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse
-what won't translate, hand-written tests and gitleaks' false positives.
-D4 settled: keywords first. D5 settled: entropy written here. D6
-settled: gitleaks' licence shipped, and named in the POD. D7 open:
-which allowlists to carry. D8 open: what's redacted. D9 open: rules
-pinned to a gitleaks tag. D10 open: the interface. D11 settled:
-`Text::Redact::Secrets`.
+**Decisions:** D1 settled: a distribution and repository of its own. D2
+settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
+won't translate, hand-written tests and gitleaks' false positives. D4
+settled: keywords first. D5 settled: entropy written here. D6 settled:
+gitleaks' licence shipped, and named in the POD. D7 settled: what
+applies to strings carried, what applies to files not. D8 open: what's
+redacted. D9 open: rules pinned to a gitleaks tag. D10 open: the
+interface. D11 settled: `Text::Redact::Secrets`.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -29,8 +29,8 @@ made at random as the generator runs, so not in the source to be read
 keeping them current needs only it. It has 222 rules: 221 with a
 regex, one matching paths only; 130 with a minimum Shannon entropy;
 221 with keywords; some with allowlists of their own, regexes or
-stopwords. A global allowlist is mostly of paths. Only one rule names
-a `secretGroup`.
+stopwords. A global allowlist has paths, and regexes and stopwords for
+every rule (D7). Only one rule names a `secretGroup`.
 
 All 221 regexes compile in Perl 5.36 as they are. 154 of them use `$`
 as an anchor, 155 times in all, outside a character class and not
@@ -119,10 +119,28 @@ escaped, mostly in the end of a secret that most rules share,
   Background, "Copyright (c) 2019 Zachary Rice". The module's own code
   is under Perl's terms, as Iain's distributions are; MIT's allow
   that.
-- [ ] **D7.** Which allowlists to carry? Recommended: each rule's own
-  regexes and stopwords, without which `generic-api-key` redacts
-  placeholders; not those of paths, as the module sees strings, not
-  files.
+- [x] **D7.** Which allowlists to carry? **What applies to strings, and
+  not what applies to files: the regexes and stopwords of the global
+  allowlist and of each rule's, honouring each one's `regexTarget` and
+  `condition`; not paths or commits,** Iain decided on 2026-11-15. The
+  recommendation named only each rule's own; looking closer, the
+  global allowlist isn't mostly paths, as Background first had it, but
+  has regexes and stopwords too, 19 lines, for every rule, and they're
+  what a dump most needs: they pass over placeholders such as `$VAR`,
+  `${VAR}`, `{{ ... }}`, `%VAR%`, `true`, `false` and `null`, and runs
+  of one letter. Settled on the recommendation's principle, the module
+  seeing strings, not files, they're carried. Without them,
+  `generic-api-key` redacts placeholders.
+
+  At the commit in Background, rules have 13 allowlists of their own:
+  11 with regexes, one with stopwords, three with paths. Each regex is
+  matched against what its `regexTarget` says: the secret, by default;
+  the whole match; or the line it's on. An allowlist with `condition =
+  "AND"` passes over a finding only if all its parts match, so one
+  with paths can never pass over anything here, and is dropped whole,
+  not just its paths, which would make it pass over more than
+  gitleaks does; one rule's is so. Allowlist regexes are translated as
+  D3 says, as the rules' are.
 - [ ] **D8.** What's redacted? Recommended: the secret as gitleaks
   finds it: the `secretGroup`, or the first capture group that isn't
   empty, or the whole match. So `'password' => 'hunter2...'` keeps its
