@@ -83,7 +83,7 @@ Newest id first.
 - [Ekorn::Pipeline::JSON](2026-0034-json.md), roadmap 2026-0034:
   shipped in v0.3.1.
 - [One try for each pulled value](2026-0033-one-try.md), roadmap
-  2026-0033: open, an idea.
+  2026-0033: dropped.
 - [Faster pulled runs](2026-0032-faster-pulled-runs.md), roadmap
   2026-0032: shipped in v0.3.1.
 - [Ekorn::Pipeline::Tooling, one module to import from](2026-0031-tooling.md),

@@ -57,17 +57,6 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-### 2026-0033. One try for each pulled value
-
-**Added:** 2026-11-14. **Size:** S (2)
-
-Run a source's step in the same `try` as the stages, so each pulled
-value enters one, not two. Tried on 2026-11-14 for 2026-0025's D7: 1
-to 2% faster with stages and 6% slower with none, for a more intricate
-loop, so set aside until after v0.3.0. Its
-[record](docs/changes/2026-0033-one-try.md) has the measurements, and
-what might yet pay.
-
 ### 2026-0035. Subs by name as stages
 
 **Added:** 2026-11-14. **Size:** S (2)
