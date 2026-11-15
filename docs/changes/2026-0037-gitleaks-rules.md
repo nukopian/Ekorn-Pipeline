@@ -3,7 +3,7 @@
 **Status:** open
 
 **Decisions:** D1 settled: a distribution and repository of its own.
-D2 open: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
+D2 settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
 won't translate, hand-written tests and gitleaks' false positives. D4
 open: keywords first. D5 open: entropy written here. D6 open:
 crediting gitleaks. D7 open: which allowlists to carry. D8 open:
@@ -52,8 +52,10 @@ escaped, mostly in the end of a secret that most rules share,
   in Ekorn's repository goes against Minilla, and fetching the rules at
   install or run time needs the network and can't be made again
   exactly. Its name is D11.
-- [ ] **D2.** Released to CPAN? Recommended: yes, or few of `dump_to`'s
-  users will ever have it, and 2026-0038 would help almost no one.
+- [x] **D2.** Released to CPAN? **Yes,** Iain decided on 2026-11-15:
+  on GitHub alone, few of `dump_to`'s users would ever have it, and
+  2026-0038 would help almost no one. On CPAN, `cpanm -U` brings new
+  rules to them, as D1 has it.
 - [x] **D3.** Go's RE2 regexes in Perl? **Each is compiled with `/a`,
   so `\w`, `\s` and `\d` are ASCII, as in RE2; each `$` that's an
   anchor is written `\z`; a regex that won't compile, or sets the `m`
