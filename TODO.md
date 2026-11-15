@@ -18,7 +18,7 @@ pick up here:
 2. **Start roadmap 2026-0038,** secrets redacted by `dump_to`: move it
    to Now, and write The plan in
    [its record](docs/changes/2026-0038-dump-to-redacts.md), every
-   decision settled there. v1.0.1-TRIAL is in
+   decision settled there. v1.0.2-TRIAL is in
    `perl-5.36.3@ekorn-pipeline`, installed with Iain's agreement on
    2026-11-15; installing it into the other libraries, for CI's range,
    is asking him first. `cpanfile` names it as D7 says.

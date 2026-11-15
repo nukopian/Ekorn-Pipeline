@@ -34,8 +34,8 @@ f65876f9bd344e79c7526db210c6b3fbf50b35fb and
 7656bb561800b122912db941640e34c7ef741c3d):
 
 - **`redact($string)`** returns a copy with each secret replaced by
-  `*REDACTED*`, and croaks on `undef` or a reference. v1.0.0-TRIAL
-  and v1.0.1-TRIAL are on CPAN; the first stable release is v1.0.1.
+  `*REDACTED*`, and croaks on `undef` or a reference. v1.0.0-TRIAL,
+  v1.0.1-TRIAL and v1.0.2-TRIAL are on CPAN; no stable release yet.
 - **For the self-test:** `generic-api-key`, which finds a
   `'password' => '...'` in a dump, passes over a value with a word in
   it, such as "fake", "example", "test" or "password", and one with
@@ -55,6 +55,10 @@ as it was. The first call took 8.8 ms. The cost of 300 rows depends on
 the secrets in them, not their length: 1.0 ms for rows with none (31k
 characters), 5.9 ms with a DSN in each, and 44 ms with a `password` or
 an AWS key id in each, about 0.15 ms a secret found.
+Text-Redact-Secrets made that cost grow in step with the secrets found
+(Text-Redact-Secrets df09448641e423346d699dc47d3c04774fe2d21e), and
+v1.0.2-TRIAL, tried the same way, redacted the same secrets, with 14
+ms for a `password` in each row and 20 ms for an AWS key id.
 
 ## Decisions
 
