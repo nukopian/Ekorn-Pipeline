@@ -66,13 +66,11 @@ A script fetches gitleaks' rules from its `config/gitleaks.toml` on
 GitHub, each a regex and, for many, a minimum Shannon entropy, and
 writes them as a module of their own, in a distribution `cpanm` can
 install, with a function that puts `*REDACTED*` in place of each
-secret it finds in a string. To settle: the module's name and whether
-it's released to CPAN; Go's RE2 regexes in Perl, which mostly agree;
-gitleaks' keywords, checked first to keep it fast; crediting gitleaks,
-which is MIT-licensed; and whether the entropy check is written here
-or taken from Shannon::Entropy::XS. Its
-[record](docs/changes/2026-0037-gitleaks-rules.md) keeps them, with
-four more, and settles how Go's regexes become Perl's.
+secret it finds in a string: Text::Redact::Secrets, released to CPAN.
+Its [record](docs/changes/2026-0037-gitleaks-rules.md) has every
+question settled: how Go's regexes become Perl's, keywords first,
+entropy, credit to gitleaks, allowlists, what's redacted, keeping the
+rules current, and the interface.
 
 ### 2026-0038. Secrets redacted by dump_to
 
@@ -82,8 +80,7 @@ four more, and settles how Go's regexes become Perl's.
 When 2026-0037's module is installed, `dump_to` passes what it writes
 through it, so a dump sent to a log doesn't leak a password, a token
 or a DSN; without it, nothing changes, so it adds no dependency. A
-`local`ised package global, true, stops it. Its
-[record](docs/changes/2026-0038-dump-to-redacts.md) has what's left to
-settle: the global's name; how `dump_to` looks for the module, and
-when; whether it redacts the dumped text or the value; and the version
-and message to DBIx-Squirrel, which imports `dump_to`.
+`local`ised `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, true,
+stops it, and a module that fails its self-test croaks. Its
+[record](docs/changes/2026-0038-dump-to-redacts.md) has every question
+settled.

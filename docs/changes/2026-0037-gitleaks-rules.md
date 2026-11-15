@@ -9,7 +9,8 @@ settled: keywords first. D5 settled: entropy written here. D6 settled:
 gitleaks' licence shipped, and named in the POD. D7 settled: what
 applies to strings carried, what applies to files not. D8 settled: the
 secret as gitleaks picks it out. D9 settled: rules pinned to a gitleaks
-tag. D10 open: the interface. D11 settled: `Text::Redact::Secrets`.
+tag. D10 settled: `redact` and `find`. D11 settled:
+`Text::Redact::Secrets`. None open.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -189,10 +190,16 @@ escaped, mostly in the end of a secret that most rules share,
   5. **Users get it with `cpanm -U Text::Redact::Secrets`,** and
      `dump_to` uses whatever version is installed, so neither Ekorn nor
      DBIx-Squirrel releases for it, as D1 has it.
-- [ ] **D10.** The interface? Recommended: `redact($string)`, returning
-  a copy with each secret replaced; perhaps `find($string)` too,
-  returning each secret found with its rule's id, for tests and for
-  reporting what was found rather than hiding it. Both `@EXPORT_OK`.
+- [x] **D10.** The interface? **`redact($string)`, returning a copy with
+  each secret replaced by `*REDACTED*`, and `find($string)`, returning
+  each secret found with its rule's id; both `@EXPORT_OK`,** Iain
+  decided on 2026-11-15, as recommended. `redact` is what 2026-0038's
+  `dump_to` calls, and its self-test too. `find` is for the tests,
+  which check which rule found what, not only that something was
+  hidden, and for anyone who'd report what was found rather than hide
+  it. Both share one scan, so they can't disagree about what's a
+  secret. Exports are `@EXPORT_OK`, as a module of two functions with
+  common names shouldn't put them in its caller's namespace unasked.
 - [x] **D11.** The module's name, and so its distribution's and
   repository's? **`Text::Redact::Secrets`,** in the distribution
   `Text-Redact-Secrets`, Iain decided on 2026-11-15: it says what it
