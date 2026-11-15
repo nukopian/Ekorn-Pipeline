@@ -5,8 +5,8 @@
 **Decisions:** D1 settled: redacts by itself when Text::Redact::Secrets
 is installed. D2 settled: a package global, `local`ised, stops it when
 true. D3 settled: `$DumpSecrets`. D4 settled: looked for once, at the
-first dump. D5 open: the text redacted, not the value. D6 open: a v0.3.x, and
-the message to DBIx-Squirrel.
+first dump. D5 open: the text redacted, not the value. D6 open: a
+v0.3.x, and the message to DBIx-Squirrel.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -38,11 +38,10 @@ does. DBIx::Squirrel imports `dump_to` by name.
 - [x] **D3.** The global's name?
   **`$Ekorn::Pipeline::Stages::Taps::DumpSecrets`,** Iain decided on
   2026-11-15, as he proposed, over the `ShowSecrets` first recommended:
-  it's bound to the tap
-  it governs, read as "`dump_to`: dump secrets", where `ShowSecrets`
-  could be taken for all of Taps, or the pipeline. It still names, as
-  Data::Dumper's globals do, what setting it does, so code that sets it
-  says plainly that it writes secrets out. It's `dump_to`'s alone: a
+  it's bound to the tap it governs, read as "`dump_to`: dump secrets",
+  where `ShowSecrets` could be taken for all of Taps, or the pipeline.
+  It still names, as Data::Dumper's globals do, what setting it does,
+  so code that sets it says plainly that it writes secrets out. It's `dump_to`'s alone: a
   tap that redacts later takes a switch of its own, so turning off one
   doesn't turn off the other.
 - [x] **D4.** How `dump_to` looks for the module, and when? **By
