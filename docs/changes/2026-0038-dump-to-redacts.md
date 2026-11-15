@@ -1,6 +1,6 @@
 # 2026-0038. Secrets redacted by dump_to
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: redacts by itself when Text::Redact::Secrets
 is installed and passes a self-test, and croaks if it doesn't. D2
@@ -15,6 +15,8 @@ limit on what's redacted. None open.
 
 **Depends on:** Text-Redact-Secrets 2026-0001, its first release;
 2026-0037 until 2026-11-15, when it moved there
+
+**Started:** 2026-11-15
 
 ## Background
 
@@ -35,7 +37,9 @@ f65876f9bd344e79c7526db210c6b3fbf50b35fb and
 
 - **`redact($string)`** returns a copy with each secret replaced by
   `*REDACTED*`, and croaks on `undef` or a reference. v1.0.0-TRIAL,
-  v1.0.1-TRIAL and v1.0.2-TRIAL are on CPAN; no stable release yet.
+  v1.0.1-TRIAL and v1.0.2-TRIAL are on CPAN, and v1.0.2, the first
+  stable release, came on 2026-11-15, its code the same as
+  v1.0.2-TRIAL's.
 - **For the self-test:** `generic-api-key`, which finds a
   `'password' => '...'` in a dump, passes over a value with a word in
   it, such as "fake", "example", "test" or "password", and one with
@@ -139,3 +143,54 @@ ms for a `password` in each row and 20 ms for an AWS key id.
   losing what a dump is for; `dump_to` is a tap for debugging, rarely
   given hostile text; and Text-Redact-Secrets 2026-0006, making every
   rule linear, fixes the cause.
+
+## The plan
+
+What: `dump_to` redacts each dump with Text::Redact::Secrets' `redact`
+whenever the module is installed, in the range D7 gives, and passes a
+self-test, as D1 to D8 say; and croaks, with advice, when the module
+is there but fails to load, is outside the range, or fails the test.
+`$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, true, turns it off.
+
+Why: a dump written to a log shouldn't leak a password, a token or a
+DSN, and a user who has the module shouldn't have to ask for that.
+
+Steps:
+
+1. **Taps:** `our $DumpSecrets`, read as each value is dumped (D2).
+   At the first dump with it false, look for the module (D4):
+   `require` in an `eval`; "Can't locate Text/Redact/Secrets.pm" is
+   absent, and dumps are as they were; any other error, a version
+   outside `>= v1.0.0, < v2.0.0` (D7), or a failed self-test is
+   broken. The self-test redacts a few made-up secrets, built from
+   pieces, as Text-Redact-Secrets advises, in the text Data::Dumper
+   writes for them: a `password` that looks random, a DSN's password
+   and an AWS access key id; each must be gone. The answer, `redact`,
+   absent or broken with why, is kept for the process. Broken croaks,
+   with `croakf`, on that dump and each after, at the caller's line,
+   saying why, and that
+   `local $Ekorn::Pipeline::Stages::Taps::DumpSecrets = 1` dumps
+   without redacting. The text is redacted, not the value
+   (D5). No limit on what's redacted (D8).
+2. **Tests,** in a test file of their own, with the real module when
+   it's installed, and without it, and with one that fails to load,
+   one outside the range and one that fails the self-test, each faked
+   by a hook at the front of `@INC`; with `$DumpSecrets` true, neither
+   the load nor the test is tried. A private function forgets the
+   answer kept, for the tests alone. Coverage stays above the floors.
+3. **`cpanfile`:** `recommends 'Text::Redact::Secrets', '>= v1.0.0,
+   < v2.0.0'` (D7). **CI** installs it, with `--with-recommends` on
+   each `cpanm --installdeps`, as Iain decided on 2026-11-15, so the
+   tests run with the real module on every Perl; v1.0.2 is in each
+   `@ekorn-pipeline` library, as he agreed the same day.
+4. **Docs:** `dump_to`'s POD and Taps' DIAGNOSTICS; the reference and
+   the how-to; the README if it says what `dump_to` writes; `Changes`,
+   saying the croak is a new message, as D6 has it.
+5. **Ship:** 2026-0038 leaves the roadmap for `Changes`, this record
+   is finished, and DBIx-Squirrel is sent the message D6 gives.
+
+Done when `dump_to` redacts as above, tested with the module, without
+it, and with one that fails each way, with `$DumpSecrets` too, on every
+Perl CI covers; documented in the POD, its DIAGNOSTICS, the reference
+and the how-to, every example run; coverage above the floors; and
+DBIx-Squirrel sent its message.

@@ -41,28 +41,24 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0038. Secrets redacted by dump_to
 
 **Size:** S (2). **Split from:** 2026-0036. **Depends on:**
-Text-Redact-Secrets 2026-0001, its first release.
+Text-Redact-Secrets 2026-0001, its first release, v1.0.2, on
+2026-11-15.
 
 `dump_to` redacts what it writes whenever
 [Text::Redact::Secrets](https://github.com/nukopian/Text-Redact-Secrets)
-is installed and passes a self-test, so a dump sent to a log doesn't leak
-a password, a token or a DSN; it croaks if the module is there but
-fails, and a `local`ised `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`,
-true, turns it off. Without the module, nothing changes, so it adds no
-dependency. A v0.3.x. Every question is settled in its
-[record](docs/changes/2026-0038-dump-to-redacts.md).
+is installed, v1.x, and passes a self-test, so a dump sent to a log
+doesn't leak a password, a token or a DSN; it croaks if the module is
+there but fails, and a `local`ised
+`$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, true, turns it off. A
+v0.3.x. Its [record](docs/changes/2026-0038-dump-to-redacts.md) has
+the plan.
 
-**Done when:** `dump_to` does so, tested with the module, without it,
-and with one that fails, with `$DumpSecrets` too; documented in the
-POD, its DIAGNOSTICS, the reference and the how-to, and in `Changes`;
-and DBIx-Squirrel sent a message, as it imports `dump_to`.
+## Next
+
+Nothing yet.
 
 ## Later
 
