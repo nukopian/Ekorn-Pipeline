@@ -16,7 +16,9 @@ permissions:
 
 jobs:
   # The tests on Perl 5.36, the floor, to the newest on Linux, and the
-  # newest on macOS. --with-develop brings yath and UUID with the rest.
+  # newest on macOS. --with-develop brings yath and UUID with the rest,
+  # and --with-recommends Text::Redact::Secrets, so that dump_to's tests
+  # run with it, here and in each job that runs the tests.
   perl:
     name: perl ${{ matrix.perl }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -34,7 +36,7 @@ jobs:
         with:
           perl-version: ${{ matrix.perl }}
       - name: dependencies
-        run: cpanm --notest --installdeps --with-develop .
+        run: cpanm --notest --installdeps --with-develop --with-recommends .
       - name: yath
         run: yath test
 
@@ -71,7 +73,7 @@ jobs:
         with:
           perl-version: ${{ matrix.perl }}
       - name: dependencies
-        run: cpanm --notest --installdeps .
+        run: cpanm --notest --installdeps --with-recommends .
       - name: prove
         run: prove -l t
 
@@ -85,7 +87,7 @@ jobs:
         with:
           perl-version: "5.44"
       - name: dependencies
-        run: cpanm --notest --installdeps --with-develop .
+        run: cpanm --notest --installdeps --with-develop --with-recommends .
       - name: perlcritic
         run: perlcritic lib
       - name: perltidy
@@ -107,7 +109,7 @@ jobs:
         with:
           perl-version: "5.36"
       - name: dependencies
-        run: cpanm --notest --installdeps --with-develop .
+        run: cpanm --notest --installdeps --with-develop --with-recommends .
       - name: coverage
         run: scripts/coverage
 

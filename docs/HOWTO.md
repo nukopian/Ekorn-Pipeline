@@ -2708,8 +2708,41 @@ print $dumped;
 # }
 ```
 
-It writes values in full, secrets and all, and is for debugging only:
-take it out before the code goes live.
+If [Text::Redact::Secrets](https://metacpan.org/pod/Text::Redact::Secrets)
+is installed, `dump_to` redacts the secrets it finds in what it writes,
+such as a password, a token or the password in a DSN, leaving the
+value passed on as it was:
+
+```perl
+my $dsn = join '', 'postgres://app:', 'Zq8vR2mX', 'kP4wL9nT', '@db/app';
+open my $log, '>', \my $logged or die "Can't write the dump: $!\n";
+my ($kept) = Ekorn::Pipeline->new(dump_to($log))->({dsn => $dsn});
+print $logged;
+# {
+#   'dsn' => 'postgres://app:*REDACTED*@db/app'
+# }
+say $kept->{dsn} eq $dsn ? 'passed on as it came' : 'changed';
+# passed on as it came
+```
+
+When you need to see a secret, while debugging, turn redaction off
+for as long as you need it, with `local`:
+
+```perl
+my $dsn = join '', 'postgres://app:', 'Zq8vR2mX', 'kP4wL9nT', '@db/app';
+open my $debug, '>', \my $seen or die "Can't write the dump: $!\n";
+{
+    local $Ekorn::Pipeline::Stages::Taps::DumpSecrets = 1;
+    Ekorn::Pipeline->new(dump_to($debug))->({dsn => $dsn});
+}
+say $seen =~ m( \Q$dsn\E )x ? 'written whole' : 'redacted';
+# written whole
+```
+
+If the module is installed but broken, `dump_to` croaks rather than
+write a dump that may hold secrets, and says so. Redaction finds the
+secrets its rules know, not every secret, so `dump_to` is still for
+debugging only: take it out before the code goes live.
 
 ## 12. Questions you may have
 

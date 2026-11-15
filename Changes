@@ -2,6 +2,34 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    dump_to redacts the secrets in what it writes, whenever
+    Text::Redact::Secrets is installed, so a dump sent to a log
+    doesn't leak a password, a token or a DSN.
+
+    It ships roadmap 2026-0038. Nothing changes unless
+    Text::Redact::Secrets is installed: then dumps are redacted, and
+    a module that's there but broken makes dump_to croak, with a new
+    message. What a stage sees, and every message there was before,
+    are as they were.
+
+    - dump_to redacts with Text::Redact::Secrets' redact when it's
+      installed, a v1.x, and passes a self-test, redacting a few
+      made-up secrets in a dump: each secret it finds in what's
+      written, such as a password, a token or the password in a DSN,
+      is written as *REDACTED*. Only the dump is redacted: the value
+      passed on is as it came. The module is looked for once, at the
+      first dump. If it's there but fails to load, isn't a v1.x, or
+      fails the test, dump_to croaks, on that dump and each after,
+      rather than write a dump that may hold secrets, with a new
+      message, "Text::Redact::Secrets ..., so dump_to won't write a
+      dump that may hold secrets". local
+      $Ekorn::Pipeline::Stages::Taps::DumpSecrets = 1 writes secrets as
+      they are, read as each value is dumped; while it's true, the
+      module is neither loaded nor tested. It isn't a dependency:
+      cpanfile recommends it, so installers that take recommendations
+      install it. The user guide and the reference show it. (roadmap
+      2026-0038)
+
 v0.3.1 2026-11-14
 
     Sources, stages, gathers and sinks, each made afresh for a run and

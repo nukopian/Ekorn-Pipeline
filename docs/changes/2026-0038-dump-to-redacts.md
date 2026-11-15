@@ -1,6 +1,6 @@
 # 2026-0038. Secrets redacted by dump_to
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: redacts by itself when Text::Redact::Secrets
 is installed and passes a self-test, and croaks if it doesn't. D2
@@ -17,6 +17,8 @@ limit on what's redacted. None open.
 2026-0037 until 2026-11-15, when it moved there
 
 **Started:** 2026-11-15
+
+**Finished:** 2026-11-15
 
 ## Background
 
@@ -194,3 +196,33 @@ it, and with one that fails each way, with `$DumpSecrets` too, on every
 Perl CI covers; documented in the POD, its DIAGNOSTICS, the reference
 and the how-to, every example run; coverage above the floors; and
 DBIx-Squirrel sent its message.
+
+## What happened
+
+- **Outcome:** as Done when says. `dump_to` redacts with the real
+  module, v1.0.2, and the tests cover it with that, without it, and
+  with fakes that fail to load, are v2.0.0 or v0.9.0, have a version
+  that can't be read, have no `redact`, or fail the self-test five
+  ways: redacting nothing, missing the password, missing the key id,
+  taking the secrets out without `*REDACTED*`, dying, and returning a
+  reference. Each croaks at the caller's line, on the first dump and
+  the next, having written nothing, and the module is looked for once.
+  With `$DumpSecrets` true, it's neither loaded nor tested. The whole
+  suite passes on each Perl from 5.36.3 to 5.44.0, coverage is above
+  every floor, and the how-to's examples run.
+- **Changes from the plan:**
+  - The croak reaches the caller as every error in a stage does,
+    after "Pipeline stage #1 failed at ... line ...:", as
+    Ekorn::Pipeline's DIAGNOSTICS says, with the message indented
+    under it.
+  - A module that fails to load is reported with the first line of
+    its error, without Perl's "Compilation failed in require" after
+    it.
+  - Two more reasons than the plan named, each a case of broken: a
+    version that can't be read, and no `redact`.
+  - The README needed no change: it says what `dump_to` is for, not
+    what it writes.
+- **Waiting on the CPAN index:** v1.0.2 reached MetaCPAN at 20:17 UTC,
+  but the index `cpanm` reads hadn't listed it when this shipped, so
+  CI's `--with-recommends` would have found nothing to install; the
+  push waited for it.

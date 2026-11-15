@@ -56,6 +56,9 @@
          }
       },
       "runtime" : {
+         "recommends" : {
+            "Text::Redact::Secrets" : ">= v1.0.0, < v2.0.0"
+         },
          "requires" : {
             "Carp" : "0",
             "Data::Dumper" : "0",

@@ -27,4 +27,7 @@ pick up here:
    says, once this file is gone: remove this task in the commit that
    ships 2026-0038, or the release's, and the file with it.
 
+Steps 1 to 3 were done on 2026-11-15: 2026-0038 is shipped, unreleased,
+and DBIx-Squirrel has its message. The release is left.
+
 Done when the release is on CPAN and DBIx-Squirrel has been told.

@@ -1775,9 +1775,53 @@ Writes each value to `$fh`, or to STDERR, with Data::Dumper, keys
 sorted and indented by two, and passes it on. It croaks "Expected an
 open filehandle" if `$fh` isn't one.
 
-It's for debugging. It writes each value in full, secrets and all. It
-doesn't escape control characters in strings, so a value from outside
-can send escape sequences to a terminal.
+When [Text::Redact::Secrets](https://metacpan.org/pod/Text::Redact::Secrets)
+is installed, a v1.x, each secret it finds in what's written, such as
+a password, a token or the password in a DSN, is written as
+`*REDACTED*`:
+
+```perl
+my $dsn = join '', 'postgres://app:', 'Zq8vR2mX', 'kP4wL9nT', '@db/app';
+Ekorn::Pipeline->new(dump_to)->({dsn => $dsn});
+# {
+#   'dsn' => 'postgres://app:*REDACTED*@db/app'
+# }
+```
+
+Only the dump is redacted: the value passed on is as it came. Without
+the module, values are written as they are, and it isn't a dependency:
+`cpanfile` recommends it, so installers that take recommendations
+install it.
+
+The module is looked for once, at the first dump, and tested then: it
+must load, be a v1.x, the versions whose `redact` `dump_to` knows, and
+redact a few made-up secrets in a dump, a password, a DSN's password
+and an AWS access key id. The answer is kept for the process. If the
+module is there but fails any of these, `dump_to` croaks, on that dump
+and each after, rather than write a dump that may hold secrets, saying
+why, and how to dump without redacting. A broken redactor would
+otherwise let secrets through as if they were safe.
+
+To write secrets as they are, set
+`$Ekorn::Pipeline::Stages::Taps::DumpSecrets` true, with `local`, for
+as long as you need it:
+
+```perl
+{
+    local $Ekorn::Pipeline::Stages::Taps::DumpSecrets = 1;
+    $pipeline->(@rows);
+}
+```
+
+It's read as each value is dumped, not when the stage is made, so a
+`local` around a run, or set in a stage before `dump_to`, takes effect.
+While it's true, the module is neither loaded nor tested. It's
+`dump_to`'s alone.
+
+It's for debugging. Text::Redact::Secrets finds the secrets its rules
+know, not every secret, so a dump can still hold some. It doesn't
+escape control characters in strings, so a value from outside can send
+escape sequences to a terminal.
 
 ## Sources: Ekorn::Pipeline::Sources
 
@@ -2931,6 +2975,14 @@ pipeline named %s is already defined".
   something other than a reference to a scalar.
 - **Expected an open filehandle:** `dump_to` was given something other
   than an open filehandle.
+- **Text::Redact::Secrets %s, so dump_to won't write a dump that may
+  hold secrets; local $Ekorn::Pipeline::Stages::Taps::DumpSecrets = 1
+  dumps them without redacting:** `dump_to` found
+  Text::Redact::Secrets installed, but can't redact with it: it failed
+  to load, with the first line of its error; it isn't a v1.x; it has
+  no `redact`; or it failed the self-test, leaving a made-up secret in
+  a dump. Install a v1.x that works, or set `$DumpSecrets` true to
+  write dumps without redacting them.
 
 ## Exports
 

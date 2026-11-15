@@ -41,20 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0038. Secrets redacted by dump_to
-
-**Size:** S (2). **Split from:** 2026-0036. **Depends on:**
-Text-Redact-Secrets 2026-0001, its first release, v1.0.2, on
-2026-11-15.
-
-`dump_to` redacts what it writes whenever
-[Text::Redact::Secrets](https://github.com/nukopian/Text-Redact-Secrets)
-is installed, v1.x, and passes a self-test, so a dump sent to a log
-doesn't leak a password, a token or a DSN; it croaks if the module is
-there but fails, and a `local`ised
-`$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, true, turns it off. A
-v0.3.x. Its [record](docs/changes/2026-0038-dump-to-redacts.md) has
-the plan.
+Nothing yet.
 
 ## Next
 
