@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0035.
+Last id: 2026-0036.
 
 Items come in four groups:
 
@@ -79,3 +79,18 @@ pipelines win, so nothing that works now changes; to settle: builtins
 such as `uc`, by `\&CORE::uc`, or not; looked up as the pipeline is
 made, as names are now, so a typo croaks at once; `new` left as it is;
 and the messages that say what a stage may be.
+
+### 2026-0036. Secrets redacted by dump_to
+
+**Added:** 2026-11-15. **Size:** L (5)
+
+A script fetches gitleaks' rules from its `config/gitleaks.toml` on
+GitHub, each a regex and, for many, a minimum Shannon entropy, and
+writes them as a module of their own, in a distribution `cpanm` can
+install. When it's installed, `dump_to` scans what it writes and puts
+`*REDACTED*` in place of each secret it finds; without it, nothing
+changes, so it adds no dependency. To settle: the module's name and
+whether it's released to CPAN; Go's RE2 regexes in Perl, which mostly
+agree; gitleaks' keywords, checked first to keep it fast; crediting
+gitleaks, which is MIT-licensed; and whether the entropy check is
+written here or taken from Shannon::Entropy::XS.
