@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0036.
+Last id: 2026-0038.
 
 Items come in four groups:
 
@@ -80,17 +80,29 @@ such as `uc`, by `\&CORE::uc`, or not; looked up as the pipeline is
 made, as names are now, so a typo croaks at once; `new` left as it is;
 and the messages that say what a stage may be.
 
-### 2026-0036. Secrets redacted by dump_to
+### 2026-0037. A module of gitleaks' rules
 
-**Added:** 2026-11-15. **Size:** L (5)
+**Added:** 2026-11-15. **Size:** M (3).
+**Split from:** 2026-0036.
 
 A script fetches gitleaks' rules from its `config/gitleaks.toml` on
 GitHub, each a regex and, for many, a minimum Shannon entropy, and
 writes them as a module of their own, in a distribution `cpanm` can
-install. When it's installed, `dump_to` scans what it writes and puts
-`*REDACTED*` in place of each secret it finds; without it, nothing
-changes, so it adds no dependency. To settle: the module's name and
-whether it's released to CPAN; Go's RE2 regexes in Perl, which mostly
-agree; gitleaks' keywords, checked first to keep it fast; crediting
-gitleaks, which is MIT-licensed; and whether the entropy check is
-written here or taken from Shannon::Entropy::XS.
+install, with a function that puts `*REDACTED*` in place of each
+secret it finds in a string. To settle: the module's name and whether
+it's released to CPAN; Go's RE2 regexes in Perl, which mostly agree;
+gitleaks' keywords, checked first to keep it fast; crediting gitleaks,
+which is MIT-licensed; and whether the entropy check is written here
+or taken from Shannon::Entropy::XS.
+
+### 2026-0038. Secrets redacted by dump_to
+
+**Added:** 2026-11-15. **Size:** S (2).
+**Split from:** 2026-0036. **Depends on:** 2026-0037.
+
+When 2026-0037's module is installed, `dump_to` passes what it writes
+through it, so a dump sent to a log doesn't leak a password, a token
+or a DSN; without it, nothing changes, so it adds no dependency. To
+settle: how `dump_to` looks for the module, and when; whether it
+redacts the dumped text or the value, on a copy, before dumping; and
+the message to DBIx-Squirrel, which imports `dump_to`.
