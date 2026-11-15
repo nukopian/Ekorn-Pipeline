@@ -431,6 +431,12 @@ what was Iain's.
   file. Read messages at the start of a session, with the tasks; the
   session they're for removes each once read, in a commit saying what
   came of it, and the heading with the last one.
+- **A task or message never holds a secret whole, made-up or not,** as
+  Iain decided on 2026-11-15: it's built from pieces, as a test's is,
+  such as `join '', 'AKIA', 'MADEUP', ...`, or left out. One of
+  Ekorn's messages quoted a test's made-up password whole, beside its
+  key, and Text-Redact-Secrets' gitleaks scan then failed on every
+  push, as history keeps it (Text-Redact-Secrets 2026-0001's D14).
 - **`TODO.md`'s tasks and messages are the only way the two sessions
   talk.** Now that DBIx-Squirrel and Ekorn-Pipeline are separate,
   DBIx-Squirrel dogfoods Ekorn-Pipeline, as its first user, and what it
@@ -565,4 +571,13 @@ found.
   the precis is their account of it.
 - gitleaks scans the whole history for secrets in CI on every push, and
   by hand before a tag. A leak stops the work like a failing test: once
-  history is published, it can't be taken back.
+  history is published, it can't be taken back. So a commit of docs,
+  tests or a message, here or in another repository's `TODO.md`, is
+  scanned before it's pushed, with `gitleaks dir --redact --exit-code 1`
+  on what it changed, judged by its exit status; a git-ignored
+  `cover_db/` can show a finding that isn't in history. A full commit
+  hash beside one of gitleaks' rule names can look like a secret too.
+  If one reaches published history anyway, it's listed by its
+  fingerprint in a `.gitleaksignore`, with a comment saying why, as
+  Text-Redact-Secrets does (its 2026-0001's D14), rather than history
+  rewritten; Iain decides each.
