@@ -45,31 +45,14 @@ Nothing yet.
 
 ## Next
 
-### 2026-0037. A module of gitleaks' rules
-
-**Size:** M (3). **Split from:** 2026-0036.
-
-Text::Redact::Secrets, a distribution of its own, released to CPAN,
-with `redact` and `find` to replace or report each secret in a string,
-by gitleaks' rules. A script, `scripts/update-rules`, makes its module
-of rules from a gitleaks release tag's `config/gitleaks.toml`, so
-keeping up with gitleaks is running it again. It's what 2026-0038
-needs, and of use to anyone writing text that might hold a secret.
-Every question is settled in its
-[record](docs/changes/2026-0037-gitleaks-rules.md); the repository is
-made on GitHub only with Iain's go-ahead.
-
-**Done when:** Text::Redact::Secrets is on CPAN, its rules made by the
-script from a gitleaks tag, its tests by hand and gitleaks' false
-positives passing, and the cost of checking keywords first measured in
-the record.
-
 ### 2026-0038. Secrets redacted by dump_to
 
-**Size:** S (2). **Split from:** 2026-0036. **Depends on:** 2026-0037.
+**Size:** S (2). **Split from:** 2026-0036. **Depends on:**
+Text-Redact-Secrets 2026-0001, its first release.
 
-`dump_to` redacts what it writes whenever Text::Redact::Secrets is
-installed and passes a self-test, so a dump sent to a log doesn't leak
+`dump_to` redacts what it writes whenever
+[Text::Redact::Secrets](https://github.com/nukopian/Text-Redact-Secrets)
+is installed and passes a self-test, so a dump sent to a log doesn't leak
 a password, a token or a DSN; it croaks if the module is there but
 fails, and a `local`ised `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`,
 true, turns it off. Without the module, nothing changes, so it adds no

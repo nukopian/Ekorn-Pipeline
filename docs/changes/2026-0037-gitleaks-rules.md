@@ -1,6 +1,10 @@
 # 2026-0037. A module of gitleaks' rules
 
-**Status:** open
+**Status:** moved to Text-Redact-Secrets, as its 2026-0001, on
+2026-11-15. Its work goes on there, in
+[its record](https://github.com/nukopian/Text-Redact-Secrets/blob/develop/docs/changes/2026-0001-gitleaks-rules.md),
+which began as a copy of this one; this one stays as it was when it
+moved, with this line.
 
 **Decisions:** D1 settled: a distribution and repository of its own. D2
 settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what

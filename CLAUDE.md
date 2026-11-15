@@ -105,6 +105,23 @@ both:
   once, and must suit them. A name added anywhere else doesn't appear
   there until it's added to its list.
 
+## Ekorn-Pipeline and Text-Redact-Secrets
+
+Text::Redact::Secrets finds secrets in text by gitleaks' rules, and
+redacts them. It was designed here, as roadmap 2026-0037, and moved on
+2026-11-15 to a repository of its own,
+`~/Git/github.com/nukopian/Text-Redact-Secrets`, as its 2026-0001, as
+Iain decided (2026-0037's D1): new rules reach users with no release of
+Ekorn's. Its work, and its design from now on, are its session's.
+
+- **Ekorn uses it as any package would,** and doesn't require it:
+  `dump_to` redacts with it whenever it's installed and passes a
+  self-test (roadmap 2026-0038), calling its `redact`. That's its
+  contract with Ekorn; a change to it comes here as a message first.
+- **2026-0038 waits on its first release,** which its session tells
+  this one with a task in `TODO.md`. A later release that only brings
+  new rules from gitleaks needs nothing here.
+
 ## Who does what
 
 - **The code is a two-way process.** Iain writes some by hand, and
@@ -395,7 +412,11 @@ what was Iain's.
   such as `pipeline-experimental`, carries its work, `TODO.md` is kept
   on it, and DBIx-Squirrel's session hands tasks and messages to that
   branch. DBIx-Squirrel's tasks for Ekorn-Pipeline come here the same
-  way. It's the only other repository this one touches.
+  way. Text-Redact-Secrets is the only other repository this one
+  touches, in the same way: tasks and messages for it go in its
+  `TODO.md`, on its `develop`, through a worktree at
+  `/tmp/text-redact-secrets-todo`, with these commands with its name
+  in place of DBIx-Squirrel's, and its tasks and messages come here.
 - **A release ends by telling DBIx-Squirrel,** with a task in its
   `TODO.md`, and by looking there for tasks waiting on the release, so
   Iain knows which can now be done. Nothing else tells its session

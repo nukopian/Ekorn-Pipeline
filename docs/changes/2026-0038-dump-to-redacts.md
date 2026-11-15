@@ -11,17 +11,19 @@ v0.3.x, and a message to DBIx-Squirrel. None open.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
-**Depends on:** 2026-0037
+**Depends on:** Text-Redact-Secrets 2026-0001, its first release;
+2026-0037 until 2026-11-15, when it moved there
 
 ## Background
 
 A dump is often written to a log, and a value holding a password, a
-token or a DSN leaks it there. 2026-0037 makes Text::Redact::Secrets,
-a module of gitleaks' rules with a function that puts `*REDACTED*` in
-place of each secret in a string. `dump_to`, in
-Ekorn::Pipeline::Stages::Taps, writes each value with Data::Dumper,
-`local`ising `$Data::Dumper::Indent`, `Sortkeys` and `Terse` as it
-does. DBIx::Squirrel imports `dump_to` by name.
+token or a DSN leaks it there. Text-Redact-Secrets 2026-0001, at first
+this repository's 2026-0037, makes Text::Redact::Secrets, a module of
+gitleaks' rules with a function that puts `*REDACTED*` in place of each
+secret in a string. `dump_to`, in Ekorn::Pipeline::Stages::Taps, writes
+each value with Data::Dumper, `local`ising `$Data::Dumper::Indent`,
+`Sortkeys` and `Terse` as it does. DBIx::Squirrel imports `dump_to` by
+name.
 
 ## Decisions
 
