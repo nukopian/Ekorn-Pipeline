@@ -69,10 +69,11 @@ escaped, mostly in the end of a secret that most rules share,
   the same tag. Generating secrets from each regex in Perl, with
   String::Random's `randregex`, covers only some of their syntax, and
   running gitleaks' generator needs Go; tests by hand don't break when
-  gitleaks moves its Go code about. Without `m`, RE2's `$` matches only at the end
-  of the text, as `\z` does, where Perl's `$` matches before a final
-  newline too. Under `m` it would mean the end of a line, and `\z`
-  would change the rule, so the script refuses it rather than guess. A
+  gitleaks moves its Go code about. Without `m`, RE2's `$` matches
+  only at the end of the text, as `\z` does, where Perl's `$` matches
+  before a final newline too. Under `m` it would mean the end of a
+  line, and `\z` would change the rule, so the script refuses it
+  rather than guess. A
   `$` escaped or in a character class is a dollar, so the script finds
   the anchors by scanning, not by a search and replace. Compiling
   isn't agreeing, so the tests are what show the two agree.
