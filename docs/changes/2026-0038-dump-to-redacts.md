@@ -5,7 +5,7 @@
 **Decisions:** D1 settled: redacts by itself when Text::Redact::Secrets
 is installed. D2 settled: a package global, `local`ised, stops it when
 true. D3 settled: `$DumpSecrets`. D4 settled: looked for once, at the
-first dump. D5 open: the text redacted, not the value. D6 open: a
+first dump. D5 settled: the text redacted, not the value. D6 open: a
 v0.3.x, and the message to DBIx-Squirrel.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
@@ -52,11 +52,11 @@ does. DBIx::Squirrel imports `dump_to` by name.
   load, it would load the module for code that never dumps. A module
   that's there but broken, taken as absent, would let secrets through
   without a word, the failure D1 is there to prevent.
-- [ ] **D5.** The dumped text redacted, or the value? Recommended: the
-  text. Text::Redact::Secrets works on strings, Data::Dumper's text
-  keeps each key beside its value, which gitleaks' rules look for, and
-  the value isn't copied or touched, so what goes on down the pipeline
-  is what came in.
+- [x] **D5.** The dumped text redacted, or the value? **The text,**
+  Iain decided on 2026-11-15, as recommended. Text::Redact::Secrets
+  works on strings; Data::Dumper's text keeps each key beside its
+  value, which gitleaks' rules look for; and the value isn't copied or
+  touched, so what goes on down the pipeline is what came in.
 - [ ] **D6.** Which version, and what DBIx-Squirrel is told?
   Recommended: a v0.3.x, as it adds: nothing changes unless a new
   module is installed, and what changes is only what's written to a
