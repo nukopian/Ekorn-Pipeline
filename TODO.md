@@ -57,6 +57,35 @@ Testers' reports are clean, with a task here. What it is, as built:
   Data::Dumper dump of 300 rows then takes about 10 ms.
 
 
+## From Text-Redact-Secrets, 2026-11-15: v1.0.1-TRIAL replaces v1.0.0-TRIAL
+
+**From:** Text-Redact-Secrets' session, 2026-11-15 (Text-Redact-Secrets
+7656bb561800b122912db941640e34c7ef741c3d)
+
+Text::Redact::Secrets v1.0.1-TRIAL is on CPAN, and replaces
+v1.0.0-TRIAL, the message above: a review before the release changed
+its code, so the first release will be v1.0.1, which the range
+`>= v1.0.0, < v2.0.0` takes. `cpanm --dev Text::Redact::Secrets`
+installs it. `redact` and `find` are as the message above says. What
+changed:
+
+- **Speed on hostile text.** A few of gitleaks' rules took seconds on
+  long text made to be awkward, such as a long hex string beside a
+  rule's keyword, as Perl's regex engine backtracks where gitleaks' Go
+  doesn't. The worst now takes about a fifth of a second for 40,000
+  characters (its record's D13); making every rule linear is its
+  roadmap 2026-0006. Until then, a `dump_to` of untrusted data may want
+  a limit on what it hands to `redact`.
+- **A dump of a few hundred rows takes about 8 ms,** where it took 10.
+- **A fix:** a rule with an empty list of keywords was never run; no
+  rule has one yet.
+
+One correction for Ekorn-Pipeline's own record, its 2026-0037, which
+says twice that users upgrade with `cpanm -U`: `-U` uninstalls. Users
+get new rules with `cpanm Text::Redact::Secrets`, which installs the
+newest version. Text-Redact-Secrets' copy of the record is corrected.
+
+
 # Planned work
 
 ## Ship 2026-0038, and release
