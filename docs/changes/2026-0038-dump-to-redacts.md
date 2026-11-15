@@ -1,6 +1,6 @@
 # 2026-0038. Secrets redacted by dump_to
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.2
 
 **Decisions:** D1 settled: redacts by itself when Text::Redact::Secrets
 is installed and passes a self-test, and croaks if it doesn't. D2

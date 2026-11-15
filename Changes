@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.2 2026-11-15
+
     dump_to redacts the secrets in what it writes, whenever
     Text::Redact::Secrets is installed, so a dump sent to a log
     doesn't leak a password, a token or a DSN.
