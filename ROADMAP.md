@@ -70,7 +70,9 @@ secret it finds in a string. To settle: the module's name and whether
 it's released to CPAN; Go's RE2 regexes in Perl, which mostly agree;
 gitleaks' keywords, checked first to keep it fast; crediting gitleaks,
 which is MIT-licensed; and whether the entropy check is written here
-or taken from Shannon::Entropy::XS.
+or taken from Shannon::Entropy::XS. Its
+[record](docs/changes/2026-0037-gitleaks-rules.md) keeps them, with
+four more, and settles how Go's regexes become Perl's.
 
 ### 2026-0038. Secrets redacted by dump_to
 

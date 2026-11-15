@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A module of gitleaks' rules](2026-0037-gitleaks-rules.md), roadmap
+  2026-0037: open, an idea.
 - [Ekorn::Pipeline::JSON](2026-0034-json.md), roadmap 2026-0034:
   shipped in v0.3.1.
 - [One try for each pulled value](2026-0033-one-try.md), roadmap
