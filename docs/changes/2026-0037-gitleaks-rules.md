@@ -5,10 +5,11 @@
 **Decisions:** D1 settled: a distribution and repository of its own.
 D2 settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse
 what won't translate, hand-written tests and gitleaks' false positives.
-D4 settled: keywords first. D5 settled: entropy written here. D6 open:
-crediting gitleaks. D7 open: which allowlists to carry. D8 open:
-what's redacted. D9 open: rules pinned to a gitleaks tag. D10 open:
-the interface. D11 settled: `Text::Redact::Secrets`.
+D4 settled: keywords first. D5 settled: entropy written here. D6
+settled: gitleaks' licence shipped, and named in the POD. D7 open:
+which allowlists to carry. D8 open: what's redacted. D9 open: rules
+pinned to a gitleaks tag. D10 open: the interface. D11 settled:
+`Text::Redact::Secrets`.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -107,9 +108,17 @@ escaped, mostly in the end of a secret that most rules share,
   add a compiled dependency to save almost nothing. Written here, it
   can be made to reckon as gitleaks does, base 2, on the secret D8
   picks out, and tested against gitleaks' thresholds.
-- [ ] **D6.** Crediting gitleaks, which is MIT-licensed? Recommended:
-  its licence and copyright notice shipped as a file, and gitleaks, the
-  tag and the commit the rules came from named in the POD.
+- [x] **D6.** Crediting gitleaks, which is MIT-licensed? **Its licence
+  and copyright notice shipped as a file, and gitleaks, the tag and the
+  commit the rules came from named in the POD,** Iain decided on
+  2026-11-15, as recommended. MIT asks that the notice go with every
+  copy, or substantial portion, and the generated module of rules is
+  one, so its header says where its rules came from and points to the
+  file too. The script fetches the licence from the same tag as the
+  rules, so the notice is the one they came under: at the commit in
+  Background, "Copyright (c) 2019 Zachary Rice". The module's own code
+  is under Perl's terms, as Iain's distributions are; MIT's allow
+  that.
 - [ ] **D7.** Which allowlists to carry? Recommended: each rule's own
   regexes and stopwords, without which `generic-api-key` redacts
   placeholders; not those of paths, as the module sees strings, not
