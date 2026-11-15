@@ -45,7 +45,41 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0037. A module of gitleaks' rules
+
+**Size:** M (3). **Split from:** 2026-0036.
+
+Text::Redact::Secrets, a distribution of its own, released to CPAN,
+with `redact` and `find` to replace or report each secret in a string,
+by gitleaks' rules. A script, `scripts/update-rules`, makes its module
+of rules from a gitleaks release tag's `config/gitleaks.toml`, so
+keeping up with gitleaks is running it again. It's what 2026-0038
+needs, and of use to anyone writing text that might hold a secret.
+Every question is settled in its
+[record](docs/changes/2026-0037-gitleaks-rules.md); the repository is
+made on GitHub only with Iain's go-ahead.
+
+**Done when:** Text::Redact::Secrets is on CPAN, its rules made by the
+script from a gitleaks tag, its tests by hand and gitleaks' false
+positives passing, and the cost of checking keywords first measured in
+the record.
+
+### 2026-0038. Secrets redacted by dump_to
+
+**Size:** S (2). **Split from:** 2026-0036. **Depends on:** 2026-0037.
+
+`dump_to` redacts what it writes whenever Text::Redact::Secrets is
+installed and passes a self-test, so a dump sent to a log doesn't leak
+a password, a token or a DSN; it croaks if the module is there but
+fails, and a `local`ised `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`,
+true, turns it off. Without the module, nothing changes, so it adds no
+dependency. A v0.3.x. Every question is settled in its
+[record](docs/changes/2026-0038-dump-to-redacts.md).
+
+**Done when:** `dump_to` does so, tested with the module, without it,
+and with one that fails, with `$DumpSecrets` too; documented in the
+POD, its DIAGNOSTICS, the reference and the how-to, and in `Changes`;
+and DBIx-Squirrel sent a message, as it imports `dump_to`.
 
 ## Later
 
@@ -57,30 +91,4 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-### 2026-0037. A module of gitleaks' rules
-
-**Added:** 2026-11-15. **Size:** M (3).
-**Split from:** 2026-0036.
-
-A script fetches gitleaks' rules from its `config/gitleaks.toml` on
-GitHub, each a regex and, for many, a minimum Shannon entropy, and
-writes them as a module of their own, in a distribution `cpanm` can
-install, with a function that puts `*REDACTED*` in place of each
-secret it finds in a string: Text::Redact::Secrets, released to CPAN.
-Its [record](docs/changes/2026-0037-gitleaks-rules.md) has every
-question settled: how Go's regexes become Perl's, keywords first,
-entropy, credit to gitleaks, allowlists, what's redacted, keeping the
-rules current, and the interface.
-
-### 2026-0038. Secrets redacted by dump_to
-
-**Added:** 2026-11-15. **Size:** S (2).
-**Split from:** 2026-0036. **Depends on:** 2026-0037.
-
-When 2026-0037's module is installed, `dump_to` passes what it writes
-through it, so a dump sent to a log doesn't leak a password, a token
-or a DSN; without it, nothing changes, so it adds no dependency. A
-`local`ised `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, true,
-stops it, and a module that fails its self-test croaks. Its
-[record](docs/changes/2026-0038-dump-to-redacts.md) has every question
-settled.
+Nothing yet.
