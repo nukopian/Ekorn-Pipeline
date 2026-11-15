@@ -57,17 +57,17 @@ does. DBIx::Squirrel imports `dump_to` by name.
   it's bound to the tap it governs, read as "`dump_to`: dump secrets",
   where `ShowSecrets` could be taken for all of Taps, or the pipeline.
   It still names, as Data::Dumper's globals do, what setting it does,
-  so code that sets it says plainly that it writes secrets out. It's `dump_to`'s alone: a
-  tap that redacts later takes a switch of its own, so turning off one
-  doesn't turn off the other.
+  so code that sets it says plainly that it writes secrets out. It's
+  `dump_to`'s alone: a tap that redacts later takes a switch of its
+  own, so turning off one doesn't turn off the other.
 - [x] **D4.** How `dump_to` looks for the module, and when? **By
   `require` in an `eval`, once, the first time a dump is written, the
   answer kept for the rest of the process; a module found but failing
   to load is reported, by a croak (D1), not taken as absent,** Iain
   decided on 2026-11-15, as recommended. Each time would cost every
-  dump; at load, it would load the module for code that never dumps. A module
-  that's there but broken, taken as absent, would let secrets through
-  without a word, the failure D1 is there to prevent.
+  dump; at load, it would load the module for code that never dumps.
+  A module that's there but broken, taken as absent, would let secrets
+  through without a word, the failure D1 is there to prevent.
 - [x] **D5.** The dumped text redacted, or the value? **The text,**
   Iain decided on 2026-11-15, as recommended. Text::Redact::Secrets
   works on strings; Data::Dumper's text keeps each key beside its
