@@ -7,7 +7,9 @@ is installed and passes a self-test, and croaks if it doesn't. D2
 settled: a package global, `local`ised, stops it when true. D3
 settled: `$DumpSecrets`. D4 settled: looked for once, at the first
 dump. D5 settled: the text redacted, not the value. D6 settled: a
-v0.3.x, and a message to DBIx-Squirrel. None open.
+v0.3.x, and a message to DBIx-Squirrel. D7 settled: versions
+`>= v1.0.0, < v2.0.0`, `recommends` in `cpanfile`. D8 settled: no
+limit on what's redacted. None open.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -24,6 +26,35 @@ secret in a string. `dump_to`, in Ekorn::Pipeline::Stages::Taps, writes
 each value with Data::Dumper, `local`ising `$Data::Dumper::Indent`,
 `Sortkeys` and `Terse` as it does. DBIx::Squirrel imports `dump_to` by
 name.
+
+Text-Redact-Secrets' session sent what it built, in three messages on
+2026-11-15 (Text-Redact-Secrets
+c12b8993722b2b62fc2b3aeff108f2faa461a5c2,
+f65876f9bd344e79c7526db210c6b3fbf50b35fb and
+7656bb561800b122912db941640e34c7ef741c3d):
+
+- **`redact($string)`** returns a copy with each secret replaced by
+  `*REDACTED*`, and croaks on `undef` or a reference. v1.0.0-TRIAL
+  and v1.0.1-TRIAL are on CPAN; the first stable release is v1.0.1.
+- **For the self-test:** `generic-api-key`, which finds a
+  `'password' => '...'` in a dump, passes over a value with a word in
+  it, such as "fake", "example", "test" or "password", and one with
+  too little entropy. A made-up secret for it should look random, as
+  `Zq8vR2mXkP4wL9nT` does, or be one a specific rule finds, such as an
+  AWS access key id, and be built from pieces, so that no line of
+  Ekorn's holds a secret whole for gitleaks or push protection to
+  find. Its `t/04-by-hand.t` has examples.
+- **Its cost,** as it measured: about 8 ms to compile the rules at the
+  first call, and about 8 ms for a dump of a few hundred rows.
+
+Tried here on 2026-11-15, with v1.0.1-TRIAL in
+`perl-5.36.3@ekorn-pipeline`, on Data::Dumper's text as `dump_to`
+writes it: a row's `password`, the password in a `postgres://` DSN and
+an AWS key id were each redacted, and a `fake_pw` of `password` left
+as it was. The first call took 8.8 ms. The cost of 300 rows depends on
+the secrets in them, not their length: 1.0 ms for rows with none (31k
+characters), 5.9 ms with a DSN in each, and 44 ms with a `password` or
+an AWS key id in each, about 0.15 ms a secret found.
 
 ## Decisions
 
@@ -84,3 +115,23 @@ name.
   imports `dump_to`, so it's sent a message saying what its users'
   dumps will do once Text::Redact::Secrets is installed, the croak if
   it's broken, and `$DumpSecrets`.
+- [x] **D7.** Which versions of Text::Redact::Secrets does `dump_to`
+  take? **`>= v1.0.0, < v2.0.0`; a version outside the range is
+  treated as a failed self-test (D1), and `cpanfile` names it as
+  `recommends 'Text::Redact::Secrets', '>= v1.0.0, < v2.0.0'`,** Iain
+  decided on 2026-11-15, in Text-Redact-Secrets' session, which sent
+  it here as a message. Its version moves the first number only for a
+  change to what `redact` or `find` take or return, so a v2.0.0 can't
+  break `dump_to` before Ekorn has tested it and moved the range; one
+  comes here as a task. `recommends` tells installers it's worth
+  having, without making it a dependency, as D1 has it.
+- [x] **D8.** A limit on how much text `dump_to` hands to `redact`?
+  **None,** Iain decided on 2026-11-15, as recommended.
+  Text-Redact-Secrets' v1.0.1 message said a few of gitleaks' rules
+  backtrack in Perl on text made to be awkward, the worst taking about a
+  fifth of a second for 40,000 characters, and that a dump of untrusted
+  data might want a limit. But text past a limit would be either written
+  unredacted, which is what 2026-0038 is there to stop, or cut off,
+  losing what a dump is for; `dump_to` is a tap for debugging, rarely
+  given hostile text; and Text-Redact-Secrets 2026-0006, making every
+  rule linear, fixes the cause.

@@ -60,8 +60,9 @@ escaped, mostly in the end of a secret that most rules share,
   exactly. Its name is D11.
 - [x] **D2.** Released to CPAN? **Yes,** Iain decided on 2026-11-15:
   on GitHub alone, few of `dump_to`'s users would ever have it, and
-  2026-0038 would help almost no one. On CPAN, `cpanm -U` brings new
-  rules to them, as D1 has it.
+  2026-0038 would help almost no one. On CPAN,
+  `cpanm Text::Redact::Secrets` brings new rules to them, as D1 has
+  it.
 - [x] **D3.** Go's RE2 regexes in Perl? **Each is compiled with `/a`,
   so `\w`, `\s` and `\d` are ASCII, as in RE2; each `$` that's an
   anchor is written `\z`; a regex that won't compile, or sets the `m`
@@ -191,7 +192,7 @@ escaped, mostly in the end of a secret that most rules share,
      rules, as its code has a version of its own and two schemes in one
      number would mislead; `Changes` names the gitleaks tag; it goes to
      CPAN as D2 says.
-  5. **Users get it with `cpanm -U Text::Redact::Secrets`,** and
+  5. **Users get it with `cpanm Text::Redact::Secrets`,** and
      `dump_to` uses whatever version is installed, so neither Ekorn nor
      DBIx-Squirrel releases for it, as D1 has it.
 - [x] **D10.** The interface? **`redact($string)`, returning a copy with
