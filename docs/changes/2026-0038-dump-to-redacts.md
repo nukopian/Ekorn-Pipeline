@@ -37,7 +37,8 @@ does. DBIx::Squirrel imports `dump_to` by name.
   run, or inside a stage before it, takes effect.
 - [x] **D3.** The global's name?
   **`$Ekorn::Pipeline::Stages::Taps::DumpSecrets`,** Iain decided on
-  2026-11-15, over `ShowSecrets`, as recommended: it's bound to the tap
+  2026-11-15, as he proposed, over the `ShowSecrets` first recommended:
+  it's bound to the tap
   it governs, read as "`dump_to`: dump secrets", where `ShowSecrets`
   could be taken for all of Taps, or the pipeline. It still names, as
   Data::Dumper's globals do, what setting it does, so code that sets it
