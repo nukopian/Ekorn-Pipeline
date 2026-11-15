@@ -57,18 +57,6 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-### 2026-0035. Subs by name as stages
-
-**Added:** 2026-11-14. **Size:** S (2)
-
-Let `pipeline`, through `pipeline_in`, take a name that isn't a named
-pipeline as the sub of that name in the caller's package, so plain
-subs read as a path: `pipeline(trim => normalise => top5 =>)`. Named
-pipelines win, so nothing that works now changes; to settle: builtins
-such as `uc`, by `\&CORE::uc`, or not; looked up as the pipeline is
-made, as names are now, so a typo croaks at once; `new` left as it is;
-and the messages that say what a stage may be.
-
 ### 2026-0037. A module of gitleaks' rules
 
 **Added:** 2026-11-15. **Size:** M (3).
