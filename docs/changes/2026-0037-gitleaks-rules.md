@@ -7,9 +7,9 @@ settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
 won't translate, hand-written tests and gitleaks' false positives. D4
 settled: keywords first. D5 settled: entropy written here. D6 settled:
 gitleaks' licence shipped, and named in the POD. D7 settled: what
-applies to strings carried, what applies to files not. D8 open: what's
-redacted. D9 open: rules pinned to a gitleaks tag. D10 open: the
-interface. D11 settled: `Text::Redact::Secrets`.
+applies to strings carried, what applies to files not. D8 settled: the
+secret as gitleaks picks it out. D9 open: rules pinned to a gitleaks
+tag. D10 open: the interface. D11 settled: `Text::Redact::Secrets`.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -141,10 +141,16 @@ escaped, mostly in the end of a secret that most rules share,
   not just its paths, which would make it pass over more than
   gitleaks does; one rule's is so. Allowlist regexes are translated as
   D3 says, as the rules' are.
-- [ ] **D8.** What's redacted? Recommended: the secret as gitleaks
-  finds it: the `secretGroup`, or the first capture group that isn't
-  empty, or the whole match. So `'password' => 'hunter2...'` keeps its
-  key, and only the value becomes `*REDACTED*`.
+- [x] **D8.** What's redacted? **The secret as gitleaks picks it out:
+  the `secretGroup`, if the rule names one; or else the first capture
+  group that isn't empty; or else, with no groups or none matched, the
+  whole match,** Iain decided on 2026-11-15, as recommended. So
+  `'password' => 'hunter2...'` keeps its key, and only the value
+  becomes `*REDACTED*`, and a dump still shows what was there. It's
+  gitleaks' own order, in `detect/detect.go` at the commit in
+  Background, and the same secret is what D5's entropy is reckoned on
+  and what an allowlist's default `regexTarget` matches, so all three
+  agree.
 - [ ] **D9.** How the rules are kept current? Recommended: the script
   fetches them from a gitleaks release tag, not `master`, and writes
   the tag and commit into the module, so a release can be made again
