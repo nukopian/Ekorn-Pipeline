@@ -4,8 +4,8 @@
 
 **Decisions:** D1 settled: redacts by itself when Text::Redact::Secrets
 is installed. D2 settled: a package global, `local`ised, stops it when
-true. D3 settled: `$DumpSecrets`. D4 open: when the module is looked
-for. D5 open: the text redacted, not the value. D6 open: a v0.3.x, and
+true. D3 settled: `$DumpSecrets`. D4 settled: looked for once, at the
+first dump. D5 open: the text redacted, not the value. D6 open: a v0.3.x, and
 the message to DBIx-Squirrel.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
@@ -45,12 +45,14 @@ does. DBIx::Squirrel imports `dump_to` by name.
   says plainly that it writes secrets out. It's `dump_to`'s alone: a
   tap that redacts later takes a switch of its own, so turning off one
   doesn't turn off the other.
-- [ ] **D4.** How `dump_to` looks for the module, and when?
-  Recommended: `require` in an `eval`, once, the first time a dump is
-  written, its answer kept for the rest of the process; not each time,
-  which costs, nor at load, which would load the module for code that
-  never dumps. A module found but failing to load is reported, not
-  quietly taken as absent.
+- [x] **D4.** How `dump_to` looks for the module, and when? **By
+  `require` in an `eval`, once, the first time a dump is written, the
+  answer kept for the rest of the process; a module found but failing
+  to load is reported, not taken as absent,** Iain decided on
+  2026-11-15, as recommended. Each time would cost every dump; at
+  load, it would load the module for code that never dumps. A module
+  that's there but broken, taken as absent, would let secrets through
+  without a word, the failure D1 is there to prevent.
 - [ ] **D5.** The dumped text redacted, or the value? Recommended: the
   text. Text::Redact::Secrets works on strings, Data::Dumper's text
   keeps each key beside its value, which gitleaks' rules look for, and
