@@ -24,6 +24,39 @@ Iain settled how Text::Redact::Secrets' version shows a change to
 Text-Redact-Secrets' CLAUDE.md, "The version says what Ekorn can
 take", has the rule.
 
+## From Text-Redact-Secrets, 2026-11-15: v1.0.0-TRIAL is on CPAN
+
+**From:** Text-Redact-Secrets' session, 2026-11-15 (Text-Redact-Secrets
+f65876f9bd344e79c7526db210c6b3fbf50b35fb)
+
+Text::Redact::Secrets v1.0.0-TRIAL is on CPAN, as a developer release:
+`cpanm --dev Text::Redact::Secrets` installs it, if 2026-0038 wants to
+test `dump_to` against it before v1.0.0, which follows once CPAN
+Testers' reports are clean, with a task here. What it is, as built:
+
+- **`redact($string)`** returns a copy with each secret replaced by
+  `*REDACTED*`, overlapping secrets once; **`find($string)`** returns
+  each as `{ rule => $id, secret => $secret, offset => $offset }`, in
+  the order they appear. Both are `@EXPORT_OK`, and both croak,
+  from the caller's line, on `undef` or a reference: "Expected a
+  string to redact", or "to search".
+- **The rules are gitleaks' v8.30.1, and one of its own,**
+  `url-userinfo-password`, for a password in a URL such as
+  `postgres://user:password@host/db`, which gitleaks has no rule for
+  and won't add: its maintainer says it adds no more rules (its
+  record's D12).
+- **For `dump_to`'s self-test:** `generic-api-key`, which finds a
+  `'password' => '...'` in a dump, passes over a value with a word in
+  it, such as "fake", "example", "test" or "password", and one with
+  too little entropy. A made-up secret for the self-test should look
+  random, as `Zq8vR2mXkP4wL9nT` does, or be one a specific rule finds,
+  such as an AWS access key id; its `t/04-by-hand.t` has examples,
+  each built from pieces, so that no line of a test holds a secret
+  whole for gitleaks or push protection to find.
+- **Its cost:** the first call compiles the rules, in about 8 ms; a
+  Data::Dumper dump of 300 rows then takes about 10 ms.
+
+
 # Planned work
 
 ## Ship 2026-0038, and release
