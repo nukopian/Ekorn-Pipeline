@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Secrets redacted by dump_to](2026-0038-dump-to-redacts.md), roadmap
+  2026-0038: open, an idea.
 - [A module of gitleaks' rules](2026-0037-gitleaks-rules.md), roadmap
   2026-0037: open, an idea.
 - [Ekorn::Pipeline::JSON](2026-0034-json.md), roadmap 2026-0034:

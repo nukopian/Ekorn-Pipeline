@@ -81,7 +81,9 @@ four more, and settles how Go's regexes become Perl's.
 
 When 2026-0037's module is installed, `dump_to` passes what it writes
 through it, so a dump sent to a log doesn't leak a password, a token
-or a DSN; without it, nothing changes, so it adds no dependency. To
-settle: how `dump_to` looks for the module, and when; whether it
-redacts the dumped text or the value, on a copy, before dumping; and
-the message to DBIx-Squirrel, which imports `dump_to`.
+or a DSN; without it, nothing changes, so it adds no dependency. A
+`local`ised package global, true, stops it. Its
+[record](docs/changes/2026-0038-dump-to-redacts.md) has what's left to
+settle: the global's name; how `dump_to` looks for the module, and
+when; whether it redacts the dumped text or the value; and the version
+and message to DBIx-Squirrel, which imports `dump_to`.

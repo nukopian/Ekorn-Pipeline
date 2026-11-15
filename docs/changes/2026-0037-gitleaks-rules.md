@@ -8,7 +8,7 @@ won't translate, hand-written tests and gitleaks' false positives. D4
 open: keywords first. D5 open: entropy written here. D6 open:
 crediting gitleaks. D7 open: which allowlists to carry. D8 open:
 what's redacted. D9 open: rules pinned to a gitleaks tag. D10 open:
-the interface. D11 open: the name.
+the interface. D11 settled: `Text::Redact::Secrets`.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -113,11 +113,39 @@ escaped, mostly in the end of a secret that most rules share,
   fetches them from a gitleaks release tag, not `master`, and writes
   the tag and commit into the module, so a release can be made again
   exactly; updating is running it again, by hand, for a new release.
+
+  An update, so recommended, in Text-Redact-Secrets' repository:
+
+  1. **gitleaks tags a release,** v8.29.0, say. It's noticed by
+     watching gitleaks' releases on GitHub, or by a weekly CI job that
+     compares the tag in the module with gitleaks' latest and fails
+     when they differ, which is a change to GitHub, so Iain's to make.
+  2. **`scripts/update-rules v8.29.0`** fetches that tag's
+     `config/gitleaks.toml`, and the Go sources the false positives are
+     read from; translates each regex as D3 says, stopping on one it
+     can't; and writes the generated module of rules and its test of
+     false positives, with the tag and commit in the module. If the
+     rules are the same as before, it says so, and there's nothing
+     more to do: most of gitleaks' releases change its Go, not its
+     rules.
+  3. **`git diff`** shows the rules added, changed and removed, and the
+     tests, by hand and of false positives, run as for any change. A
+     rule removed that a test by hand names fails it, and is looked
+     into.
+  4. **A release:** the module's own version, a minor one for new
+     rules, as its code has a version of its own and two schemes in one
+     number would mislead; `Changes` names the gitleaks tag; it goes to
+     CPAN as D2 says.
+  5. **Users get it with `cpanm -U Text::Redact::Secrets`,** and
+     `dump_to` uses whatever version is installed, so neither Ekorn nor
+     DBIx-Squirrel releases for it, as D1 has it.
 - [ ] **D10.** The interface? Recommended: `redact($string)`, returning
   a copy with each secret replaced; perhaps `find($string)` too,
   returning each secret found with its rule's id, for tests and for
   reporting what was found rather than hiding it. Both `@EXPORT_OK`.
-- [ ] **D11.** The module's name, and so its distribution's and
-  repository's? Recommended: one not implying it's gitleaks' own, such
-  as `Text::Redact::Secrets`, checked as free on CPAN. Split from D1 on
-  2026-11-15, when D1 was settled.
+- [x] **D11.** The module's name, and so its distribution's and
+  repository's? **`Text::Redact::Secrets`,** in the distribution
+  `Text-Redact-Secrets`, Iain decided on 2026-11-15: it says what it
+  does, and doesn't suggest it's gitleaks' own. On MetaCPAN that day,
+  neither it, nor `Text::Redact`, nor the distribution was taken.
+  Split from D1 the same day, when D1 was settled.
