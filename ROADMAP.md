@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0038.
+Last id: 2026-0039.
 
 Items come in four groups:
 
@@ -74,4 +74,12 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-Nothing yet.
+### 2026-0039. Scan for secrets with betterleaks
+
+Added 2026-11-15. **Size:** S (2).
+
+Scan with betterleaks, gitleaks' successor, in place of gitleaks, once
+it's settled: in CI's job over the whole history, and in the scans by
+hand before a push and a tag that CLAUDE.md and docs/MAINTAINING.md
+give. gitleaks gets no new rules, so its scans will slowly miss the
+newer kinds of secret that only betterleaks finds.
