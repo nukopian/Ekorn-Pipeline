@@ -73,7 +73,21 @@ escaped, mostly in the end of a secret that most rules share,
   would change the rule, so the script refuses it rather than guess. A
   `$` escaped or in a character class is a dollar, so the script finds
   the anchors by scanning, not by a search and replace. Compiling
-  isn't agreeing, so the samples are what show the two agree.
+  isn't agreeing, so the tests are what show the two agree.
+
+  `\z`, not `\Z`, as Iain asked on 2026-11-15: `\Z` matches before a
+  final newline too, as Perl's `$` does, so it would be the same as
+  leaving `$` alone, and RE2 has no `\Z`. It differs in one rule only.
+  151 of the regexes with an anchor have it in the shared end, beside
+  `\s`, which matches a final newline anyway; two more, an Azure AD
+  client secret and Perplexity's key, have `\s` beside it too. Only
+  `sidekiq-sensitive-url`, ending `(?:[\/|\#|\?|:]|$)`, would miss with
+  `\z` a secret straight before a final newline, which `\Z` would
+  catch, and which gitleaks misses too. Catching more is tempting in a
+  redactor, but keeping each rule's meaning is what makes "the rules
+  are gitleaks'" true, and a rule that should catch more is better
+  fixed in gitleaks, for everyone. Nor can it arise in `dump_to`, as
+  Data::Dumper ends each string with a quote.
 - [ ] **D4.** gitleaks' keywords, checked first? Recommended: yes, as
   gitleaks does, on the text lowercased: one regex of every keyword
   finds which rules could match, and only theirs run. Measured on a
