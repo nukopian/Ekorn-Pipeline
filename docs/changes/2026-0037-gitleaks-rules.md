@@ -8,7 +8,7 @@ won't translate, hand-written tests and gitleaks' false positives. D4
 settled: keywords first. D5 settled: entropy written here. D6 settled:
 gitleaks' licence shipped, and named in the POD. D7 settled: what
 applies to strings carried, what applies to files not. D8 settled: the
-secret as gitleaks picks it out. D9 open: rules pinned to a gitleaks
+secret as gitleaks picks it out. D9 settled: rules pinned to a gitleaks
 tag. D10 open: the interface. D11 settled: `Text::Redact::Secrets`.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
@@ -151,18 +151,26 @@ escaped, mostly in the end of a secret that most rules share,
   Background, and the same secret is what D5's entropy is reckoned on
   and what an allowlist's default `regexTarget` matches, so all three
   agree.
-- [ ] **D9.** How the rules are kept current? Recommended: the script
-  fetches them from a gitleaks release tag, not `master`, and writes
-  the tag and commit into the module, so a release can be made again
-  exactly; updating is running it again, by hand, for a new release.
+- [x] **D9.** How the rules are kept current? **The script fetches them
+  from a gitleaks release tag, not `master`, and writes the tag and
+  commit into the module, so a release can be made again exactly;
+  updating is running it again, by hand, for a new release,** Iain
+  decided on 2026-11-15, as recommended, with the update below. A tag is
+  what gitleaks released and tested; `master` can change between two
+  runs of the script. Which way a new tag is noticed, by watching
+  gitleaks' releases or by the CI job in step 1, is settled when the
+  repository is set up, as the job is a change to GitHub. gitleaks'
+  latest tag on 2026-11-15 was v8.30.1, so the first release's rules
+  come from it, or a later one; Background's counts are from `master`,
+  and may differ a little from that tag's.
 
-  An update, so recommended, in Text-Redact-Secrets' repository:
+  An update, in Text-Redact-Secrets' repository:
 
-  1. **gitleaks tags a release,** v8.29.0, say. It's noticed by
+  1. **gitleaks tags a release,** v8.31.0, say. It's noticed by
      watching gitleaks' releases on GitHub, or by a weekly CI job that
      compares the tag in the module with gitleaks' latest and fails
      when they differ, which is a change to GitHub, so Iain's to make.
-  2. **`scripts/update-rules v8.29.0`** fetches that tag's
+  2. **`scripts/update-rules v8.31.0`** fetches that tag's
      `config/gitleaks.toml`, and the Go sources the false positives are
      read from; translates each regex as D3 says, stopping on one it
      can't; and writes the generated module of rules and its test of
