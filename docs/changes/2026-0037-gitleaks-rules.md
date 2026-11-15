@@ -3,9 +3,9 @@
 **Status:** open
 
 **Decisions:** D1 settled: a distribution and repository of its own.
-D2 settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
-won't translate, hand-written tests and gitleaks' false positives. D4
-open: keywords first. D5 open: entropy written here. D6 open:
+D2 settled: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse
+what won't translate, hand-written tests and gitleaks' false positives.
+D4 settled: keywords first. D5 open: entropy written here. D6 open:
 crediting gitleaks. D7 open: which allowlists to carry. D8 open:
 what's redacted. D9 open: rules pinned to a gitleaks tag. D10 open:
 the interface. D11 settled: `Text::Redact::Secrets`.
@@ -90,10 +90,15 @@ escaped, mostly in the end of a secret that most rules share,
   are gitleaks'" true, and a rule that should catch more is better
   fixed in gitleaks, for everyone. Nor can it arise in `dump_to`, as
   Data::Dumper ends each string with a quote.
-- [ ] **D4.** gitleaks' keywords, checked first? Recommended: yes, as
-  gitleaks does, on the text lowercased: one regex of every keyword
-  finds which rules could match, and only theirs run. Measured on a
-  typical dump before it's settled.
+- [x] **D4.** gitleaks' keywords, checked first? **Yes, as gitleaks
+  does, on the text lowercased: one regex of every keyword finds which
+  rules could match, and only theirs run,** Iain decided on 2026-11-15,
+  as recommended. It's how gitleaks runs its rules, not only a way to
+  speed them: a rule with keywords never matches text without one, so
+  checking them keeps each rule's meaning, as D3 does, as well as
+  sparing some 220 regexes on every dump. The recommendation was to
+  measure it on a typical dump before settling; settled first, the
+  measurement is taken as it's built, and goes in What happened.
 - [ ] **D5.** The entropy check written here, or
   Shannon::Entropy::XS? Recommended: here. It's about ten lines of
   plain Perl, run only on what a regex has matched; the XS module (1.18,
