@@ -2,12 +2,13 @@
 
 **Status:** open
 
-**Decisions:** D1 open: the name, and a repository of its own. D2
-open: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
-won't translate, gitleaks' samples as tests. D4 open: keywords first.
-D5 open: entropy written here. D6 open: crediting gitleaks. D7 open:
-which allowlists to carry. D8 open: what's redacted. D9 open: rules
-pinned to a gitleaks tag. D10 open: the interface.
+**Decisions:** D1 settled: a distribution and repository of its own.
+D2 open: released to CPAN. D3 settled: `/a`, `$` as `\z`, refuse what
+won't translate, hand-written tests and gitleaks' false positives. D4
+open: keywords first. D5 open: entropy written here. D6 open:
+crediting gitleaks. D7 open: which allowlists to carry. D8 open:
+what's redacted. D9 open: rules pinned to a gitleaks tag. D10 open:
+the interface. D11 open: the name.
 
 **Origin:** roadmap, added 2026-11-15, split from 2026-0036
 
@@ -20,8 +21,11 @@ for finding secrets, so a script can turn them into a Perl module, and
 
 gitleaks' `config/gitleaks.toml`, at its `master`,
 5f6ec56cfa6f8c67648d863582c7ae2f206d5c1c on 2026-11-15, is generated
-from Go sources in `cmd/generate/config/`, which also hold true- and
-false-positive samples for each rule. It has 222 rules: 221 with a
+from Go sources in `cmd/generate/config/`, which also hold samples
+for each rule: false positives written as strings, and true positives
+made at random as the generator runs, so not in the source to be read
+(`rules/github.go` at that commit). The rules are all in the TOML, so
+keeping them current needs only it. It has 222 rules: 221 with a
 regex, one matching paths only; 130 with a minimum Shannon entropy;
 221 with keywords; some with allowlists of their own, regexes or
 stopwords. A global allowlist is mostly of paths. Only one rule names
@@ -34,18 +38,36 @@ escaped, mostly in the end of a secret that most rules share,
 
 ## Decisions
 
-- [ ] **D1.** The module's name, and where it lives? Recommended: a
-  distribution and repository of its own, as it's of use beyond
-  pipelines, and Ekorn's tarball shouldn't carry some 200 generated
-  regexes. A name not implying it's gitleaks' own, such as
-  `Text::Redact::Secrets`, checked as free on CPAN.
+- [x] **D1.** Where does the module live? **In a distribution and
+  repository of its own,** Iain decided on 2026-11-15, once it was
+  plain how each would be kept current. There, new rules are a release
+  of that module alone: the script fetches a tag's
+  `config/gitleaks.toml`, writes the module, and the diff and tests
+  show what changed, released only when the rules did; `dump_to` uses
+  whichever version is installed, so Ekorn never releases for them,
+  and DBIx-Squirrel has nothing to do. In Ekorn-Pipeline, each change
+  to the rules would be an Ekorn release, perhaps a v0.4.0 with a task
+  for DBIx-Squirrel, as what's redacted is behaviour users rely on, and
+  it couldn't be optional, which 2026-0038 needs. A second distribution
+  in Ekorn's repository goes against Minilla, and fetching the rules at
+  install or run time needs the network and can't be made again
+  exactly. Its name is D11.
 - [ ] **D2.** Released to CPAN? Recommended: yes, or few of `dump_to`'s
   users will ever have it, and 2026-0038 would help almost no one.
 - [x] **D3.** Go's RE2 regexes in Perl? **Each is compiled with `/a`,
   so `\w`, `\s` and `\d` are ASCII, as in RE2; each `$` that's an
   anchor is written `\z`; a regex that won't compile, or sets the `m`
-  flag, stops the script; and gitleaks' samples become tests,** Iain
-  decided on 2026-11-15. Without `m`, RE2's `$` matches only at the end
+  flag, stops the script; and the tests are written by hand, for the
+  rules that matter most in a dump, with gitleaks' false positives
+  added,** Iain decided on 2026-11-15, the tests changed the same day
+  from gitleaks' samples, once its true positives were found to be made
+  at random as its generator runs. The rules tested by hand are
+  `generic-api-key`, passwords in URLs and DSNs, AWS's, GitHub's and
+  private keys; the false positives are read from the Go sources at
+  the same tag. Generating secrets from each regex in Perl, with
+  String::Random's `randregex`, covers only some of their syntax, and
+  running gitleaks' generator needs Go; tests by hand don't break when
+  gitleaks moves its Go code about. Without `m`, RE2's `$` matches only at the end
   of the text, as `\z` does, where Perl's `$` matches before a final
   newline too. Under `m` it would mean the end of a line, and `\z`
   would change the rule, so the script refuses it rather than guess. A
@@ -79,3 +101,7 @@ escaped, mostly in the end of a secret that most rules share,
   a copy with each secret replaced; perhaps `find($string)` too,
   returning each secret found with its rule's id, for tests and for
   reporting what was found rather than hiding it. Both `@EXPORT_OK`.
+- [ ] **D11.** The module's name, and so its distribution's and
+  repository's? Recommended: one not implying it's gitleaks' own, such
+  as `Text::Redact::Secrets`, checked as free on CPAN. Split from D1 on
+  2026-11-15, when D1 was settled.
