@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0042.
+Last id: 2026-0045.
 
 Items come in four groups:
 
@@ -87,3 +87,50 @@ context, a `my @values` and a `shift`, even where a stage returns
 exactly one value, as most do. See whether the step loop can do less
 in that case, with nothing a stage sees changed. Perl 5.44 runs the
 loop about 18% slower than 5.36, so measure on both.
+
+### 2026-0043. Work in flight, in order, inside a run
+
+Added 2026-11-16. **Size:** M (3).
+
+A stage, such as `in_flight($n, sub { ... })`, whose block starts the
+work for each value and returns a Future: up to `$n` at a time, their
+results passed on in the order the values came, the rest given up by
+its flush, and those still in flight cancelled by its end when the run
+stops or dies. So a caller can fetch or look up each value
+concurrently, beside the call, in any function that takes stages, with
+nothing of Ekorn's changed. Waiting needs an event loop that a Future
+can run while it waits, such as IO::Async's, or Mojo's through
+Future::Mojo. It needs Future, so it belongs in a distribution of its
+own, built on Ekorn's protocols, not in Ekorn's dependencies.
+
+### 2026-0044. A run fed a value at a time
+
+Added 2026-11-16. **Size:** M (3).
+
+A run the caller opens, pushes values into one at a time, getting what
+comes out of each, and closes, getting what the flushes give, its ends
+told how it ended; it says when a stage has stopped it. Today a pushed
+run takes all its values at once, and an iterator pulls them, so
+nothing takes values as they arrive: from callbacks, sockets or an
+event loop. It's synchronous, needs nothing new, and adds behaviour
+rather than changing it, so it's a v0.3.x; and it's what async
+sources and sinks (2026-0045) would be driven through.
+
+### 2026-0045. Asynchronous runs
+
+Added 2026-11-16. **Size:** L (5), and likely to be split once
+designed. **Depends on:** 2026-0043, 2026-0044.
+
+A run that returns a Future of its results, from sources whose step
+may return a Future, read only as fast as the run takes values, so a
+paginated API, a streamed response or an async cursor is fetched as
+needed, and closed by its end however the run ends; with time-based
+stages, such as a batch by size or by time. The questions to settle
+first: a second run loop would have to keep the first's semantics
+exactly (the order ends run in, what Stop and Gather do, how errors
+are named); `run_context`, `ending` and `local $_` are dynamic scope,
+which doesn't survive an `await`, so they'd need
+Syntax::Keyword::Dynamically or another way to be carried; and where
+an error is reported once the call has returned. Built on 2026-0043
+and 2026-0044, in a distribution of its own, designed first, with a
+prototype and cold reviews, as an epic change is.
