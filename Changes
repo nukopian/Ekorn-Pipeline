@@ -2,6 +2,22 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A run costs about half what it did to start and end, so a short
+    run, such as an iterator reading one row, costs 7 to 8 µs less.
+
+    It ships change record 2026-0040, a task from DBIx-Squirrel, which
+    profiled its handles. Nothing changes but speed: the values, the
+    messages, the order things run in, and what each part is told are
+    as they were.
+
+    - An iterator whose run has no flush, no stage's end and no sink,
+      as most have, takes a shorter way, with none of their
+      bookkeeping: with no stages, $p->iterator($code) let go costs
+      about 8 µs, not 15, and $p->iterator(source {...})->all about 12
+      µs, not 20, on Perl 5.36 and 5.44 alike. Every run is a little
+      cheaper to set up, and a plain run pulling many values is 3 to 6%
+      faster a value. (change record 2026-0040)
+
 v0.3.2 2026-11-15
 
     dump_to redacts the secrets in what it writes, whenever
