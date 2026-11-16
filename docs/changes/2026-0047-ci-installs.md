@@ -117,3 +117,14 @@ to Text-Redact-Secrets and DBIx-Squirrel as a task in each one's
   before they're changed. Whether Cpanel::JSON::XS built afresh on
   Windows and Perl 5.44 is a problem for users is still Iain's to
   decide.
+- **Windows, after,** 2026-11-16, as Iain decided: DBIx-Squirrel had
+  met the same on 2026-11-14 (its 2026-0019), where setup-perl's own
+  Windows builds of 5.42 and 5.44 failed to build DBD::SQLite, and
+  moved its Windows jobs to setup-perl's Strawberry Perl, at 5.36 and
+  5.42, as CPAN Testers' Windows testers run. So the crash was the
+  Perl build's, not a user's, and Ekorn's Windows jobs do the same,
+  installing through setup-perl with caches too; 5.44's
+  B::Hooks::EndOfScope workaround, for the same build's Variable::Magic,
+  goes with it. The job `perl 5.44 (windows-2025)` becomes
+  `perl 5.42 (windows-2025)`, so `main`'s required checks change, as
+  docs/MAINTAINING.md's list now says, for Iain to apply.
