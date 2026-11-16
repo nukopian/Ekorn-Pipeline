@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0040.
+Last id: 2026-0042.
 
 Items come in four groups:
 
@@ -66,3 +66,24 @@ it's settled: in CI's job over the whole history, and in the scans by
 hand before a push and a tag that CLAUDE.md and docs/MAINTAINING.md
 give. gitleaks gets no new rules, so its scans will slowly miss the
 newer kinds of secret that only betterleaks finds.
+
+### 2026-0041. What a gather costs a value
+
+Added 2026-11-16. **Size:** M (3).
+
+Wrapping a stage in a `gather` costs about 340 ns a value more than
+the bare stage, more than the stage itself, as DBIx-Squirrel measured
+(its dc9a56d47082128888d521ffcc9cb5e3ae92b893, in a message of
+2026-11-16): most of what `pluck` costs it, and of what `take`,
+`batch` and the other canned stages made with `gather` cost. Find
+where it goes, and make it cheaper, with nothing a stage sees changed.
+
+### 2026-0042. A shorter step for one value
+
+Added 2026-11-16. **Size:** S (2).
+
+Each step costs about 235 ns a value: a `local $_`, a call in list
+context, a `my @values` and a `shift`, even where a stage returns
+exactly one value, as most do. See whether the step loop can do less
+in that case, with nothing a stage sees changed. Perl 5.44 runs the
+loop about 18% slower than 5.36, so measure on both.
