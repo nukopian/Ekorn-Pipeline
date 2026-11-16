@@ -51,8 +51,8 @@ Nothing yet.
 
 What: a module of what a stage can ask about the result it's making:
 `result_number`, the number of the result, from 1, as the run counts
-its results, and `result_original`, the value as the first source gave
-it, before any stage changed it, through iterators read as sources. Why: any package's stages can ask the run, and
+its results, and `result_original`, the value its source gave, before
+any stage changed it. Why: any package's stages can ask the run, and
 DBIx::Squirrel can drop the stage it adds to each iterator only to
 count, which costs it 11 to 15% a row. Done when: both work in every
 kind of run, as their record says, tested, documented, and costing
