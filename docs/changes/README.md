@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Ekorn::Pipeline::Context](2026-0046-context.md), a message from
+  DBIx-Squirrel: open.
 - [A run's set-up, halved](2026-0040-plain-runs.md), a TODO task from
   DBIx-Squirrel: shipped in v0.3.3.
 - [Secrets redacted by dump_to](2026-0038-dump-to-redacts.md), roadmap

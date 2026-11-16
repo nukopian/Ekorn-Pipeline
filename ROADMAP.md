@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0045.
+Last id: 2026-0046.
 
 Items come in four groups:
 
@@ -45,7 +45,19 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0046. Ekorn::Pipeline::Context: result_number and result_original
+
+**Size:** M (3).
+
+What: a module of what a stage can ask about the result it's making:
+`result_number`, the number of the result, from 1, as the run counts
+its results, and `result_original`, the value its source gave, before
+any stage changed it. Why: any package's stages can ask the run, and
+DBIx::Squirrel can drop the stage it adds to each iterator only to
+count, which costs it 11 to 15% a row. Done when: both work in every
+kind of run, as their record says, tested, documented, and costing
+nothing to measure in a run whose stages don't read them. Its
+decisions are open: [record](docs/changes/2026-0046-context.md).
 
 ## Later
 
