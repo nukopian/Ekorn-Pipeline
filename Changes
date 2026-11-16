@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.3 2026-11-16
+
     A run costs about half what it did to start and end, so a short
     run, such as an iterator reading one row, costs 7 to 8 µs less.
 

@@ -1,6 +1,6 @@
 # 2026-0040. A run's set-up, halved
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.3
 
 **Decisions:** D1 settled: no change anyone can see but speed. None
 open.
