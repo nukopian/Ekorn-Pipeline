@@ -2,9 +2,13 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.4 2026-11-16
+
     The canned stages, sources and sinks cost a little less a value.
-    Nothing else changes: the values, the messages and the order
-    things run in are as they were.
+
+    It ships no roadmap item: the change came of a message from
+    DBIx-Squirrel. Nothing else changes: the values, the messages and
+    the order things run in are as they were.
 
     - The closures that the canned stages, sources and sinks run for
       each value read it without a signature, which cost about 19 ns
