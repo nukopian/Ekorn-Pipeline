@@ -7,10 +7,31 @@ what he writes by hand. The rules below say who does what. Each rule
 comes with the reason for it.
 
 This project is standalone, as DBIx-Squirrel is, by Iain's choice on
-2026-11-07: this file is the whole of its rules, and it imports no
-shared practice. How the repository is kept, from every commit to a
-release on CPAN, is in [docs/MAINTAINING.md](docs/MAINTAINING.md), with
-commands to paste.
+2026-11-07: this file, and the files in `docs/claude/` it points to,
+are the whole of its rules, and it imports no shared practice. How the
+repository is kept, from every commit to a release on CPAN, is in
+[docs/MAINTAINING.md](docs/MAINTAINING.md), with commands to paste.
+
+This file holds the rules most tasks need. Read the others when a task
+needs them:
+
+- [docs/claude/neighbours.md](docs/claude/neighbours.md): Ekorn's
+  contract with DBIx-Squirrel and Text-Redact-Secrets, the version
+  range DBIx::Squirrel requires, and the names it imports. Read it
+  before changing a public name, a message, a protocol or the order
+  things run in, and before choosing a release's version.
+- [docs/claude/sessions.md](docs/claude/sessions.md): how tasks and
+  messages pass between this repository and DBIx-Squirrel's and
+  Text-Redact-Secrets', with the worktree commands. Read it before
+  writing a task or a message, and at a release.
+- [docs/claude/roadmap.md](docs/claude/roadmap.md): how `ROADMAP.md`
+  and the change records in `docs/changes/` are kept. Read it before
+  adding, moving, starting, shipping or dropping an item, or writing a
+  record.
+- [docs/claude/docs-and-builds.md](docs/claude/docs-and-builds.md):
+  Minilla, the manuals made from `docs/`, and how the examples in the
+  how-to, the README and the reference are checked. Read it before a
+  change to the docs, or a release.
 
 ## What Ekorn-Pipeline is for
 
@@ -32,95 +53,14 @@ It isn't tied to the DBI, or to any source of values.
 
 ## Ekorn-Pipeline and DBIx-Squirrel
 
-The code came from DBIx-Squirrel-2 at
-`5e30135672d8002b0bb67ba68278e5b1c262df8b` on its `develop` branch,
-its version v2.0.2:
-Pipeline, Stop, Gather, Pipes and the canned stages in Stages::Flow,
-Stages::Batch and Stages::Taps, with their tests, renamed from
-`DBIx::Squirrel::*` to `Ekorn::Pipeline::*`. What stayed there needs
-the DBI or DBIx::Squirrel's iterators: Context, Stages::Rows (pluck and
-as_hash, which need a statement's column names), and the iterators
-themselves. Of DBIx::Squirrel::Errors, only `croakf` came.
-
-The plan is for DBIx-Squirrel to depend on Ekorn-Pipeline once both are
-stable, in place of its own copy. Until then the pipeline lives in
-both:
-
-- **A fix to code both have,** or anything else DBIx-Squirrel needs to
-  do, is handed to it as a task in its `TODO.md`, as Planned work says.
-- **What's new grows here,** not in DBIx-Squirrel.
-- **Stages go where what they need to know is,** as Iain decided on
-  2026-11-07. Stages for any values, whatever they are and wherever
-  they come from, go under `Ekorn::Pipeline::Stages::*`. Stages for one
-  kind of value or one source go under that module's own namespace:
-  DBIx::Squirrel's, such as `pluck` and `as_hash`, which need a
-  statement's column names, stay `DBIx::Squirrel::Stages::*`, and
-  DBIx::Squirrel can keep making new ones there. Both kinds are built
-  from Gather, Stop and `croakf`, and `t/09-stage-modules.t` checks
-  that a module of stages outside Ekorn's namespace works with no more
-  set up. A stage that turns out to need nothing of DBIx::Squirrel's
-  belongs here.
-- **DBIx::Squirrel uses Ekorn as it is,** as Iain decided on
-  2026-11-12, as any other package would: it delivers sources, sinks
-  and stages that keep Ekorn's protocols, and runs them in Ekorn's own
-  pipelines. It subclasses, wraps and remakes nothing of Ekorn's, and
-  Ekorn changes nothing for it, adding only what any package could
-  use. Ekorn's contract with other packages is its protocols, not its
-  classes, so a change to a protocol is a v0.4.0. This replaces the
-  rule of 2026-11-11 that DBIx::Squirrel's modules were subclasses of
-  Ekorn's, which tied the two designs together; the design (roadmap
-  2026-0022), principle 2 and its 17.3, has why. It's in
-  `docs/design/` on the tag `archive/pipeline-experimental`, not on
-  `develop`.
-- **Factories are words, and live in a module of words,** as Iain
-  decided on 2026-11-11: a short, keyword-like function that makes one
-  of Ekorn's types, such as `pipeline`, `source {...}` or `gather`, is
-  syntax, not behaviour, so it goes in
-  Ekorn::Pipeline::Factories, not in the class it makes. Each is one
-  line over a class method, and lives there only: Ekorn::Pipeline
-  doesn't export `pipeline` too (2026-0022's D30). Record 2026-0021.
-- **Keep the switch in view.** The messages, the order stages run in,
-  and what Stop and Gather do are DBIx-Squirrel's behaviour too. A
-  change to them is a change DBIx-Squirrel will take on when it
-  switches, so say so in the commit message and in `Changes`.
-- **The version says what DBIx-Squirrel can take.** DBIx::Squirrel
-  requires `>= v0.3.0, < v0.4.0`, as it moved the range on 2026-11-14,
-  for its v3.0.0, the first built on Ekorn as it is. The range began at
-  `>= v0.1.1, < v0.2.0`, as Iain decided on 2026-11-07, and
-  DBIx-Squirrel raised it on 2026-11-08, and to `>= v0.2.0, < v0.3.0`
-  on 2026-11-10. So a v0.3.x reaches its users with no release of
-  DBIx::Squirrel's. A v0.3.x only fixes or adds. A release that changes
-  behaviour users' stages depend on (when a `gather` stage is made,
-  what a stop does, the order end functions run in, where errors are
-  reported, the messages), or drops or renames a public name, is
-  v0.4.0, and comes with a task handed to DBIx-Squirrel, which tests it
-  and moves the range. DBIx::Squirrel imports some of Ekorn's modules
-  by name and some whole. By name: `Stop` and `gather`; Flow's `take`,
-  `drop`, `take_first`, `take_last`, `take_single`, `take_while`,
-  `drop_while`, `take_if` and `drop_if`; Batch's `batch` and
-  `collect`; Taps' `peek`, `count_into` and `dump_to`; and Factories'
-  `pipeline`, `stage`, `source`, `generator`, `yield`, `sink_one` and
-  `sink_many`. Whole, by `:all`, in its Tooling: Sources, Sinks and
-  JSON, so a name added to one of those three reaches its users at
-  once, and must suit them. A name added anywhere else doesn't appear
-  there until it's added to its list.
-
-## Ekorn-Pipeline and Text-Redact-Secrets
-
-Text::Redact::Secrets finds secrets in text by gitleaks' rules, and
-redacts them. It was designed here, as roadmap 2026-0037, and moved on
-2026-11-15 to a repository of its own,
-`~/Git/github.com/nukopian/Text-Redact-Secrets`, as its 2026-0001, as
-Iain decided (2026-0037's D1): new rules reach users with no release of
-Ekorn's. Its work, and its design from now on, are its session's.
-
-- **Ekorn uses it as any package would,** and doesn't require it:
-  `dump_to` redacts with it whenever it's installed and passes a
-  self-test (roadmap 2026-0038), calling its `redact`. That's its
-  contract with Ekorn; a change to it comes here as a message first.
-- **2026-0038 waits on its first release,** which its session tells
-  this one with a task in `TODO.md`. A later release that only brings
-  new rules from gitleaks needs nothing here.
+DBIx-Squirrel will depend on Ekorn-Pipeline, and already uses it as any
+package would, so Ekorn's protocols, messages, the order stages run in,
+and what Stop and Gather do are its behaviour too. What's new grows
+here; a fix to code both have goes to DBIx-Squirrel as a task. A v0.3.x
+only fixes or adds; a change to behaviour users' stages depend on, or a
+public name dropped or renamed, is a v0.4.0, with a task for
+DBIx-Squirrel. The rules, and why, are in
+[docs/claude/neighbours.md](docs/claude/neighbours.md).
 
 ## Who does what
 
@@ -272,23 +212,6 @@ what was Iain's.
 
   The second, after the first, shows the lines and branches the tests
   miss.
-- **The how-to's examples are checked by `xt/howto.t`,** as Iain
-  decided on 2026-11-13: it runs them as one program, the first setting
-  up their data and each after it in a block of its own, and checks
-  each prints what its comments say, a comment at the end of a line
-  that prints, or comment lines straight after it, or after the end of
-  a block that prints, with `...` for any text. So write a how-to
-  example's comments as exactly what it prints. One that can't be run
-  so, such as one printing a test's output, is marked
-  `<!-- not run -->` on the line before it, and checked by hand. The
-  test is DBIx-Squirrel's, as it is but for its notes, so a change to
-  it that would suit DBIx-Squirrel's goes to it as a message.
-- **The examples in the README and the reference are checked by hand**
-  for now: run each one, and see that it prints what its comments say,
-  before committing a change to them.
-- Users installing from CPAN run the tests with whatever harness their
-  installer uses, so they must pass under `prove` too. yath is the
-  maintainers' choice, not a requirement.
 - **`xt/`, when there is one, holds the maintainers' tests,** which
   yath runs with those in `t/`, as `.yath.rc` says, and `prove` doesn't.
 
@@ -373,204 +296,21 @@ what was Iain's.
 - **Before each commit, `git pull --ff-only` and re-read `TODO.md`.**
   DBIx-Squirrel's session adds tasks here, mid-session too, and a
   commit that completes a task must remove it.
-- **Each task opens with where it came from and what it waits on,** so
-  a session can see at a glance which tasks it can do now, and whom to
-  tell when one is done:
-
-  ```markdown
-  ## Release v0.1.0
-
-  **From:** DBIx-Squirrel's session, 2026-11-07 (DBIx-Squirrel
-  8447689997ae6b1ec5f3a5c45a4fac0224391ce4, on its branch `ekorn-pipeline`)
-  **Waiting on:** nothing
-  ```
-
-  `From` names the repository whose session added it, the date, and the
-  commit it came from: the full hash, and the branch if it isn't
-  `develop`. `Waiting on` is "nothing" when the task can be done now.
-- **Tasks for DBIx-Squirrel go in its `TODO.md`,** as grammar and scalar
-  hand tasks to each other, as Iain decided on 2026-11-07. A session
-  here commits the task straight into
-  `~/Git/github.com/nukopian/DBIx-Squirrel`'s `TODO.md`, as `docs: a
-  task from Ekorn-Pipeline: ...`, and pushes it at once: left
-  uncommitted, it blocks that repository's next pull and never reaches
-  the session that would do it. Commit only that file, by its path, so
-  nothing of a session working there goes with it.
-- **While an experimental branch carries a repository's work, its
-  `TODO.md` is kept on that branch,** as Iain decided on 2026-11-08, so
-  tasks and messages for it go there, not to `develop`. DBIx-Squirrel's
-  `ekorn-pipeline` did, until it merged on 2026-11-08. Now both
-  repositories' work on roadmap 2026-0014 and the items after it is
-  carried by a branch of the same name in each, `pipeline-experimental`,
-  as Iain decided on 2026-11-10: shorter than a name made from the id,
-  and one name for the two sessions. Ekorn's merged into `develop` on
-  2026-11-13 (roadmap 2026-0025, D4), so its work and `TODO.md` are on
-  `develop` again, and DBIx-Squirrel's tasks and messages come there.
-  DBIx-Squirrel's merged into its `develop` the same day, so tasks and
-  messages for it go to its `develop` again. Never switch DBIx-Squirrel's
-  working copy, or commit in it, as a session may be working there:
-  use a worktree of the branch as GitHub has it, edit
-  `/tmp/dbix-squirrel-todo/TODO.md`, commit only it, and push from
-  there:
-
-  ```
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel fetch -q origin
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel worktree add --detach /tmp/dbix-squirrel-todo origin/develop
-  git -C /tmp/dbix-squirrel-todo push origin HEAD:develop
-  git -C ~/Git/github.com/nukopian/DBIx-Squirrel worktree remove /tmp/dbix-squirrel-todo
-  ```
-
-  While an experimental branch of DBIx-Squirrel's carries its work, use
-  that branch's name in place of `develop` in the second and third
-  commands. A push refused as not a fast-forward means the branch
-  moved: remove the worktree and start again from the fetch. The
-  same holds here: while an experimental branch of Ekorn-Pipeline's,
-  such as `pipeline-experimental`, carries its work, `TODO.md` is kept
-  on it, and DBIx-Squirrel's session hands tasks and messages to that
-  branch. DBIx-Squirrel's tasks for Ekorn-Pipeline come here the same
-  way. Text-Redact-Secrets is the only other repository this one
-  touches, in the same way: tasks and messages for it go in its
-  `TODO.md`, on its `develop`, through a worktree at
-  `/tmp/text-redact-secrets-todo`, with these commands with its name
-  in place of DBIx-Squirrel's, and its tasks and messages come here.
-- **A release ends by telling DBIx-Squirrel,** with a task in its
-  `TODO.md`, and by looking there for tasks waiting on the release, so
-  Iain knows which can now be done. Nothing else tells its session
-  that a release has landed.
-- **Messages go in a `# Messages` section, above `# Planned work`,** in
-  the same `TODO.md`, as Iain decided on 2026-11-07. A message is news
-  the other session should know, but needs no work of its own: what one
-  side has decided or done, or a change in plan. A message that asks
-  for work is a task instead. Each is a `##` heading saying who it's
-  from, the date and what it's about, with a **From:** line, sent as
-  `docs: a message from Ekorn-Pipeline: ...`, committing only that
-  file. Read messages at the start of a session, with the tasks; the
-  session they're for removes each once read, in a commit saying what
-  came of it, and the heading with the last one.
-- **A task or message never holds a secret whole, made-up or not,** as
-  Iain decided on 2026-11-15: it's built from pieces, as a test's is,
-  such as `join '', 'AKIA', 'MADEUP', ...`, or left out. One of
-  Ekorn's messages quoted a test's made-up password whole, beside its
-  key, and Text-Redact-Secrets' gitleaks scan then failed on every
-  push, as history keeps it (Text-Redact-Secrets 2026-0001's D14).
-- **`TODO.md`'s tasks and messages are the only way the two sessions
-  talk.** Now that DBIx-Squirrel and Ekorn-Pipeline are separate,
-  DBIx-Squirrel dogfoods Ekorn-Pipeline, as its first user, and what it
-  finds matters most: friction, a gap, a clumsy name, or a stage it had
-  to write that others would want. Either session that finds such a
-  thing in the other's product while working sends it as a message:
-  what was found, where (the file and commit), and what might be done.
-  Nothing enters the other's `ROADMAP.md` or records directly; the
-  session it's for takes the message to Iain, who decides whether it
-  becomes an idea, an item or a task there, and the commit that
-  removes the message says so. An item that comes of one gives the
-  message in its record's Origin, with the repository, date and commit.
-- **A feature is designed in the session of the repository it belongs
-  to,** as Iain decided on 2026-11-10, after the design of Ekorn's
-  grammar of sources, stages, gathers and sinks was split across the
-  two sessions. Its discussion, and its ideas, items and records, are
-  that repository's. The other session sends what it thinks of, or
-  finds, as messages, and designs nothing of it in its own chat:
-  Ekorn::Pipeline's features are designed in Ekorn-Pipeline's session,
-  and DBIx::Squirrel's, such as a stage or sink that needs the DBI, in
-  DBIx-Squirrel's.
-- **`TODO.md` never reaches `main`.** `main` moves only by a
-  fast-forward to `develop`, so a release waits until the file is gone:
-  each task done, or, to outlast the release, moved to `ROADMAP.md`, a
-  decision awaiting Iain with it, in its record. No GitHub issues or
-  Claude Docs for planned work or decisions, as Iain decided on
-  2026-11-07: they sit outside the repository, apart from the history
-  and the chat.
+- **Tasks and messages for the other repositories,** and the rules for
+  writing them, are in [docs/claude/sessions.md](docs/claude/sessions.md).
 
 Why: planned work survives between sessions in the open, where Iain
 reviews it like any other change, and a release never carries an
 unfinished list.
 
-## The roadmap
+## The roadmap and change records
 
-These rules, and those for change records, are Ekorn-Pipeline's and
-DBIx-Squirrel's, as Iain decided on 2026-11-07. They follow the shared
-practice grammar and scalar use, but name items by an id rather than
-a number.
-
-- **`ROADMAP.md` holds what Ekorn-Pipeline means to do:** features and
-  outcomes, not session tasks. Its opening says how it's kept. **Now**
-  is what's being worked on, at most three items, so it stays a queue:
-  each a paragraph and a link to its record. Another starts only when
-  one ships or goes back to Next. **Next** is decided but not started
-  (what, why, done when). **Later** is meant to be done but not yet
-  planned, in a line or two. **Ideas** might be done, or never: the
-  date added, a line or two, newest last. The others put the most
-  useful first.
-- **Every item has an id, its year and a serial: `2026-0001`.** The
-  year is the year it was added, and the serial is four digits, from
-  0001, starting again each year. It's given when the item is added,
-  never changed, and never used again. The roadmap's opening gives the
-  last id allocated, as "Last id: 2026-0004": to allocate one, take
-  this year, and add one to the last serial if its year is this year,
-  or start at 0001 if not, and change that line in the commit that adds
-  the item.
-- **The id names the item everywhere:** its heading, `### 2026-0001. A
-  stages() method`; its record, `docs/changes/2026-0001-stages-method.md`;
-  its line in `Changes`, which ends "(roadmap 2026-0001)"; commit
-  messages; and a branch for it, such as
-  `experiment/2026-0001-stages-method`. Another repository's id goes
-  with that repository's name, as "DBIx-Squirrel 2026-0001".
-- **Every item has a size,** a guess at how much work it is, as a
-  T-shirt size and its story points, XS 1, S 2, M 3 and L 5, in a
-  **Size:** line, such as `**Size:** S (2)`. An item bigger than L is
-  split into items that aren't, each with an id of its own and a
-  **Split from:** line; the item split is retired, its id named in the
-  commit.
-- **An item that can't be done before another says so,** in a
-  **Depends on:** line naming each id. It's never in a group ahead of
-  an item it depends on: moving it forward moves those too, so a chain
-  of them moves together, and they ship first or with it.
-- **An item's questions are settled before work on it starts.** They're
-  discussed in the chat, and kept in its record's Decisions, numbered,
-  D1, D2 and on: unchecked while open, and checked once settled, with
-  the answer, the date and why. A **Decisions:** line under the
-  record's status sums them up, each settled or open in a few words,
-  so its state shows at a glance. An item moves to Now only once every
-  decision is checked, or Iain agrees to move one still open to another
-  item or task, which the record says. A decision that needs no work
-  of its own is kept in the commit message that records it.
-- **When Iain mentions an idea in passing,** offer in one line to add
-  it ("add as 2026-0005?"), and add it in a `docs:` commit.
-- **It's kept current:** an item leaves when it ships, in the commit
-  that adds it to `Changes`, and a change that ships, starts or drops
-  an item updates it in the same commit. A dropped item is deleted, the
-  commit naming its id, and its record, if it has one, says why.
-- **It's public, on GitHub and `main`,** but not in the CPAN tarball,
-  as `minil.toml` says, so nothing personal goes in it. There's no PDF
-  of it.
-
-Why: `Changes` is the past, the README the present, and the roadmap
-the future, so anyone following the project can see what's coming; and
-an id that sorts and never changes can be searched for years later.
-
-## Change records
-
-- **A planned change keeps a record** in `docs/changes/`, named for its
-  id and the change: `2026-0001-stages-method.md`. A roadmap item's
-  record is opened when it first has a question to settle, or when
-  work on it starts. A task in `TODO.md` with steps gets a record too,
-  taking the next id from the roadmap's opening, in the same sequence,
-  though the task never appears there.
-- **The plan is written in it when work starts, and isn't edited
-  after.** What happened is added as the work goes: the outcome against
-  Done when, changes from the plan and why, measurements, what was
-  tried and reverted, and what's left. Experiments go in it too, with
-  what they showed, as they won't survive anywhere else.
-- **It's finished in the commit that ships or drops the change.** Its
-  status is open, in progress, shipped, unreleased, shipped in vX.Y.Z,
-  or dropped; a dropped change keeps its record, saying why.
-- `docs/changes/README.md` has the template, and lists the records.
-  Small fixes need none. There's no PDF of a record.
-
-Why: the plan and its outcome sit side by side, with the decisions
-that shaped it, so a reader can see what was predicted and what was
-found.
+`ROADMAP.md` holds what Ekorn-Pipeline means to do, each item named by
+an id such as `2026-0001`, and `docs/changes/` a record of each planned
+change, its decisions and what happened. An item's questions are
+settled before work on it starts, and an item leaves the roadmap in the
+commit that ships it. The rules are in
+[docs/claude/roadmap.md](docs/claude/roadmap.md).
 
 ## Commits
 
