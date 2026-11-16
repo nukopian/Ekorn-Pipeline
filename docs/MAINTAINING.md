@@ -592,6 +592,18 @@ this list.
   ```
 
   Then check the check runs again, as in step 5.
+- **CI testing against old modules:** each job keeps its modules in a
+  cache, and installs only what the `cpanfile` asks for that the cache
+  lacks, so a module's newer release isn't installed until the
+  `cpanfile` changes. To test against the newest, delete the caches,
+  then start a run; it installs everything afresh, and caches that:
+
+  ```sh
+  cd ~/Git/github.com/nukopian/Ekorn-Pipeline
+  gh cache delete --all --repo nukopian/Ekorn-Pipeline
+  gh workflow run test.yml --ref develop
+  ```
+
 - **`main` refused after the tag went up:** `git push origin main "$v"`
   sends both, so the tag can be published while `main` is refused.
   Leave the tag alone: it points at the right commit. Fix the check,

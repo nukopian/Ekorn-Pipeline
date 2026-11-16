@@ -41,29 +41,19 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0047. CI installs only what each job needs, and caches it
 
 **Size:** S (2).
 
-What: each CI job installs only the modules it uses, and keeps them
-between runs. The test jobs install the runtime and test dependencies,
-the recommended Text::Redact::Secrets and yath, not every develop
-module; only `style` and `coverage` keep `--with-develop`, for
-Perl::Critic, Perl::Tidy and Devel::Cover. The installed modules are
-cached, keyed on the `cpanfile`, the Perl and the runner, so a run
-whose `cpanfile` hasn't changed installs nothing. Why: every job
-builds the whole develop toolchain from scratch, Minilla and Moo among
-it, which the tests don't use, and the macOS job, on the slowest and
-scarcest runners, holds up every release (v0.3.5's waited on it).
-Done when: CI runs the same jobs and checks as before, a run with an
-unchanged `cpanfile` is measurably faster, the macOS job most of all,
-and the timings before and after are in its record. If it works
-better, the same change goes to Text-Redact-Secrets and DBIx-Squirrel,
-as a task in each one's `TODO.md`, with what was measured.
+Each CI job installs only the modules it uses, through
+actions-setup-perl, which caches them, so a run whose `cpanfile`
+hasn't changed installs almost nothing, and the macOS job no longer
+holds up a release for six or seven minutes of building the develop
+toolchain. [Record](docs/changes/2026-0047-ci-installs.md).
+
+## Next
+
+Nothing yet.
 
 ## Later
 

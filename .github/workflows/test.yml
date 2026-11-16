@@ -15,10 +15,20 @@ permissions:
 # the comment beside each says which release it is.
 
 jobs:
+  # Each job's modules are installed by actions-setup-perl, into local/,
+  # which it caches, keyed on the Perl, the cpanfile and the modules it's
+  # given by name, not on cpanm's arguments; so a job installs nothing
+  # until the cpanfile changes (roadmap 2026-0047). The cache keeps the
+  # versions it was made with: to install the newest, delete the caches,
+  # as docs/MAINTAINING.md says. --with-recommends brings
+  # Text::Redact::Secrets, so that dump_to's tests run with it, in each
+  # job that runs the tests.
+
   # The tests on Perl 5.36, the floor, to the newest on Linux, and the
-  # newest on macOS. --with-develop brings yath and UUID with the rest,
-  # and --with-recommends Text::Redact::Secrets, so that dump_to's tests
-  # run with it, here and in each job that runs the tests.
+  # newest on macOS. Of the develop modules, they need only yath, and
+  # UUID, which the cpanfile lists beside it, so those are named, and
+  # the rest left to the style and coverage jobs; naming them also keeps
+  # this job's cache apart from theirs.
   perl:
     name: perl ${{ matrix.perl }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -35,8 +45,11 @@ jobs:
       - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
         with:
           perl-version: ${{ matrix.perl }}
-      - name: dependencies
-        run: cpanm --notest --installdeps --with-develop --with-recommends .
+          install-modules-with: cpanm
+          install-modules-args: --with-recommends
+          install-modules: |
+            Test2::Harness
+            UUID
       - name: yath
         run: yath test
 
@@ -72,8 +85,8 @@ jobs:
       - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
         with:
           perl-version: ${{ matrix.perl }}
-      - name: dependencies
-        run: cpanm --notest --installdeps --with-recommends .
+          install-modules-with: cpanm
+          install-modules-args: --with-recommends
       - name: prove
         run: prove -l t
 
@@ -86,8 +99,8 @@ jobs:
       - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
         with:
           perl-version: "5.44"
-      - name: dependencies
-        run: cpanm --notest --installdeps --with-develop --with-recommends .
+          install-modules-with: cpanm
+          install-modules-args: --with-develop --with-recommends
       - name: perlcritic
         run: perlcritic lib
       - name: perltidy
@@ -108,8 +121,8 @@ jobs:
       - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
         with:
           perl-version: "5.36"
-      - name: dependencies
-        run: cpanm --notest --installdeps --with-develop --with-recommends .
+          install-modules-with: cpanm
+          install-modules-args: --with-develop --with-recommends
       - name: coverage
         run: scripts/coverage
 
