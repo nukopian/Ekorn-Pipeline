@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.5 2026-11-16
+
     Pushing values through take, drop and the other stages made with
     gather costs 40 to 45% less a value, and a short push less than
     half what it did.

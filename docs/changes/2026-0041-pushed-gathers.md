@@ -1,6 +1,6 @@
 # 2026-0041. A pushed gather takes the plain loop
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.5
 
 **Decisions:** D1 settled: pushed runs only. D2 settled: the two tests
 of the path a push takes change. D3 settled: a v0.3.x.
