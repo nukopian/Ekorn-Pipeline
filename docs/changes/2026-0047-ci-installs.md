@@ -128,3 +128,10 @@ to Text-Redact-Secrets and DBIx-Squirrel as a task in each one's
   goes with it. The job `perl 5.44 (windows-2025)` becomes
   `perl 5.42 (windows-2025)`, so `main`'s required checks change, as
   docs/MAINTAINING.md's list now says, for Iain to apply.
+- **The plan was wrong about the cache key,** as DBIx-Squirrel found
+  on 2026-11-16: at the pinned v1.44.5, setup-perl's key does include
+  `install-modules-args`, hashed with the `cpanfile` and
+  `cpanfile.snapshot` (`src/cpan-installer.ts`, lines 51 to 57 and
+  113). So `--with-develop` alone keeps `style`'s and `coverage`'s
+  caches apart from the test jobs'; naming `Test2::Harness` and `UUID`
+  does it as well. Nothing in the workflow changes, only its comment.
