@@ -95,6 +95,18 @@ exactly one value, as most do. See whether the step loop can do less
 in that case, with nothing a stage sees changed. Perl 5.44 runs the
 loop about 18% slower than 5.36, so measure on both.
 
+Tried on 2026-11-16, in copies of the push loop, not in the code:
+taking the count from the list assignment, `my $count = (($value,
+@more) = $step->($value))`, with `@more` made once a run, in place of
+`my @values` and a `shift`, saves about 20 ns a step on 5.36 and 25
+on 5.44, 5 to 10% of the loop, with the same results. A `local $_`
+once a value, not once a step, saved 0 to 25 ns, only at four steps.
+That's about the floor: of a step's 140 ns on 5.36, the loop is
+about 25, `local $_` 21 (32 on 5.44), the call 35, and the list
+assignment the rest. Iain set it aside the same day, as worth less
+than 2026-0041; the full pulled loop reads `$value` after a step
+drops it, which would need checking first.
+
 ### 2026-0043. Work in flight, in order, inside a run
 
 Added 2026-11-16. **Size:** M (3).
