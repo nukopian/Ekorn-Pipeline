@@ -74,17 +74,6 @@ hand before a push and a tag that CLAUDE.md and docs/MAINTAINING.md
 give. gitleaks gets no new rules, so its scans will slowly miss the
 newer kinds of secret that only betterleaks finds.
 
-### 2026-0041. What a gather costs a value
-
-Added 2026-11-16. **Size:** M (3).
-
-Wrapping a stage in a `gather` costs about 340 ns a value more than
-the bare stage, more than the stage itself, as DBIx-Squirrel measured
-(its dc9a56d47082128888d521ffcc9cb5e3ae92b893, in a message of
-2026-11-16): most of what `pluck` costs it, and of what `take`,
-`batch` and the other canned stages made with `gather` cost. Find
-where it goes, and make it cheaper, with nothing a stage sees changed.
-
 ### 2026-0043. Work in flight, in order, inside a run
 
 Added 2026-11-16. **Size:** M (3).

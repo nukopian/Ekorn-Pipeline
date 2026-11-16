@@ -82,6 +82,8 @@ Newest id first.
 
 - [Ekorn::Pipeline::Context](2026-0046-context.md), a message from
   DBIx-Squirrel: open.
+- [A pushed gather takes the plain loop](2026-0041-pushed-gathers.md),
+  roadmap 2026-0041: shipped, unreleased.
 - [A run's set-up, halved](2026-0040-plain-runs.md), a TODO task from
   DBIx-Squirrel: shipped in v0.3.3.
 - [Secrets redacted by dump_to](2026-0038-dump-to-redacts.md), roadmap

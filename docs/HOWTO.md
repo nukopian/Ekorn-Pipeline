@@ -2758,11 +2758,13 @@ filter and a multiplication, on a recent laptop:
   twenty-five times slower, as each value handed out is a call of its
   own.
 
-A push through plain subs takes a fast path, a plain loop with none of
-the machinery for flushes, ends and sinks. A run with a part made for
-it, such as a `gather`, a sink, or `take`, which is made with `gather`,
-takes the full path, which costs about twice as much per value, and
-some 20 microseconds to set up each run.
+A push takes a fast path, a plain loop with none of the machinery for
+flushes, ends and sinks, whenever its run has none of them: through
+plain subs, and through stages made for the run with `gather` that
+have no flush or end, such as `take`, `drop` and `count_into`. A run
+with a flush, an end or a sink, such as `batch`, `take_last` or
+`keep_all`, takes the full path, which costs about twice as much per
+value, and some 20 microseconds to set up each run.
 
 That sounds a lot, and for a tight loop over numbers in memory, it is:
 use `map` and `grep` there. But each value costs well under a
@@ -2772,8 +2774,8 @@ Against a database row, the pipeline's share is lost in the noise. And
 a pipeline that stops early does less work than code that can't:
 `take(10)` over a million rows reads ten.
 
-Pushes through plain subs, and pulls, have been made faster so far.
-Runs with parts made for them haven't yet, so their figures describe
+Runs without flushes, ends or sinks, pushed or pulled, have been made
+faster so far. Runs with them haven't yet, so their figures describe
 the code as it is, not a limit of the design.
 
 ### How much memory does it use?
