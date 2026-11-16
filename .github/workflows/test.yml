@@ -15,14 +15,14 @@ permissions:
 # the comment beside each says which release it is.
 
 jobs:
-  # Each job's modules are installed by actions-setup-perl, into local/,
-  # which it caches, keyed on the Perl, the cpanfile and the modules it's
-  # given by name, not on cpanm's arguments; so a job installs nothing
-  # until the cpanfile changes (roadmap 2026-0047). The cache keeps the
-  # versions it was made with: to install the newest, delete the caches,
-  # as docs/MAINTAINING.md says. --with-recommends brings
-  # Text::Redact::Secrets, so that dump_to's tests run with it, in each
-  # job that runs the tests.
+  # Each job's modules, but on Windows, are installed by
+  # actions-setup-perl, into local/, which it caches, keyed on the Perl,
+  # the cpanfile and the modules it's given by name, not on cpanm's
+  # arguments; so a job installs nothing until the cpanfile changes
+  # (roadmap 2026-0047). The cache keeps the versions it was made with:
+  # to install the newest, delete the caches, as docs/MAINTAINING.md
+  # says. --with-recommends brings Text::Redact::Secrets, so that
+  # dump_to's tests run with it, in each job that runs the tests.
 
   # The tests on Perl 5.36, the floor, to the newest on Linux, and the
   # newest on macOS. Of the develop modules, they need only yath, and
@@ -63,6 +63,13 @@ jobs:
   # access violation, so anything using namespace::clean does too, as
   # its B::Hooks::EndOfScope loads it. That job uses EndOfScope's pure
   # Perl version instead; 5.36 keeps the XS one, as installers have it.
+  #
+  # These jobs install with cpanm, uncached, onto what the runner's Perl
+  # has, not with actions-setup-perl: it installs into local/ with
+  # --local-lib-contained, ignoring the modules already there, and on
+  # 5.44 the Cpanel::JSON::XS it built then made the tests that load
+  # JSON::MaybeXS die without a word (roadmap 2026-0047). They take a
+  # minute or two as they are.
   windows:
     name: perl ${{ matrix.perl }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -85,8 +92,8 @@ jobs:
       - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
         with:
           perl-version: ${{ matrix.perl }}
-          install-modules-with: cpanm
-          install-modules-args: --with-recommends
+      - name: dependencies
+        run: cpanm --notest --installdeps --with-recommends .
       - name: prove
         run: prove -l t
 

@@ -72,3 +72,22 @@ to Text-Redact-Secrets and DBIx-Squirrel as a task in each one's
 `TODO.md`, with what was measured.
 
 ## What happened
+
+- **First run, making the caches,** on
+  b44a1183ab8de8f30b15f063b682b64eb4d32e1b, 2026-11-16, run
+  43907401403. The test jobs on Linux and macOS, installing far less,
+  were already fast: 48 s to 1m 2s on Ubuntu, with 29 to 52 s in
+  setup-perl's step, and 1m 1s on macOS, with 48 s. `style` (2m 55s)
+  and `coverage` (4m 24s), installing the develop modules into empty
+  caches, took as long as before.
+- **Windows 5.44 failed,** and is back as it was. `t/23-tooling.t` and
+  `t/24-json.t` died before any output, with exit status 5. Before, the
+  job took JSON::MaybeXS and Cpanel::JSON::XS from those the runner's
+  Perl came with; setup-perl's cpanm uses `--local-lib-contained`,
+  which ignores them, so it built Cpanel::JSON::XS 4.82 into `local/`,
+  and loading it, by JSON::MaybeXS, seems to be what killed the tests,
+  as only those two load it. Windows 5.36 passed the same way. So the
+  Windows jobs install with cpanm onto the runner's Perl, uncached, as
+  before; they took a minute or two anyway. What it suggests for users
+  who install Cpanel::JSON::XS afresh on Windows and Perl 5.44 isn't
+  settled here: it's for Iain to decide whether it's looked into.
