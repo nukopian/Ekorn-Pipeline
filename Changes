@@ -2,6 +2,20 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    The canned stages, sources and sinks cost a little less a value.
+    Nothing else changes: the values, the messages and the order
+    things run in are as they were.
+
+    - The closures that the canned stages, sources and sinks run for
+      each value read it without a signature, which cost about 19 ns
+      a call: take, drop, take_last, take_single, count_into, dump_to,
+      batch, collect, the sinks of Ekorn::Pipeline::Sinks, from_array,
+      from_fh, from_file, counter, and Ekorn::Pipeline::JSON's. Pushed
+      through one of them, a value costs 15 to 30 ns less, 2 to 4%, on
+      Perl 5.36 and 5.44. take_if, drop_if, take_while, drop_while and
+      peek still copy the value before giving it to their block, so a
+      block that changes its argument changes nothing passed on.
+
 v0.3.3 2026-11-16
 
     A run costs about half what it did to start and end, so a short

@@ -465,7 +465,7 @@ sub _make_run ($stages, $names, $within, $run) {
                     $run,
                 );
                 next unless $flush || $end;
-                $step = sub ($value) { $value };
+                $step = sub { $_[0] };    # for each value: no signature
             }
         }
         elsif ($role eq 'EKORN_SINK_ONE' || $role eq 'EKORN_SINK_MANY') {

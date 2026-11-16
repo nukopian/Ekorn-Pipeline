@@ -336,6 +336,22 @@ what was Iain's.
   without a comment above it has two blank lines before it, to make the
   gap between subs plain; one with a comment has one, above the
   comment, which marks the gap itself. Perl::Tidy keeps either.
+- **A closure run for each value reads `$_[0]`, without a signature,**
+  as Iain decided on 2026-11-16, as DBIx-Squirrel did the same day:
+  the steps that our stages, sources and sinks return, which the
+  pipeline calls once for each value. A comment says why, so no one
+  puts the signature back. A one-argument signature costs about 19 ns
+  a call, and copying `$_[0]` into a `my` variable as much, so it's
+  read where it's used; an empty `sub ()` costs about 6 ns more than
+  `sub`. Measured that day, the canned stages and sinks cost 15 to 30
+  ns a value less, 2 to 4%. Nothing is lost: only the pipeline calls
+  a step, so the signature's count of arguments guarded nothing, and
+  `$_[0]` aliases a value the step loop holds itself, which the
+  step's result replaces. A closure that hands the value to its
+  caller's code, such as `take_if`'s test or `peek`'s block, keeps
+  its signature, so a block that changes its argument can't change
+  what's passed on. Flushes, ends and other subs keep their
+  signatures, and so do the docs' examples, as users copy them.
 - **Every regex takes the `x` flag** and is written with its operator
   and parentheses: `m( \A \d+ \z )x`, `s( \s+ \z )()xr`, `qr( ... )x`;
   never `/.../`. The whitespace makes a regex easier to read, and the

@@ -94,7 +94,8 @@ sub EKORN_SOURCE ($self) {
         if $self->{spent}->();
     my $next = $self->{call};
     return {
-        step    => sub () { $next->() },
+        # Without a signature, as it's called for each value.
+        step    => sub { $next->() },
         end     => sub ($how) { $self->finish },
         context => $self->{context},
     };
