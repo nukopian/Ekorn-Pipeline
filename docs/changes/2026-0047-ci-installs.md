@@ -1,6 +1,6 @@
 # 2026-0047. CI installs only what each job needs, and caches it
 
-**Status:** in progress
+**Status:** shipped
 
 **Decisions:** None.
 
@@ -9,6 +9,8 @@ on the macOS job
 
 **Started:** 2026-11-16, on `develop` at
 40e02b783bd3531981620369686f177ab85c425a
+
+**Finished:** 2026-11-16
 
 ## Background
 
@@ -91,3 +93,27 @@ to Text-Redact-Secrets and DBIx-Squirrel as a task in each one's
   before; they took a minute or two anyway. What it suggests for users
   who install Cpanel::JSON::XS afresh on Windows and Perl 5.44 isn't
   settled here: it's for Iain to decide whether it's looked into.
+- **Second run, using the caches,** on
+  320a5b83ef7cd765741c3be3a18ec06252014e52, 2026-11-16, run
+  43908703899: every check passed, and every job on Linux and macOS
+  found its cache, installing nothing, in 2 to 4 s:
+
+  | Job | Whole job, before | Now |
+  |---|---|---|
+  | perl 5.36 to 5.44 (ubuntu-24.04) | 2m 30s to 4m 6s | 12 to 16 s |
+  | perl 5.44 (macos-26) | 6m 23s to 7m 52s | 13 s |
+  | style | 2m 43s to 3m 49s | 32 s |
+  | coverage | 3m 21s to 4m 12s | 1m 34s |
+  | perl 5.36 (windows-2025), unchanged | 1m 24s to 2m 6s | 2m 1s |
+  | perl 5.44 (windows-2025), unchanged | 1m 3s to 1m 16s | 1m 14s |
+
+  The time a job waits for a runner, the macOS job's above all, isn't
+  in these, and nothing here changes it.
+- **Outcome:** as Done when says, but for Windows, which installs as
+  before. The jobs and their names are as they were.
+- **What's left:** the same change goes to Text-Redact-Secrets and
+  DBIx-Squirrel as a task each, with these timings, and with the
+  Windows finding, so that their Windows jobs, if any, are tried
+  before they're changed. Whether Cpanel::JSON::XS built afresh on
+  Windows and Perl 5.44 is a problem for users is still Iain's to
+  decide.

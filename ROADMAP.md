@@ -41,15 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0047. CI installs only what each job needs, and caches it
-
-**Size:** S (2).
-
-Each CI job installs only the modules it uses, through
-actions-setup-perl, which caches them, so a run whose `cpanfile`
-hasn't changed installs almost nothing, and the macOS job no longer
-holds up a release for six or seven minutes of building the develop
-toolchain. [Record](docs/changes/2026-0047-ci-installs.md).
+Nothing yet.
 
 ## Next
 
