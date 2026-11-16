@@ -174,7 +174,8 @@ what was Iain's.
   logs, are in the 5.36 library.
 
   Building a Perl, or Net::SSLeay against OpenSSL 4, on Iain's Mac:
-  DBIx-Squirrel's CLAUDE.md has what worked.
+  the last section of DBIx-Squirrel's `docs/MAINTAINING.md`, "Iain's
+  Mac", has what worked.
 
 ## Tests
 
