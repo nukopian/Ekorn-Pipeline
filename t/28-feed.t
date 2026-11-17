@@ -304,6 +304,27 @@ subtest 'a feed has no context, and its flushes are ending' => sub {
         'ending in a flush, and the stages after it';
 };
 
+subtest 'a stage in a pipeline within, named as a pushed run names it' => sub {
+    my $inner = $class->named(
+        'My::Feed::inner' => sub { $_ },
+        sub { die "bad\n" if $_ == 2; $_ },
+    );
+    my $end = gather { (sub ($value) { $value }, undef, sub ($how) { }) };
+    for my $case (
+        ['plain', [sub { $_ }, $inner]],
+        ['full',  [sub { $_ }, $inner, $end]],
+    ) {
+        my($loop, $stages) = @$case;
+        my $pipeline = $class->new(@$stages);
+        my $pushed   = plain_error(dies { $pipeline->(1, 2) });
+        my $feed     = $pipeline->feed;
+        $feed->push(1);
+        is plain_error(dies { $feed->push(2) }), $pushed, "the $loop loop";
+        like $pushed, qr( \A Pipeline\ stage\ \#2\.2\ \(My::Feed::inner\#2\) )x,
+            'as #2.2, by its name and place';
+    }
+};
+
 subtest 'feed takes no arguments' => sub {
     like dies { $class->new->feed(1) }, qr( Too\ many\ arguments )x, 'croaks';
 };

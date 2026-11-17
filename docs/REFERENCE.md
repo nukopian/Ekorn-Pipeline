@@ -81,6 +81,13 @@ my @squares;
 while (my($square) = $next->()) { push @squares, $square }
 say "@squares";    # 1 4 9
 
+# Fed: given values as they arrive, a push at a time, it returns what
+# comes out of each; close gives what's held back, and ends the run.
+my $feed = Ekorn::Pipeline->new(batch(2))->feed;
+my @batches = map { $feed->push($_) } 1 .. 3;
+push @batches, $feed->close;
+say join ' ', map { "[@$_]" } @batches;    # [1 2] [3]
+
 # A function of your own, taking stages from its caller.
 sub numbers (@stages) { Ekorn::Pipeline->new(@stages)->(1 .. 10) }
 say join ' ', numbers(
@@ -154,8 +161,11 @@ place, by tags that follow the modules that make it:
   pipelines](#named-pipelines)).
 - **Word:** a short function that makes one of Ekorn's types, such as
   `pipeline` or `source {...}`, from Ekorn::Pipeline::Factories.
-- **Run:** one call of a pipeline with values, or one iterator made
-  from it. Gathers, sources and sinks are made afresh for each run.
+- **Run:** one call of a pipeline with values, or one iterator or feed
+  made from it. Gathers, sources and sinks are made afresh for each
+  run.
+- **Feed:** a run you give values to as they arrive, with `push`, and
+  end with `close` (see [Feeds](#feeds-ekornpipelinefeed)).
 - **Source:** what an iterator pulls values from: a code reference,
   called with nothing, returning the next value or values, or an empty
   list when there are no more; or a source made for each run, which is
@@ -926,10 +936,10 @@ test returns, not the value. To drop a value, return an empty list:
 ### Runs
 
 Each call of a pipeline with values is a run, and so is each iterator
-or feed made from it. At the start of each run, the set-up of every gather,
-source and sink is called, so what they keep starts afresh (see [Made
-for a run](#made-for-a-run)). An iterator's run starts when the
-iterator is made, not when it's first read, and a feed's when it's
+or feed made from it. At the start of each run, the set-up of every
+gather, source and sink is called, so what they keep starts afresh
+(see [Made for a run](#made-for-a-run)). An iterator's run starts when
+the iterator is made, not when it's first read, and a feed's when it's
 made, not at its first push.
 
 A stage not made with `gather` is the same code reference on every
@@ -974,8 +984,8 @@ each value into it, close it in the flush and finish it in the end
 
 ## Runs and how they end
 
-A run is one call of a pipeline with values, or one iterator made from
-it. Each run has its own state. A part of the pipeline that needs
+A run is one call of a pipeline with values, or one iterator or feed
+made from it. Each run has its own state. A part of the pipeline that needs
 state, such as a batch it's filling or a file it has open, is made
 afresh for each run, and can be told when the run ends, however it
 ends, so it can close the file, or commit what it wrote.
@@ -1325,10 +1335,12 @@ object called as one; `$stage->code` gives back what it was made of.
 Called directly, a stage calls its code with what it's given, but
 doesn't set `$_`: only a run does.
 
-Each of Ekorn's types, a pipeline, a stage, a gather, a source, a sink
-and an iterator, is an **Ekorn::Pipeline::Element**: an object called
-as a code reference, which holds the closure it's called as, so it's
-freed as soon as nothing else holds it. `$element->call(@arguments)`
+Each of Ekorn's types that's called as code, a pipeline, a stage, a
+gather, a source, a sink and an iterator, is an
+**Ekorn::Pipeline::Element**: an object called as a code reference,
+which holds the closure it's called as, so it's freed as soon as
+nothing else holds it. A feed is used only by its methods, so it isn't
+one. `$element->call(@arguments)`
 does what calling it does.
 
 ## Stopping a pipeline: Ekorn::Pipeline::Stop

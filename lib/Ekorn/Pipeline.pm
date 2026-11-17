@@ -1176,12 +1176,12 @@ through the rest of the stages. Nothing else is processed:
 
     sub ($row) { $row->{id} == $wanted ? Stop($row) : () }
 
-Each call of a pipeline with values is a run, and so is each
-iterator, and each feed, which is given its values as they arrive
-(see L</feed>). A stage made with L<Ekorn::Pipeline::Gather> is made afresh
-for each run, and so are a source and a sink, so a run can open a file,
-or start a transaction, and close or commit it when it ends, however
-it ends: see L</RUNS AND HOW THEY END>.
+Each call of a pipeline with values is a run, and so is each iterator,
+and each feed, which is given its values as they arrive (see
+L</feed>). A stage made with L<Ekorn::Pipeline::Gather> is made afresh
+for each run, and so are a source and a sink, so a run can open a
+file, or start a transaction, and close or commit it when it ends,
+however it ends: see L</RUNS AND HOW THEY END>.
 
 =head2 Stages from your caller
 
@@ -1502,8 +1502,8 @@ L</A pipeline as a stage> describes.
 
 =head1 RUNS AND HOW THEY END
 
-A run is one call of a pipeline with values, or one iterator made from
-it. Each run has its own state. A part of the pipeline that needs
+A run is one call of a pipeline with values, or one iterator or feed
+made from it. Each run has its own state. A part of the pipeline that needs
 state, such as a batch it's filling or a file it has open, is made
 afresh for each run.
 

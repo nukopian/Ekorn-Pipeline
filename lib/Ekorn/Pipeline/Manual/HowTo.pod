@@ -527,8 +527,8 @@ needed.
 
 =back
 
-Each call, and each iterator, is a I<run>. A pipeline can have as many
-runs as you like.
+Each call, and each iterator, is a I<run>, and so is each feed, which
+you'll meet below. A pipeline can have as many runs as you like.
 
 =head2 Make a pipeline, and call it
 
@@ -2348,7 +2348,10 @@ written for.
 =back
 
 What callbacks have going for them: everyone knows them already, and
-a single callback call is cheaper than a pipeline run.
+a single callback call is cheaper than a pipeline run. And the two
+meet: where a library offers only a callback, a feed runs what it
+calls you with through your caller's stages (see L<Take stages for a
+library that calls you back|/"Take stages for a library that calls you back">).
 
 =head1 10. Building parts for others
 
@@ -3225,6 +3228,12 @@ told when the run ends, however it ends;
 
 =item *
 
+B<with values that arrive when they will,> from a library's
+callbacks or an event loop, fed in as they come, a stop telling
+whoever sends them to stop too;
+
+=item *
+
 B<in reuse,> as a stage written once works with every function that
 takes stages, whoever wrote it.
 
@@ -3241,7 +3250,9 @@ C<grep> are much faster;
 
 =item *
 
-B<on concurrency,> which it doesn't do at all;
+B<on concurrency,> which it doesn't do itself: an event loop can
+feed it, but its stages run one value at a time, in the calling
+thread;
 
 =item *
 

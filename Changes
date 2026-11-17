@@ -18,10 +18,10 @@ Unreleased
       give, and a sink's result; finish ends the run as from outside;
       ended says how it ended. Fed the same values, a feed gives what
       a call gives, a push at a time. A stop ends the run in the push
-      that meets it, and once the run has ended, a push or a close
-      croaks, "Expected a feed still open, but its run has ended", so
-      values can't go nowhere unnoticed; a push, close or finish from
-      inside the feed's own run croaks too. A push costs about 1.4 µs
+      that meets it. Once the run has ended, a push or a close croaks,
+      "Expected a feed still open, but its run has ended", so values
+      can't go nowhere unnoticed; a push, close or finish from inside
+      the feed's own run croaks too. A push costs about 1.4 µs
       a value through a bare stage, and 2 µs through a gather with a
       flush, on Perl 5.36 and 5.44. The user guide shows a library's
       callbacks feeding a function's caller's stages, a tee running
@@ -33,14 +33,14 @@ Unreleased
       each value through a branch of the stages, and passes it on
       unchanged; what comes out of the branch is dropped. The branch is
       one run of its own, beside the main run, fed by a feed made for
-      each main run, so its stages keep their state across the values:
-      a stop in it, such as take's, ends only the branch; a death in it
+      each main run, so its stages keep their state across the values.
+      A stop in it, such as take's, ends only the branch. A death in it
       kills the run, named as the tee's stage, then the branch's within
-      it; its flushes are called in the tee's flush, and its ends as
-      its run ends, or, if the main run ended first, in the tee's end,
-      told stopped. It takes whatever new takes, a pipeline or a sink
-      last included, and costs about 1.7 µs a value through a branch
-      of one plain stage, against peek's 0.4. (roadmap 2026-0048)
+      it. Its flushes are called in the tee's flush, and its ends as its
+      run ends, or, if the main run ended first, in the tee's end, told
+      stopped. It takes whatever new takes, a pipeline or a sink last
+      included, and costs about 1.7 µs a value through a branch of one
+      plain stage, against peek's 0.4. (roadmap 2026-0048)
 
 v0.3.5 2026-11-16
 

@@ -355,8 +355,8 @@ ways:
   each time you call it, asking the source for values only as they're
   needed.
 
-Each call, and each iterator, is a *run*. A pipeline can have as many
-runs as you like.
+Each call, and each iterator, is a *run*, and so is each feed, which
+you'll meet below. A pipeline can have as many runs as you like.
 
 ### Make a pipeline, and call it
 
@@ -2276,7 +2276,10 @@ The other common way to let a caller act on each value is a callback:
   written for.
 
 What callbacks have going for them: everyone knows them already, and
-a single callback call is cheaper than a pipeline run.
+a single callback call is cheaper than a pipeline run. And the two
+meet: where a library offers only a callback, a feed runs what it
+calls you with through your caller's stages (see [Take stages for a
+library that calls you back](#take-stages-for-a-library-that-calls-you-back)).
 
 ## 10. Building parts for others
 
@@ -3128,6 +3131,9 @@ It shines:
 - **with values made one at a time,** read from files, databases or
   services, where it holds almost nothing in memory, and every part is
   told when the run ends, however it ends;
+- **with values that arrive when they will,** from a library's
+  callbacks or an event loop, fed in as they come, a stop telling
+  whoever sends them to stop too;
 - **in reuse,** as a stage written once works with every function that
   takes stages, whoever wrote it.
 
@@ -3135,7 +3141,9 @@ It falls short:
 
 - **on speed,** for tight loops over values in memory, where `map` and
   `grep` are much faster;
-- **on concurrency,** which it doesn't do at all;
+- **on concurrency,** which it doesn't do itself: an event loop can
+  feed it, but its stages run one value at a time, in the calling
+  thread;
 - **on discoverability,** as a caller has to learn what a stage is,
   where an option would be listed in the documentation;
 - **in a few sharp corners,** most of them Perl's: a test isn't a
