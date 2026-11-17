@@ -213,6 +213,45 @@ subtest 'the main run takes the plain loop where the branch allows' => sub {
     is $full, 2, 'a branch with a flush: both do, as the tee has a flush';
 };
 
+subtest 'a tee in a branch' => sub {
+    local @log;
+    my $source = Ekorn::Pipeline::Source->new(sub {
+        my @left = (1 .. 6);
+        return (sub { @left ? shift @left : () }, undef, {columns => ['n']});
+    });
+    my(@outer, @inner, @context);
+    my $next = $class->new(
+        tee(
+            take_if { $_ % 2 },
+            tee(
+                log_end('inner'),
+                take(1),
+                sub { push @inner, $_; push @context, Ekorn::Pipeline::run_context(); () },
+            ),
+            collect,
+            sub { push @outer, "@$_"; () },
+        ),
+        sub { $_ * 10 },
+    )->iterator($source);
+    is [$next->all], [map { $_ * 10 } 1 .. 6],
+        'the main run gets every value, unchanged';
+    is \@outer, ['1 3 5'],
+        'the outer branch, what passes its test, at its flush';
+    is \@inner,   [1], 'the inner branch, what reaches it, until its stop';
+    is \@log,     ['inner stopped'],    'which ends only the inner branch';
+    is \@context, [{columns => ['n']}], "and it sees the main run's context";
+
+    my $error = dies {
+        $class->new(tee(tee(sub { die "deep\n" })))->(1)
+    };
+    like $error,
+        qr( \A Pipeline\ stage\ \#1\ failed\ [^\n]+ \n
+            \ {4} Pipeline\ stage\ \#1\ failed\ [^\n]+ \n
+            \ {8} Pipeline\ stage\ \#1\ failed\ [^\n]+ \n
+            \ {12} deep \n \z )x,
+        'a death two branches down kills the run, nested a level for each tee';
+};
+
 subtest 'mistakes croak at the caller' => sub {
     my $error = dies {
         tee(sub { $_ }, 'not a stage')
