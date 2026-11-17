@@ -77,6 +77,19 @@ both:
   JSON, so a name added to one of those three reaches its users at
   once, and must suit them. A name added anywhere else doesn't appear
   there until it's added to its list.
+- **A name added to Ekorn's Tooling costs DBIx-Squirrel's CI, not its
+  users,** as it settled on 2026-11-17, from v3.1.1 (Ekorn 2026-0048's
+  wash-up). Its `xt/ekorn-tooling.t` checks, tag by tag, that its
+  Tooling holds every name Ekorn's does, so a new one turns its CI red
+  until it lists the name, which it means to: send it a message with
+  each name added. Its `t/`, which installs run, checks only that each
+  name both export is one sub, and that importing both `:all`s into
+  one package warns of nothing. So a name both export must stay the
+  same sub, and a name Ekorn's Tooling adds mustn't clash with one of
+  DBIx::Squirrel's; either would fail its installed releases, so
+  either goes to Iain before it's made. Its v3.1.0, on CPAN, still
+  checks every name in `t/`, and fails with any name added to Ekorn's
+  Tooling: so a release that adds one waits until v3.1.1 is on CPAN.
 
 ## Ekorn-Pipeline and Text-Redact-Secrets
 
