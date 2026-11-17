@@ -81,9 +81,9 @@ Steps, Done when.
 Newest id first.
 
 - [tee: a tap that takes a pipeline](2026-0048-tee.md), roadmap
-  2026-0048: shipped, unreleased.
+  2026-0048: shipped in v0.3.6.
 - [A run fed a value at a time](2026-0044-fed-runs.md), roadmap
-  2026-0044: shipped, unreleased.
+  2026-0044: shipped in v0.3.6.
 - [CI installs only what each job needs](2026-0047-ci-installs.md),
   roadmap 2026-0047: shipped.
 - [Ekorn::Pipeline::Context](2026-0046-context.md), a message from

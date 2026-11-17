@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.6 2026-11-17
+
     A pipeline can be fed its values as they arrive, from a library
     that calls you back, an event loop, or a stage running its values
     through a pipeline of its own; and tee, built on that, is a tap of
