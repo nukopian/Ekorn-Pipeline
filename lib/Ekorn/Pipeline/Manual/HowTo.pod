@@ -250,7 +250,7 @@ B<Made in:> Ekorn::Pipeline::Stages::Batch
 
 =item C<:taps>
 
-B<What it gives you:> C<peek>, C<count_into> and C<dump_to>
+B<What it gives you:> C<peek>, C<count_into>, C<dump_to> and C<tee>
 
 B<Made in:> Ekorn::Pipeline::Stages::Taps
 
@@ -436,7 +436,9 @@ value it was given, or the value is dropped:
 
 Forget the C<$_> at the end, and C<push> returns the length of C<@seen>,
 which goes on in place of the track. L<C<peek>|/"Watch values go by">
-does this for you, and can't forget.
+does this for you, and can't forget. For a side job of more than one
+step, L<C<tee>|/"Tap with a pipeline of stages"> runs each value through
+stages of its own, and passes it on.
 
 =head2 See the order values move in
 
@@ -2434,7 +2436,10 @@ through a run of their own.
 A I<tee> is the simplest. It runs each value through a branch of
 stages, for what they do on the side, throws away what comes out of
 the branch, and passes the value on unchanged, so a tap can be any
-pipeline, where C<peek> does one thing:
+pipeline, where C<peek> does one thing. Ekorn has one, C<tee>, in
+Ekorn::Pipeline::Stages::Taps, which chapter 11 uses. Here is one like
+it, built by hand, to show how a stage made with C<gather> drives a
+feed:
 
     package My::Stages::Tee {
         use Ekorn::Pipeline::Gather;
@@ -2480,9 +2485,10 @@ The first branch's C<take(1)> stopped its own run at the first Blur
 track, and the main run went on; the second branch's C<collect> gave
 its total when the main run's values ran out. A branch that stops
 ends only itself, as the tee checks C<ended> before each push; one that
-dies kills the main run, as any stage's error does. Its ends are told
-how it ended: once the main run ends, C<finish> tells a branch still
-open that it stopped.
+dies kills the main run, as any stage's error does. Its ends are
+called as its run ends: at a stop or a death in it, when the flush
+closes it, or, if the main run ended first, when the end's C<finish>
+tells it that it stopped. Ekorn's C<tee> works just so.
 
 =head2 Run each key's values through a run of their own
 
@@ -2992,6 +2998,60 @@ C<count_into> counts the values going by into a variable, setting it to
 This uses C<at_least>, from L<Build a vocabulary of
 stages|/"Build a vocabulary of stages">.
 
+=head2 Tap with a pipeline of stages
+
+C<peek>, C<count_into> and C<dump_to> each do one thing with every value.
+When the job on the side needs more, C<tee>, imported on request, runs
+each value through a branch of stages of its own, and passes the value
+on unchanged, whatever the branch does with it. Here the branch notes
+the first two big hits, while every track goes on:
+
+    my @hits;
+    my @titles = tracks(
+        tee(take_if { $_->{plays} > 6000 }, take(2), sub { push @hits, $_->{title}; () }),
+        sub { $_->{title} },
+    );
+    say scalar @titles, ' titles';    # 6 titles
+    say join ', ', @hits;             # Dancing Queen, Girls & Boys
+
+The branch is a run of its own, beside the main one. Its C<take(2)>
+stopped the branch after the second hit, and only the branch: the main
+run went on to the end. What comes out of the branch is thrown away,
+so its last stage returns nothing.
+
+The branch's flushes are called when the main run's values run out,
+so it can total, batch or collect what it saw:
+
+    use List::Util qw(sum);
+
+    my $total;
+    my @titles = tracks(
+        tee(sub { $_->{plays} }, collect, sub { $total = sum(@$_); () }),
+        sub { $_->{title} },
+    );
+    say "$total plays over ", scalar @titles, ' tracks';    # 36800 plays over 6 tracks
+
+And it can end in a sink, or in another tap, so a dump while
+debugging can show only the values you're after:
+
+    open my $out, '>', \my $dumped or die "Can't write the dump: $!\n";
+    my @titles = tracks(
+        tee(take_if { $_->{artist} eq 'Cream' }, dump_to($out)),
+        sub { $_->{title} },
+    );
+    print $dumped;
+    # {
+    #   'artist' => 'Cream',
+    #   'plays' => 7700,
+    #   'title' => 'Sunshine of Your Love'
+    # }
+
+A stage in the branch that dies kills the whole run, as any stage's
+error does, named as the tee's stage, then the branch's within it. A
+tee costs several times what C<peek> does, a value, so it's for side
+jobs and debugging, not a hot loop. Chapter 10 shows L<how it's
+built|/"Run values through a branch, with a feed">, on a feed.
+
 =head2 Dump values while debugging
 
 C<dump_to>, imported on request, writes each value with Data::Dumper,
@@ -3070,7 +3130,9 @@ plain subs, and through stages made for the run with C<gather> that
 have no flush or end, such as C<take>, C<drop> and C<count_into>. A run
 with a flush, an end or a sink, such as C<batch>, C<take_last> or
 C<keep_all>, takes the full path, which costs about twice as much per
-value, and some 20 microseconds to set up each run.
+value, and some 20 microseconds to set up each run. A C<tee> costs more
+again, about 1.7 microseconds a value, as each value is pushed into
+its branch's run too.
 
 That sounds a lot, and for a tight loop over numbers in memory, it is:
 use C<map> and C<grep> there. But each value costs well under a

@@ -204,7 +204,7 @@ B<Made in:> L<Stages::Batch|/"Ekorn::Pipeline::Stages::Batch">
 
 =item C<:taps>
 
-B<Holds:> C<peek>, C<count_into>, C<dump_to>
+B<Holds:> C<peek>, C<count_into>, C<dump_to>, C<tee>
 
 B<Made in:> L<Stages::Taps|/"Ekorn::Pipeline::Stages::Taps">
 
@@ -2125,6 +2125,14 @@ B<Passes on:> every value, after writing it to C<$fh> or STDERR
 
 B<Exported:> on request
 
+=item C<tee(@stages)>
+
+B<Module:> Taps
+
+B<Passes on:> every value, after running it through a branch of C<@stages>
+
+B<Exported:> on request
+
 =back
 
 Each module exports its defaults with a plain C<use>, and every stage
@@ -2275,7 +2283,9 @@ memory at once.
 =head2 Ekorn::Pipeline::Stages::Taps
 
 Stages that look at each value as it goes by and pass it on unchanged,
-for logging, counting or debugging.
+for logging, counting or debugging. C<peek>, C<count_into> and C<dump_to>
+each do one thing; C<tee> takes stages, so a tap can be anything a
+pipeline can do.
 
 =head3 peek
 
@@ -2346,6 +2356,94 @@ It's for debugging. Text::Redact::Secrets finds the secrets its rules
 know, not every secret, so a dump can still hold some. It doesn't
 escape control characters in strings, so a value from outside can send
 escape sequences to a terminal.
+
+=head3 tee
+
+    tee(@stages)
+
+Runs each value through a branch of C<@stages>, for what they do on the
+side, and passes the value on unchanged. What comes out of the branch
+is dropped. C<@stages> are whatever L<new|/"new"> takes, a pipeline or a
+sink last included. They're made into a pipeline when C<tee> is called,
+so a mistake croaks then, at your line, with C<new>'s message, a stage
+counted among the tee's: C<tee(sub { ... }, 'oops')> croaks "Expected
+stage #2 to be a stage". With no stages, it does nothing.
+
+Where C<peek> does one thing with each value, a tee's branch can look
+only at some values, or the first few, batch them, total them when the
+values run out, or write them through a sink:
+
+    my @hits;
+    my @titles = Ekorn::Pipeline->new(
+        tee(take_if { $_ > 6000 }, take(2), sub { push @hits, $_; () }),
+        sub { "$_ plays" },
+    )->(9100, 4200, 6100, 5800, 7700);
+    say scalar @titles, ' titles; first hits: ', join ', ', @hits;    # 5 titles; first hits: 9100, 6100
+
+The branch is one run of its own, beside the main run, fed a value at
+a time by a L<feed|/"feed"> the tee makes for each main run. So the
+branch's stages see every value the tee does, in order, and keep
+their state across them; each main run gets a fresh branch.
+
+=over 4
+
+=item *
+
+B<A stop> in the branch, such as C<take(2)>'s, ends only the branch.
+The tee passes the values after it on, without running them through
+the branch.
+
+=item *
+
+B<A death> in the branch kills the main run, as any stage's error
+does. Its message names the tee's stage, then, within it, the
+branch's, as below.
+
+=item *
+
+B<The branch's flushes> are called in the tee's flush, which closes
+the branch: once the main run's values have run out, before the
+stages after the tee are flushed. A total, a last batch or a sink's
+result is given then, as below. If a stop after the tee ends the
+main run, the tee's flush isn't called, so neither are the branch's.
+
+=item *
+
+B<The branch's ends> are called as its run ends, each told how it
+ended from where it stands: in the push that met a stop or a death
+in the branch; in the tee's flush, which closes it; or, if the main
+run ended before either, in the tee's end, told C<stopped>, as the
+branch's input was cut short. That's so even when the main run died,
+as it is for an iterator read as a source by a run that dies.
+
+=item *
+
+B<The value itself> goes into the branch, not a copy, as it goes to
+C<peek>'s block. A branch that changes a hash changes it for the main
+run too.
+
+=back
+
+A death in the branch, its stage #2, of a tee given as stage #1:
+
+    Pipeline stage #1 failed at app.pl line 12:
+        Pipeline stage #2 failed at app.pl line 12:
+            bad value
+
+A branch totalling what it saw, in its flush:
+
+    my $total = 0;
+    my @values = Ekorn::Pipeline->new(
+        tee(collect { $total += $_ for @_; () }),
+        sub { $_ * 2 },
+    )->(1 .. 4);
+    say "@values; total $total";    # 2 4 6 8; total 10
+
+A tee has a flush and an end, so a run with one takes the full path,
+and each value costs a push into the branch as well: about 1.7
+microseconds a value through a branch of one plain stage, against
+C<peek>'s 0.4, on Perl 5.36. It's for logging, debugging and side jobs,
+not a hot loop.
 
 =head1 Sources: Ekorn::Pipeline::Sources
 
@@ -4146,7 +4244,7 @@ B<By default:> C<gather>
 
 B<By default:> nothing: a parent class
 
-=item C<Ekorn::Pipeline::Source>, C<::Sink>, C<::Stage>, C<::Iterator>, C<::Element>
+=item C<Ekorn::Pipeline::Source>, C<::Sink>, C<::Stage>, C<::Iterator>, C<::Feed>, C<::Element>
 
 B<By default:> nothing: classes
 
@@ -4174,7 +4272,7 @@ B<Tags:> C<:all>
 
 B<By default:> C<peek>, C<count_into>
 
-B<On request:> C<dump_to>
+B<On request:> C<dump_to>, C<tee>
 
 B<Tags:> C<:all>
 
@@ -4269,7 +4367,7 @@ Canned stages gathering values: C<batch>, C<collect>.
 
 =item C<Ekorn::Pipeline::Stages::Taps>
 
-Canned stages run for their side effects: C<peek>, C<count_into>, C<dump_to>.
+Canned stages run for their side effects: C<peek>, C<count_into>, C<dump_to>, C<tee>.
 
 =back
 

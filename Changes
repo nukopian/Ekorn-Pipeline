@@ -4,11 +4,13 @@ Unreleased
 
     A pipeline can be fed its values as they arrive, from a library
     that calls you back, an event loop, or a stage running its values
-    through a pipeline of its own.
+    through a pipeline of its own; and tee, built on that, is a tap of
+    any shape, running each value through a branch of stages beside
+    the main run.
 
-    It ships roadmap 2026-0044. It only adds: pushed and pulled runs,
-    the messages, and the order things run in are as they were, and
-    no slower.
+    It ships roadmap 2026-0044 and 2026-0048. It only adds: pushed and
+    pulled runs, the messages, and the order things run in are as they
+    were, and no slower.
 
     - $pipeline->feed returns an Ekorn::Pipeline::Feed, one run, made
       then: push runs values through the stages, and returns what came
@@ -26,6 +28,19 @@ Unreleased
       values through a branch of stages beside the main run, and a
       stage running each key's values through a run of their own.
       (roadmap 2026-0044)
+    - tee(@stages), in Ekorn::Pipeline::Stages::Taps, exported on
+      request and in :all and Ekorn::Pipeline::Tooling's :taps, runs
+      each value through a branch of the stages, and passes it on
+      unchanged; what comes out of the branch is dropped. The branch is
+      one run of its own, beside the main run, fed by a feed made for
+      each main run, so its stages keep their state across the values:
+      a stop in it, such as take's, ends only the branch; a death in it
+      kills the run, named as the tee's stage, then the branch's within
+      it; its flushes are called in the tee's flush, and its ends as
+      its run ends, or, if the main run ended first, in the tee's end,
+      told stopped. It takes whatever new takes, a pipeline or a sink
+      last included, and costs about 1.7 µs a value through a branch
+      of one plain stage, against peek's 0.4. (roadmap 2026-0048)
 
 v0.3.5 2026-11-16
 

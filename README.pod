@@ -597,9 +597,10 @@ or by a test.
 =item * L<Ekorn::Pipeline::Stages::Batch>: C<batch> and C<collect>,
 which gather values and pass them on together.
 
-=item * L<Ekorn::Pipeline::Stages::Taps>: C<peek>, C<count_into> and
-C<dump_to>, which look at each value and pass it on, for logging,
-counting and debugging.
+=item * L<Ekorn::Pipeline::Stages::Taps>: C<peek>, C<count_into>,
+C<dump_to> and C<tee>, which look at each value and pass it on, for
+logging, counting and debugging; C<tee> runs each through a branch of
+stages of your own, so a tap can be any pipeline.
 
 =item * L<Ekorn::Pipeline::Sources> and L<Ekorn::Pipeline::Sinks>:
 the sources and sinks above.

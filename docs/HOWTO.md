@@ -129,7 +129,7 @@ by tags that follow the modules:
 | `:core` | `Stop` and `gather` | Ekorn::Pipeline::Stop and ::Gather |
 | `:flow` | `take`, `drop`, `take_if`, `take_while` and the rest | Ekorn::Pipeline::Stages::Flow |
 | `:batch` | `batch` and `collect` | Ekorn::Pipeline::Stages::Batch |
-| `:taps` | `peek`, `count_into` and `dump_to` | Ekorn::Pipeline::Stages::Taps |
+| `:taps` | `peek`, `count_into`, `dump_to` and `tee` | Ekorn::Pipeline::Stages::Taps |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
 | `:sources` | `from_array`, `from_file`, `from_fh` and `counter` | Ekorn::Pipeline::Sources |
 | `:sinks` | `count_items`, `keep_all`, `keep_first`, `to_file` and the rest | Ekorn::Pipeline::Sinks |
@@ -287,7 +287,9 @@ say scalar @seen, ' seen, ', scalar @titles, ' kept';    # 6 seen, 6 kept
 
 Forget the `$_` at the end, and `push` returns the length of `@seen`,
 which goes on in place of the track. [`peek`](#watch-values-go-by)
-does this for you, and can't forget.
+does this for you, and can't forget. For a side job of more than one
+step, [`tee`](#tap-with-a-pipeline-of-stages) runs each value through
+stages of its own, and passes it on.
 
 ### See the order values move in
 
@@ -2368,7 +2370,10 @@ through a run of their own.
 A *tee* is the simplest. It runs each value through a branch of
 stages, for what they do on the side, throws away what comes out of
 the branch, and passes the value on unchanged, so a tap can be any
-pipeline, where `peek` does one thing:
+pipeline, where `peek` does one thing. Ekorn has one, `tee`, in
+Ekorn::Pipeline::Stages::Taps, which chapter 11 uses. Here is one like
+it, built by hand, to show how a stage made with `gather` drives a
+feed:
 
 ```perl
 package My::Stages::Tee {
@@ -2416,9 +2421,10 @@ The first branch's `take(1)` stopped its own run at the first Blur
 track, and the main run went on; the second branch's `collect` gave
 its total when the main run's values ran out. A branch that stops
 ends only itself, as the tee checks `ended` before each push; one that
-dies kills the main run, as any stage's error does. Its ends are told
-how it ended: once the main run ends, `finish` tells a branch still
-open that it stopped.
+dies kills the main run, as any stage's error does. Its ends are
+called as its run ends: at a stop or a death in it, when the flush
+closes it, or, if the main run ended first, when the end's `finish`
+tells it that it stopped. Ekorn's `tee` works just so.
 
 ### Run each key's values through a run of their own
 
@@ -2905,6 +2911,66 @@ say "$kept of $read";    # 3 of 6
 This uses `at_least`, from [Build a vocabulary of
 stages](#build-a-vocabulary-of-stages).
 
+### Tap with a pipeline of stages
+
+`peek`, `count_into` and `dump_to` each do one thing with every value.
+When the job on the side needs more, `tee`, imported on request, runs
+each value through a branch of stages of its own, and passes the value
+on unchanged, whatever the branch does with it. Here the branch notes
+the first two big hits, while every track goes on:
+
+```perl
+my @hits;
+my @titles = tracks(
+    tee(take_if { $_->{plays} > 6000 }, take(2), sub { push @hits, $_->{title}; () }),
+    sub { $_->{title} },
+);
+say scalar @titles, ' titles';    # 6 titles
+say join ', ', @hits;             # Dancing Queen, Girls & Boys
+```
+
+The branch is a run of its own, beside the main one. Its `take(2)`
+stopped the branch after the second hit, and only the branch: the main
+run went on to the end. What comes out of the branch is thrown away,
+so its last stage returns nothing.
+
+The branch's flushes are called when the main run's values run out,
+so it can total, batch or collect what it saw:
+
+```perl
+use List::Util qw(sum);
+
+my $total;
+my @titles = tracks(
+    tee(sub { $_->{plays} }, collect, sub { $total = sum(@$_); () }),
+    sub { $_->{title} },
+);
+say "$total plays over ", scalar @titles, ' tracks';    # 36800 plays over 6 tracks
+```
+
+And it can end in a sink, or in another tap, so a dump while
+debugging can show only the values you're after:
+
+```perl
+open my $out, '>', \my $dumped or die "Can't write the dump: $!\n";
+my @titles = tracks(
+    tee(take_if { $_->{artist} eq 'Cream' }, dump_to($out)),
+    sub { $_->{title} },
+);
+print $dumped;
+# {
+#   'artist' => 'Cream',
+#   'plays' => 7700,
+#   'title' => 'Sunshine of Your Love'
+# }
+```
+
+A stage in the branch that dies kills the whole run, as any stage's
+error does, named as the tee's stage, then the branch's within it. A
+tee costs several times what `peek` does, a value, so it's for side
+jobs and debugging, not a hot loop. Chapter 10 shows [how it's
+built](#run-values-through-a-branch-with-a-feed), on a feed.
+
 ### Dump values while debugging
 
 `dump_to`, imported on request, writes each value with Data::Dumper,
@@ -2980,7 +3046,9 @@ plain subs, and through stages made for the run with `gather` that
 have no flush or end, such as `take`, `drop` and `count_into`. A run
 with a flush, an end or a sink, such as `batch`, `take_last` or
 `keep_all`, takes the full path, which costs about twice as much per
-value, and some 20 microseconds to set up each run.
+value, and some 20 microseconds to set up each run. A `tee` costs more
+again, about 1.7 microseconds a value, as each value is pushed into
+its branch's run too.
 
 That sounds a lot, and for a tight loop over numbers in memory, it is:
 use `map` and `grep` there. But each value costs well under a

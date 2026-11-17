@@ -107,7 +107,7 @@ place, by tags that follow the modules that make it:
 | `:core` | `Stop`, `gather` | [Stop](#stopping-a-pipeline-ekornpipelinestop), [Gather](#gathering-ekornpipelinegather) |
 | `:flow` | `take`, `take_first`, `take_last`, `take_single`, `take_if`, `take_while`, `drop`, `drop_if`, `drop_while` | [Stages::Flow](#ekornpipelinestagesflow) |
 | `:batch` | `batch`, `collect` | [Stages::Batch](#ekornpipelinestagesbatch) |
-| `:taps` | `peek`, `count_into`, `dump_to` | [Stages::Taps](#ekornpipelinestagestaps) |
+| `:taps` | `peek`, `count_into`, `dump_to`, `tee` | [Stages::Taps](#ekornpipelinestagestaps) |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
 | `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
 | `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
@@ -1664,6 +1664,7 @@ one.
 | `peek { ... }` | Taps | every value, after calling the block with it | by default |
 | `count_into(\$n)` | Taps | every value, counting them into `$n` | by default |
 | `dump_to($fh)` | Taps | every value, after writing it to `$fh` or STDERR | on request |
+| `tee(@stages)` | Taps | every value, after running it through a branch of `@stages` | on request |
 
 Each module exports its defaults with a plain `use`, and every stage
 it has with `:all`. To get the defaults and one more, name `:DEFAULT`
@@ -1845,7 +1846,9 @@ say Ekorn::Pipeline->new(collect { join '+', @_ })->(1 .. 3);    # 1+2+3
 ### Ekorn::Pipeline::Stages::Taps
 
 Stages that look at each value as it goes by and pass it on unchanged,
-for logging, counting or debugging.
+for logging, counting or debugging. `peek`, `count_into` and `dump_to`
+each do one thing; `tee` takes stages, so a tap can be anything a
+pipeline can do.
 
 #### peek
 
@@ -1926,6 +1929,84 @@ It's for debugging. Text::Redact::Secrets finds the secrets its rules
 know, not every secret, so a dump can still hold some. It doesn't
 escape control characters in strings, so a value from outside can send
 escape sequences to a terminal.
+
+#### tee
+
+```perl
+tee(@stages)
+```
+
+Runs each value through a branch of `@stages`, for what they do on the
+side, and passes the value on unchanged. What comes out of the branch
+is dropped. `@stages` are whatever [new](#new) takes, a pipeline or a
+sink last included. They're made into a pipeline when `tee` is called,
+so a mistake croaks then, at your line, with `new`'s message, a stage
+counted among the tee's: `tee(sub { ... }, 'oops')` croaks "Expected
+stage #2 to be a stage". With no stages, it does nothing.
+
+Where `peek` does one thing with each value, a tee's branch can look
+only at some values, or the first few, batch them, total them when the
+values run out, or write them through a sink:
+
+```perl
+my @hits;
+my @titles = Ekorn::Pipeline->new(
+    tee(take_if { $_ > 6000 }, take(2), sub { push @hits, $_; () }),
+    sub { "$_ plays" },
+)->(9100, 4200, 6100, 5800, 7700);
+say scalar @titles, ' titles; first hits: ', join ', ', @hits;    # 5 titles; first hits: 9100, 6100
+```
+
+The branch is one run of its own, beside the main run, fed a value at
+a time by a [feed](#feed) the tee makes for each main run. So the
+branch's stages see every value the tee does, in order, and keep
+their state across them; each main run gets a fresh branch.
+
+- **A stop** in the branch, such as `take(2)`'s, ends only the branch.
+  The tee passes the values after it on, without running them through
+  the branch.
+- **A death** in the branch kills the main run, as any stage's error
+  does. Its message names the tee's stage, then, within it, the
+  branch's, as below.
+- **The branch's flushes** are called in the tee's flush, which closes
+  the branch: once the main run's values have run out, before the
+  stages after the tee are flushed. A total, a last batch or a sink's
+  result is given then, as below. If a stop after the tee ends the
+  main run, the tee's flush isn't called, so neither are the branch's.
+- **The branch's ends** are called as its run ends, each told how it
+  ended from where it stands: in the push that met a stop or a death
+  in the branch; in the tee's flush, which closes it; or, if the main
+  run ended before either, in the tee's end, told `stopped`, as the
+  branch's input was cut short. That's so even when the main run died,
+  as it is for an iterator read as a source by a run that dies.
+- **The value itself** goes into the branch, not a copy, as it goes to
+  `peek`'s block. A branch that changes a hash changes it for the main
+  run too.
+
+A death in the branch, its stage #2, of a tee given as stage #1:
+
+```text
+Pipeline stage #1 failed at app.pl line 12:
+    Pipeline stage #2 failed at app.pl line 12:
+        bad value
+```
+
+A branch totalling what it saw, in its flush:
+
+```perl
+my $total = 0;
+my @values = Ekorn::Pipeline->new(
+    tee(collect { $total += $_ for @_; () }),
+    sub { $_ * 2 },
+)->(1 .. 4);
+say "@values; total $total";    # 2 4 6 8; total 10
+```
+
+A tee has a flush and an end, so a run with one takes the full path,
+and each value costs a push into the branch as well: about 1.7
+microseconds a value through a branch of one plain stage, against
+`peek`'s 0.4, on Perl 5.36. It's for logging, debugging and side jobs,
+not a hot loop.
 
 ## Sources: Ekorn::Pipeline::Sources
 
@@ -3114,11 +3195,11 @@ pipeline named %s is already defined".
 | `Ekorn::Pipeline::Stop` | `Stop` | | |
 | `Ekorn::Pipeline::Gather` | `gather` | | |
 | `Ekorn::Pipeline::Pipes` | nothing: a parent class | | |
-| `Ekorn::Pipeline::Source`, `::Sink`, `::Stage`, `::Iterator`, `::Element` | nothing: classes | | |
+| `Ekorn::Pipeline::Source`, `::Sink`, `::Stage`, `::Iterator`, `::Feed`, `::Element` | nothing: classes | | |
 | `Ekorn::Pipeline::Errors` | nothing | `croakf` | |
 | `Ekorn::Pipeline::Stages::Flow` | `take`, `drop` | `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`, `take_while`, `drop_while` | `:all` |
 | `Ekorn::Pipeline::Stages::Batch` | `batch`, `collect` | | `:all` |
-| `Ekorn::Pipeline::Stages::Taps` | `peek`, `count_into` | `dump_to` | `:all` |
+| `Ekorn::Pipeline::Stages::Taps` | `peek`, `count_into` | `dump_to`, `tee` | `:all` |
 
 To import nothing from a module that exports by default, give it an
 empty list: `use Ekorn::Pipeline::Stop ();`.
@@ -3147,4 +3228,4 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Errors` | Reports errors at the caller's line: `croakf` and `@INTERNAL`. |
 | `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`, `take_while`, `drop_while`. |
 | `Ekorn::Pipeline::Stages::Batch` | Canned stages gathering values: `batch`, `collect`. |
-| `Ekorn::Pipeline::Stages::Taps` | Canned stages run for their side effects: `peek`, `count_into`, `dump_to`. |
+| `Ekorn::Pipeline::Stages::Taps` | Canned stages run for their side effects: `peek`, `count_into`, `dump_to`, `tee`. |

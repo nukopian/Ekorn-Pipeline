@@ -107,13 +107,3 @@ Syntax::Keyword::Dynamically or another way to be carried; and where
 an error is reported once the call has returned. Built on 2026-0043
 and 2026-0044, in a distribution of its own, designed first, with a
 prototype and cold reviews, as an epic change is.
-
-### 2026-0048. tee: a tap that takes a pipeline
-
-Added 2026-11-17. **Size:** S (2). **Depends on:** 2026-0044.
-
-A stage, `tee(@stages)`, running each value through a branch of
-stages for their side effects, and passing it on unchanged: a tap of
-any shape, where `peek`, `count_into` and `dump_to` each do one thing.
-The branch is one run fed a value at a time, so its stops end only
-it. Its decisions are settled: [record](docs/changes/2026-0048-tee.md).

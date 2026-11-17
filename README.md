@@ -571,9 +571,10 @@ operators, from one module, by tags: `:core`, `:flow`, `:batch`,
 or by a test.
 - [Ekorn::Pipeline::Stages::Batch](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ABatch): `batch` and `collect`,
 which gather values and pass them on together.
-- [Ekorn::Pipeline::Stages::Taps](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ATaps): `peek`, `count_into` and
-`dump_to`, which look at each value and pass it on, for logging,
-counting and debugging.
+- [Ekorn::Pipeline::Stages::Taps](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3ATaps): `peek`, `count_into`,
+`dump_to` and `tee`, which look at each value and pass it on, for
+logging, counting and debugging; `tee` runs each through a branch of
+stages of your own, so a tap can be any pipeline.
 - [Ekorn::Pipeline::Sources](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASources) and [Ekorn::Pipeline::Sinks](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASinks):
 the sources and sinks above.
 - [Ekorn::Pipeline::JSON](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AJSON): `from_json` and `to_json`, which
