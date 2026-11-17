@@ -27,11 +27,10 @@ v0.3.6 2026-11-17
       its stages see the context of the code pushing into it, none from
       outside a run. A push costs about 1.3 µs a value through a bare
       stage, and 2 µs through a gather with a flush, on Perl 5.36 and
-      5.44. The user guide shows a library's
-      callbacks feeding a function's caller's stages, a tee running
-      values through a branch of stages beside the main run, and a
-      stage running each key's values through a run of their own.
-      (roadmap 2026-0044)
+      5.44. The user guide shows a library's callbacks feeding a
+      function's caller's stages, a tee running values through a
+      branch of stages beside the main run, and a stage running each
+      key's values through a run of their own. (roadmap 2026-0044)
     - tee(@stages), in Ekorn::Pipeline::Stages::Taps, exported on
       request and in :all and Ekorn::Pipeline::Tooling's :taps, runs
       each value through a branch of the stages, and passes it on
