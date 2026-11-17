@@ -425,8 +425,20 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
    v=$v perl -0777 -ne 'print "$1\n" =~ s/^    //mgr if /^\Q$ENV{v}\E [^\n]*\n\n(.*?)\n*(?=^\S|\z)/ms' Changes > "$TMPDIR/notes-$v.txt"
    sed "1s/^/$v: /" "$TMPDIR/notes-$v.txt" > "$TMPDIR/tag-$v.txt"
+   perl -pi -e 's{ (?<! [`\w] ) ( \@ [A-Za-z] [\w-]* ) }{`$1`}xg' "$TMPDIR/notes-$v.txt"
    cat "$TMPDIR/tag-$v.txt"
+   grep -n '@' "$TMPDIR/notes-$v.txt"
    ```
+
+   The third line puts each `@name` in the notes in backticks, after
+   the tag message is made from them, which stays plain text. GitHub
+   reads a bare `@name` in a release's notes as a mention: it lists
+   that account among the release's contributors, and notifies it. The
+   entry's Perl, such as `tee(@stages)`, named the real accounts
+   `stages` and `values` in v0.3.1's, v0.3.5's and v0.3.6's notes,
+   which were edited on 2026-11-17. The last line shows each `@` left
+   in the notes, which should all be in backticks, or in an email
+   address.
 
 5. **Move `main` and tag it.** First check that every check run on the
    commit has completed successfully. `gh run watch` can report a run
