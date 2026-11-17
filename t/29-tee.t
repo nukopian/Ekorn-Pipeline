@@ -252,6 +252,48 @@ subtest 'a tee in a branch' => sub {
         'a death two branches down kills the run, nested a level for each tee';
 };
 
+subtest 'a tee in a pipeline a gather returns' => sub {
+    local @log;
+    my(@taken, @batches);
+    my $made  = 0;
+    my $stage = gather {
+        $made++;
+        my $n = 0;    # this run's
+        return $class->new(
+            sub { ++$n . ":$_" },
+            tee(log_end('taken'), take(2), sub { push @taken, $_; () }),
+            tee(batch(2), sub { push @batches, "@$_"; () }),
+        );
+    };
+    my $p = $class->new($stage, sub { uc });
+
+    is [$p->(qw(a b c))], [qw(1:A 2:B 3:C)], 'the main run gets every value';
+    is \@taken, [qw(1:a 2:b)], "the first branch, until its stop";
+    is \@batches, ['1:a 2:b', '3:c'],
+        "the second, its last batch at the main run's flush";
+    is \@log, ['taken stopped'], 'the stop ends only its branch';
+
+    (@taken, @batches, @log) = ();
+    is [$p->(qw(d e))], [qw(1:D 2:E)], 'a second run';
+    is \@taken,         [qw(1:d 2:e)], 'gets a fresh branch';
+    is \@batches,       ['1:d 2:e'],   'and a fresh batch';
+    is $made,           2,             'as the gather is made for each run';
+
+    my $error = dies {
+        $class->new(
+            sub { $_ },
+            gather {
+                $class->new(sub { $_ }, tee(sub { die "bad\n" }))
+            },
+        )->(1);
+    };
+    like $error,
+        qr( \A Pipeline\ stage\ \#2\.2\ failed\ [^\n]+ \n
+            \ {4} Pipeline\ stage\ \#1\ failed\ [^\n]+ \n
+            \ {8} bad \n \z )x,
+        "a death in its branch: the tee dotted, as it's spliced in, the branch's nested";
+};
+
 subtest 'mistakes croak at the caller' => sub {
     my $error = dies {
         tee(sub { $_ }, 'not a stage')
