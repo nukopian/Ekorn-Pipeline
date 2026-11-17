@@ -41,7 +41,17 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
+### 2026-0044. A run fed a value at a time
+
+**Size:** M (3).
+
+A run the caller opens with `$pipeline->feed`, pushes values into one
+or a few at a time, getting back what comes out of each, and closes,
+getting what the flushes give; it says when a stage has stopped it,
+and croaks at a push once it has ended. So a library's callbacks, or
+a stage's branch of its own, as `tee` (2026-0048) needs, can feed a
+pipeline. Its decisions are settled, and its plan written:
+[record](docs/changes/2026-0044-fed-runs.md).
 
 ## Next
 
@@ -88,19 +98,6 @@ nothing of Ekorn's changed. Waiting needs an event loop that a Future
 can run while it waits, such as IO::Async's, or Mojo's through
 Future::Mojo. It needs Future, so it belongs in a distribution of its
 own, built on Ekorn's protocols, not in Ekorn's dependencies.
-
-### 2026-0044. A run fed a value at a time
-
-Added 2026-11-16. **Size:** M (3).
-
-A run the caller opens, pushes values into one at a time, getting what
-comes out of each, and closes, getting what the flushes give, its ends
-told how it ended; it says when a stage has stopped it. Today a pushed
-run takes all its values at once, and an iterator pulls them, so
-nothing takes values as they arrive: from callbacks, sockets or an
-event loop. It's synchronous, needs nothing new, and adds behaviour
-rather than changing it, so it's a v0.3.x; and it's what async
-sources and sinks (2026-0045) would be driven through.
 
 ### 2026-0045. Asynchronous runs
 
