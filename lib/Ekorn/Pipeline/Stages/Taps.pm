@@ -62,7 +62,9 @@ sub count_into ($count) {
 # passing the value on unchanged. What comes out of the branch is
 # dropped; a stop in it ends only it; its flushes are called in the
 # stage's flush, which closes it, and it's finished in the stage's
-# end, if the main run ended first.
+# end, if the main run ended first. A branch with nothing to flush or
+# end needs neither, so the stage has none, and the main run can take
+# the plain loop.
 sub tee (@stages) {
     my $branch = Ekorn::Pipeline->new(@stages);
     return gather {
@@ -73,27 +75,25 @@ sub tee (@stages) {
         # from inside, are made here, by $open, or can't fail.
         my($push, $ended) = @$feed{qw(push ended)};
         my $open = 1;
-        return (
-            # The step, without a signature, as it's called for each
-            # value: into the branch while it's open, and on.
-            sub {
-                if ($open) {
-                    $push->($_[0]);
-                    $open = !defined $ended->();
-                }
-                return $_[0];
-            },
-
-            # The flush: the branch's input has run out.
-            sub () {
-                $feed->close if $open;
-                $open = 0;
-                return;
-            },
-
-            # The end: the branch, if still open, is told it stopped.
-            sub ($how) { $feed->finish },
-        );
+        # The step, without a signature, as it's called for each value:
+        # into the branch while it's open, and on.
+        my $step = sub {
+            if ($open) {
+                $push->($_[0]);
+                $open = !defined $ended->();
+            }
+            return $_[0];
+        };
+        return $step if $feed->{plain};
+        # The flush: the branch's input has run out.
+        my $flush = sub () {
+            $feed->close if $open;
+            $open = 0;
+            return;
+        };
+        return ($step, $flush) unless $feed->{ends};
+        # The end: the branch, if still open, is told it stopped.
+        return ($step, $flush, sub ($how) { $feed->finish });
     };
 }
 
@@ -336,12 +336,19 @@ for an iterator read as a source by a run that dies.
 goes to C<peek>'s block. A branch that changes a hash changes it for
 the main run too.
 
+=item * B<The main run's context> is the branch's: in the branch,
+L<Ekorn::Pipeline/run_context> gives what it gives in the main run,
+such as a statement's columns.
+
 =back
 
-A tee has a flush and an end, so a run with one takes the full path,
-and each value costs a push into the branch too: about 1.7 microseconds
-a value through a branch of one plain stage, against C<peek>'s 0.4, on
-Perl 5.36. It's for logging, debugging and side jobs, not a hot loop.
+Each value costs a push into the branch: about 1.3 microseconds a
+value through a branch of one plain stage, against C<peek>'s 0.4, on
+Perl 5.36. A tee has a flush, and an end, only if its branch needs
+them, so a branch of plain stages leaves the main run on the plain
+loop. A branch with a flush, such as C<batch>'s, puts the main run on
+the full path, and costs about 2.2 microseconds a value. It's for
+logging, debugging and side jobs, not a hot loop.
 
 =head1 DIAGNOSTICS
 

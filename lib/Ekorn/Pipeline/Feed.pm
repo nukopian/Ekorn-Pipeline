@@ -167,8 +167,11 @@ so values can't go nowhere unnoticed. So a caller feeding values as
 they arrive asks C<ended> after each push, and stops when it's
 defined.
 
-A feed has no context: L<Ekorn::Pipeline/run_context> is undefined in
-its stages, as in a pushed run's. A push, a close or a finish from
+A feed has no context of its own. Its stages and ends see the context
+of the code pushing into it, through L<Ekorn::Pipeline/run_context>:
+none, pushed from outside any run, or, pushed from a stage, that
+stage's run's, such as a statement's columns. So a stage that feeds a
+branch passes its run's context on to it. A push, a close or a finish from
 inside the feed's own run, such as from one of its stages, croaks: a
 stage can push into another pipeline's feed, but not its own.
 

@@ -393,11 +393,12 @@ order, a push at a time. The run is made when `feed` is called, so a
 `gather`'s block is called then, and an error in it is thrown then.
 `feed` takes no arguments.
 
-Use a feed where the values don't come from you, a value at a time: a
-library calling back for each row, record or file it finds, an event
-loop, or a stage that runs its values through another pipeline, such
-as a tee. [Feeds](#feeds-ekornpipelinefeed) has its methods, and how
-its run ends.
+Use a feed where the values don't come from you but arrive a value at
+a time. They may come from a library calling back for each row,
+record or file it finds, from an event loop, or from a stage that runs
+its values through another pipeline, such as a tee.
+[Feeds](#feeds-ekornpipelinefeed) has its methods, and how its run
+ends.
 
 ### stages
 
@@ -636,8 +637,9 @@ Returns the context the run's source gave, if any: its `context`, or
 the third part its `EKORN_SOURCE` returned as a list, such as a
 statement's column names. It's for stages that need to know about the
 values' source, called as they run. Each run has its own. A pushed run
-has none, and an iterator used as a source passes on its own run's. It
-isn't exported, and is new in v0.3.0. [Stages that ask about their
+has none, and an iterator used as a source passes on its own run's. A
+feed has none of its own: its stages see the context of the code
+pushing into it. It isn't exported, and is new in v0.3.0. [Stages that ask about their
 run](#stages-that-ask-about-their-run) has an example.
 
 ## Words: Ekorn::Pipeline::Factories
@@ -1281,10 +1283,10 @@ my $how     = $feed->ended;            # done, stopped or died, once the run has
   or, in scalar context, an array reference. A value held back, as
   `batch` holds values, comes out of a later push, or of `close`. A
   sink's result isn't among them: `close` gives it.
-- **`close`** ends the input, as a source running out does: it calls
+- **`close`** ends the input, as a source running out does. It calls
   the flushes, in order, and returns what they give, through the
-  stages after them, and a sink's result, as a list, or, in scalar
-  context, an array reference; then it calls the ends, each told
+  stages after them, and a sink's result: a list, or, in scalar
+  context, an array reference. Then it calls the ends, each told
   `done`, or `stopped` if a flush's stop cut its input short.
 - **`finish`** ends the run now, as from outside, if it hasn't ended:
   nothing waiting goes on, no flush is called, and each end is told
@@ -1296,7 +1298,7 @@ my $how     = $feed->ended;            # done, stopped or died, once the run has
   `died` if anything in it died.
 
 A stop, from a stage, a flush or a sink, such as `take`'s, ends the run
-in the push that meets it, as it ends any run: the values it carries
+in the push that meets it, as it ends any run. The values it carries
 go on, the flushes of the stages after it are called, then every end,
 and that push returns all of it. The values after the one that met the
 stop are dropped. A stage that dies kills the run, and the push dies
@@ -1318,8 +1320,11 @@ for my $value (1 .. 5) {
 say "@out, ", $feed->ended;    # 2 4, stopped
 ```
 
-A feed has no context: `run_context` is undefined in its stages, as in
-a pushed run's. A `push`, `close` or `finish` from inside the feed's
+A feed has no context of its own. Its stages and ends see the context
+of the code pushing into it, through `run_context`: none, pushed from
+outside any run, or, pushed from a stage, that stage's run's, such as
+a statement's columns. So a stage that feeds a branch passes its run's
+context on to it. A `push`, `close` or `finish` from inside the feed's
 own run, such as from one of its stages, croaks: a stage can push into
 another pipeline's feed, but not its own. Each feed is a run of its
 own, so a stage can keep feeds of several pipelines, or several feeds
@@ -1994,6 +1999,9 @@ their state across them; each main run gets a fresh branch.
 - **The value itself** goes into the branch, not a copy, as it goes to
   `peek`'s block. A branch that changes a hash changes it for the main
   run too.
+- **The main run's context** is the branch's: in the branch,
+  `run_context` gives what it gives in the main run, such as a
+  statement's columns.
 
 A death in the branch, its stage #2, of a tee given as stage #1:
 
@@ -2014,11 +2022,13 @@ my @values = Ekorn::Pipeline->new(
 say "@values; total $total";    # 2 4 6 8; total 10
 ```
 
-A tee has a flush and an end, so a run with one takes the full path,
-and each value costs a push into the branch as well: about 1.7
-microseconds a value through a branch of one plain stage, against
-`peek`'s 0.4, on Perl 5.36. It's for logging, debugging and side jobs,
-not a hot loop.
+Each value costs a push into the branch: about 1.3 microseconds a
+value through a branch of one plain stage, against `peek`'s 0.4, on
+Perl 5.36. A tee has a flush, and an end, only if its branch needs
+them, so a branch of plain stages leaves the main run on the plain
+loop. A branch with a flush, such as `batch`'s, puts the main run on
+the full path, and costs about 2.2 microseconds a value. It's for
+logging, debugging and side jobs, not a hot loop.
 
 ## Sources: Ekorn::Pipeline::Sources
 

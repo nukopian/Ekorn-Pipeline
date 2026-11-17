@@ -14,7 +14,8 @@ use Test2::Plugin::NoWarnings;
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Feed qw();
 use Ekorn::Pipeline::Gather;
-use Ekorn::Pipeline::Sinks qw(keep keep_all keep_first count_items);
+use Ekorn::Pipeline::Source qw();
+use Ekorn::Pipeline::Sinks  qw(keep keep_all keep_first count_items);
 use Ekorn::Pipeline::Stages::Batch;
 use Ekorn::Pipeline::Stages::Flow qw(take drop take_last take_while);
 use Ekorn::Pipeline::Stop;
@@ -323,6 +324,53 @@ subtest 'a stage in a pipeline within, named as a pushed run names it' => sub {
         like $pushed, qr( \A Pipeline\ stage\ \#2\.2\ \(My::Feed::inner\#2\) )x,
             'as #2.2, by its name and place';
     }
+};
+
+subtest "a feed's stages see the context of the run pushing into it" => sub {
+    my $source = Ekorn::Pipeline::Source->new(sub {
+        my @left = (1, 2);
+        return (sub { @left ? shift @left : () }, undef, {columns => ['n']});
+    });
+    my $end = gather { (sub ($value) { $value }, undef, sub ($how) { }) };
+    for my $case (['plain', [sub { $_ }]], ['full', [sub { $_ }, $end]]) {
+        my($loop, $stages) = @$case;
+        my @seen;
+        my $inner = $class->new(
+            sub { push @seen, Ekorn::Pipeline::run_context(); () },
+            @$stages,
+        );
+        my $feed = $inner->feed;
+        $feed->push(0);
+        $class->new(sub { $feed->push($_); $_ })->iterator($source)->all;
+        is \@seen, [undef, {columns => ['n']}, {columns => ['n']}],
+            "the $loop loop: none from outside a run, the run's from inside one";
+    }
+};
+
+subtest 'a run that is not a feed, inside one with a context, has none' => sub {
+    my $source = Ekorn::Pipeline::Source->new(sub {
+        my @left = (1);
+        return (sub { @left ? shift @left : () }, undef, {columns => ['n']});
+    });
+    my $end = gather { (sub ($value) { $value }, undef, sub ($how) { }) };
+    my @seen;
+    my $inner
+        = $class->new(sub { push @seen, Ekorn::Pipeline::run_context(); () }, $end);
+    $class->new(sub { $inner->($_); $_ })->iterator($source)->all;
+    is \@seen, [undef], 'a pushed run with an end, called from a stage';
+};
+
+subtest 'a feed of plain stages takes the steps new made' => sub {
+    my $made = 0;
+    no warnings 'redefine';
+    my $make_run = \&Ekorn::Pipeline::_make_run;
+    local *Ekorn::Pipeline::_make_run
+        = sub (@args) { $made++; return $make_run->(@args) };
+    my $feed = $class->new(sub { $_ * 2 })->feed;
+    is [$feed->push(1, 2)], [2, 4], 'it runs them';
+    is $made,               0,      'without making the run';
+    $class->new(take(1))->feed;
+    is $made, 1, 'a gather is made, as before';
 };
 
 subtest 'feed takes no arguments' => sub {

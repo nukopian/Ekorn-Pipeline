@@ -3050,8 +3050,8 @@ have no flush or end, such as `take`, `drop` and `count_into`. A run
 with a flush, an end or a sink, such as `batch`, `take_last` or
 `keep_all`, takes the full path, which costs about twice as much per
 value, and some 20 microseconds to set up each run. A `tee` costs more
-again, about 1.7 microseconds a value, as each value is pushed into
-its branch's run too.
+again, about 1.3 microseconds a value through a branch of plain
+stages, as each value is pushed into its branch's run too.
 
 That sounds a lot, and for a tight loop over numbers in memory, it is:
 use `map` and `grep` there. But each value costs well under a

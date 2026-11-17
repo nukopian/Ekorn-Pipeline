@@ -8,7 +8,8 @@ use Test2::Plugin::NoWarnings;
 
 use Ekorn::Pipeline;
 use Ekorn::Pipeline::Gather;
-use Ekorn::Pipeline::Sinks qw(count_items keep_all to_fh);
+use Ekorn::Pipeline::Source qw();
+use Ekorn::Pipeline::Sinks  qw(count_items keep_all to_fh);
 use Ekorn::Pipeline::Stages::Batch;
 use Ekorn::Pipeline::Stages::Flow qw(take take_if);
 use Ekorn::Pipeline::Stages::Taps qw(tee  peek);
@@ -182,6 +183,34 @@ subtest 'a sink last writes where it writes' => sub {
     close $fh;
     is \@results, [qw(A B)],    'the main run goes on';
     is $written,  "<a>\n<b>\n", 'and the branch writes';
+};
+
+subtest "the branch sees the main run's context" => sub {
+    my $source = Ekorn::Pipeline::Source->new(sub {
+        my @left = (1, 2);
+        return (sub { @left ? shift @left : () }, undef, {columns => ['n']});
+    });
+    for my $case (['plain', []], ['full', [batch(1)]]) {
+        my($loop, $more) = @$case;
+        my @seen;
+        $class->new(
+            tee(@$more, sub { push @seen, Ekorn::Pipeline::run_context(); () }))
+            ->iterator($source)
+            ->all;
+        is \@seen, [({columns => ['n']}) x 2], "a $loop branch";
+    }
+};
+
+subtest 'the main run takes the plain loop where the branch allows' => sub {
+    my $full = 0;
+    no warnings 'redefine';
+    my $full_iterator = \&Ekorn::Pipeline::_full_iterator;
+    local *Ekorn::Pipeline::_full_iterator
+        = sub (@args) { $full++; return $full_iterator->(@args) };
+    $class->new(tee(sub { () }))->(1, 2);
+    is $full, 0, 'a plain branch: neither run takes the full loop';
+    $class->new(tee(batch(2), sub { () }))->(1, 2);
+    is $full, 2, 'a branch with a flush: both do, as the tee has a flush';
 };
 
 subtest 'mistakes croak at the caller' => sub {

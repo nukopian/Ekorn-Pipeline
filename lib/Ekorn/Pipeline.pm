@@ -142,11 +142,14 @@ sub new ($class, @given) {
         stages => \@stages,
         names  => \@names,
         within => \@within,
+        # For feed, which takes the plain steps as they are.
+        steps  => \@steps,
+        labels => $labels,
         call   => sub (@values) {
             return @values unless @stages;
             my @results
                 = @steps
-                ? _push_steps($self, \@steps, $labels, undef, @values)
+                ? _push_steps($self, \@steps, $labels, undef, \@values)
                 : _pushed($self, \@stages, \@names, \@within, \@values);
             return @results    if wantarray;
             return $results[0] if $sink && $sink eq 'one';
@@ -279,38 +282,53 @@ sub iterator ($self, $source) {
 # ending the run; any other takes the full loop, as an iterator whose
 # source has nothing until a push, and is done once the feed is closed.
 sub feed ($self) {
-    my %run = (
-        stages => [], names => [], within => [], flushes => [], ends => [],
-        sinks  => [],
-    );
-    try {
-        _make_run(@$self{qw(stages names within)}, \%run);
-    }
-    catch ($e) {
-        _set_up_died($self, \%run, undef, $e);
-    }
-    unless (grep { defined } @{ $run{flushes} }, @{ $run{ends} }) {
-        my $ended;
-        my($steps, $labels) = ($run{stages}, [@run{qw(names within)}]);
-        return Ekorn::Pipeline::Feed->new(
-            push => sub (@values) {
-                return _push_steps($self, $steps, $labels, \$ended, @values);
-            },
-            close  => sub () { $ended = 'done';    return },
-            finish => sub () { $ended = 'stopped'; return },
-            ended  => sub () { return $ended },
+    my($steps, $labels) = @$self{qw(steps labels)};
+    # Stages that aren't all plain steps are made for the run.
+    unless (@$steps) {
+        my %run = (
+            stages => [], names => [], within => [], flushes => [], ends => [],
+            sinks  => [],
         );
+        try {
+            _make_run(@$self{qw(stages names within)}, \%run);
+        }
+        catch ($e) {
+            _set_up_died($self, \%run, undef, $e);
+        }
+        return _full_feed($self, \%run)
+            if grep { defined } @{ $run{flushes} }, @{ $run{ends} };
+        ($steps, $labels) = ($run{stages}, [@run{qw(names within)}]);
     }
+    my $ended;
+    return Ekorn::Pipeline::Feed->new(
+        # Without a signature, as a feed may be pushed a value at a time:
+        # its values go on as they are, not copied.
+        push   => sub { _push_steps($self, $steps, $labels, \$ended, \@_) },
+        close  => sub () { $ended = 'done';    return },
+        finish => sub () { $ended = 'stopped'; return },
+        ended  => sub () { return $ended },
+        # Nothing to flush or end, for a stage driving the feed.
+        plain => 1,
+    );
+}
+
+
+# Return a feed of a run made into %$run with a flush, an end or a sink:
+# an iterator of it, whose source has nothing until a push, and is done
+# once the feed is closed; its stages see the context of the code
+# pushing.
+sub _full_feed ($pipeline, $run) {
     my(@pushed, $closed);
-    $run{hungry} = sub () { !$closed };
+    $run->{hungry} = sub () { !$closed };
     my $iterator
-        = _full_iterator($self, \%run, sub { splice @pushed }, undef, undef);
+        = _full_iterator($pipeline, $run, sub { splice @pushed }, undef, undef);
     # The iterator's own code for all, called directly, as a feed may be
     # pushed a value at a time; the iterator is kept by the closures here.
     my $all = $iterator->{all};
     return Ekorn::Pipeline::Feed->new(
-        push => sub (@values) {
-            push @pushed, @values;
+        # Without a signature, as a feed may be pushed a value at a time.
+        push => sub {
+            push @pushed, @_;
             return $all->();
         },
         close => sub () {
@@ -319,6 +337,8 @@ sub feed ($self) {
         },
         finish => sub () { $iterator->finish; return },
         ended  => sub () { return $iterator->ended },
+        # Whether there are ends to call, for a stage driving the feed.
+        ends => scalar grep { defined } @{ $run->{ends} },
     );
 }
 
@@ -399,11 +419,12 @@ sub _label ($pipeline, $name, $within) {
 # going on in order, a stop's values going on from the step after it,
 # with nothing else, and a step that dies named as a run names it, by
 # $labels, the steps' names and the pipelines each came from, as a
-# pair. For a feed, $ended, if given, is set to how the run ended, at a
-# stop or a death.
-sub _push_steps ($pipeline, $steps, $labels, $ended, @values) {
+# pair. The values are given as a reference to an array, not copied.
+# For a feed, $ended, if given, is set to how the run ended, at a stop
+# or a death, and the steps see the context of the code pushing.
+sub _push_steps ($pipeline, $steps, $labels, $ended, $values) {
     # A pushed run has no context, and gives no values from a flush.
-    local $running{context} = undef;
+    local $running{context} = undef unless $ended;
     local $running{ending}  = undef;
     my(@results, @todo, $n);
     my($at, $more) = (0, 1);
@@ -414,9 +435,9 @@ sub _push_steps ($pipeline, $steps, $labels, $ended, @values) {
         VALUE:
             while (1) {
                 my $value;
-                if    (@todo)         { ($n, $value) = @{ pop @todo } }
-                elsif ($at < @values) { ($n, $value) = (0, $values[$at++]) }
-                else                  { $more = 0; last VALUE }
+                if    (@todo)          { ($n, $value) = @{ pop @todo } }
+                elsif ($at < @$values) { ($n, $value) = (0, $values->[$at++]) }
+                else                   { $more = 0; last VALUE }
                 while ($n < @$steps) {
                     local $_ = $value;
                     my @values = $steps->[$n]->($value);
@@ -431,7 +452,7 @@ sub _push_steps ($pipeline, $steps, $labels, $ended, @values) {
         catch ($e) {
             if ($e isa 'Ekorn::Pipeline::Stop') {
                 my(undef, @carried) = is_arrayref($e) ? @$e : ();
-                ($at, @todo) = (scalar @values);
+                ($at, @todo) = (scalar @$values);
                 push @todo, map { [$n + 1, $_] } reverse @carried;
                 $$ended = 'stopped' if $ended;
                 next;
@@ -606,7 +627,7 @@ sub _pushed ($pipeline, $stages, $names, $within, $values) {
     }
     return _push_steps(
         $pipeline, $run{stages}, [@run{qw(names within)}], undef,
-        @$values,
+        $values,
     ) unless grep { defined } @{ $run{flushes} }, @{ $run{ends} };
     return _full_iterator($pipeline, \%run, sub { splice @$values }, undef, undef)
         ->all;
@@ -644,7 +665,8 @@ sub _set_up_died ($pipeline, $run, $source_end, $error) {
 #
 # A feed's run has a hungry, true while more values may be pushed: a
 # source with nothing now isn't done, and the iterator hands out
-# nothing more until the next push.
+# nothing more until the next push. It has no context of its own: its
+# stages and ends see the context of the code pushing.
 sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     my $hungry  = $run->{hungry};
     my @stages  = @{ $run->{stages} };
@@ -703,7 +725,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                 $input_done[$_] ? 'done' : 'stopped',
             ] }
             grep { $ends[$_] } 0 .. $#ends;
-        local $running{context} = $context;
+        local $running{context} = $context unless $hungry;
         try {
             _end_all(\@calls, $died);
         }
@@ -822,8 +844,10 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
             # and most runs, and the code running them, have no context.
             local $running{ending} = $from_flush
                 if $from_flush || $running{ending};
+            # A feed's run takes the context of the code pushing, so it's
+            # asked last, as most runs have none to set.
             local $running{context} = $context
-                if defined $context || defined $running{context};
+                if defined $context || (defined $running{context} && !$hungry);
             my $kept = 1;
             try {
                 if ($flush) {
@@ -1691,7 +1715,8 @@ the third part its C<EKORN_SOURCE> method returned as a list, such as
 a statement's column names. It's for stages that need to know about
 the values' source, called as they run. Each run has its own. A pushed
 run has none, and an iterator used as a source passes on its own
-run's. It isn't exported.
+run's. A feed has none of its own: its stages see the context of the
+code pushing into it. It isn't exported.
 
     sub pluck ($name) {
         return sub ($row) {
