@@ -12,6 +12,7 @@ use Ref::Util qw(is_arrayref is_coderef is_plain_hashref is_ref);
 use parent 'Ekorn::Pipeline::Element';
 
 use Ekorn::Pipeline::Errors   qw(croakf);
+use Ekorn::Pipeline::Feed     qw();
 use Ekorn::Pipeline::Iterator qw();
 use Ekorn::Pipeline::Stage    qw();
 
@@ -132,6 +133,8 @@ sub new ($class, @given) {
         = (grep { ref ne 'Ekorn::Pipeline::Stage' } @stages)
         ? ()
         : map { $_->{call} } @stages;
+    # What names a step in a message, as _push_steps takes it.
+    my $labels = [\@names, \@within];
     # The pipeline, for its name in messages, held weakly, so the closure
     # it's called as never keeps it.
     my $self;
@@ -143,7 +146,7 @@ sub new ($class, @given) {
             return @values unless @stages;
             my @results
                 = @steps
-                ? _push_steps($self, \@steps, \@names, \@within, @values)
+                ? _push_steps($self, \@steps, $labels, undef, @values)
                 : _pushed($self, \@stages, \@names, \@within, \@values);
             return @results    if wantarray;
             return $results[0] if $sink && $sink eq 'one';
@@ -269,6 +272,57 @@ sub iterator ($self, $source) {
 }
 
 
+# Return a feed: one run of the stages, made now, which takes values as
+# they're pushed, giving what comes out of each push, and ends when it's
+# closed, giving what the flushes give. A run with no flush, no end and
+# no sink takes the plain loop, each push a pushed run's, its stop
+# ending the run; any other takes the full loop, as an iterator whose
+# source has nothing until a push, and is done once the feed is closed.
+sub feed ($self) {
+    my %run = (
+        stages => [], names => [], within => [], flushes => [], ends => [],
+        sinks  => [],
+    );
+    try {
+        _make_run(@$self{qw(stages names within)}, \%run);
+    }
+    catch ($e) {
+        _set_up_died($self, \%run, undef, $e);
+    }
+    unless (grep { defined } @{ $run{flushes} }, @{ $run{ends} }) {
+        my $ended;
+        my($steps, $labels) = ($run{stages}, [@run{qw(names within)}]);
+        return Ekorn::Pipeline::Feed->new(
+            push => sub (@values) {
+                return _push_steps($self, $steps, $labels, \$ended, @values);
+            },
+            close  => sub () { $ended = 'done';    return },
+            finish => sub () { $ended = 'stopped'; return },
+            ended  => sub () { return $ended },
+        );
+    }
+    my(@pushed, $closed);
+    $run{hungry} = sub () { !$closed };
+    my $iterator
+        = _full_iterator($self, \%run, sub { splice @pushed }, undef, undef);
+    # The iterator's own code for all, called directly, as a feed may be
+    # pushed a value at a time; the iterator is kept by the closures here.
+    my $all = $iterator->{all};
+    return Ekorn::Pipeline::Feed->new(
+        push => sub (@values) {
+            push @pushed, @values;
+            return $all->();
+        },
+        close => sub () {
+            $closed = 1;
+            return $iterator->all;
+        },
+        finish => sub () { $iterator->finish; return },
+        ended  => sub () { return $iterator->ended },
+    );
+}
+
+
 # Return the stages, in order, as a list, to splice into another
 # pipeline or give to any function taking stages.
 sub stages ($self) {
@@ -340,11 +394,14 @@ sub _label ($pipeline, $name, $within) {
 
 
 # Return the results of pushing @values through @$steps, each a plain
-# step, as a run of them would give them, without a run's machinery: each
-# value through every step before the next, what a step returns going on
-# in order, a stop's values going on from the step after it, with
-# nothing else, and a step that dies named as a run names it.
-sub _push_steps ($pipeline, $steps, $names, $within, @values) {
+# step, as a run of them would give them, without a run's machinery:
+# each value through every step before the next, what a step returns
+# going on in order, a stop's values going on from the step after it,
+# with nothing else, and a step that dies named as a run names it, by
+# $labels, the steps' names and the pipelines each came from, as a
+# pair. For a feed, $ended, if given, is set to how the run ended, at a
+# stop or a death.
+sub _push_steps ($pipeline, $steps, $labels, $ended, @values) {
     # A pushed run has no context, and gives no values from a flush.
     local $running{context} = undef;
     local $running{ending}  = undef;
@@ -376,12 +433,15 @@ sub _push_steps ($pipeline, $steps, $names, $within, @values) {
                 my(undef, @carried) = is_arrayref($e) ? @$e : ();
                 ($at, @todo) = (scalar @values);
                 push @todo, map { [$n + 1, $_] } reverse @carried;
+                $$ended = 'stopped' if $ended;
                 next;
             }
-            croak $e if is_ref($e);
+            $$ended = 'died' if $ended;
+            croak $e         if is_ref($e);
             my $where   = Carp::shortmess() =~ s( \.? \n \z )()xr;
             my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
-            my $stage   = _label($pipeline, $names->[$n], $within->[$n]);
+            my($names, $within) = @$labels;
+            my $stage = _label($pipeline, $names->[$n], $within->[$n]);
             die "Pipeline $stage failed$where:\n$message\n";
         }
     }
@@ -544,8 +604,10 @@ sub _pushed ($pipeline, $stages, $names, $within, $values) {
     catch ($e) {
         _set_up_died($pipeline, \%run, undef, $e);
     }
-    return _push_steps($pipeline, @run{qw(stages names within)}, @$values)
-        unless grep { defined } @{ $run{flushes} }, @{ $run{ends} };
+    return _push_steps(
+        $pipeline, $run{stages}, [@run{qw(names within)}], undef,
+        @$values,
+    ) unless grep { defined } @{ $run{flushes} }, @{ $run{ends} };
     return _full_iterator($pipeline, \%run, sub { splice @$values }, undef, undef)
         ->all;
 }
@@ -579,7 +641,12 @@ sub _set_up_died ($pipeline, $run, $source_end, $error) {
 # ended from outside, or dies. Then each end is called, the source's
 # first, told how the run ended from where it stands: "died" if the run
 # died; else "done" if its input ran out, and "stopped" if not.
+#
+# A feed's run has a hungry, true while more values may be pushed: a
+# source with nothing now isn't done, and the iterator hands out
+# nothing more until the next push.
 sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
+    my $hungry  = $run->{hungry};
     my @stages  = @{ $run->{stages} };
     my @flushes = @{ $run->{flushes} };
     my @ends    = @{ $run->{ends} };
@@ -727,6 +794,8 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
                 }
                 unless (@from_source) {
+                    # Nothing yet: the feed's next push carries on.
+                    return if $hungry && $hungry->();
                     ($done, $source_done) = (1, 1);
                     next;
                 }
@@ -1108,7 +1177,8 @@ through the rest of the stages. Nothing else is processed:
     sub ($row) { $row->{id} == $wanted ? Stop($row) : () }
 
 Each call of a pipeline with values is a run, and so is each
-iterator. A stage made with L<Ekorn::Pipeline::Gather> is made afresh
+iterator, and each feed, which is given its values as they arrive
+(see L</feed>). A stage made with L<Ekorn::Pipeline::Gather> is made afresh
 for each run, and so are a source and a sink, so a run can open a file,
 or start a transaction, and close or commit it when it ends, however
 it ends: see L</RUNS AND HOW THEY END>.
@@ -1368,6 +1438,25 @@ Nothing waiting goes on through the stages, no flush is called, and
 the source isn't called again; each end is called, told C<died>, before
 the error is thrown again. To skip a bad value and carry on, catch the
 error inside the stage.
+
+=head2 feed
+
+    my $feed = $p->feed;
+    my @results = $feed->push(@values);    # as often as values arrive
+    my @rest    = $feed->close;            # the flushes', and a sink's
+
+Returns a feed, an L<Ekorn::Pipeline::Feed>: one run of the stages,
+which you give values as they arrive, with C<push>, getting back what
+came out of them, and end with C<close>, getting what the flushes
+give. The run is made when C<feed> is called, so a C<gather>'s block
+is called then, and an error in it is thrown then. Fed the same
+values, a feed gives what a pushed run gives, a push at a time.
+
+Use it where the values don't come from you, a value at a time: from a
+library's callbacks, an event loop, or a stage running its values
+through another pipeline. Its C<ended> says when a stage has stopped
+the run, so the caller can stop feeding; a push after that croaks.
+L<Ekorn::Pipeline::Feed> has the rest.
 
 =head2 stages
 
@@ -1731,7 +1820,8 @@ L<Ekorn::Pipeline::Tooling>, to import everything from one place;
 L<Ekorn::Pipeline::Factories>, the words; L<Ekorn::Pipeline::Sugar>,
 pipelines named as the program compiles; L<Ekorn::Pipeline::Gather>,
 L<Ekorn::Pipeline::Stop>, L<Ekorn::Pipeline::Source>,
-L<Ekorn::Pipeline::Sink> and L<Ekorn::Pipeline::Iterator>, the types;
+L<Ekorn::Pipeline::Sink>, L<Ekorn::Pipeline::Iterator> and
+L<Ekorn::Pipeline::Feed>, the types;
 L<Ekorn::Pipeline::Stages::Flow>, L<Ekorn::Pipeline::Stages::Batch>,
 L<Ekorn::Pipeline::Stages::Taps>, L<Ekorn::Pipeline::Sources>,
 L<Ekorn::Pipeline::Sinks> and L<Ekorn::Pipeline::JSON>, the

@@ -2,6 +2,31 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A pipeline can be fed its values as they arrive, from a library
+    that calls you back, an event loop, or a stage running its values
+    through a pipeline of its own.
+
+    It ships roadmap 2026-0044. It only adds: pushed and pulled runs,
+    the messages, and the order things run in are as they were, and
+    no slower.
+
+    - $pipeline->feed returns an Ekorn::Pipeline::Feed, one run, made
+      then: push runs values through the stages, and returns what came
+      out of them; close ends the input, and returns what the flushes
+      give, and a sink's result; finish ends the run as from outside;
+      ended says how it ended. Fed the same values, a feed gives what
+      a call gives, a push at a time. A stop ends the run in the push
+      that meets it, and once the run has ended, a push or a close
+      croaks, "Expected a feed still open, but its run has ended", so
+      values can't go nowhere unnoticed; a push, close or finish from
+      inside the feed's own run croaks too. A push costs about 1.4 µs
+      a value through a bare stage, and 2 µs through a gather with a
+      flush, on Perl 5.36 and 5.44. The user guide shows a library's
+      callbacks feeding a function's caller's stages, a tee running
+      values through a branch of stages beside the main run, and a
+      stage running each key's values through a run of their own.
+      (roadmap 2026-0044)
+
 v0.3.5 2026-11-16
 
     Pushing values through take, drop and the other stages made with

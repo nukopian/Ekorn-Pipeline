@@ -352,6 +352,43 @@ the queue; `@queue ? shift @queue : ()` doesn't. Read a filehandle in
 scalar context, `sub { scalar(<$fh>) // () }`, so that each call reads
 one line.
 
+### feed
+
+```perl
+my $feed    = $p->feed;
+my @results = $feed->push(@values);    # as often as values arrive
+my @rest    = $feed->close;            # what the flushes give, and a sink's result
+```
+
+Returns a feed, an Ekorn::Pipeline::Feed: one run of the stages,
+which you give values as they arrive, rather than all at once, as a
+call does, or when a result is wanted, as an iterator asks its source.
+Each `push` runs its values through the stages, and returns what came
+out of them, there and then; `close` ends the input, calls the
+flushes, returns what they give, and calls the ends. Between the two,
+the run's `gather` stages keep their state, so `take(5)` takes five
+values from all that are pushed, and `batch(3)` fills its batches
+across pushes:
+
+```perl
+my $feed = Ekorn::Pipeline->new(sub { $_ * 10 }, batch(3))->feed;
+my @first  = $feed->push(1, 2);
+my @second = $feed->push(3, 4);
+my @rest   = $feed->close;
+say scalar @first, ' / ', join(' ', map {"[@$_]"} @second, @rest);    # 0 / [10 20 30] [40]
+```
+
+Fed the same values, a feed gives what a call gives, in the same
+order, a push at a time. The run is made when `feed` is called, so a
+`gather`'s block is called then, and an error in it is thrown then.
+`feed` takes no arguments.
+
+Use a feed where the values don't come from you, a value at a time: a
+library calling back for each row, record or file it finds, an event
+loop, or a stage that runs its values through another pipeline, such
+as a tee. [Feeds](#feeds-ekornpipelinefeed) has its methods, and how
+its run ends.
+
 ### stages
 
 ```perl
@@ -889,10 +926,11 @@ test returns, not the value. To drop a value, return an empty list:
 ### Runs
 
 Each call of a pipeline with values is a run, and so is each iterator
-made from it. At the start of each run, the set-up of every gather,
+or feed made from it. At the start of each run, the set-up of every gather,
 source and sink is called, so what they keep starts afresh (see [Made
 for a run](#made-for-a-run)). An iterator's run starts when the
-iterator is made, not when it's first read.
+iterator is made, not when it's first read, and a feed's when it's
+made, not at its first push.
 
 A stage not made with `gather` is the same code reference on every
 run. Whatever it keeps in a closure stays there from one run to the
@@ -928,7 +966,11 @@ stages start afresh on each value the outer stage is given, and its
 flushes and ends are called at the end of each call. A stop in it ends
 only that call, not the outer pipeline. To run its stages in the outer
 pipeline's run instead, give the pipeline itself as a stage (see
-[A pipeline as a stage](#a-pipeline-as-a-stage)).
+[A pipeline as a stage](#a-pipeline-as-a-stage)). To run them beside
+the outer run, as one run of their own over every value the stage is
+given, have a `gather` make a feed of the pipeline for each run, push
+each value into it, close it in the flush and finish it in the end
+(see [Feeds](#feeds-ekornpipelinefeed)).
 
 ## Runs and how they end
 
@@ -1210,6 +1252,68 @@ run's context. It's one run, so it can be a source only once, before
 it has handed out everything it will; after, it croaks "Expected a
 source with values still to give: an iterator is one run, and this one
 is spent".
+
+### Feeds: Ekorn::Pipeline::Feed
+
+A feed, made by [feed](#feed), is one run, which you give values as
+they arrive. It has four methods:
+
+```perl
+my @results = $feed->push(@values);    # what came out of them
+my $results = $feed->push(@values);    # the same, as an array reference
+my @rest    = $feed->close;            # no more values: the flushes', and a sink's result
+$feed->finish;                         # end the run now
+my $how     = $feed->ended;            # done, stopped or died, once the run has ended
+```
+
+- **`push`** runs its values through the stages, each through every
+  stage before the next, and returns what came out of them: a list,
+  or, in scalar context, an array reference. A value held back, as
+  `batch` holds values, comes out of a later push, or of `close`. A
+  sink's result isn't among them: `close` gives it.
+- **`close`** ends the input, as a source running out does: it calls
+  the flushes, in order, and returns what they give, through the
+  stages after them, and a sink's result, as a list, or, in scalar
+  context, an array reference; then it calls the ends, each told
+  `done`, or `stopped` if a flush's stop cut its input short.
+- **`finish`** ends the run now, as from outside, if it hasn't ended:
+  nothing waiting goes on, no flush is called, and each end is told
+  `stopped`, if its input hadn't run out. A feed let go before it's
+  closed is finished as the last reference to it goes, as an iterator
+  let go is.
+- **`ended`** gives nothing while the run is open; then `done` once
+  it's closed, `stopped` once a stop or `finish` has ended it, and
+  `died` if anything in it died.
+
+A stop, from a stage, a flush or a sink, such as `take`'s, ends the run
+in the push that meets it, as it ends any run: the values it carries
+go on, the flushes of the stages after it are called, then every end,
+and that push returns all of it. The values after the one that met the
+stop are dropped. A stage that dies kills the run, and the push dies
+with it, named as a run names it.
+
+Once the run has ended, however it ended, `push` and `close` croak
+"Expected a feed still open, but its run has ended", with the reason,
+so values can't go nowhere unnoticed. A caller feeding values as they
+arrive asks `ended` after each push, and stops once it's defined, and
+so can tell whoever is sending the values to stop too:
+
+```perl
+my $feed = Ekorn::Pipeline->new(sub { $_ * 2 }, take(2))->feed;
+my @out;
+for my $value (1 .. 5) {
+    push @out, $feed->push($value);
+    last if defined $feed->ended;
+}
+say "@out, ", $feed->ended;    # 2 4, stopped
+```
+
+A feed has no context: `run_context` is undefined in its stages, as in
+a pushed run's. A `push`, `close` or `finish` from inside the feed's
+own run, such as from one of its stages, croaks: a stage can push into
+another pipeline's feed, but not its own. Each feed is a run of its
+own, so a stage can keep feeds of several pipelines, or several feeds
+of one, as the user guide's tee and its run for each key do.
 
 ### Stages and elements
 
@@ -2949,6 +3053,17 @@ pipeline named %s is already defined".
   run, and this one is spent:** an iterator was given as a source after
   it had handed out everything it will, been finished, or died.
 
+### Ekorn::Pipeline::Feed
+
+- **Expected a feed still open, but its run has ended: %s:** a `push`
+  or `close` came after the feed's run had ended, for the reason
+  given: it was closed; it was finished; a stage stopped it; or it
+  died. Ask `ended` after each push, and stop pushing once it's
+  defined.
+- **Expected no %s of a feed from inside its own run:** a `push`,
+  `close` or `finish` was called from one of the feed's own stages,
+  flushes or ends. It's reported as that stage's error.
+
 ### Ekorn::Pipeline::Stop
 
 - **Stop used outside a pipeline:** a stop was thrown with no pipeline
@@ -3012,7 +3127,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 
 | Module | What it is |
 |---|---|
-| `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline_in`, `named`, `iterator`, `stages`, `is_stage`, `is_sink`, `ending` and `run_context`. |
+| `Ekorn::Pipeline` | Runs values through a list of stages: `new`, `pipeline_in`, `named`, `iterator`, `feed`, `stages`, `is_stage`, `is_sink`, `ending` and `run_context`. |
 | `Ekorn::Pipeline::Tooling` | Exports what callers use to do work, from one place, by tags: see [Importing](#importing-ekornpipelinetooling). |
 | `Ekorn::Pipeline::Operators` | `\|`, `\|=` and `@{}` for Ekorn's types, in force lexically: `chain` and `drain`. |
 | `Ekorn::Pipeline::Sinks` | Ready-made sinks: `keep_all`, `keep`, `keep_first`, `keep_single`, `keep_last`, `count_items`, `to_fh`, `to_file`. |
@@ -3025,6 +3140,7 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Source` | A source made afresh for each run, told how it ended: `new`. |
 | `Ekorn::Pipeline::Sink` | A sink made afresh for each run, giving one value or a list: `new_sink_one` and `new_sink_many`. |
 | `Ekorn::Pipeline::Iterator` | One run, handing out its values: `all`, `first`, `single`, `finish` and `ended`. |
+| `Ekorn::Pipeline::Feed` | One run, fed values as they arrive: `push`, `close`, `finish` and `ended`. |
 | `Ekorn::Pipeline::Stage` | A code reference kept as a stage: `new` and `code`. |
 | `Ekorn::Pipeline::Element` | What each of Ekorn's types is: `call`. |
 | `Ekorn::Pipeline::Pipes` | A parent class giving `pipe` and `tap` methods. |

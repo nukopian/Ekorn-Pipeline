@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0044. A run fed a value at a time
-
-**Size:** M (3).
-
-A run the caller opens with `$pipeline->feed`, pushes values into one
-or a few at a time, getting back what comes out of each, and closes,
-getting what the flushes give; it says when a stage has stopped it,
-and croaks at a push once it has ended. So a library's callbacks, or
-a stage's branch of its own, as `tee` (2026-0048) needs, can feed a
-pipeline. Its decisions are settled, and its plan written:
-[record](docs/changes/2026-0044-fed-runs.md).
+Nothing yet.
 
 ## Next
 

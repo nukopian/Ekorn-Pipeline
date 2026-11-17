@@ -60,7 +60,7 @@ follows them from the bottom up:
 | Layer | What it gives you | Chapter |
 |---|---|---|
 | Stages | an ordinary sub that sees one value and returns what should go on | 1 |
-| Pipelines | stages in order, which you call with values, or pull results from one at a time | 2 |
+| Pipelines | stages in order, which you call with values, pull results from one at a time, or feed values as they arrive | 2 |
 | Stopping | a way for any stage to say "enough", ending the work before it | 3 |
 | Parts made for each run | stages with their own state, told when the values run out and when the run ends | 4 |
 | Sources | where values come from, such as a file, closed however the run ends | 5 |
@@ -584,7 +584,56 @@ my $two      = $numbered->iterator(sub { @right ? shift @right : () });
 say join ' ', $one->(), $two->(), $one->(), $two->();    # <a> <x> <b> <y>
 ```
 
-### Push or pull?
+### Feed values in as they arrive
+
+Sometimes the values don't come from you when you want them: a
+library calls you back with each one, or an event loop hands you each
+message. Then make a *feed*, one run you give values to as they come,
+with `push`, which returns what came out of them, there and then.
+`close` says there are no more, and returns what the flushes give.
+Between the two, the run keeps going, so `batch` fills its batches
+across pushes:
+
+```perl
+my $feed = Ekorn::Pipeline->new(sub { $_->{artist} }, batch(2))->feed;
+for my $track (@tracks[0 .. 4]) {
+    say "batch: @$_" for $feed->push($track);
+}
+# batch: Abba Abba
+# batch: Blur Blur
+say "last: @$_" for $feed->close;    # last: Blur
+say $feed->ended;                    # done
+```
+
+Fed the same values, a feed gives what calling the pipeline with them
+gives, in the same order, only a push at a time.
+
+### Stop feeding when a stage says so
+
+A stage can still stop a fed run, as `take` does. The push that meets
+the stop returns what came out, and the run has ended: `ended` says
+so. Ask it after each push, and stop feeding once it's defined, as a
+push after that croaks, so values can't go nowhere unnoticed:
+
+```perl
+my $feed = Ekorn::Pipeline->new(take_if { $_->{plays} > 6000 }, take(2))->feed;
+for my $track (@tracks) {
+    say $_->{title} for $feed->push($track);
+    last if defined $feed->ended;
+}
+# Dancing Queen
+# Girls & Boys
+say $feed->ended;    # stopped
+
+eval { $feed->push($tracks[5]) };
+say $@ =~ s( \ at \ .* )( at your line)xsr;    # Expected a feed still open, but its run has ended: a stage stopped it at your line
+```
+
+Whoever sends the values can be told to stop too, as the next chapters
+show: a library that calls you back, in chapter 9, and a stage feeding
+a pipeline of its own, in chapter 10.
+
+### Push, pull or feed?
 
 - **Push** when you already have the values in a list, and want the
   results as a list. It's the simplest, and the most common.
@@ -593,6 +642,10 @@ say join ' ', $one->(), $two->(), $one->(), $two->();    # <a> <x> <b> <y>
   saves the work of making the rest; or when there are too many to
   hold at once; or when the caller wants to handle each result as it
   comes.
+- **Feed** when the values arrive one at a time from something you
+  don't drive, such as a library's callbacks or an event loop, so you
+  can't pull them: you push each as it comes, and stop when a stage
+  says so.
 
 A function can offer either, from the same stages: chapter 9 shows
 how.
@@ -2030,6 +2083,55 @@ The caller got one error, the function read two lines, and the file
 was closed as `take(1)` stopped the run. The function didn't need to
 know any of that was going to happen.
 
+### Take stages for a library that calls you back
+
+Some libraries don't hand out their values: they call you back with
+each, a line, a row, a record or a file, until you tell them to stop.
+You can't pull from them, but a feed can still run each value through
+your caller's stages as it comes, and the library can still stop when
+a stage has had enough. Here `each_line` stands for such a library:
+
+```perl
+# A library's reader: calls back with each line, until the callback
+# returns false; returns how many lines it read.
+sub each_line ($path, $callback) {
+    open my $in, '<', $path or die "Can't read $path: $!\n";
+    my $read = 0;
+    while (defined(my $line = <$in>)) {
+        chomp $line;
+        $read++;
+        $callback->($line) or last;
+    }
+    close $in;
+    return $read;
+}
+
+# The setlist's titles, read by the library, through the caller's stages.
+sub setlist_titles (@stages) {
+    my $feed = Ekorn::Pipeline->new(@stages)->feed;
+    my @titles;
+    my $read = each_line($setlist, sub ($line) {
+        push @titles, $feed->push($line);
+        return !defined $feed->ended;    # false: the library stops reading
+    });
+    push @titles, $feed->close unless defined $feed->ended;
+    say "read $read of 6 lines";
+    return @titles;
+}
+
+say join ', ', setlist_titles(take_if { m( \A [DG] )x }, take(2));
+# read 3 of 6 lines
+# Dancing Queen, Girls & Boys
+say join ', ', setlist_titles(sub { uc }, take_last);
+# read 6 of 6 lines
+# SUNSHINE OF YOUR LOVE
+```
+
+`take(2)` stopped the run at the third line, so the library read no
+further; `take_last` waited for the close to give its value. The
+caller's stages work as they would with any function, and the library
+needn't know they're there.
+
 ### Do some of the work yourself, then the caller's
 
 Put stages of your own before your caller's, so their stages are
@@ -2250,6 +2352,120 @@ say join ', ', tracks(sub { $_->{title} }, up_to('Girls & Boys'));
 
 `up_to` compares the whole value, so it's given titles here, not
 tracks. Say in a stage's documentation what it expects to be given.
+
+### Run values through a branch, with a feed
+
+A stage made with `gather` can make a feed for each run, of a pipeline
+of its own, push its values into it, close it in its flush and finish
+it in its end. The branch is one run, beside the main one, over every
+value the stage is given: its `take` counts across them all, its
+flushes are called when the main run's values run out, and its ends
+when the main run ends. That opens a family of stages that send values
+on to other runs: one copying values off to the side, one sending
+each value to one of several branches, one running each key's values
+through a run of their own.
+
+A *tee* is the simplest. It runs each value through a branch of
+stages, for what they do on the side, throws away what comes out of
+the branch, and passes the value on unchanged, so a tap can be any
+pipeline, where `peek` does one thing:
+
+```perl
+package My::Stages::Tee {
+    use Ekorn::Pipeline::Gather;
+
+    sub tee (@stages) {
+        my $branch = Ekorn::Pipeline->new(@stages);
+        return gather {
+            my $feed = $branch->feed;    # this run's
+            return (
+                sub ($value) {
+                    $feed->push($value) unless defined $feed->ended;
+                    return $value;
+                },
+                sub () {
+                    $feed->close unless defined $feed->ended;
+                    return;
+                },
+                sub ($how) { $feed->finish },
+            );
+        };
+    }
+}
+
+use List::Util qw(sum);
+
+my $titles = Ekorn::Pipeline->new(
+    My::Stages::Tee::tee(
+        take_if { $_->{artist} eq 'Blur' }, take(1),
+        sub { say "first by Blur: $_->{title}"; return },
+    ),
+    My::Stages::Tee::tee(
+        sub { $_->{plays} }, collect,
+        sub { say 'plays: ', sum(@$_); return },
+    ),
+    sub { $_->{title} },
+);
+say join ', ', $titles->(@tracks);
+# first by Blur: Girls & Boys
+# plays: 36800
+# Dancing Queen, Knowing Me, Knowing You, Girls & Boys, Parklife, Country House, Sunshine of Your Love
+```
+
+The first branch's `take(1)` stopped its own run at the first Blur
+track, and the main run went on; the second branch's `collect` gave
+its total when the main run's values ran out. A branch that stops
+ends only itself, as the tee checks `ended` before each push; one that
+dies kills the main run, as any stage's error does. Its ends are told
+how it ended: once the main run ends, `finish` tells a branch still
+open that it stopped.
+
+### Run each key's values through a run of their own
+
+With a feed for each key, a stage can run each key's values through a
+run of their own, of one pipeline: `take(1)` then takes the first of
+each key, and `collect` gathers each key's values, with no grouping
+written by hand:
+
+```perl
+package My::Stages::PerKey {
+    use Ekorn::Pipeline::Gather;
+
+    sub per_key ($key_of, @stages) {
+        my $each = Ekorn::Pipeline->new(@stages);
+        return gather {
+            my(%feeds, @keys);    # this run's
+            return (
+                sub ($value) {
+                    my $key  = $key_of->($value);
+                    my $feed = $feeds{$key} //= do { push @keys, $key; $each->feed };
+                    return defined $feed->ended ? () : $feed->push($value);
+                },
+                sub () {
+                    return map { defined $_->ended ? () : $_->close } @feeds{@keys};
+                },
+                sub ($how) { $_->finish for values %feeds },
+            );
+        };
+    }
+}
+
+my $by_artist = sub ($track) { $track->{artist} };
+say join ', ', tracks(My::Stages::PerKey::per_key($by_artist, take(1)), sub { $_->{title} });
+# Dancing Queen, Girls & Boys, Sunshine of Your Love
+
+say for tracks(
+    My::Stages::PerKey::per_key($by_artist, sub { $_->{title} }, collect),
+    sub { join ' / ', @$_ },
+);
+# Dancing Queen / Knowing Me, Knowing You
+# Girls & Boys / Parklife / Country House
+# Sunshine of Your Love
+```
+
+Unlike the tee, it passes on what comes out of each key's run, as it
+comes, and what their flushes give, in the order the keys were first
+seen.
 
 ### Make your objects sources and sinks
 
@@ -2797,7 +3013,10 @@ values from its last call have all gone through.
 No. A pipeline runs in the calling thread, one value at a time, from
 start to end, and a stage that blocks blocks the run. That keeps it
 simple and predictable, with no locks and no surprises in the order of
-results, but it isn't a tool for concurrency.
+results, but it isn't a tool for concurrency. An event loop can still
+feed a pipeline, though: push each message as it arrives, and stop
+listening once a stage has ended the run (see [Feed values in as they
+arrive](#feed-values-in-as-they-arrive)).
 
 ### Does it need a database?
 
