@@ -51,6 +51,7 @@ says what each release changed.
 - [Diagnostics](#diagnostics)
 - [Exports](#exports)
 - [The modules](#the-modules)
+- [Index](#index)
 
 ## At a glance
 
@@ -3251,3 +3252,499 @@ empty list: `use Ekorn::Pipeline::Stop ();`.
 | `Ekorn::Pipeline::Stages::Flow` | Canned stages taking or dropping values: `take`, `drop`, `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`, `take_while`, `drop_while`. |
 | `Ekorn::Pipeline::Stages::Batch` | Canned stages gathering values: `batch`, `collect`. |
 | `Ekorn::Pipeline::Stages::Taps` | Canned stages run for their side effects: `peek`, `count_into`, `dump_to`, `tee`. |
+
+## Index
+
+Every module, A to Z, and each of its functions and methods, A to Z,
+with what it does and how it's exported. Each ends with a link to
+where it's described.
+
+### Ekorn::Pipeline
+
+Runs values through a list of stages. Its methods, and two functions
+exported on request.
+
+#### ending
+
+True while a flush runs, and while what it gave goes through the
+stages after it. Not exported: call it by its full name. See
+[ending](#ending).
+
+#### feed
+
+A feed, one run, given values as they arrive. See [feed](#feed).
+
+#### is_sink
+
+`one` or `many` if what it's given is a sink, or a pipeline ending in
+one; false otherwise. On request. See [is_sink](#is_sink).
+
+#### is_stage
+
+True if what it's given can be used as a stage. On request. See
+[is_stage](#is_stage).
+
+#### iterator
+
+An iterator, handing out the results one per call, pulling values from
+a source as they're needed. See [iterator](#iterator).
+
+#### name
+
+The name the pipeline was first given, qualified by its package, or
+`undef`. See [name](#name).
+
+#### named
+
+Names a pipeline, and returns it; called on the class, it makes the
+pipeline first. See [named](#named).
+
+#### new
+
+A pipeline of the stages given, in order, called with values to run
+them through. See [new](#new) and [Calling a
+pipeline](#calling-a-pipeline).
+
+#### pipeline_in
+
+A new pipeline of stages and names of pipelines, the names looked up
+in the package given. See [pipeline_in](#pipeline_in).
+
+#### run_context
+
+The context the run's source gave, if any. Not exported: call it by
+its full name. See [run_context](#run_context).
+
+#### stages
+
+A copy of the pipeline's stages, in order; in scalar context, how many
+there are. See [stages](#stages).
+
+### Ekorn::Pipeline::Element
+
+What each of Ekorn's types called as code is. Exports nothing.
+
+#### call
+
+Does what calling it does. See [Stages and
+elements](#stages-and-elements).
+
+### Ekorn::Pipeline::Errors
+
+Reports errors at the caller's line. Nothing by default.
+
+#### croakf
+
+Croaks with a message made by `sprintf`, at the line that called the
+function that called it. On request. See [croakf](#croakf).
+
+### Ekorn::Pipeline::Factories
+
+The words that make Ekorn's types. Nothing by default; each on
+request, and in Tooling's `:words`.
+
+#### generator
+
+A source giving what its block passes to `yield`. See [generator and
+yield](#generator-and-yield).
+
+#### pipeline
+
+A new pipeline of stages and names of pipelines, the names looked up
+in the caller's package; given one name alone, the pipeline it names.
+See [pipeline](#pipeline).
+
+#### sink_many
+
+A sink, made for each run, giving a list. See [sink_one and
+sink_many](#sink_one-and-sink_many).
+
+#### sink_one
+
+A sink, made for each run, giving one value. See [sink_one and
+sink_many](#sink_one-and-sink_many).
+
+#### source
+
+A source, made for each run by its set-up. See [source](#source).
+
+#### stage
+
+The block, kept as a stage. See [stage](#stage).
+
+#### yield
+
+In a generator's block, gives values. See [generator and
+yield](#generator-and-yield).
+
+### Ekorn::Pipeline::Feed
+
+One run, given values as they arrive; made by `feed`. Exports nothing.
+
+#### close
+
+Ends the input, and returns what the flushes give, and a sink's
+result. See [Feeds: Ekorn::Pipeline::Feed](#feeds-ekornpipelinefeed).
+
+#### ended
+
+Nothing while the run is open; then `done`, `stopped` or `died`. See
+[Feeds: Ekorn::Pipeline::Feed](#feeds-ekornpipelinefeed).
+
+#### finish
+
+Ends the run now, as from outside, calling no flush. See [Feeds:
+Ekorn::Pipeline::Feed](#feeds-ekornpipelinefeed).
+
+#### push
+
+Runs the values through the stages, and returns what came out of them.
+See [Feeds: Ekorn::Pipeline::Feed](#feeds-ekornpipelinefeed).
+
+### Ekorn::Pipeline::Gather
+
+A stage made afresh for each run, with a flush and an end. `gather` by
+default.
+
+#### EKORN_STAGE
+
+Calls the block for a new run; a run calls it. See [The
+protocols](#the-protocols).
+
+#### gather
+
+A stage made afresh for each run by its block. By default. See
+[gather](#gather).
+
+#### new
+
+Makes one, as `gather` does. See [gather](#gather).
+
+### Ekorn::Pipeline::Iterator
+
+One run, handing out its values, each `$next->()`; made by `iterator`,
+and a source too. Exports nothing.
+
+#### all
+
+Every value still to come, reading the run to its end. See [Iterators:
+Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+#### ended
+
+Nothing until the iterator has given all it will; then `done`,
+`stopped` or `died`. See [Iterators:
+Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+#### finish
+
+Ends the run now; nothing more is read. See [Iterators:
+Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+#### first
+
+The next value, or `undef`; then the run ends. See [Iterators:
+Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+#### single
+
+The next value, or `undef`, warning if there's another; then the run
+ends. See [Iterators:
+Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+### Ekorn::Pipeline::JSON
+
+Reads and writes JSON and JSON Lines. Nothing by default; each on
+request, and in Tooling's `:json`. Each takes the options `file`, `fh`
+and `json`.
+
+#### from_json
+
+Given a `file` or an `fh`, a source of one document's values; given
+neither, a stage decoding each value. See [JSON:
+Ekorn::Pipeline::JSON](#json-ekornpipelinejson).
+
+#### from_jsonl
+
+Given a `file` or an `fh`, a source of JSON Lines, a document a line;
+given neither, a stage decoding each line of each value. See [JSON:
+Ekorn::Pipeline::JSON](#json-ekornpipelinejson).
+
+#### to_json
+
+Given a `file` or an `fh`, a sink writing every value as one array,
+giving how many; given neither, a stage passing on the array's text.
+See [JSON: Ekorn::Pipeline::JSON](#json-ekornpipelinejson).
+
+#### to_jsonl
+
+Given a `file` or an `fh`, a sink writing each value as a line, giving
+how many; given neither, a stage passing on each value's line. See
+[JSON: Ekorn::Pipeline::JSON](#json-ekornpipelinejson).
+
+### Ekorn::Pipeline::Operators
+
+Loading it puts the operators in force, for the rest of the scope;
+`no` takes them out. Nothing else by default.
+
+#### chain
+
+What `|` calls, for your own class's `use overload`. By its full name.
+See [Your source, chained with `|`](#your-source-chained-with-).
+
+#### drain
+
+What `@{}` calls, for your own class's `use overload`. By its full
+name. See [Your source, chained with `|`](#your-source-chained-with-).
+
+### Ekorn::Pipeline::Pipes
+
+A parent class, giving its children two methods. Exports nothing.
+
+#### pipe
+
+Runs the object through the stages, and returns what comes out. See
+[pipe](#pipe).
+
+#### tap
+
+Runs the object through the stages for their side effects, and returns
+the object. See [tap](#tap).
+
+### Ekorn::Pipeline::Sink
+
+A sink made afresh for each run. Exports nothing.
+
+#### EKORN_SINK_MANY
+
+Calls the set-up of a sink of many for a new run; a run calls it. See
+[Sinks: Ekorn::Pipeline::Sink](#sinks-ekornpipelinesink).
+
+#### EKORN_SINK_ONE
+
+Calls the set-up of a sink of one for a new run; a run calls it. See
+[Sinks: Ekorn::Pipeline::Sink](#sinks-ekornpipelinesink).
+
+#### new_sink_many
+
+A sink of many, giving a list. See [Sinks:
+Ekorn::Pipeline::Sink](#sinks-ekornpipelinesink).
+
+#### new_sink_one
+
+A sink of one, giving one value. See [Sinks:
+Ekorn::Pipeline::Sink](#sinks-ekornpipelinesink).
+
+### Ekorn::Pipeline::Sinks
+
+Ready-made sinks. Nothing by default; each on request, and in
+Tooling's `:sinks`.
+
+#### count_items
+
+How many items there were. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### keep
+
+The first items, as many as it's given, as a list. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### keep_all
+
+Every item, as a list. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### keep_first
+
+The first item, or `undef`. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### keep_last
+
+The last item, or `undef`. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### keep_single
+
+The one item, or `undef`, warning at a second. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### to_fh
+
+Prints each item to your filehandle, and gives how many. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+#### to_file
+
+Writes each item to the file, and gives how many. See [Sinks:
+Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks).
+
+### Ekorn::Pipeline::Source
+
+A source made afresh for each run. Exports nothing.
+
+#### EKORN_SOURCE
+
+Calls the set-up for a new run; a run calls it. See [Sources:
+Ekorn::Pipeline::Source](#sources-ekornpipelinesource).
+
+#### new
+
+A source made for each run by the set-up given. See [Sources:
+Ekorn::Pipeline::Source](#sources-ekornpipelinesource).
+
+### Ekorn::Pipeline::Sources
+
+Ready-made sources. Nothing by default; each on request, and in
+Tooling's `:sources`.
+
+#### counter
+
+Numbers from a start, on by a step, without end. See [Sources:
+Ekorn::Pipeline::Sources](#sources-ekornpipelinesources).
+
+#### from_array
+
+The values given. See [Sources:
+Ekorn::Pipeline::Sources](#sources-ekornpipelinesources).
+
+#### from_fh
+
+A filehandle's records, its lines unless `$/` is changed. See
+[Sources: Ekorn::Pipeline::Sources](#sources-ekornpipelinesources).
+
+#### from_file
+
+A file's records, closing it however the run ends. See [Sources:
+Ekorn::Pipeline::Sources](#sources-ekornpipelinesources).
+
+### Ekorn::Pipeline::Stage
+
+A code reference kept as a stage. Exports nothing.
+
+#### code
+
+What the stage was made of. See [Stages and
+elements](#stages-and-elements).
+
+#### new
+
+A stage of a code reference, or an object called as one. See [Stages
+and elements](#stages-and-elements).
+
+### Ekorn::Pipeline::Stages::Batch
+
+Canned stages gathering values. Both by default, and in Tooling's
+`:batch`.
+
+#### batch
+
+Passes values on in array references of the size given, the last
+perhaps shorter. See [batch](#batch).
+
+#### collect
+
+Holds every value, and passes on an array reference of them, or what
+the block makes of them. See [collect](#collect).
+
+### Ekorn::Pipeline::Stages::Flow
+
+Canned stages taking or dropping values. `take` and `drop` by default,
+the rest on request; all in Tooling's `:flow`.
+
+#### drop
+
+Drops the first values, as many as it's given, and passes on the rest.
+By default. See [drop](#drop).
+
+#### drop_if
+
+Drops each value the block is true for. See [drop_if](#drop_if).
+
+#### drop_while
+
+Drops values while the block is true for them, then passes on the
+rest. See [drop_while](#drop_while).
+
+#### take
+
+Passes on the first values, as many as it's given, then stops. By
+default. See [take](#take).
+
+#### take_first
+
+Passes on the first value, then stops. See [take_first](#take_first).
+
+#### take_if
+
+Passes on each value the block is true for. See [take_if](#take_if).
+
+#### take_last
+
+Passes on the last value. See [take_last](#take_last).
+
+#### take_single
+
+Passes on the one value, warning and stopping at a second. See
+[take_single](#take_single).
+
+#### take_while
+
+Passes on values while the block is true for them, then stops. See
+[take_while](#take_while).
+
+### Ekorn::Pipeline::Stages::Taps
+
+Canned stages run for their side effects, passing each value on
+unchanged. `peek` and `count_into` by default, the rest on request;
+all in Tooling's `:taps`.
+
+#### count_into
+
+Counts the values into the scalar it's given a reference to. By
+default. See [count_into](#count_into).
+
+#### dump_to
+
+Writes each value to the filehandle given, or STDERR, with
+Data::Dumper. See [dump_to](#dump_to).
+
+#### peek
+
+Calls the block with each value. By default. See [peek](#peek).
+
+#### tee
+
+Runs each value through a branch of the stages given too. See
+[tee](#tee).
+
+### Ekorn::Pipeline::Stop
+
+Ends a pipeline early. `Stop` by default.
+
+#### Stop
+
+Throws a stop carrying the values given. By default. See
+[Stop](#stop).
+
+#### throw
+
+Throws a stop of the class it's called on. See [throw](#throw).
+
+### Ekorn::Pipeline::Sugar
+
+Names pipelines as the program compiles. Exports nothing; `use` gives
+the package a function of each name.
+
+#### import_into
+
+Does what `use` does, for the package given. See [Named at compile
+time:
+Ekorn::Pipeline::Sugar](#named-at-compile-time-ekornpipelinesugar).
+
+### Ekorn::Pipeline::Tooling
+
+Exports what callers use to do work, from one place. Nothing by
+default; ask for the names above, or the tags that hold them (see
+[Importing](#importing-ekornpipelinetooling)).
