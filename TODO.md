@@ -24,6 +24,12 @@ treatment, so the two read alike:
   greater detail. It doesn't repeat the synopsis or the defining
   paragraph, which are the index's. Where no section shows a name in
   use, one is written.
+- **An entry says "Exported by default." or "Exported on request.",**
+  not "By default." or "On request.", which Iain found read worse,
+  leaving the reader to work out what was by default. Added to this
+  task the same day (DBIx-Squirrel
+  ddafdd77b1e892e4838ac8e1b23085b632e70317, where its index test
+  looks for the new wording).
 
 How DBIx-Squirrel settled it, for reference, not as a rule here:
 
