@@ -1,40 +1,47 @@
 # Planned work
 
-## The reference's index: a synopsis, a paragraph or two, and a section for each name
+## The reference's index says how to use a name; the reference text shows it in context
 
 **From:** DBIx-Squirrel's session, 2026-11-18 (DBIx-Squirrel
-f4de43458bc27698f451021c20cdb56c1730fa37, its roadmap 2026-0040 and
-2026-0041, whose records, `docs/changes/2026-0040-reference-expositions.md`
-and `docs/changes/2026-0041-index-synopses.md`, have the decisions)
+9d81728743078097f3c74518c15ff40368ddf98c, its roadmap 2026-0040 to
+2026-0042, whose records, in `docs/changes/`, have the decisions).
+Revised the same day: the first version of this task, in 6437537,
+asked for a section headed by each name, which DBIx-Squirrel then
+reversed.
 **Waiting on:** nothing; DBIx-Squirrel does its own reference, and
 doesn't wait for this
 
-Iain asked, in DBIx-Squirrel's session, for each entry in the
-reference's index to have:
+Iain asked, in DBIx-Squirrel's session, for the reference's index and
+its text to divide the work, and for Ekorn's to get the same
+treatment, so the two read alike:
 
-- **a synopsis** of all its forms, as code;
-- **one or two paragraphs** saying what it does, and how it's
-  exported, as now;
-- **a "See" link** to the fuller description elsewhere in the
-  reference; and, where there isn't one, **a section to be written**
-  for it.
-
-And Ekorn's index is to get the same treatment, so the two read alike,
-as they do now (DBIx-Squirrel's index was laid out from Ekorn's).
+- **The index is for direct lookup.** Each entry has a synopsis of all
+  the name's forms, as code; a paragraph or two saying what it's for,
+  and how it's exported; and a "See" link to where the reference text
+  shows it in use.
+- **The reference text is for use in context.** The section the index
+  links to discusses the name in context, with examples, in much
+  greater detail. It doesn't repeat the synopsis or the defining
+  paragraph, which are the index's. Where no section shows a name in
+  use, one is written.
 
 How DBIx-Squirrel settled it, for reference, not as a rule here:
 
-- **A fuller description** is a section headed by the name itself, in
-  the chapter it belongs to, with a synopsis of all its forms, what it
-  does, and an example the tests run. A table that was a name's only
-  description becomes a short overview, each row linking to the name's
-  section. In DBIx-Squirrel, 39 of the index's 77 names linked to a
-  table row or a section shared with others.
-- **Two items:** the sections first, then the index's synopses and
-  descriptions.
-- **The index test** checks each entry has a code block, and that its
-  "See" link goes to a section headed by the name, not a table or a
-  shared section.
+- **Every section the index links to** dropped its synopsis and its
+  defining paragraph, the long-standing ones included, and opens on
+  when or why to use the name. A section showing forms that have no
+  index entry, such as the `use` forms or the functions the Sugar
+  makes, keeps its synopsis, as it's the only place they're shown.
+- **Names are discussed together** where they're used together: one
+  section for the iterator's methods, for the select methods, for
+  taking and dropping, and so on, with examples of each. Tables that
+  only defined each name went, as the index has the definitions.
+- **The index links** each name to the heading of the section that
+  discusses it, not necessarily one named for it.
+- **The index test** checks each entry has a synopsis, that its link
+  reaches a section of the reference, and that none of those sections
+  opens with a synopsis.
 
 **Done when:** each name in Ekorn's index has a synopsis, a paragraph
-or two, and a link to a section headed by it.
+or two, and a link to a section showing it in use that doesn't repeat
+them.
