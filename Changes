@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.9 2026-11-23
+
     v0.3.8's documentation, on CPAN, as v0.3.8 never reached it: it was
     tagged, but a word in the reference failed Minilla's POD spelling
     test as its tarball was built, so it wasn't uploaded. What v0.3.8's
