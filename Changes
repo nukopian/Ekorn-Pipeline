@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.8 2026-11-23
+
     The reference's index is for looking a name up, and the text before
     it for seeing it used. Each entry in the index has a synopsis of
     all the name's forms, what it does, whether it's exported by
@@ -9,7 +11,8 @@ Unreleased
     in use; those sections show it, with examples on one catalogue of
     tracks, rather than define it again.
 
-    It ships no roadmap item, and changes only the documentation.
+    It ships no roadmap item, and changes only the documentation: the
+    code is v0.3.7's.
 
     - Ekorn::Pipeline::Manual::Reference, and docs/REFERENCE.md: each
       index entry has a synopsis, and a link to the name in use. Names
@@ -19,6 +22,8 @@ Unreleased
       and tap in one section. The tables that only defined names, and
       the Exports and The modules sections, are gone, as the index
       holds what they did. The manuals have index entries.
+    - The README shows Ekorn-Pipeline's logo, on GitHub; POD readers
+      no longer show its badges' links as text.
 
 v0.3.7 2026-11-18
 
