@@ -2,6 +2,24 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    The reference's index is for looking a name up, and the text before
+    it for seeing it used. Each entry in the index has a synopsis of
+    all the name's forms, what it does, whether it's exported by
+    default or upon request, and a link to the section that shows it
+    in use; those sections show it, with examples on one catalogue of
+    tracks, rather than define it again.
+
+    It ships no roadmap item, and changes only the documentation.
+
+    - Ekorn::Pipeline::Manual::Reference, and docs/REFERENCE.md: each
+      index entry has a synopsis, and a link to the name in use. Names
+      used together are shown together: Flow's stages in "Taking and
+      dropping", Batch's in "Batching and collecting", peek and
+      count_into in "Taps", Stop and throw in "What a stop does", pipe
+      and tap in one section. The tables that only defined names, and
+      the Exports and The modules sections, are gone, as the index
+      holds what they did. The manuals have index entries.
+
 v0.3.7 2026-11-18
 
     The reference ends in an index: each module, A to Z, with its
