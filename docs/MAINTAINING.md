@@ -170,8 +170,10 @@ reference and the how-to with the modules (change record 2026-0005).
 After a change to either Markdown file, generate them again and commit
 them with it. `xt/manuals.t`, which CI runs, fails if they don't match
 the Markdown. The script converts only the Markdown the docs use, and
-refuses anything else, naming it. If Minilla's spelling test flags a
-word in a manual, add it to the Markdown as
+refuses anything else, naming it. `xt/spelling.t` checks the POD's
+spelling as Minilla's release test does, in CI's coverage job, and
+locally on Perl 5.36, whose library has Test::Spellunker. If it flags
+a word in a manual that's right, add it to the Markdown as
 `<!-- stopwords: word another -->`.
 
 ```sh
@@ -413,6 +415,28 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
 
    Commit it with the version (`chore: release v0.1.0`), push, and wait
    for CI.
+
+   Then build the tarball from `develop`, as step 6 will from the tag,
+   and check it passes, before anything is tagged. `minil dist` runs
+   release tests that CI doesn't, as Minilla writes them only into the
+   tarball it builds, and a tag, once pushed, can't be taken back. Twice
+   a word Minilla's POD spelling test didn't know failed only here,
+   after the tag: v0.3.8's was "setlist", and that version never
+   reached CPAN. `xt/spelling.t` now runs the same check in CI, but
+   this catches anything else of Minilla's. Set the version on the
+   first line:
+
+   ```sh
+   v=v0.1.0
+   cd ~/Git/github.com/nukopian/Ekorn-Pipeline
+   perlbrew exec --with perl-5.36.3@ekorn-pipeline minil dist --skip-prepare > "$TMPDIR/dist-$v.log" 2>&1
+   grep '^Result:' "$TMPDIR/dist-$v.log"
+   rm "Ekorn-Pipeline-$v.tar.gz"
+   ```
+
+   It must print `Result: PASS`, as in step 6. On a failure, fix it on
+   `develop`, and push; the version isn't spent, as nothing is tagged
+   or uploaded.
 
 4. **Write the tag message from the entry,** and read it. The entry,
    without its indent, is also the GitHub release's notes. The tag

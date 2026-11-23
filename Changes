@@ -2,6 +2,17 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    v0.3.8's documentation, on CPAN, as v0.3.8 never reached it: it was
+    tagged, but a word in the reference failed Minilla's POD spelling
+    test as its tarball was built, so it wasn't uploaded. What v0.3.8's
+    entry below says is new is new to CPAN here.
+
+    It ships no roadmap item, and changes only the documentation: the
+    code is v0.3.7's.
+
+    - Ekorn::Pipeline::Manual::Reference lists "setlist", a word its
+      examples use, among its stopwords.
+
 v0.3.8 2026-11-23
 
     The reference's index is for looking a name up, and the text before
