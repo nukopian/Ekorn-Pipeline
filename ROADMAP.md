@@ -116,5 +116,5 @@ Added 2026-11-24. **Size:** M (3).
 file is read or written with Text::CSV, recommended rather than
 required, opened for each run and closed at its end, and a row that
 won't parse is reported, not taken for the end of the file. It's the
-commonest source written by hand, and easy to get subtly wrong. Five of
+commonest source written by hand, and easy to get subtly wrong. Four of
 its questions are open: [record](docs/changes/2026-0049-csv.md).
