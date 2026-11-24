@@ -41,7 +41,15 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
+### 2026-0051. Ekorn::Pipeline::Context's functions in Tooling
+
+**Size:** XS (1).
+
+Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
+in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and in
+`:all`, in a v0.3.x: DBIx-Squirrel's latest release, v3.6.1, exports
+Ekorn's own functions under both names, so the two Toolings agree.
+Started 2026-11-24: [record](docs/changes/2026-0051-context-in-tooling.md).
 
 ## Next
 
@@ -49,21 +57,7 @@ Nothing yet.
 
 ## Later
 
-### 2026-0051. Ekorn::Pipeline::Context's functions in Tooling, at v0.4.0
-
-**Size:** XS (1).
-
-Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
-in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and
-in `:all`, in the first v0.4.0, with a task for DBIx-Squirrel. Not
-before: DBIx-Squirrel v3.5.0's tests fail when both Toolings export
-different subs by one name, and its range takes every v0.3.x. From
-its v3.6.0, DBIx::Squirrel exports Ekorn's own `result_number`; once
-2026-0052 lets its source carry its row through chains, its
-`result_original` becomes Ekorn's own too, so the two Toolings agree
-on both. Done when Tooling, its test, the reference, the how-to, the
-README and Context's POD say so. From 2026-0046's D5
-([record](docs/changes/2026-0046-context.md)).
+Nothing yet.
 
 ## Ideas
 
