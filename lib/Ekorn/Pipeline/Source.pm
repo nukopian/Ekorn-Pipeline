@@ -83,7 +83,13 @@ and C<died> if the run died. What it returns is dropped;
 
 =item * optionally, a I<context>: anything the run's stages may ask
 for with L<Ekorn::Pipeline/run_context>, such as a statement's
-columns.
+columns;
+
+=item * optionally, an I<original>: called with nothing, returning the
+original of the value the source gave last, such as the row a value
+was made from, which L<Ekorn::Pipeline::Context/result_original> gives
+in its place. It's called only when that's asked, and a run reading an
+iterator of this run gets it too. New in v0.3.13.
 
 =back
 
@@ -112,7 +118,8 @@ of these from a block.
 
 A class of your own needn't be one of these to be a source. Any
 object with an C<EKORN_SOURCE> method, returning the step and
-optionally the end and the context, as a list or by name, is one.
+optionally the end, the context and the original, as a list or by
+name, is one.
 
 =head1 METHODS
 
@@ -147,6 +154,11 @@ L<Ekorn::Pipeline/iterator> instead.
 
 The set-up returned something else: no step, or a step or end that
 isn't a code reference. It's reported as the run starts.
+
+=item Expected the source's original to be a code reference
+
+The set-up returned an original that isn't a code reference. It's
+reported as the run starts.
 
 =back
 

@@ -390,23 +390,33 @@ sub Ekorn::Pipeline::Context::result_number : prototype() () {
 }
 
 
+# The original is the source's, if it gave an original part, directly
+# or through an iterator read as a source, called only now (2026-0052);
+# otherwise the run's own. A flush's values have none, either way.
 sub Ekorn::Pipeline::Context::result_original : prototype() () {
-    return $CURRENT_RESULT ? $CURRENT_RESULT->[1] : undef;
+    my($count, $original, $part) = $CURRENT_RESULT ? @$CURRENT_RESULT : ();
+    return
+          !defined $count || $running{ending} ? undef
+        : $part                               ? $part->()
+        :                                       $original;
 }
 
 
-# Return the step, the end and the context of a run of $source: from
-# its EKORN_SOURCE, if it offers one; a code reference is its own step,
-# with no end or context.
+# Return the step, the end, the context and the original part of a run
+# of $source: from its EKORN_SOURCE, if it offers one; a code reference
+# is its own step, with no end, context or original.
 sub _source_run ($source) {
     # As _is_source asks, without the call, as every run asks it.
     return ($source) unless blessed($source) && $source->can('EKORN_SOURCE');
-    my($step, $end, $context)
-        = _parts([qw(step end context)], $source->EKORN_SOURCE);
+    my($step, $end, $context, $original)
+        = _parts([qw(step end context original)], $source->EKORN_SOURCE);
     croakf
         'Expected the source to return a code reference, and optionally an end and a context'
         unless is_coderef($step) && _code_or_none($end);
-    return ($step, $end, $context);
+    # A message of its own, so the one above stays as it was.
+    croakf 'Expected the source\'s original to be a code reference'
+        unless _code_or_none($original);
+    return ($step, $end, $context, $original);
 }
 
 
@@ -635,7 +645,8 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
     );
     my($pull, $source_end, $context);
     try {
-        ($pull, $source_end, $context) = _source_run($source);
+        # The source's original part, if any, kept in the run.
+        ($pull, $source_end, $context, $run{original}) = _source_run($source);
         _make_run($stages, $names, $within, \%run) if @$stages;
     }
     catch ($e) {
@@ -731,11 +742,12 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     # asking whether any wait before a stage needn't scan @todo: a flush
     # can put many values there at once.
     my @waiting_at;
-    # The run's results so far, and the original of the value going
-    # through the stages, for Ekorn::Pipeline::Context, the current
-    # result while $next runs; a value waiting on @todo carries its
-    # original, and a flush's values have none.
-    my @result = (0, undef);
+    # The run's results so far, the original of the value going through
+    # the stages, and the source's original part, if it gave one, for
+    # Ekorn::Pipeline::Context, the current result while $next runs; a
+    # value waiting on @todo carries its original, and a flush's values
+    # have none.
+    my @result = (0, undef, $run->{original});
     # Values a source's step gave, still to go through the stages from the
     # first, held as they came: @todo's values go first, being further on.
     my @from_source;
@@ -999,6 +1011,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     };
     return Ekorn::Pipeline::Iterator->new(
         $next, $end_run, $context, $ended_once, $ended_once, $all,
+        $run->{original},
     );
 }
 
@@ -1025,11 +1038,11 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
     # through the steps from the first, are held as they came.
     my(@todo, @from_source);
     my($done, $source_done, $finished, $outside, $ended, $spent, $dropped, $into);
-    # The run's results so far, and the original of the value going
-    # through the steps, for Ekorn::Pipeline::Context, the current
-    # result while $next runs; a value waiting on @todo carries its
-    # original.
-    my @result = (0, undef);
+    # The run's results so far, the original of the value going through
+    # the steps, and the source's original part, if it gave one, for
+    # Ekorn::Pipeline::Context, the current result while $next runs; a
+    # value waiting on @todo carries its original.
+    my @result = (0, undef, $run->{original});
     my $finish = sub ($died) {
         return if $finished++;
         # Values dropped from outside make it stopped, as end_run says.
@@ -1186,6 +1199,7 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
     };
     return Ekorn::Pipeline::Iterator->new(
         $next, $end_run, $context, $ended_once, $ended_once, $all,
+        $run->{original},
     );
 }
 1;
@@ -1849,6 +1863,11 @@ or a string.
 
 A source's C<EKORN_SOURCE> returned something else. It's reported as
 the run starts.
+
+=item Expected the source's original to be a code reference
+
+A source's C<EKORN_SOURCE> returned an original that isn't a code
+reference. It's reported as the run starts.
 
 =item Expected stage #%s to return a code reference, and optionally a flush and an end
 

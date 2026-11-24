@@ -2,6 +2,25 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A source can give the original its values were made from, such as
+    the row a statement fetched, and result_original gives it, through
+    chains of iterators too. So DBIx::Squirrel's result_original can
+    be Ekorn's own, and the two can share one name in their Toolings.
+
+    It ships roadmap 2026-0052. It only adds: a source that doesn't
+    give one runs as before.
+
+    - A source's set-up, or EKORN_SOURCE, may return an original, by
+      name or fourth in a list: a code reference returning the original
+      of the value it gave last. result_original calls it, only when
+      asked, in place of the value the run's source gave; a flush's
+      values have none, whatever it says. An iterator read as a source
+      passes its source's original on, as it does its context. One
+      that isn't a code reference croaks "Expected the source's
+      original to be a code reference". (roadmap 2026-0052)
+    - The POD of Ekorn::Pipeline::Source, Factories, Iterator and
+      Context, the reference and the how-to say so.
+
 v0.3.12 2026-11-24
 
     A fix to v0.3.11's Ekorn::Pipeline::Context: its functions now

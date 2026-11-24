@@ -15,18 +15,20 @@ our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 # ends from outside, $context is the context its run's source gave,
 # $ended says how its run ended, $spent whether it has handed out
 # everything it will, and $all, if given, gives every value still to
-# come in one call, as calling $next until it gives none would.
+# come in one call, as calling $next until it gives none would, and
+# $original, if given, is its run's source's original part, passed on.
 sub new (
     $class, $next, $end_run, $context = undef, $ended = sub () { return },
-    $spent = sub () { return }, $all = undef,
+    $spent = sub () { return }, $all = undef, $original = undef,
 ) {
     return bless {
-        call    => $next,
-        end_run => $end_run,
-        context => $context,
-        ended   => $ended,
-        spent   => $spent,
-        all     => $all,
+        call     => $next,
+        end_run  => $end_run,
+        context  => $context,
+        ended    => $ended,
+        spent    => $spent,
+        all      => $all,
+        original => $original,
     }, $class;
 }
 
@@ -87,7 +89,8 @@ sub single ($self) {
 
 
 # An iterator is a source: of the values its run gives, the run ended
-# from outside when the run reading it ends, passing on its context.
+# from outside when the run reading it ends, passing on its context, and
+# its source's original part, if it had one (roadmap 2026-0052).
 sub EKORN_SOURCE ($self) {
     croakf
         'Expected a source with values still to give: an iterator is one run, and this one is spent'
@@ -100,8 +103,9 @@ sub EKORN_SOURCE ($self) {
         # on: it's ended as from outside, and each of its parts is told
         # how from where it stands, so "stopped", not "died", if the
         # reading run died while this one still had values to give.
-        end     => sub ($how) { $self->finish },
-        context => $self->{context},
+        end      => sub ($how) { $self->finish },
+        context  => $self->{context},
+        original => $self->{original},
     };
 }
 
@@ -185,7 +189,9 @@ L<Ekorn::Pipeline/iterator> as its source, as it has an
 L</EKORN_SOURCE> method. The values it hands out go through the second
 pipeline's stages, and when the second run ends, it ends the first, so
 its source is told. The second run's stages see the first run's
-context, through L<Ekorn::Pipeline/run_context>.
+context, through L<Ekorn::Pipeline/run_context>, and, if the first
+run's source gave an original, its originals, through
+L<Ekorn::Pipeline::Context/result_original>.
 
 An iterator is one run, so it can be a source only once, and only
 before it has handed out everything it will.
@@ -260,8 +266,8 @@ is told how it ended from where that part stands, which may differ.
     my $parts = $next->EKORN_SOURCE;
 
 Returns the iterator as a source's parts, by name, as L</An iterator as
-a source> describes: a C<step> pulling it, an C<end> finishing it, and
-its run's C<context>. A run calls it as it starts; you needn't.
+a source> describes: a C<step> pulling it, an C<end> finishing it, its
+run's C<context>, and its run's source's C<original>, if it had one. A run calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS
 

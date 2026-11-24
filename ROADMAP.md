@@ -41,15 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0052. A source's original, carried through chains
-
-**Size:** S (2).
-
-A source may give an `original` part, which `result_original` calls,
-and an iterator read as a source passes on, so DBIx::Squirrel's
-statement source can carry its row through chains with Ekorn's
-`result_original`, and the two Toolings can agree on the name.
-Started 2026-11-24: [record](docs/changes/2026-0052-source-original.md).
+Nothing yet.
 
 ## Next
 
@@ -59,7 +51,7 @@ Nothing yet.
 
 ### 2026-0051. Ekorn::Pipeline::Context's functions in Tooling, at v0.4.0
 
-**Size:** XS (1). **Depends on:** 2026-0052.
+**Size:** XS (1).
 
 Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
 in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and
@@ -69,8 +61,8 @@ different subs by one name, and its range takes every v0.3.x. From
 its v3.6.0, DBIx::Squirrel exports Ekorn's own `result_number`; once
 2026-0052 lets its source carry its row through chains, its
 `result_original` becomes Ekorn's own too, so the two Toolings agree
-on both. Done when Tooling, its test, the reference, the how-to, the README and
-Context's POD say so. From 2026-0046's D5
+on both. Done when Tooling, its test, the reference, the how-to, the
+README and Context's POD say so. From 2026-0046's D5
 ([record](docs/changes/2026-0046-context.md)).
 
 ## Ideas

@@ -1,6 +1,6 @@
 # 2026-0052. A source's original, carried through chains
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: a source part, `original`, not a context
 key. D2 settled: called only when `result_original` is asked, with no
@@ -17,6 +17,8 @@ answers to Ekorn's design, passed on by Iain the same day
 (DBIx-Squirrel d59ec732506e2f031a613cd7392fc957802ceee7)
 
 **Started:** 2026-11-24
+
+**Finished:** 2026-11-24
 
 ## Background
 
@@ -141,3 +143,32 @@ floors, step 4 shows no cost per value, and DBIx-Squirrel's message
 says its suite passes against `develop`.
 
 ## What happened
+
+Done as planned, on 2026-11-24.
+
+- `_source_run` takes `original` with the other parts, so the factory,
+  a class's own `EKORN_SOURCE`, and an iterator all give it alike, by
+  name or fourth in a list (D6). The message for a bad step or end is
+  as it was; a bad original has its own.
+- The part travels in the run's hash and into `@result`'s third slot,
+  and an iterator keeps it, as a seventh argument to
+  Ekorn::Pipeline::Iterator's `new`, for its `EKORN_SOURCE` to pass on.
+- `result_original` is undef while `ending` is true, the way a flush's
+  values are told apart, and otherwise calls the part, if there's one.
+  Written as one conditional expression, as Perl::Critic forbids
+  `return undef`.
+- `t/33-source-original.t`: the part by name and in a list, from the
+  factory and from a class's `EKORN_SOURCE`; not called until asked,
+  then once a call; through one iterator and two; with no part, as
+  before; a batch's value with its row, and the flush's with none; a
+  feed and a tee's branch unchanged; nested in itself, each run's
+  source's rows, the outer's back after the inner; and a part that
+  isn't a code reference croaking at the caller's line.
+- **Step 4,** ns a value, best of five, through one stage, against
+  v0.3.12, alternating: no difference beyond the runs' own spread, up
+  to 5% either way, on 5.36 and 5.44, as nothing per value changed.
+- The how-to's example prints its output from a line of its own, as
+  `xt/howto.t` reads the comments after a line that prints.
+
+DBIx-Squirrel's test against `develop` is a task sent with this
+commit's hash; the release waits for its answer.

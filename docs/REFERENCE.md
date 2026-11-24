@@ -2238,7 +2238,18 @@ my @titles = Ekorn::Pipeline->new(
   tee's branch, and an iterator read as a source each count theirs,
   and leave the count of the run around them as it was. For a run
   reading an iterator, the original is the value the iterator handed
-  out.
+  out, unless its source says otherwise, as below.
+- **A source can give the original itself,** with an `original` part,
+  a code reference returning the original of the value it gave last,
+  such as the row a statement fetched. `result_original` then gives
+  what that says, calling it only when asked, and a run reading an
+  iterator of that source's run gets it too, so it reaches every
+  pipeline in a chain. A flush's values have none, whatever it says.
+  The part answers for the value the source gave last, which is the
+  one the stages are working from, as values a stage returns several
+  of go through the stages before the next is pulled; but a source
+  whose step returns several values at once has it answer for the
+  last of them. New in v0.3.13.
 - **They're for stages,** their flushes and sinks. Outside a run, and
   in an end, both give undef. In a source's step, they give where the
   run reading it has got to, which isn't promised.
@@ -2598,13 +2609,14 @@ run calls them:
 | a sink's **flush** | the same | nothing, with `$_` undefined | the result: one value for a sink of one, a list for a sink of many | no need: its input has run out |
 | an **end** | once, when the run has ended, however it ended | how it ended, from where the part stands: `done`, `stopped` or `died` | nothing that's used | no: it croaks "Expected no stop in an end, as the run has ended" |
 | a source's **context** | read by stages, while the run lasts | | any value: stages ask for it with `Ekorn::Pipeline::run_context()` | |
+| a source's **original** | when a stage asks `result_original` | nothing | the original of the value the source gave last | no |
 
 What each part's set-up returns, as a list in this order, or as a
 hash reference with these keys:
 
 | Part | Made with | Its pieces, in order | Required |
 |---|---|---|---|
-| a source | `source {...}`, or `EKORN_SOURCE` | `step`, `end`, `context` | the step |
+| a source | `source {...}`, or `EKORN_SOURCE` | `step`, `end`, `context`, `original` | the step |
 | a stage | `gather {...}`, or `EKORN_STAGE` | `step`, `flush`, `end` | the step |
 | a sink | `sink_one {...}` or `sink_many {...}`, or `EKORN_SINK_ONE` or `EKORN_SINK_MANY` | `step`, `flush`, `end` | the step and the flush |
 
@@ -2892,6 +2904,9 @@ the line of the caller's code that caused it.
 - **Expected the source to return a code reference, and optionally an
   end and a context:** a source's `EKORN_SOURCE` returned something
   else. Reported when the run starts.
+- **Expected the source's original to be a code reference:** a
+  source's `EKORN_SOURCE` returned an original that's something else.
+  Reported when the run starts.
 - **Expected stage #%s to return a code reference, and optionally a
   flush and an end:** a stage's `EKORN_STAGE` returned something else.
   Reported when the run starts.
@@ -3366,7 +3381,10 @@ my $original = result_original;
 Returns the value the result is being made from, as the run's source
 gave it, or as it was pushed, before any stage changed it: the value
 itself, not a copy. Undef in a flush and the stages after it, for the
-values it gives, outside a run, and in an end. Exported upon request.
+values it gives, outside a run, and in an end. If the run's source
+gave an `original` part, directly or through an iterator read as a
+source, what that returns instead, called only now. Exported upon
+request.
 
 See [Which result](#which-result-ekornpipelinecontext).
 
@@ -3722,7 +3740,8 @@ my $then = $p->iterator($next);    # a run calls $next->EKORN_SOURCE
 
 Makes the iterator a source, for another pipeline's `iterator`: its
 values go through the second pipeline's stages, its run ends when the
-second's does, and the second's stages see its context. It's one run,
+second's does, and the second's stages see its context, and its
+source's original, if it gave one. It's one run,
 so it can be a source only once, before it has handed out everything
 it will; after, it croaks "Expected a source with values still to
 give: an iterator is one run, and this one is spent". A run calls it
@@ -4110,7 +4129,7 @@ my @parts = $source->EKORN_SOURCE;
 ```
 
 Calls the set-up for a new run, and returns what it returns: the step,
-and, optionally, the end and a context. A run calls it as it starts;
+and, optionally, the end, a context and an original. A run calls it as it starts;
 you needn't.
 
 See [Sources: Ekorn::Pipeline::Source](#sources-ekornpipelinesource).

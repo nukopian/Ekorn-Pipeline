@@ -97,6 +97,14 @@ values a flush gives have none, so it's undef. For a run reading an
 iterator, it's the value the iterator handed out, not that iterator's
 own original.
 
+A source can say better, by giving an I<original> part, as
+L<Ekorn::Pipeline::Source> describes: a statement's source, for
+instance, giving the row it fetched last, when what it hands out is
+made from the row. Then C<result_original> gives what that says,
+calling it only when asked, and a run reading an iterator of that
+source's run gets it too, so the row reaches every pipeline in a
+chain. A flush's values have none, whatever it says. New in v0.3.13.
+
 The value itself, not a copy: a stage that changes a hash changes the
 original too.
 

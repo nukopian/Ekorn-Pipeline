@@ -1401,6 +1401,31 @@ and the stages after it, `result_original` is undef. Each run counts
 its own, so a pipeline run inside a stage starts again from 1, and
 leaves its caller's count alone.
 
+A source can give the original itself, when what it hands out is made
+from something a stage may want, such as a record. Its set-up returns
+an `original` beside its step: a code reference returning the original
+of the value it gave last, called only when a stage asks. A run
+reading an iterator of that source's run gets it too, so it reaches
+every pipeline in a chain:
+
+```perl
+# Each track's title, made from the track, which is its original.
+my $titles = source {
+    my @left = @tracks;
+    my $last;
+    return {
+        step     => sub () { return unless @left; $last = shift @left; $last->{title} },
+        original => sub () { $last },
+    };
+};
+my $upper = Ekorn::Pipeline->new(sub { uc })->iterator($titles);
+my $hits  = Ekorn::Pipeline->new(take_if { result_original->{plays} > 6000 });
+say for $hits->iterator($upper)->all;
+# DANCING QUEEN
+# GIRLS & BOYS
+# SUNSHINE OF YOUR LOVE
+```
+
 Every run counts, whether its stages ask or not, at 15 to 75
 nanoseconds a value, so there's nothing to turn on.
 

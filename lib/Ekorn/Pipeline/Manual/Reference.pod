@@ -2654,7 +2654,21 @@ B<Each run counts its own,> from 1: a pipeline run inside a stage, a
 tee's branch, and an iterator read as a source each count theirs,
 and leave the count of the run around them as it was. For a run
 reading an iterator, the original is the value the iterator handed
-out.
+out, unless its source says otherwise, as below.
+
+=item *
+
+B<A source can give the original itself,> with an C<original> part,
+a code reference returning the original of the value it gave last,
+such as the row a statement fetched. C<result_original> then gives
+what that says, calling it only when asked, and a run reading an
+iterator of that source's run gets it too, so it reaches every
+pipeline in a chain. A flush's values have none, whatever it says.
+The part answers for the value the source gave last, which is the
+one the stages are working from, as values a stage returns several
+of go through the stages before the next is pulled; but a source
+whose step returns several values at once has it answer for the
+last of them. New in v0.3.13.
 
 =item *
 
@@ -3161,6 +3175,16 @@ B<When it's called:> read by stages, while the run lasts
 
 B<What it returns:> any value: stages ask for it with C<Ekorn::Pipeline::run_context()>
 
+=item a source's B<original>
+
+B<When it's called:> when a stage asks C<result_original>
+
+B<What it's given:> nothing
+
+B<What it returns:> the original of the value the source gave last
+
+B<Can it stop the run?:> no
+
 =back
 
 What each part's set-up returns, as a list in this order, or as a
@@ -3172,7 +3196,7 @@ hash reference with these keys:
 
 B<Made with:> C<source {...}>, or C<EKORN_SOURCE>
 
-B<Its pieces, in order:> C<step>, C<end>, C<context>
+B<Its pieces, in order:> C<step>, C<end>, C<context>, C<original>
 
 B<Required:> the step
 
@@ -3521,6 +3545,12 @@ such as a stage, or a string.
 B<Expected the source to return a code reference, and optionally an
 end and a context:> a source's C<EKORN_SOURCE> returned something
 else. Reported when the run starts.
+
+=item *
+
+B<Expected the source's original to be a code reference:> a
+source's C<EKORN_SOURCE> returned an original that's something else.
+Reported when the run starts.
 
 =item *
 
@@ -4253,7 +4283,10 @@ See L<Which result|/"Which result: Ekorn::Pipeline::Context">.
 Returns the value the result is being made from, as the run's source
 gave it, or as it was pushed, before any stage changed it: the value
 itself, not a copy. Undef in a flush and the stages after it, for the
-values it gives, outside a run, and in an end. Exported upon request.
+values it gives, outside a run, and in an end. If the run's source
+gave an C<original> part, directly or through an iterator read as a
+source, what that returns instead, called only now. Exported upon
+request.
 
 See L<Which result|/"Which result: Ekorn::Pipeline::Context">.
 
@@ -4567,7 +4600,8 @@ See L<Iterators: Ekorn::Pipeline::Iterator|/"Iterators: Ekorn::Pipeline::Iterato
 
 Makes the iterator a source, for another pipeline's C<iterator>: its
 values go through the second pipeline's stages, its run ends when the
-second's does, and the second's stages see its context. It's one run,
+second's does, and the second's stages see its context, and its
+source's original, if it gave one. It's one run,
 so it can be a source only once, before it has handed out everything
 it will; after, it croaks "Expected a source with values still to
 give: an iterator is one run, and this one is spent". A run calls it
@@ -4905,7 +4939,7 @@ A source made afresh for each run. Exports nothing.
     my @parts = $source->EKORN_SOURCE;
 
 Calls the set-up for a new run, and returns what it returns: the step,
-and, optionally, the end and a context. A run calls it as it starts;
+and, optionally, the end, a context and an original. A run calls it as it starts;
 you needn't.
 
 See L<Sources: Ekorn::Pipeline::Source|/"Sources: Ekorn::Pipeline::Source">.
