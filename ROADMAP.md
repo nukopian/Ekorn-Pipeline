@@ -113,8 +113,8 @@ prototype and cold reviews, as an epic change is.
 Added 2026-11-24. **Size:** M (3).
 
 `from_csv` and `to_csv`, after Ekorn::Pipeline::JSON, so a CSV or TSV
-file is read or written with Text::CSV, opened for each run and closed
-at its end, and a row that won't parse is reported, not taken for the
-end of the file. It's the commonest source written by hand, and easy
-to get subtly wrong. Its questions, Text::CSV as a dependency among
-them, are open: [record](docs/changes/2026-0049-csv.md).
+file is read or written with Text::CSV, recommended rather than
+required, opened for each run and closed at its end, and a row that
+won't parse is reported, not taken for the end of the file. It's the
+commonest source written by hand, and easy to get subtly wrong. Six of
+its questions are open: [record](docs/changes/2026-0049-csv.md).
