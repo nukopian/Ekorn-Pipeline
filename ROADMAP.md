@@ -41,15 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0046. Ekorn::Pipeline::Context: result_number and result_original
-
-**Size:** M (3).
-
-Each run counts its results and keeps the value each came from, so a
-stage can ask which result it's making, and from what: any package's
-stages can, and DBIx::Squirrel can drop the stage that costs it 11 to
-15% a row only to count. Started 2026-11-24:
-[record](docs/changes/2026-0046-context.md).
+Nothing yet.
 
 ## Next
 

@@ -131,6 +131,7 @@ by tags that follow the modules:
 | `:batch` | `batch` and `collect` | Ekorn::Pipeline::Stages::Batch |
 | `:taps` | `peek`, `count_into`, `dump_to` and `tee` | Ekorn::Pipeline::Stages::Taps |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
+| `:context` | `result_number` and `result_original` | Ekorn::Pipeline::Context |
 | `:sources` | `from_array`, `from_file`, `from_fh` and `counter` | Ekorn::Pipeline::Sources |
 | `:sinks` | `count_items`, `keep_all`, `keep_first`, `to_file` and the rest | Ekorn::Pipeline::Sinks |
 | `:json` | `from_json`, `from_jsonl`, `to_json` and `to_jsonl` | Ekorn::Pipeline::JSON |
@@ -1370,6 +1371,36 @@ its header's names as the run's `columns` the same way, so `column`
 works on it unchanged (see "Read CSV, or TSV"). The shape is what
 matters: the source knows something about its values, and a stage
 anywhere in the pipeline can ask.
+
+### Ask which result a stage is making, and from what
+
+Each run counts the results it makes, a result being a value that
+leaves the last stage, or reaches a sink, and keeps the value each is
+made from. A stage asks with `result_number` and `result_original`,
+from Ekorn::Pipeline::Context, which `:all` gives you:
+
+```perl
+say for tracks(
+    take_if { $_->{plays} > 6000 },
+    sub { $_->{title} },
+    sub { result_number . ". $_, " . result_original->{plays} . ' plays' },
+);
+# 1. Dancing Queen, 9100 plays
+# 2. Girls & Boys, 6100 plays
+# 3. Sunshine of Your Love, 7700 plays
+```
+
+The number counts results, not values: it stays the same while
+`take_if` drops tracks, and each value a stage returns in place of one
+is a result of its own. The original is the value as it came in,
+before `sub { $_->{title} }` made it a title, so a later stage can
+still reach the whole track. A flush's values have none: in a flush,
+and the stages after it, `result_original` is undef. Each run counts
+its own, so a pipeline run inside a stage starts again from 1, and
+leaves its caller's count alone.
+
+Every run counts, whether its stages ask or not, at 15 to 75
+nanoseconds a value, so there's nothing to turn on.
 
 ### Write a producer as a loop with `generator`
 

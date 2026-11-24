@@ -2,6 +2,35 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    Ekorn::Pipeline::Context tells a stage which result it's making,
+    and from what: each run counts its results, and keeps the value
+    each is made from, so a stage can number what it gives, or reach
+    the value as it came in, whatever stages changed it since.
+    DBIx::Squirrel's functions of the same names can be built on it,
+    and drop the stage it adds to count, which costs it 200 to 260 ns
+    a row.
+
+    It ships roadmap 2026-0046. It only adds, but every run now counts,
+    whether its stages ask or not.
+
+    - Ekorn::Pipeline::Context: result_number, the run's results so
+      far, plus one, a result being a value that leaves the last stage
+      or reaches a sink; and result_original, the value the run's
+      source gave, or that was pushed, before any stage changed it,
+      undef for a flush's values. Each run counts its own: a pipeline
+      run inside a stage, a tee's branch and an iterator read as a
+      source each count from 1. Both are undef outside a run, and in
+      an end. (roadmap 2026-0046)
+    - Every run counts its results, which costs a value 15 to 75 ns
+      through one stage that does nothing, on Perl 5.36 and 5.44: 1 to
+      3% for an iterator's all, 3 to 12% for a pushed run, and 6 to 8%
+      for an iterator's next. Less through stages that do work. Roadmap
+      2026-0046's record has the measurements, and why every run
+      counts.
+    - Ekorn::Pipeline::Tooling exports both in :context, the name of
+      DBIx::Squirrel::Tooling's tag for its own, and in :all.
+    - The reference has a section on them, and the how-to a recipe.
+
 v0.3.10 2026-11-24
 
     Ekorn::Pipeline::CSV reads and writes CSV and TSV files, as JSON's

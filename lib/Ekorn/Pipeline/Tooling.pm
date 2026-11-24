@@ -12,6 +12,7 @@ use Ekorn::Pipeline::Gather        qw(gather);
 use Ekorn::Pipeline::Stages::Flow  qw(:all);
 use Ekorn::Pipeline::Stages::Batch qw(:all);
 use Ekorn::Pipeline::Stages::Taps  qw(:all);
+use Ekorn::Pipeline::Context       qw(:all);
 use Ekorn::Pipeline::Sources       qw(:all);
 use Ekorn::Pipeline::Sinks         qw(:all);
 use Ekorn::Pipeline::Factories     qw(:all);
@@ -24,9 +25,10 @@ our %EXPORT_TAGS = (
         qw(take take_first take_last take_single take_if take_while),
         qw(drop drop_if    drop_while),
     ],
-    batch   => [qw(batch      collect)],
-    taps    => [qw(peek       count_into dump_to   tee)],
-    sources => [qw(from_array from_fh    from_file counter)],
+    batch   => [qw(batch         collect)],
+    taps    => [qw(peek          count_into dump_to tee)],
+    context => [qw(result_number result_original)],
+    sources => [qw(from_array    from_fh from_file counter)],
     sinks   => [
         qw(count_items keep keep_all keep_first keep_last keep_single),
         qw(to_fh to_file),
@@ -44,7 +46,8 @@ $EXPORT_TAGS{stages} = [map { @{ $EXPORT_TAGS{$_} } } qw(flow batch taps)];
 our @EXPORT_OK = do {
     my %seen;
     grep { !$seen{$_}++ }
-        map { @{ $EXPORT_TAGS{$_} } } qw(core stages sources sinks json csv words);
+        map { @{ $EXPORT_TAGS{$_} } }
+        qw(core stages context sources sinks json csv words);
 };
 $EXPORT_TAGS{all} = [@EXPORT_OK];
 
@@ -75,7 +78,8 @@ Ekorn::Pipeline::Tooling - Ekorn's stages, sources, sinks and words, from one mo
 
 What a caller uses to do work with Ekorn::Pipeline is made in several
 modules: stages in Ekorn::Pipeline::Stages::Flow, Batch and Taps,
-sources in Ekorn::Pipeline::Sources, sinks in Ekorn::Pipeline::Sinks,
+what a stage can ask about the result it's making in
+Ekorn::Pipeline::Context, sources in Ekorn::Pipeline::Sources, sinks in Ekorn::Pipeline::Sinks,
 JSON's sources, sinks and stages in Ekorn::Pipeline::JSON, CSV's in
 Ekorn::Pipeline::CSV, the words in
 Ekorn::Pipeline::Factories, and C<Stop> and C<gather> in
@@ -125,6 +129,12 @@ C<count_into>, C<dump_to> and C<tee>.
 =item C<:stages>
 
 C<:flow>, C<:batch> and C<:taps>.
+
+=item C<:context>
+
+Everything L<Ekorn::Pipeline::Context> exports: C<result_number> and
+C<result_original>. DBIx::Squirrel::Tooling has a tag of the same
+name, holding its own functions of the same names.
 
 =item C<:sources>
 

@@ -299,14 +299,16 @@ sub feed ($self) {
             if grep { defined } @{ $run{flushes} }, @{ $run{ends} };
         ($steps, $labels) = ($run{stages}, [@run{qw(names within)}]);
     }
-    my $ended;
+    # How the feed's run ended, undef while it's open, and how many
+    # results its pushes have made.
+    my @fed = (undef, 0);
     return Ekorn::Pipeline::Feed->new(
         # Without a signature, as a feed may be pushed a value at a time:
         # its values go on as they are, not copied.
-        push   => sub { _push_steps($self, $steps, $labels, \$ended, \@_) },
-        close  => sub () { $ended = 'done';    return },
-        finish => sub () { $ended = 'stopped'; return },
-        ended  => sub () { return $ended },
+        push   => sub { _push_steps($self, $steps, $labels, \@fed, \@_) },
+        close  => sub () { $fed[0] = 'done';    return },
+        finish => sub () { $fed[0] = 'stopped'; return },
+        ended  => sub () { return $fed[0] },
         # Nothing to flush or end, for a stage driving the feed.
         plain => 1,
     );
@@ -352,6 +354,15 @@ sub stages ($self) {
 # What a pipeline is doing while its stages run.
 my %running;
 
+# The @result of the run running, for Ekorn::Pipeline::Context: how
+# many results it has made, and the original of the value going through
+# its stages; undef outside a run, and in an end. Each loop localises it
+# once a call, not once a value. A package variable, as a local of one
+# costs a call about 33 ns, against 95 for a key of %running, which
+# has none until it's localised; a lexical can't be localised, and
+# setting one and putting it back by hand, for each value, cost as much.
+our $CURRENT_RESULT;    ## no critic (Variables::ProhibitPackageVars)
+
 # For code telling its stages about the value they're given: true while
 # a flush runs, and while the values it gave go through the stages,
 # rather than values from the source.
@@ -365,6 +376,19 @@ sub ending () {
 # none; an iterator used as a source passes on its run's.
 sub run_context () {
     return $running{context};
+}
+
+
+# Ekorn::Pipeline::Context's functions, defined here, as they read
+# $CURRENT_RESULT, which is this file's to set; that module exports and
+# documents them.
+sub Ekorn::Pipeline::Context::result_number () {
+    return $CURRENT_RESULT ? $CURRENT_RESULT->[0] + 1 : undef;
+}
+
+
+sub Ekorn::Pipeline::Context::result_original () {
+    return $CURRENT_RESULT ? $CURRENT_RESULT->[1] : undef;
 }
 
 
@@ -420,12 +444,19 @@ sub _label ($pipeline, $name, $within) {
 # with nothing else, and a step that dies named as a run names it, by
 # $labels, the steps' names and the pipelines each came from, as a
 # pair. The values are given as a reference to an array, not copied.
-# For a feed, $ended, if given, is set to how the run ended, at a stop
-# or a death, and the steps see the context of the code pushing.
-sub _push_steps ($pipeline, $steps, $labels, $ended, $values) {
+# For a feed, $fed, if given, is the feed's: its first is set to how the
+# run ended, at a stop or a death, and its second holds how many results
+# its pushes have made; and the steps see the context of the code
+# pushing.
+sub _push_steps ($pipeline, $steps, $labels, $fed, $values) {
     # A pushed run has no context, and gives no values from a flush.
-    local $running{context} = undef unless $ended;
+    local $running{context} = undef unless $fed;
     local $running{ending}  = undef;
+    # The run's results so far, and the original of the value going
+    # through the steps, for Ekorn::Pipeline::Context; a value waiting on
+    # @todo carries its original.
+    my @result = ($fed ? $fed->[1] : 0, undef);
+    local $CURRENT_RESULT = \@result;
     my(@results, @todo, $n);
     my($at, $more) = (0, 1);
     # One try for as many values as go through without a stop, which is
@@ -435,30 +466,34 @@ sub _push_steps ($pipeline, $steps, $labels, $ended, $values) {
         VALUE:
             while (1) {
                 my $value;
-                if    (@todo)          { ($n, $value) = @{ pop @todo } }
-                elsif ($at < @$values) { ($n, $value) = (0, $values->[$at++]) }
-                else                   { $more = 0; last VALUE }
+                if    (@todo) { ($n, $value, $result[1]) = @{ pop @todo } }
+                elsif ($at < @$values) {
+                    $n = 0;
+                    $result[1] = $value = $values->[$at++];
+                }
+                else { $more = 0; last VALUE }
                 while ($n < @$steps) {
                     local $_ = $value;
                     my @values = $steps->[$n]->($value);
                     $n++;
                     next VALUE unless @values;
                     $value = shift @values;
-                    push @todo, map { [$n, $_] } reverse @values if @values;
+                    push @todo, map { [$n, $_, $result[1]] } reverse @values if @values;
                 }
                 push @results, $value;
+                $result[0]++;
             }
         }
         catch ($e) {
             if ($e isa 'Ekorn::Pipeline::Stop') {
                 my(undef, @carried) = is_arrayref($e) ? @$e : ();
                 ($at, @todo) = (scalar @$values);
-                push @todo, map { [$n + 1, $_] } reverse @carried;
-                $$ended = 'stopped' if $ended;
+                push @todo, map { [$n + 1, $_, $result[1]] } reverse @carried;
+                $fed->[0] = 'stopped' if $fed;
                 next;
             }
-            $$ended = 'died' if $ended;
-            croak $e         if is_ref($e);
+            $fed->[0] = 'died' if $fed;
+            croak $e           if is_ref($e);
             my $where   = Carp::shortmess() =~ s( \.? \n \z )()xr;
             my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
             my($names, $within) = @$labels;
@@ -466,6 +501,7 @@ sub _push_steps ($pipeline, $steps, $labels, $ended, $values) {
             die "Pipeline $stage failed$where:\n$message\n";
         }
     }
+    $fed->[1] = $result[0] if $fed;
     return @results;
 }
 
@@ -484,6 +520,8 @@ sub _end_error ($error) {
 # rest are called. Otherwise, an end that dies tells every end after it
 # "died", and its error is thrown once they've run.
 sub _end_all ($ends, $dying) {
+    # An end isn't a stage: it has no result.
+    local $CURRENT_RESULT = undef;
     my($error, $failed);
     for my $call (@$ends) {
         my($label, $end, $how) = @$call;
@@ -690,12 +728,17 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     # asking whether any wait before a stage needn't scan @todo: a flush
     # can put many values there at once.
     my @waiting_at;
+    # The run's results so far, and the original of the value going
+    # through the stages, for Ekorn::Pipeline::Context, the current
+    # result while $next runs; a value waiting on @todo carries its
+    # original, and a flush's values have none.
+    my @result = (0, undef);
     # Values a source's step gave, still to go through the stages from the
     # first, held as they came: @todo's values go first, being further on.
     my @from_source;
     # Put @values on @todo, to go on from stage $n, the first on top.
     my $wait = sub ($n, $from_flush, @values) {
-        push @todo, map { [$n, $_, $from_flush] } reverse @values;
+        push @todo, map { [$n, $_, $from_flush, $result[1]] } reverse @values;
         $waiting_at[$n] += @values;
         return;
     };
@@ -774,6 +817,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     my $into;
     my $next = sub () {
         return if $outside;
+        local $CURRENT_RESULT = \@result;
         while (1) {
             if ($into) {
                 # All takes at once the values already at the end, such as a
@@ -783,17 +827,19 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     while (@todo && $todo[-1][0] == @stages) {
                         push @$into, (pop @todo)->[1];
                         $waiting_at[@stages]--;
+                        $result[0]++;
                     }
                     next;
                 }
             }
             my($n, $value, $from_flush, $flush);
             if (@todo) {
-                ($n, $value, $from_flush) = @{ pop @todo };
+                ($n, $value, $from_flush, $result[1]) = @{ pop @todo };
                 $waiting_at[$n]--;
             }
             elsif (@from_source) {
-                ($n, $value) = (0, shift @from_source);
+                $n = 0;
+                $result[1] = $value = shift @from_source;
             }
             elsif (!$done) {
                 # Straight onto @from_source, which is empty here.
@@ -821,7 +867,8 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     ($done, $source_done) = (1, 1);
                     next;
                 }
-                ($n, $value) = (0, shift @from_source);
+                $n = 0;
+                $result[1] = $value = shift @from_source;
             }
             else {
                 $n = $flush_at->();
@@ -832,11 +879,13 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                 $input_ran_out->($n);
                 $flushed{$n} = 1;
                 ($next_flush, $flush, $from_flush) = ($n + 1, $flushes[$n], 1);
+                $result[1] = undef;
             }
             if ($n == @stages) {
                 # Only while values are handed out one at a time: all takes
                 # them from the top of the loop. Nothing can end while the
                 # source is still being read.
+                $result[0]++;
                 $end_if_ended->() if $done;
                 return $value;
             }
@@ -862,7 +911,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     local $_ = $value;
                     my @values
                         = $sinks[$n]
-                        ? do { $stages[$n]->($value); () }
+                        ? do { $stages[$n]->($value); $result[0]++; () }
                         : $stages[$n]->($value);
                     last if $outside;
                     $n++;
@@ -901,6 +950,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
             }
             return if $outside;
             if ($kept) {
+                $result[0]++;
                 $end_if_ended->() if $done;
                 return $value     unless $into;
                 push @$into, $value;
@@ -972,6 +1022,11 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
     # through the steps from the first, are held as they came.
     my(@todo, @from_source);
     my($done, $source_done, $finished, $outside, $ended, $spent, $dropped, $into);
+    # The run's results so far, and the original of the value going
+    # through the steps, for Ekorn::Pipeline::Context, the current
+    # result while $next runs; a value waiting on @todo carries its
+    # original.
+    my @result = (0, undef);
     my $finish = sub ($died) {
         return if $finished++;
         # Values dropped from outside make it stopped, as end_run says.
@@ -993,26 +1048,31 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
     };
     my $next = sub () {
         return if $outside;
+        local $CURRENT_RESULT = \@result;
         while (1) {
             if ($into) {
                 # All takes at once a step's values where there are no
                 # steps, and the values already at the end.
                 if (!@steps && @from_source) {
+                    $result[0] += @from_source;
                     push @$into, splice @from_source;
                     next;
                 }
                 if (@todo && $todo[-1][0] == @steps) {
-                    push @$into, (pop @todo)->[1]
-                        while @todo && $todo[-1][0] == @steps;
+                    while (@todo && $todo[-1][0] == @steps) {
+                        push @$into, (pop @todo)->[1];
+                        $result[0]++;
+                    }
                     next;
                 }
             }
             my($n, $value);
             if (@todo) {
-                ($n, $value) = @{ pop @todo };
+                ($n, $value, $result[1]) = @{ pop @todo };
             }
             elsif (@from_source) {
-                ($n, $value) = (0, shift @from_source);
+                $n = 0;
+                $result[1] = $value = shift @from_source;
             }
             elsif (!$done) {
                 try {
@@ -1034,7 +1094,8 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     ($done, $source_done) = (1, 1);
                     next;
                 }
-                ($n, $value) = (0, shift @from_source);
+                $n = 0;
+                $result[1] = $value = shift @from_source;
             }
             else {
                 # Nothing waits, and the source is done.
@@ -1057,7 +1118,8 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
                             last;
                         }
                         $value = shift @values;
-                        push @todo, map { [$n, $_] } reverse @values if @values;
+                        push @todo, map { [$n, $_, $result[1]] } reverse @values
+                            if @values;
                     }
                 }
                 catch ($e) {
@@ -1065,7 +1127,7 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
                         my(undef, @carried) = is_arrayref($e) ? @$e : ();
                         $done        = 1;
                         @from_source = ();
-                        @todo        = map { [$n + 1, $_] } reverse @carried;
+                        @todo        = map { [$n + 1, $_, $result[1]] } reverse @carried;
                         next;
                     }
                     ($done, @todo, @from_source) = (1);
@@ -1086,6 +1148,7 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
                 && !$finished
                 && !(@from_source && @steps)
                 && !(@todo        && $todo[0][0] < @steps);
+            $result[0]++;
             return $value unless $into;
             push @$into, $value;
         }

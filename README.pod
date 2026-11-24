@@ -591,8 +591,8 @@ C<take(-1)>, is also reported at the caller's line.
 
 =item * L<Ekorn::Pipeline::Tooling>: everything below but the
 operators, from one module, by tags: C<:core>, C<:flow>, C<:batch>,
-C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:json>, C<:csv>,
-C<:words> and C<:all>.
+C<:taps>, C<:stages>, C<:context>, C<:sources>, C<:sinks>, C<:json>,
+C<:csv>, C<:words> and C<:all>.
 
 =item * L<Ekorn::Pipeline::Stages::Flow>: C<take>, C<drop>,
 C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<drop_if>,
@@ -606,6 +606,11 @@ which gather values and pass them on together.
 C<dump_to> and C<tee>, which look at each value and pass it on, for
 logging, counting and debugging; C<tee> runs each through a branch of
 stages of your own, so a tap can be any pipeline.
+
+=item * L<Ekorn::Pipeline::Context>: C<result_number> and
+C<result_original>, which a stage asks for the number of the result
+it's making, and the value it's being made from, as each run counts
+its results.
 
 =item * L<Ekorn::Pipeline::Sources> and L<Ekorn::Pipeline::Sinks>:
 the sources and sinks above.

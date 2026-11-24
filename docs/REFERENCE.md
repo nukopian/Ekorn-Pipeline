@@ -45,6 +45,7 @@ says what each release changed.
 - [CSV: Ekorn::Pipeline::CSV](#csv-ekornpipelinecsv)
 - [Operators: Ekorn::Pipeline::Operators](#operators-ekornpipelineoperators)
 - [Errors: Ekorn::Pipeline::Errors](#errors-ekornpipelineerrors)
+- [Which result: Ekorn::Pipeline::Context](#which-result-ekornpipelinecontext)
 - [Writing stages](#writing-stages)
 - [Writing functions that take stages](#writing-functions-that-take-stages)
 - [Delivering parts for Ekorn](#delivering-parts-for-ekorn)
@@ -116,6 +117,7 @@ place, by tags that follow the modules that make it:
 | `:batch` | `batch`, `collect` | [Stages::Batch](#batching-and-collecting-ekornpipelinestagesbatch) |
 | `:taps` | `peek`, `count_into`, `dump_to`, `tee` | [Stages::Taps](#taps-ekornpipelinestagestaps) |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
+| `:context` | `result_number`, `result_original` | [Context](#which-result-ekornpipelinecontext) |
 | `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
 | `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
 | `:json` | `from_json`, `from_jsonl`, `to_json`, `to_jsonl` | [JSON](#json-ekornpipelinejson) |
@@ -2196,6 +2198,73 @@ too:
   module's. Then `croakf` in a helper reports at the line that called
   the module. A helper in the same package needs nothing.
 
+## Which result: Ekorn::Pipeline::Context
+
+Each run counts the results it makes, and keeps the value each is
+being made from, so a stage can ask which result it's making, and
+from what. A *result* is a value that leaves the last stage, or that
+reaches a sink. `result_number` is the run's results so far, plus one,
+and `result_original` the value the run's source gave, or that was
+pushed, before any stage changed it:
+
+```perl
+use Ekorn::Pipeline::Context qw(result_number result_original);
+use Ekorn::Pipeline::Tooling qw(:context);    # the same
+
+my @hits = Ekorn::Pipeline->new(
+    sub { $_->{plays} > 6000 ? $_ : () },
+    sub { result_number . ". $_->{title}" },
+)->(@tracks);    # 1. Dancing Queen, 2. Girls & Boys, 3. Sunshine of Your Love
+
+my @titles = Ekorn::Pipeline->new(
+    sub { $_->{plays} },
+    sub { $_ > 6000 ? result_original->{title} : () },
+)->(@tracks);    # Dancing Queen, Girls & Boys, Sunshine of Your Love
+```
+
+- **A value dropped makes no result,** so the number stays the same
+  while a stage drops values.
+- **Each value a stage returns in place of one is a result of its
+  own,** numbered one after another, each with the original of the
+  value it was made from. So is each value a stop carries.
+- **A flush's values have no original.** In a flush, `result_number`
+  is the number of the first value it returns, and `result_original`
+  is undef there and in the stages after it, for the values it gives,
+  as below.
+- **Each run counts its own,** from 1: a pipeline run inside a stage, a
+  tee's branch, and an iterator read as a source each count theirs,
+  and leave the count of the run around them as it was. For a run
+  reading an iterator, the original is the value the iterator handed
+  out.
+- **They're for stages,** their flushes and sinks. Outside a run, and
+  in an end, both give undef. In a source's step, they give where the
+  run reading it has got to, which isn't promised.
+- **Every run counts,** whether its stages ask or not. It costs a
+  value about 15 to 75 nanoseconds, measured on Perl 5.36 and 5.44
+  through one stage that does nothing: 1 to 3% for `all`, 3 to 12% for
+  a pushed run, and 6 to 8% for an iterator's `next`, which counts once
+  a call. Less through stages that do work. Roadmap 2026-0046's record
+  has the measurements.
+
+A batch filled by a value has that value's original; the last, given
+by `batch`'s flush, has none:
+
+```perl
+my @lines = Ekorn::Pipeline->new(
+    batch(4),
+    sub {
+        my $last = result_original ? result_original->{title} : 'from the flush';
+        result_number . ': ' . @$_ . " tracks, the last $last";
+    },
+)->(@tracks);    # 1: 4 tracks, the last Parklife; 2: 2 tracks, the last from the flush
+```
+
+The run's context is asked with
+[`run_context`](#stages-that-ask-about-their-run), and whether a
+value came from a flush with [`ending`](#ending). DBIx::Squirrel has
+functions of the same names, built on these, which carry its rows
+through chains.
+
 ## Writing stages
 
 Write a stage for others the way the canned stages are written, so it
@@ -2456,7 +2525,8 @@ my $titles = Ekorn::Pipeline->new(pluck('title'))->iterator(bless {sth => $sth},
 Each run has its own context, and an iterator used as a source passes
 on the context of the run inside it. A pushed run has none, and a feed
 none of its own: its stages see the context of the code pushing into
-it.
+it. Which result a stage is making, and from what, it asks
+[Ekorn::Pipeline::Context](#which-result-ekornpipelinecontext).
 
 ### `|` for your sources
 
@@ -3260,6 +3330,39 @@ and a code reference given to `new` as an Ekorn::Pipeline::Stage of
 it.
 
 See [stages](#stages).
+
+### Ekorn::Pipeline::Context
+
+What a stage can ask about the result it's making. Nothing is exported
+by default; each is exported upon request, and is in Tooling's
+`:context`. New in v0.3.11.
+
+#### result_number
+
+```perl
+my $n = result_number;
+```
+
+Returns the number of the result being made, from 1: the run's
+results so far, plus one, a result being a value that leaves the last
+stage or reaches a sink. In a flush, the number of the first value it
+returns. Each run counts its own. Undef outside a run, and in an end.
+Exported upon request.
+
+See [Which result](#which-result-ekornpipelinecontext).
+
+#### result_original
+
+```perl
+my $original = result_original;
+```
+
+Returns the value the result is being made from, as the run's source
+gave it, or as it was pushed, before any stage changed it: the value
+itself, not a copy. Undef in a flush and the stages after it, for the
+values it gives, outside a run, and in an end. Exported upon request.
+
+See [Which result](#which-result-ekornpipelinecontext).
 
 ### Ekorn::Pipeline::CSV
 
@@ -4418,6 +4521,6 @@ See [Sugar of your own](#sugar-of-your-own).
 
 Exports what callers use to do work, from one place, by the names of
 the other modules' functions, or by tags that hold them: `:core`,
-`:flow`, `:batch`, `:taps`, `:stages`, `:sources`, `:sinks`, `:json`,
-`:csv`, `:words` and `:all` (see [Importing](#importing-ekornpipelinetooling)).
+`:flow`, `:batch`, `:taps`, `:stages`, `:context`, `:sources`,
+`:sinks`, `:json`, `:csv`, `:words` and `:all` (see [Importing](#importing-ekornpipelinetooling)).
 Nothing is exported by default. It has no names of its own.

@@ -564,8 +564,8 @@ as a stage that's neither a code reference nor a pipeline, or
 
 - [Ekorn::Pipeline::Tooling](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ATooling): everything below but the
 operators, from one module, by tags: `:core`, `:flow`, `:batch`,
-`:taps`, `:stages`, `:sources`, `:sinks`, `:json`, `:csv`,
-`:words` and `:all`.
+`:taps`, `:stages`, `:context`, `:sources`, `:sinks`, `:json`,
+`:csv`, `:words` and `:all`.
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
 `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`,
 `take_while` and `drop_while`, which pass values on by their position
@@ -576,6 +576,10 @@ which gather values and pass them on together.
 `dump_to` and `tee`, which look at each value and pass it on, for
 logging, counting and debugging; `tee` runs each through a branch of
 stages of your own, so a tap can be any pipeline.
+- [Ekorn::Pipeline::Context](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AContext): `result_number` and
+`result_original`, which a stage asks for the number of the result
+it's making, and the value it's being made from, as each run counts
+its results.
 - [Ekorn::Pipeline::Sources](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASources) and [Ekorn::Pipeline::Sinks](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASinks):
 the sources and sinks above.
 - [Ekorn::Pipeline::JSON](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AJSON): `from_json` and `to_json`, which

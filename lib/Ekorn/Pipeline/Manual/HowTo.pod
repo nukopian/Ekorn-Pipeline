@@ -258,6 +258,12 @@ B<Made in:> Ekorn::Pipeline::Stages::Taps
 
 B<What it gives you:> C<:flow>, C<:batch> and C<:taps>
 
+=item C<:context>
+
+B<What it gives you:> C<result_number> and C<result_original>
+
+B<Made in:> Ekorn::Pipeline::Context
+
 =item C<:sources>
 
 B<What it gives you:> C<from_array>, C<from_file>, C<from_fh> and C<counter>
@@ -1491,6 +1497,34 @@ its header's names as the run's C<columns> the same way, so C<column>
 works on it unchanged (see "Read CSV, or TSV"). The shape is what
 matters: the source knows something about its values, and a stage
 anywhere in the pipeline can ask.
+
+=head2 Ask which result a stage is making, and from what
+
+Each run counts the results it makes, a result being a value that
+leaves the last stage, or reaches a sink, and keeps the value each is
+made from. A stage asks with C<result_number> and C<result_original>,
+from Ekorn::Pipeline::Context, which C<:all> gives you:
+
+    say for tracks(
+        take_if { $_->{plays} > 6000 },
+        sub { $_->{title} },
+        sub { result_number . ". $_, " . result_original->{plays} . ' plays' },
+    );
+    # 1. Dancing Queen, 9100 plays
+    # 2. Girls & Boys, 6100 plays
+    # 3. Sunshine of Your Love, 7700 plays
+
+The number counts results, not values: it stays the same while
+C<take_if> drops tracks, and each value a stage returns in place of one
+is a result of its own. The original is the value as it came in,
+before C<< sub { $_->{title} } >> made it a title, so a later stage can
+still reach the whole track. A flush's values have none: in a flush,
+and the stages after it, C<result_original> is undef. Each run counts
+its own, so a pipeline run inside a stage starts again from 1, and
+leaves its caller's count alone.
+
+Every run counts, whether its stages ask or not, at 15 to 75
+nanoseconds a value, so there's nothing to turn on.
 
 =head2 Write a producer as a loop with C<generator>
 
