@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [Ekorn::Pipeline::CSV: delimited files as sources and
+  sinks](2026-0049-csv.md), roadmap 2026-0049: open.
 - [tee: a tap that takes a pipeline](2026-0048-tee.md), roadmap
   2026-0048: shipped in v0.3.6.
 - [A run fed a value at a time](2026-0044-fed-runs.md), roadmap

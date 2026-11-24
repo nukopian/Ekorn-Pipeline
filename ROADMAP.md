@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0048.
+Last id: 2026-0049.
 
 Items come in four groups:
 
@@ -107,3 +107,14 @@ Syntax::Keyword::Dynamically or another way to be carried; and where
 an error is reported once the call has returned. Built on 2026-0043
 and 2026-0044, in a distribution of its own, designed first, with a
 prototype and cold reviews, as an epic change is.
+
+### 2026-0049. Ekorn::Pipeline::CSV: delimited files as sources and sinks
+
+Added 2026-11-24. **Size:** M (3).
+
+`from_csv` and `to_csv`, after Ekorn::Pipeline::JSON, so a CSV or TSV
+file is read or written with Text::CSV, opened for each run and closed
+at its end, and a row that won't parse is reported, not taken for the
+end of the file. It's the commonest source written by hand, and easy
+to get subtly wrong. Its questions, Text::CSV as a dependency among
+them, are open: [record](docs/changes/2026-0049-csv.md).
