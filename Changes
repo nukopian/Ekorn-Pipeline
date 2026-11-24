@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.13 2026-11-24
+
     A source can give the original its values were made from, such as
     the row a statement fetched, and result_original gives it, through
     chains of iterators too. So DBIx::Squirrel's result_original can

@@ -1,6 +1,6 @@
 # 2026-0052. A source's original, carried through chains
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.13
 
 **Decisions:** D1 settled: a source part, `original`, not a context
 key. D2 settled: called only when `result_original` is asked, with no
