@@ -3,8 +3,8 @@
 **Status:** open
 
 **Decisions:** D1 settled: the tee closes its branch in its end when
-the main run stopped, its flushes run, its ends told `done`. D2 open:
-a v0.4.0, or a fix in a v0.3.x.
+the main run stopped, its flushes run, its ends told `done`. D2 settled:
+a fix in a v0.3.x, with a message to DBIx-Squirrel.
 
 **Origin:** a message from DBIx-Squirrel's session, 2026-11-24
 (DBIx-Squirrel 7f79ef6dff98679f959b89c9c288c7fa82ae0ed2), taken from
@@ -54,7 +54,7 @@ runs in the tee's end: an end that dies tells every end after it
   branch: its ends are told `died`, as now. Keeping D5 and saying so
   in `tee`'s docs, DBIx-Squirrel's (b), was weighed: a writer in a
   branch shouldn't lose rows to a `take` further down.
-- [ ] **D2.** Which version? It reverses 2026-0048's D5 and changes
+- [x] **D2.** Which version? It reverses 2026-0048's D5 and changes
   what a stop does to a tee's branch, which
   [neighbours.md](../claude/neighbours.md) makes a v0.4.0, with a task
   for DBIx-Squirrel to test it and move its range, as DBIx-Squirrel
@@ -63,3 +63,9 @@ runs in the tee's end: an end that dies tells every end after it
   stage is likely to depend on losing them. Recommendation: a v0.3.x
   fix, with a message to DBIx-Squirrel, as its guide's advice holds
   either way; but the rule's words say v0.4.0, so it's Iain's call.
+  A fix in a v0.3.x, as recommended, Iain decided on 2026-11-24: what
+  changes is values lost without a word, which no stage would rely on,
+  so it's a fix to 2026-0048's D5, not a change users' stages depend
+  on. DBIx-Squirrel's range needn't move; the message tells it what
+  changed, so its guide and tests can say that a branch's flushes now
+  run after a stop.
