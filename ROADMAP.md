@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0051.
+Last id: 2026-0052.
 
 Items come in four groups:
 
@@ -45,23 +45,38 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0052. A source's original, carried through chains
+
+**Size:** S (2).
+
+A source may give an `original` part, beside `step`, `end` and
+`context`: a code reference returning the original of the value it
+gave last. `result_original` calls it, when the run's source gave one
+or an iterator read as a source passed one on, and otherwise gives the
+run's own kept original, as now; a flush's values have none, either
+way. So DBIx::Squirrel's statement source can carry its row through
+chains with Ekorn's `result_original`, which becomes its own, and the
+two Toolings can agree on the name (2026-0051). A v0.3.x. Done when
+the core reads the part, the tests show it through a source, the
+factory, an iterator read as a source, a flush and a feed, the docs
+say so, and DBIx-Squirrel has tested against `develop`. Its decisions
+are settled: [record](docs/changes/2026-0052-source-original.md).
 
 ## Later
 
 ### 2026-0051. Ekorn::Pipeline::Context's functions in Tooling, at v0.4.0
 
-**Size:** XS (1).
+**Size:** XS (1). **Depends on:** 2026-0052.
 
 Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
 in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and
 in `:all`, in the first v0.4.0, with a task for DBIx-Squirrel. Not
 before: DBIx-Squirrel v3.5.0's tests fail when both Toolings export
 different subs by one name, and its range takes every v0.3.x. From
-its v3.6.0, DBIx::Squirrel exports Ekorn's own `result_number`, but its
-`result_original` stays its own, carrying a statement's row through
-chains, so the two Toolings will still differ there: the task says so.
-Done when Tooling, its test, the reference, the how-to, the README and
+its v3.6.0, DBIx::Squirrel exports Ekorn's own `result_number`; once
+2026-0052 lets its source carry its row through chains, its
+`result_original` becomes Ekorn's own too, so the two Toolings agree
+on both. Done when Tooling, its test, the reference, the how-to, the README and
 Context's POD say so. From 2026-0046's D5
 ([record](docs/changes/2026-0046-context.md)).
 

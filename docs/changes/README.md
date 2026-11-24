@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A source's original, carried through
+  chains](2026-0052-source-original.md), roadmap 2026-0052: open.
 - [A stop after a tee closes its branch](2026-0050-tee-after-a-stop.md),
   roadmap 2026-0050: shipped in v0.3.10.
 - [Ekorn::Pipeline::CSV: delimited files as sources and
