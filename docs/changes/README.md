@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A stop after a tee closes its branch](2026-0050-tee-after-a-stop.md),
+  roadmap 2026-0050: open.
 - [Ekorn::Pipeline::CSV: delimited files as sources and
   sinks](2026-0049-csv.md), roadmap 2026-0049: open.
 - [tee: a tap that takes a pipeline](2026-0048-tee.md), roadmap
