@@ -1,6 +1,6 @@
 # 2026-0051. Ekorn::Pipeline::Context's functions in Tooling
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.15
 
 **Decisions:** D1 settled: a v0.3.x, not the v0.4.0 first planned. D2
 settled: a `:context` tag, and in `:all`.

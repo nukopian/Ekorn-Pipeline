@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.15 2026-11-24
+
     Ekorn::Pipeline::Tooling exports result_number and result_original,
     in :context and :all, as DBIx::Squirrel::Tooling does the same
     functions from its v3.6.1.
