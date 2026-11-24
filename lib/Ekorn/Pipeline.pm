@@ -831,6 +831,13 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     # loop pushes them onto it, with no return between values. Otherwise,
     # the loop returns the next value.
     my $into;
+    # Where all collects it, the values after the first that the last
+    # part returns at once, a list sink's result above all, kept to go
+    # into @$into straight after the first, in order, rather than each
+    # wrapped and waiting on @todo: past the last part, nothing more is
+    # done to them. Only while all collects, as $next gives one at a
+    # time.
+    my @straight;
     my $next = sub () {
         return if $outside;
         local $CURRENT_RESULT = \@result;
@@ -921,7 +928,10 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     $n++;
                     $kept  = @values;
                     $value = shift @values;
-                    $wait->($n, 1, @values) if @values;
+                    if (@values) {
+                        if ($into && $n == @stages) { @straight = @values }
+                        else                        { $wait->($n, 1, @values) }
+                    }
                 }
                 while ($kept && $n < @stages) {
                     local $_ = $value;
@@ -936,7 +946,10 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                         last;
                     }
                     $value = shift @values;
-                    $wait->($n, $from_flush, @values) if @values;
+                    if (@values) {
+                        if ($into && $n == @stages) { @straight = @values }
+                        else                        { $wait->($n, $from_flush, @values) }
+                    }
                 }
             }
             catch ($e) {
@@ -970,6 +983,10 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                 $end_if_ended->() if $done;
                 return $value     unless $into;
                 push @$into, $value;
+                if (@straight) {
+                    $result[0] += @straight;
+                    push @$into, splice @straight;
+                }
             }
         }
         # Everything has been handed out: the iterator is spent.
@@ -1039,6 +1056,11 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
     # through the steps from the first, are held as they came.
     my(@todo, @from_source);
     my($done, $source_done, $finished, $outside, $ended, $spent, $dropped, $into);
+    # Where all collects it, the values after the first that the last step
+    # returns at once, kept to go into @$into straight after the first,
+    # rather than each wrapped and waiting on @todo, as _full_iterator's
+    # are.
+    my @straight;
     # The run's results so far, the original of the value going through
     # the steps, and the source's original part, if it gave one, for
     # Ekorn::Pipeline::Context, the current result while $next runs; a
@@ -1135,8 +1157,12 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
                             last;
                         }
                         $value = shift @values;
-                        push @todo, map { [$n, $_, $result[1]] } reverse @values
-                            if @values;
+                        if (@values) {
+                            if ($into && $n == @steps) { @straight = @values }
+                            else {
+                                push @todo, map { [$n, $_, $result[1]] } reverse @values;
+                            }
+                        }
                     }
                 }
                 catch ($e) {
@@ -1168,6 +1194,10 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
             $result[0]++;
             return $value unless $into;
             push @$into, $value;
+            if (@straight) {
+                $result[0] += @straight;
+                push @$into, splice @straight;
+            }
         }
         # Everything has been handed out: the iterator is spent.
         $spent = 1;

@@ -2,6 +2,25 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A list sink, such as keep_all, is about a quarter quicker read by
+    an iterator's all, and over a third quicker pushed, as DBIx-Squirrel
+    found it the slowest way to read every row.
+
+    It ships no roadmap item, and changes nothing a run gives: only how
+    fast all collects it.
+
+    - Where an iterator's all, or a pushed run, collects a run's
+      values, the values after the first that the last part gives at
+      once, a list sink's result, a last gather's flush, or a last
+      stage returning several, go straight to what it returns, in
+      order, rather than each wrapped and queued, then taken off the
+      queue one at a time, as the run's next still does. Through one
+      stage that does nothing, 300,000 values, on Perl 5.36 and 5.44:
+      keep_all read by all, 1,105 to 845 ns a value, and 1,186 to 914;
+      pushed, 1,000 to 625, and 1,090 to 660; a last stage returning
+      three values, 1,625 to 1,180, and 1,762 to 1,285. Runs that don't
+      cost the same.
+
 v0.3.13 2026-11-24
 
     A source can give the original its values were made from, such as
