@@ -170,5 +170,17 @@ Done as planned, on 2026-11-24.
 - The how-to's example prints its output from a line of its own, as
   `xt/howto.t` reads the comments after a line that prints.
 
-DBIx-Squirrel's test against `develop` is a task sent with this
-commit's hash; the release waits for its answer.
+DBIx-Squirrel's test against `develop`, at
+1bce895f7d3b2eecc387416991514ab99536ed89 (its message of 2026-11-24,
+DBIx-Squirrel 8bc9700074a4bb8ce78e8ea64c9627a9f091e5fd): its whole
+suite passed as it is, MySQL and PostgreSQL included, on 5.36 to 5.44,
+and so did its v3.5.0 and v3.6.0 as released. With its statement
+source giving `original => sub { $context->{row} }` and its
+`result_original` as Ekorn's own, its tests passed on every Perl, and
+its row reached every pipeline in a chain as its own `result_original`
+gives it today: its iterator's stages, a chain made with `|`, a user's
+pipeline reading its iterator, two deep, a result set's row object;
+undef in a flush and outside a run. A stage reading `result_original`
+each row was 229 to 270 ns a row quicker, 12 to 14%, on 5.36 and 5.44,
+as its own asked the run's context each call; a stage that doesn't
+read it cost the same.
