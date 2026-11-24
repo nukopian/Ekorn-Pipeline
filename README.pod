@@ -590,9 +590,9 @@ C<take(-1)>, is also reported at the caller's line.
 =over
 
 =item * L<Ekorn::Pipeline::Tooling>: everything below but the
-operators, from one module, by tags: C<:core>, C<:flow>, C<:batch>,
-C<:taps>, C<:stages>, C<:context>, C<:sources>, C<:sinks>, C<:json>,
-C<:csv>, C<:words> and C<:all>.
+operators and Context's functions, from one module, by tags:
+C<:core>, C<:flow>, C<:batch>, C<:taps>, C<:stages>, C<:sources>,
+C<:sinks>, C<:json>, C<:csv>, C<:words> and C<:all>.
 
 =item * L<Ekorn::Pipeline::Stages::Flow>: C<take>, C<drop>,
 C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<drop_if>,

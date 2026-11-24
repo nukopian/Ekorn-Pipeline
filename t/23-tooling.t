@@ -17,7 +17,6 @@ my %module = (
     flow    => ['Ekorn::Pipeline::Stages::Flow'],
     batch   => ['Ekorn::Pipeline::Stages::Batch'],
     taps    => ['Ekorn::Pipeline::Stages::Taps'],
-    context => ['Ekorn::Pipeline::Context'],
     sources => ['Ekorn::Pipeline::Sources'],
     sinks   => ['Ekorn::Pipeline::Sinks'],
     json    => ['Ekorn::Pipeline::JSON'],

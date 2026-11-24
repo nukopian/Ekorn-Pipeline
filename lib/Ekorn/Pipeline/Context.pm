@@ -62,7 +62,10 @@ L<Ekorn::Pipeline/run_context>, and whether the stages are handling a
 flush's values with L<Ekorn::Pipeline/ending>.
 
 It's new in v0.3.11. Nothing is exported by default; C<:all> gives
-both, and L<Ekorn::Pipeline::Tooling> gives both in C<:context>.
+both. L<Ekorn::Pipeline::Tooling> doesn't export them in v0.3.x, as
+DBIx::Squirrel::Tooling exports functions of the same names, built on
+these, and a program importing both would get one or the other: import
+them from here.
 
 =head1 FUNCTIONS
 

@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0050.
+Last id: 2026-0051.
 
 Items come in four groups:
 
@@ -48,6 +48,19 @@ Nothing yet.
 Nothing yet.
 
 ## Later
+
+### 2026-0051. Ekorn::Pipeline::Context's functions in Tooling, at v0.4.0
+
+**Size:** XS (1).
+
+Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
+in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and
+in `:all`, in the first v0.4.0, with a task for DBIx-Squirrel. Not
+before: DBIx-Squirrel v3.5.0's tests fail when both Toolings export
+different subs by one name, and its range takes every v0.3.x. Done
+when Tooling, its test, the reference, the how-to, the README and
+Context's POD say so. From 2026-0046's D5
+([record](docs/changes/2026-0046-context.md)).
 
 ## Ideas
 

@@ -27,8 +27,10 @@ Unreleased
       for an iterator's next. Less through stages that do work. Roadmap
       2026-0046's record has the measurements, and why every run
       counts.
-    - Ekorn::Pipeline::Tooling exports both in :context, the name of
-      DBIx::Squirrel::Tooling's tag for its own, and in :all.
+    - Ekorn::Pipeline::Tooling doesn't export them, in v0.3.x:
+      DBIx::Squirrel::Tooling exports functions of the same names, and
+      DBIx-Squirrel v3.5.0's tests fail if both export different subs
+      by one name. Import them from Ekorn::Pipeline::Context.
     - The reference has a section on them, and the how-to a recipe.
 
 v0.3.10 2026-11-24
