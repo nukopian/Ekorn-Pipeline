@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.11 2026-11-24
+
     Ekorn::Pipeline::Context tells a stage which result it's making,
     and from what: each run counts its results, and keeps the value
     each is made from, so a stage can number what it gives, or reach

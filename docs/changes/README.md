@@ -91,7 +91,7 @@ Newest id first.
 - [CI installs only what each job needs](2026-0047-ci-installs.md),
   roadmap 2026-0047: shipped.
 - [Ekorn::Pipeline::Context](2026-0046-context.md), a message from
-  DBIx-Squirrel, roadmap 2026-0046: shipped, unreleased.
+  DBIx-Squirrel, roadmap 2026-0046: shipped in v0.3.11.
 - [A pushed gather takes the plain loop](2026-0041-pushed-gathers.md),
   roadmap 2026-0041: shipped in v0.3.5.
 - [A run's set-up, halved](2026-0040-plain-runs.md), a TODO task from
