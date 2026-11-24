@@ -1,6 +1,6 @@
 # 2026-0052. A source's original, carried through chains
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: a source part, `original`, not a context
 key. D2 settled: called only when `result_original` is asked, with no
@@ -15,6 +15,8 @@ ahead of 2026-0051.
 (DBIx-Squirrel 3c02a4377ce8ea279de9f6fae6d6c3db71dd7aa2), and its
 answers to Ekorn's design, passed on by Iain the same day
 (DBIx-Squirrel d59ec732506e2f031a613cd7392fc957802ceee7)
+
+**Started:** 2026-11-24
 
 ## Background
 
@@ -98,3 +100,44 @@ agreed, in the answers Iain passed on.
   adds, and a source without the part runs as now. DBIx::Squirrel's
   `result_original` can then become Ekorn's own early, and 2026-0051
   puts both names in Tooling with no clash.
+
+## The plan
+
+**What:** D1 to D7. `_source_run` takes a fourth part, `original`, by
+name or fourth in a list, and croaks with a message of its own,
+"Expected the source's original to be a code reference", if it's
+something else; the message for a bad step or end stays as it is, as
+messages are behaviour DBIx::Squirrel depends on. The part travels in
+the run's hash, `$run{original}`, so the iterators take no more
+arguments, and into the run's `@result`, as a third slot, set once a
+run. `result_original` gives undef while `ending` is true, a flush's
+values; otherwise the part's answer, if there's one, or the run's own
+kept original. An iterator keeps its run's source's part, and its
+`EKORN_SOURCE` passes it on beside its context.
+
+**Why:** the background: one `result_original` for Ekorn and
+DBIx::Squirrel, so 2026-0051 can put it in Tooling.
+
+**Steps:**
+
+1. Tests, in `t/33-source-original.t`: a source giving the part by
+   name, in a list, from the factory and from a class's own
+   `EKORN_SOURCE`; through one iterator read as a source and through
+   two; no part, as now; a flush and the stages after it; a feed and
+   a tee's branch, unchanged; the part not called until asked; a part
+   that isn't a code reference croaking at the caller's line; and the
+   feature nested in itself, a stage reading an iterator of the same
+   pipeline over a source with a part.
+2. The core, Iterator, and Source's, Factories' and Context's POD.
+3. The reference: the source's parts, "Which result", the index and
+   the diagnostics; the how-to's recipe; the manuals; `Changes`.
+4. Measure a run that never asks, against v0.3.12, as 2026-0046 did:
+   nothing per value is added, so it should be the same.
+5. A task for DBIx-Squirrel to test against `develop`, its source
+   giving the part, before the v0.3.x is released.
+
+**Done when:** the tests pass on 5.36 to 5.44, coverage holds its
+floors, step 4 shows no cost per value, and DBIx-Squirrel's message
+says its suite passes against `develop`.
+
+## What happened
