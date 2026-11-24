@@ -49,16 +49,6 @@ Nothing yet.
 
 ## Later
 
-### 2026-0050. A stop after a tee closes its branch
-
-**Size:** S (2).
-
-When a run stops after a `tee`, such as at a `take`, the tee closes its
-branch, so the branch's flushes run and a writer in it keeps the rows
-it holds, which are dropped today. From DBIx-Squirrel's message of
-2026-11-24. Which version it needs is open:
-[record](docs/changes/2026-0050-tee-after-a-stop.md).
-
 ### 2026-0046. Ekorn::Pipeline::Context: result_number and result_original
 
 **Size:** M (3).

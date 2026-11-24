@@ -1686,13 +1686,20 @@ their state across them; each main run gets a fresh branch.
   the branch: once the main run's values have run out, before the
   stages after the tee are flushed. A total, a last batch or a sink's
   result is given then, as below. If a stop after the tee ends the
-  main run, the tee's flush isn't called, so neither are the branch's.
+  main run first, such as `take`'s or an iterator's `first`, the tee's
+  flush isn't called, so the tee closes the branch in its end: a stop
+  ends the branch's input as much as running out would, so a writer in
+  the branch keeps what it holds. That's new in v0.3.10; before, the
+  branch's flushes weren't called, and what they held was lost. A
+  branch's flush that dies there kills the run, as an end that dies
+  does.
 - **The branch's ends** are called as its run ends, each told how it
   ended from where it stands: in the push that met a stop or a death
-  in the branch; in the tee's flush, which closes it; or, if the main
-  run ended before either, in the tee's end, told `stopped`, as the
-  branch's input was cut short. That's so even when the main run died,
-  as it is for an iterator read as a source by a run that dies.
+  in the branch; or as the tee closes it, in its flush or its end. If
+  the main run died, the tee's end doesn't close the branch, but
+  finishes it, its flushes not called, and its ends told `stopped`, as
+  the branch's input was cut short, as they are for an iterator read
+  as a source by a run that dies.
 - **The value itself** goes into the branch, not a copy, as it goes to
   `peek`'s block. A branch that changes a hash changes it for the main
   run too.
@@ -1721,7 +1728,7 @@ say "@values; total $total";    # 2 4 6 8; total 10
 
 Each value costs a push into the branch: about 1.3 microseconds a
 value through a branch of one plain stage, against `peek`'s 0.4, on
-Perl 5.36. A tee has a flush, and an end, only if its branch needs
+Perl 5.36. A tee has a flush and an end only if its branch needs
 them, so a branch of plain stages leaves the main run on the plain
 loop. A branch with a flush, such as `batch`'s, puts the main run on
 the full path, and costs about 2.2 microseconds a value. It's for

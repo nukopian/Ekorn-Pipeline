@@ -2471,7 +2471,11 @@ package My::Stages::Tee {
                     $feed->close unless defined $feed->ended;
                     return;
                 },
-                sub ($how) { $feed->finish },
+                sub ($how) {
+                    return if defined $feed->ended;
+                    $how eq 'died' ? $feed->finish : $feed->close;
+                    return;
+                },
             );
         };
     }
@@ -2501,9 +2505,12 @@ track, and the main run went on; the second branch's `collect` gave
 its total when the main run's values ran out. A branch that stops
 ends only itself, as the tee checks `ended` before each push; one that
 dies kills the main run, as any stage's error does. Its ends are
-called as its run ends: at a stop or a death in it, when the flush
-closes it, or, if the main run ended first, when the end's `finish`
-tells it that it stopped. Ekorn's `tee` works just so.
+called as its run ends: at a stop or a death in it, or when the flush
+closes it. If a stop after the tee ended the main run first, the
+flush isn't called, so the end closes the branch, and a branch
+holding values, such as a `batch`, still gives them; if the main run
+died, the end's `finish` tells the branch that it stopped. Ekorn's
+`tee` works just so.
 
 ### Run each key's values through a run of their own
 

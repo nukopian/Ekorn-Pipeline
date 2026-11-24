@@ -1,6 +1,6 @@
 # 2026-0050. A stop after a tee closes its branch
 
-**Status:** open
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: the tee closes its branch in its end when
 the main run stopped, its flushes run, its ends told `done`. D2 settled:
@@ -9,6 +9,10 @@ a fix in a v0.3.x, with a message to DBIx-Squirrel.
 **Origin:** a message from DBIx-Squirrel's session, 2026-11-24
 (DBIx-Squirrel 7f79ef6dff98679f959b89c9c288c7fa82ae0ed2), taken from
 this repository's `TODO.md` (6f95a2d249eaa3a1f58b6018d3e8a9b965ee165f)
+
+**Started:** 2026-11-24
+
+**Finished:** 2026-11-24
 
 ## Background
 
@@ -69,3 +73,48 @@ runs in the tee's end: an end that dies tells every end after it
   on. DBIx-Squirrel's range needn't move; the message tells it what
   changed, so its guide and tests can say that a branch's flushes now
   run after a stop.
+
+## The plan
+
+**What:** in `tee`'s end, a branch still open is closed, unless the
+main run died, when it's finished as now. A tee whose branch has a
+flush but no end gets an end too, as it's the end that closes it.
+
+**Why:** D1: a writer in a branch shouldn't lose rows to a `take`
+further down.
+
+**Steps:**
+
+1. Change the end `tee` returns in `lib/Ekorn/Pipeline/Stages/Taps.pm`.
+2. In `t/29-tee.t`, the branch's ends are told `done` after a stop or
+   a finish, and new tests: DBIx-Squirrel's example, an iterator's
+   `first`, a main run that dies, a tee in a branch the stop ends, and
+   a branch's flush that dies in the tee's end.
+3. `tee`'s POD, the reference and the how-to's hand-built tee say so;
+   the manuals remade; `Changes`.
+4. A message to DBIx-Squirrel, as D2 says, once it's pushed.
+
+**Done when:** DBIx-Squirrel's example writes `[1 2]` and `[3]`, the
+tests pass on 5.36 to 5.44, and coverage holds its floors.
+
+## What happened
+
+Done as planned, on 2026-11-24, in one commit with the plan.
+
+- DBIx-Squirrel's example now passes 1, 2 and 3 on, and the branch
+  writes `[1 2]` then `[3]`. An iterator's `first` writes `[1]`.
+- A branch's flush that dies in the tee's end fails the run as any end
+  that dies does: `Pipeline end of stage #1 failed`, with the branch's
+  stage within it. `_end_all` needed nothing new, as the Background
+  expected.
+- A tee in a branch that a stop ends is closed by its own end, as the
+  branch's ends run, so the rule holds at every depth.
+- D1 says a main run that died leaves the branch's ends told `died`,
+  "as now". They were, and are, told `stopped`: the tee's end
+  finishes the branch, which tells each end how it stands, its input
+  cut short. That's kept, and the docs say `stopped`, as they did.
+- The end is called once the main run has ended, so the branch's
+  flushes run after every flush of the main run, and after the ends of
+  the stages before the tee, rather than in the main run's flush
+  order: what the branch gives is dropped, so nothing sees the
+  difference but the order of side effects.

@@ -5,9 +5,11 @@ Unreleased
     Ekorn::Pipeline::CSV reads and writes CSV and TSV files, as JSON's
     module does JSON: a source or a sink given a file, and a stage
     given neither, with Text::CSV, which Ekorn recommends rather than
-    requires.
+    requires. And a stop after a tee no longer loses what the tee's
+    branch holds.
 
-    It ships roadmap 2026-0049. It only adds.
+    It ships roadmap 2026-0049 and 2026-0050. It adds, and fixes one
+    thing.
 
     - Ekorn::Pipeline::CSV: from_csv and to_csv. Rows are arrays, or
       hashes keyed by a header, whose names, munged if asked, as
@@ -22,6 +24,14 @@ Unreleased
     - Ekorn::Pipeline::Tooling exports both in :csv, and in :all.
     - The reference and the how-to describe them, and the how-to's
       "Tell the stages about the run" points to from_csv.
+    - Fixed: when a stop after a tee, such as take's or an iterator's
+      first, ended the main run, the tee's branch was told it stopped,
+      and its flushes weren't called, so what they held, such as a
+      batch's last rows bound for a writer, was lost without a word.
+      The tee now closes its branch in its end, so its flushes run and
+      its ends are told done. A main run that dies still only finishes
+      it. A tee whose branch has a flush now has an end too.
+      (roadmap 2026-0050)
 
 v0.3.9 2026-11-23
 
