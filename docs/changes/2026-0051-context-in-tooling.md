@@ -89,5 +89,16 @@ Done as planned, on 2026-11-24.
   from its tag, pass against the working copy, run with `prove`.
 - Every check passed on 5.36 to 5.44, with coverage at its floors.
 
-DBIx-Squirrel's test against `develop` is a task sent after this
-commit; the release waits for its answer.
+DBIx-Squirrel's test against `develop`, at
+3f18f252191f19ecaa6969e92d0598cf7fe5094b (its message of 2026-11-24,
+DBIx-Squirrel f1f048430a390b5cf88a09ad219850c41d312fd7): its
+`develop`, v3.6.1's code, passed its whole suite, MySQL and PostgreSQL
+included, on 5.36 to 5.44, and v3.6.1 as released passed on 5.36 and
+5.44. As expected, v3.6.0 and v3.5.0 from their tags fail their
+`t/28-tooling.t`, so installing either by name beside v0.3.15 is
+refused by its tests; v3.6.1, which CPAN's index gives, installs. Iain
+chose to release it as built, both names in `:context` and `:all`,
+rather than keep them out of `:all` to spare the older releases.
+DBIx-Squirrel keeps its 2026-0047, reworded, to take Ekorn's first
+v0.4.0, whenever there is one; a task from here then starts it, as
+docs/MAINTAINING.md has for any v0.4.0.
