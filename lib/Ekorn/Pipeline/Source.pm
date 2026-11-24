@@ -12,9 +12,9 @@ use namespace::clean;
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a source made afresh for each run by the set-up given, which
-# returns the source's step and, optionally, its end and a context for
-# the run. Called directly, it croaks: a run of its own would never be
-# ended, so what it opened would stay open.
+# returns the source's step and, optionally, its end, a context for the
+# run, and an original. Called directly, it croaks: a run of its own
+# would never be ended, so what it opened would stay open.
 sub new ($class, $setup) {
     croakf 'Expected a code reference' unless is_coderef($setup);
     return bless {
@@ -25,7 +25,7 @@ sub new ($class, $setup) {
 
 
 # Return what the set-up returns for a new run: the step, and
-# optionally the end and a context.
+# optionally the end, a context and an original.
 sub EKORN_SOURCE ($self) {
     return $self->{setup}->();
 }

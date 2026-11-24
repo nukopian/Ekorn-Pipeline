@@ -95,7 +95,7 @@ returns in place of one, and each a stop carries, has the original of
 the value it was made from. In a flush, and the stages after it, the
 values a flush gives have none, so it's undef. For a run reading an
 iterator, it's the value the iterator handed out, not that iterator's
-own original.
+own original, unless the source says otherwise, as follows.
 
 A source can say better, by giving an I<original> part, as
 L<Ekorn::Pipeline::Source> describes: a statement's source, for

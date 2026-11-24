@@ -817,7 +817,7 @@ B<Its block:> a set-up, returning the step, and, optionally, the flush and the e
 
 B<Makes:> a Source
 
-B<Its block:> a set-up, returning the step, and, optionally, the end and a context
+B<Its block:> a set-up, returning the step, and, optionally, the end, a context and an original
 
 =item C<generator {...}>
 
@@ -4448,12 +4448,15 @@ See L<sink_one and sink_many|/"sink_one and sink_many">.
     my $source = source { ...; return ($step, $end) };
     my $source = source { ...; return $step };
     my $source = source { ...; return {step => $step, context => $context} };
+    my $source = source { ...; return {step => $step, original => $original} };
 
 Returns a Source, made for each run by its block, a set-up returning
 its step, called with nothing, giving the next value or values, or an
 empty list when there are no more; optionally, its end, told how the
-run ended; and, optionally, a context, which its stages ask for with
-C<run_context>. It croaks "Expected a code reference" if it's given
+run ended; optionally, a context, which its stages ask for with
+C<run_context>; and, optionally, an original, returning the original of
+the value it gave last, which C<result_original> gives (new in
+v0.3.13). It croaks "Expected a code reference" if it's given
 something other than a block or code reference. Exported upon request.
 
 See L<source|/"source">.

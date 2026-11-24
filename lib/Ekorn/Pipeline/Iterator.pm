@@ -267,7 +267,8 @@ is told how it ended from where that part stands, which may differ.
 
 Returns the iterator as a source's parts, by name, as L</An iterator as
 a source> describes: a C<step> pulling it, an C<end> finishing it, its
-run's C<context>, and its run's source's C<original>, if it had one. A run calls it as it starts; you needn't.
+run's C<context>, and its run's source's C<original>, if it had one. A
+run calls it as it starts; you needn't.
 
 =head1 DIAGNOSTICS
 

@@ -706,7 +706,8 @@ sub _set_up_died ($pipeline, $run, $source_end, $error) {
 
 
 # Return an iterator of a run that isn't plain, made by _iterator or
-# _pushed, from its source's step, end and context.
+# _pushed, from its source's step, end and context, and the original
+# part, if any, in %$run.
 #
 # The run ends as soon as nothing in it can still act on a value: the
 # source has run out or stopped, every flush has been called, and every

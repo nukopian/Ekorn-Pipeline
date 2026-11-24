@@ -569,7 +569,7 @@ Each is new in v0.3.0.
 | `pipeline(@stages)` | a pipeline | (takes a list) |
 | `stage {...}` | a Stage | the stage itself |
 | `gather {...}` | a Gather | a set-up, returning the step, and, optionally, the flush and the end |
-| `source {...}` | a Source | a set-up, returning the step, and, optionally, the end and a context |
+| `source {...}` | a Source | a set-up, returning the step, and, optionally, the end, a context and an original |
 | `generator {...}` | a Source | a block, called once each run, giving every value it passes to `yield` |
 | `sink_one {...}` | a Sink of one | a set-up, returning the step, the flush, giving the result, one value, and, optionally, the end |
 | `sink_many {...}` | a Sink of many | the same, its flush giving a list |
@@ -3565,13 +3565,16 @@ my $source = source { ...; return ($step, $end, $context) };
 my $source = source { ...; return ($step, $end) };
 my $source = source { ...; return $step };
 my $source = source { ...; return {step => $step, context => $context} };
+my $source = source { ...; return {step => $step, original => $original} };
 ```
 
 Returns a Source, made for each run by its block, a set-up returning
 its step, called with nothing, giving the next value or values, or an
 empty list when there are no more; optionally, its end, told how the
-run ended; and, optionally, a context, which its stages ask for with
-`run_context`. It croaks "Expected a code reference" if it's given
+run ended; optionally, a context, which its stages ask for with
+`run_context`; and, optionally, an original, returning the original of
+the value it gave last, which `result_original` gives (new in
+v0.3.13). It croaks "Expected a code reference" if it's given
 something other than a block or code reference. Exported upon request.
 
 See [source](#source).

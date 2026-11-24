@@ -188,11 +188,11 @@ Ekorn::Pipeline::Gather exports.
 Returns a source made afresh for each run. Its set-up returns its
 step, called with nothing, again and again, giving the next value or
 values, or an empty list when there are no more; optionally, its end,
-told how the run ended; optionally, a context for the run, which
-its stages ask for with L<Ekorn::Pipeline/run_context>; and,
-optionally, an original, returning the original of the value it gave
-last, which L<Ekorn::Pipeline::Context/result_original> gives. With a
-context but no end, give C<undef> for the end, or return the parts by name, as
+told how the run ended; optionally, a context for the run, which its
+stages ask for with L<Ekorn::Pipeline/run_context>; and, optionally,
+an original, returning the original of the value it gave last, which
+L<Ekorn::Pipeline::Context/result_original> gives. With a context but
+no end, give C<undef> for the end, or return the parts by name, as
 L<Ekorn::Pipeline/Made for a run> describes. It's an
 L<Ekorn::Pipeline::Source>.
 
