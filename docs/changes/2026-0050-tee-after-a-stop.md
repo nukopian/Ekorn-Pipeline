@@ -1,6 +1,6 @@
 # 2026-0050. A stop after a tee closes its branch
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.3.10
 
 **Decisions:** D1 settled: the tee closes its branch in its end when
 the main run stopped, its flushes run, its ends told `done`. D2 settled:

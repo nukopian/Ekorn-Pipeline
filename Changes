@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.10 2026-11-24
+
     Ekorn::Pipeline::CSV reads and writes CSV and TSV files, as JSON's
     module does JSON: a source or a sink given a file, and a stage
     given neither, with Text::CSV, which Ekorn recommends rather than
