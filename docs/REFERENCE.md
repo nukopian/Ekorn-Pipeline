@@ -2220,6 +2220,11 @@ my @titles = Ekorn::Pipeline->new(
 )->(@tracks);    # Dancing Queen, Girls & Boys, Sunshine of Your Love
 ```
 
+- **A bare call is a term,** as a constant is: each takes no
+  arguments, and has an empty prototype, so `result_number + 1` adds
+  one, and `result_original // 'none'` gives `'none'` where there's
+  none. In v0.3.11, `result_number + 1` died with "Too many
+  arguments".
 - **A value dropped makes no result,** so the number stays the same
   while a stage drops values.
 - **Each value a stage returns in place of one is a result of its

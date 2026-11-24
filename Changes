@@ -2,6 +2,19 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A fix to v0.3.11's Ekorn::Pipeline::Context: its functions now
+    parse as terms, as DBIx-Squirrel found they didn't.
+
+    It ships no roadmap item, and only fixes.
+
+    - Fixed: result_number and result_original had no prototype, as
+      the () of a sub under use v5.36 is a signature, not one. So a
+      bare call took what followed as its arguments: result_number + 1
+      died with "Too many arguments", and result_number // 'none'
+      began a pattern. Each now has an empty prototype too, as
+      DBIx::Squirrel's functions of the same names have, so its
+      Context can export Ekorn's own.
+
 v0.3.11 2026-11-24
 
     Ekorn::Pipeline::Context tells a stage which result it's making,

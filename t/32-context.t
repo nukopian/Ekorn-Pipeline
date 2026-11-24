@@ -81,6 +81,16 @@ subtest 'what is exported' => sub {
         [qw(result_number result_original)], 'both on request';
 };
 
+subtest 'a bare call is a term, as each has an empty prototype' => sub {
+    is prototype(\&result_number),   '',     'result_number';
+    is prototype(\&result_original), '',     'result_original';
+    is result_number // 'none',      'none', "so // after one isn't a pattern";
+    is [$class->new(sub { result_number + 1 })->(qw(a b))], [2, 3],
+        'and + 1 after one adds, not passes it +1';
+    is [$class->new(sub { result_original // 'none' })->(qw(a b))], [qw(a b)],
+        'result_original too';
+};
+
 subtest 'undef outside a stage' => sub {
     is result_number,   undef, 'result_number';
     is result_original, undef, 'result_original';

@@ -69,6 +69,12 @@ them from here.
 
 =head1 FUNCTIONS
 
+Each takes no arguments, and has an empty prototype, so a bare call is
+a term, as a constant is: C<result_number + 1> adds one, and
+C<result_original // 'none'> gives C<'none'> where there's none. In
+v0.3.11, they had no prototype, so C<result_number + 1> died with "Too
+many arguments", and C<//> after either began a pattern.
+
 =head2 result_number
 
     my $n = result_number;

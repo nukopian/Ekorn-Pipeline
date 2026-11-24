@@ -381,13 +381,16 @@ sub run_context () {
 
 # Ekorn::Pipeline::Context's functions, defined here, as they read
 # $CURRENT_RESULT, which is this file's to set; that module exports and
-# documents them.
-sub Ekorn::Pipeline::Context::result_number () {
+# documents them. Each has an empty prototype, as well as an empty
+# signature, so a bare call is a term: result_number + 1 adds, and
+# result_number // 'none' isn't read as a pattern. Under use v5.36, the
+# () alone is a signature, which leaves a sub without a prototype.
+sub Ekorn::Pipeline::Context::result_number : prototype() () {
     return $CURRENT_RESULT ? $CURRENT_RESULT->[0] + 1 : undef;
 }
 
 
-sub Ekorn::Pipeline::Context::result_original () {
+sub Ekorn::Pipeline::Context::result_original : prototype() () {
     return $CURRENT_RESULT ? $CURRENT_RESULT->[1] : undef;
 }
 

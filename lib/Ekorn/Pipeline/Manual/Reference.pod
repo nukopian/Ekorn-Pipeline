@@ -2624,6 +2624,14 @@ pushed, before any stage changed it:
 
 =item *
 
+B<A bare call is a term,> as a constant is: each takes no
+arguments, and has an empty prototype, so C<result_number + 1> adds
+one, and C<result_original // 'none'> gives C<'none'> where there's
+none. In v0.3.11, C<result_number + 1> died with "Too many
+arguments".
+
+=item *
+
 B<A value dropped makes no result,> so the number stays the same
 while a stage drops values.
 
