@@ -80,37 +80,3 @@ it's settled: in CI's job over the whole history, and in the scans by
 hand before a push and a tag that CLAUDE.md and docs/MAINTAINING.md
 give. gitleaks gets no new rules, so its scans will slowly miss the
 newer kinds of secret that only betterleaks finds.
-
-### 2026-0043. Work in flight, in order, inside a run
-
-Added 2026-11-16. **Size:** M (3).
-
-A stage, such as `in_flight($n, sub { ... })`, whose block starts the
-work for each value and returns a Future: up to `$n` at a time, their
-results passed on in the order the values came, the rest given up by
-its flush, and those still in flight cancelled by its end when the run
-stops or dies. So a caller can fetch or look up each value
-concurrently, beside the call, in any function that takes stages, with
-nothing of Ekorn's changed. Waiting needs an event loop that a Future
-can run while it waits, such as IO::Async's, or Mojo's through
-Future::Mojo. It needs Future, so it belongs in a distribution of its
-own, built on Ekorn's protocols, not in Ekorn's dependencies.
-
-### 2026-0045. Asynchronous runs
-
-Added 2026-11-16. **Size:** L (5), and likely to be split once
-designed. **Depends on:** 2026-0043, 2026-0044.
-
-A run that returns a Future of its results, from sources whose step
-may return a Future, read only as fast as the run takes values, so a
-paginated API, a streamed response or an async cursor is fetched as
-needed, and closed by its end however the run ends; with time-based
-stages, such as a batch by size or by time. The questions to settle
-first: a second run loop would have to keep the first's semantics
-exactly (the order ends run in, what Stop and Gather do, how errors
-are named); `run_context`, `ending` and `local $_` are dynamic scope,
-which doesn't survive an `await`, so they'd need
-Syntax::Keyword::Dynamically or another way to be carried; and where
-an error is reported once the call has returned. Built on 2026-0043
-and 2026-0044, in a distribution of its own, designed first, with a
-prototype and cold reviews, as an epic change is.
