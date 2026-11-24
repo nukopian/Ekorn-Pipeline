@@ -41,31 +41,21 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0049. Ekorn::Pipeline::CSV: delimited files as sources and sinks
 
 **Size:** M (3).
 
-What: Ekorn::Pipeline::CSV, exporting `from_csv` and `to_csv`, which
-Tooling exports too, in a `csv` tag, with Ekorn::Pipeline::JSON's
-options: `file`, `fh`, and `csv`, Text::CSV's options or a parser
-object. Text::CSV is recommended, not required, and loaded when one of
-them is first called. Rows are array references, or hash references
-keyed by the header with `header` true; a header that's read gives
-the run its names as context; a row that won't parse croaks, in a
-message of Ekorn's own; and given no file, `from_csv` is a stage
-parsing each value whole. Why: a delimited file is the commonest
-source written by hand, and easy to get subtly wrong; one reviewed on
-2026-11-24 read a header as data on its second run, and ended quietly
-at a row it couldn't parse. Done when: the module ships with its
-tests, run with Text::CSV and without it, keeping coverage above its
-floors; with its POD, DIAGNOSTICS, and sections in docs/REFERENCE.md
-and docs/HOWTO.md; with its line in `Changes`; and DBIx-Squirrel has a
-message naming the two new Tooling names. Its decisions are settled:
+`from_csv` and `to_csv`, after Ekorn::Pipeline::JSON: a CSV or TSV
+file read or written with Text::CSV, recommended rather than required,
+opened for each run and closed at its end; rows as arrays, or hashes
+keyed by a header, whose names, munged if asked, are the run's
+context; a row that won't parse reported, not taken for the end of
+the file. Started 2026-11-24, and to be proved on a real module of TSV sources:
 [record](docs/changes/2026-0049-csv.md).
+
+## Next
+
+Nothing yet.
 
 ## Later
 
