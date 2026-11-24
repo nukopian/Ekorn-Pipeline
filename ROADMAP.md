@@ -57,8 +57,11 @@ Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
 in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and
 in `:all`, in the first v0.4.0, with a task for DBIx-Squirrel. Not
 before: DBIx-Squirrel v3.5.0's tests fail when both Toolings export
-different subs by one name, and its range takes every v0.3.x. Done
-when Tooling, its test, the reference, the how-to, the README and
+different subs by one name, and its range takes every v0.3.x. From
+its v3.6.0, DBIx::Squirrel exports Ekorn's own `result_number`, but its
+`result_original` stays its own, carrying a statement's row through
+chains, so the two Toolings will still differ there: the task says so.
+Done when Tooling, its test, the reference, the how-to, the README and
 Context's POD say so. From 2026-0046's D5
 ([record](docs/changes/2026-0046-context.md)).
 
