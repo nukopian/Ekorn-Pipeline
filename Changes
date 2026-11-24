@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.3.12 2026-11-24
+
     A fix to v0.3.11's Ekorn::Pipeline::Context: its functions now
     parse as terms, as DBIx-Squirrel found they didn't.
 
