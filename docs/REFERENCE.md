@@ -42,6 +42,7 @@ says what each release changed.
 - [Sources: Ekorn::Pipeline::Sources](#sources-ekornpipelinesources)
 - [Sinks: Ekorn::Pipeline::Sinks](#sinks-ekornpipelinesinks)
 - [JSON: Ekorn::Pipeline::JSON](#json-ekornpipelinejson)
+- [CSV: Ekorn::Pipeline::CSV](#csv-ekornpipelinecsv)
 - [Operators: Ekorn::Pipeline::Operators](#operators-ekornpipelineoperators)
 - [Errors: Ekorn::Pipeline::Errors](#errors-ekornpipelineerrors)
 - [Writing stages](#writing-stages)
@@ -118,6 +119,7 @@ place, by tags that follow the modules that make it:
 | `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
 | `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
 | `:json` | `from_json`, `from_jsonl`, `to_json`, `to_jsonl` | [JSON](#json-ekornpipelinejson) |
+| `:csv` | `from_csv`, `to_csv` | [CSV](#csv-ekornpipelinecsv) |
 | `:words` | `pipeline`, `stage`, `gather`, `source`, `generator`, `yield`, `sink_one`, `sink_many` | [Factories](#words-ekornpipelinefactories) |
 | `:all` | all of the above | |
 
@@ -1913,6 +1915,74 @@ two at once. JSON.pm exports a `from_json` and a `to_json` of its own
 by default: a module using both imports one under another name, or
 calls it by its full name.
 
+## CSV: Ekorn::Pipeline::CSV
+
+Two functions, one for each direction, each making a different part by
+its options, as JSON's do: given a `file` or an `fh`, `from_csv` makes
+a source and `to_csv` a sink; given neither, each makes a stage. Each
+part is made afresh for each run, so a source read twice reads its
+header twice. Nothing is exported by default. Both are new in v0.3.10.
+
+```perl
+use Ekorn::Pipeline::CSV qw(from_csv to_csv);
+use Ekorn::Pipeline::Tooling qw(:csv);    # the same
+```
+
+Rows are array references of their fields, or, with a `header`, hash
+references keyed by its names. A header read from a file gives the
+run's context its `columns`, as DBIx::Squirrel's statements do, and
+`to_csv`'s `header => 1` writes them back, in their order:
+
+```perl
+my $written = Ekorn::Pipeline->new(
+    to_csv(file => 'tracks.csv', header => [qw(title artist plays)]),
+)->(@tracks);    # 6
+
+my @blur = Ekorn::Pipeline->new(sub { $_->{artist} eq 'Blur' ? $_->{title} : () })
+    ->iterator(from_csv(file => 'tracks.csv', header => 1))->all;
+say join ', ', @blur;    # Girls & Boys, Parklife, Country House
+
+my($copied) = Ekorn::Pipeline->new(
+    take_if { $_->{plays} > 6000 },
+    to_csv(file => 'hits.csv', header => 1),
+)->iterator(from_csv(file => 'tracks.csv', header => 1))->all;    # 3, under title,artist,plays
+```
+
+Given no file, `to_csv`'s stage passes on each row's line, without its
+end of line, and `from_csv`'s parses each value, a text of any number
+of rows, as a quoted field may hold a newline. Fields are quoted as
+Text::CSV quotes them, those with a space among them:
+
+```perl
+my @lines = Ekorn::Pipeline->new(to_csv(header => [qw(title plays)]))->(@tracks[0, 1]);
+say for @lines;
+# title,plays
+# "Dancing Queen",9100
+# "Knowing Me, Knowing You",4200
+```
+
+The parser is Text::CSV's: Text::CSV_XS where it's installed,
+Text::CSV_PP otherwise. Ekorn only recommends Text::CSV, so the module
+loads without it, and `from_csv` and `to_csv` croak when called if it
+isn't installed. A file's text is UTF-8 unless `encoding` says, so its
+fields are characters; text that won't decode, a character the
+encoding can't hold, and a row that won't parse each croak at its row,
+saying where. A byte order mark that starts the input is dropped.
+
+| Option | Is |
+|---|---|
+| `file` | the path of a file to read or write; opened as the run starts, emptied if it's written, and closed once the run ends, however it ended |
+| `fh` | an open filehandle, read or written with its own layers, and left open |
+| `csv` | a hash reference of options for `Text::CSV->new`, over the defaults `binary` on and `auto_diag` off, such as `{sep_char => "\t"}` for TSV; or a parser object of your own, used as it is |
+| `header` | reading: false, every row data, as arrays; true, the first row names each row's fields, as hashes; `'skip'`, the first row dropped, rows as arrays. Writing: false, no header, rows as arrays; an array reference of names, written first, ordering a hash's fields; true, the names from the run's context's `columns` |
+| `munge` | reading, with a header: `none`, the default, `lc`, `uc`, or `db`, which makes `Track Name` `track_name`; a hash reference mapping names; or a code reference given each name, as `$_` too, as Text::CSV's `munge_column_names` |
+| `encoding` | a file's encoding, as Encode names it, `UTF-8` by default, or `raw`, for bytes as they are |
+
+A header naming a column twice croaks, when rows are hashes, as one
+field's value would be lost; `munge` can name columns apart, and runs
+first. A short row's missing fields are `undef`, and a long row's extra
+fields are dropped.
+
 ## Operators: Ekorn::Pipeline::Operators
 
 ```perl
@@ -2854,6 +2924,56 @@ pipeline named %s is already defined".
 - **Can't read %s: %s** and **Can't write %s: %s:** a file couldn't be
   opened, read, written or closed, or a filehandle read or written.
 
+### Ekorn::Pipeline::CSV
+
+- **Can't find Text::CSV, which %s needs; install it from CPAN:**
+  `from_csv` or `to_csv` was called without Text::CSV installed.
+- **Can't load Text::CSV, which %s needs: %s:** it's installed, but
+  failed to load; the second part says why.
+- **Expected options as name => value pairs:** a function was given
+  an odd number of arguments.
+- **Expected the options %s, not %s:** an option it doesn't know,
+  named after "not"; the first part lists those it does.
+- **Expected file to be a path:** `file` was undefined.
+- **Expected a file or a filehandle, not both:** it was given both
+  `file` and `fh`.
+- **Expected an open filehandle:** `fh` was something else.
+- **Expected encoding only with a file:** `encoding` was given with a
+  filehandle, or for a stage.
+- **Expected an encoding Perl knows, not %s:** `encoding` wasn't `raw`
+  or an encoding Encode knows.
+- **Expected header to be true, false or 'skip':** `from_csv`'s
+  `header` was something else.
+- **Expected header to be true, false or an array reference of
+  names:** `to_csv`'s `header` was something else.
+- **Expected munge only with a header:** `munge` was given without a
+  `header`.
+- **Expected munge to be lc, uc, db, none, a hash reference or a code
+  reference:** `munge` was something else.
+- **Expected csv to be a hash reference of options, or a parser
+  object:** `csv` was something else.
+- **Expected csv options the parser knows: %s:** `csv`'s options
+  included one Text::CSV doesn't have; the rest is its message.
+- **Expected a header naming each column once, not "%s" twice:**
+  `from_csv`, with `header` true, read a header naming a column twice,
+  after munging.
+- **Can't parse CSV from %s, record %d, field %d: %s:** a row wasn't
+  CSV: the file's path, "the filehandle", or "a value", for a stage;
+  the record, counting the header as the first; the field; and
+  Text::CSV's reason.
+- **Can't read %s: %s** and **Can't write %s: %s:** a file couldn't be
+  opened, read, written or closed, or a filehandle written; or its
+  text wouldn't decode, or a character encode, as its encoding says.
+- **Expected a row as an array or a hash reference:** `to_csv` was
+  given something else as a row.
+- **Expected a header naming the columns, to write a hash:** `to_csv`
+  was given a hash without a `header`.
+- **Expected the run's context to name its columns, for to_csv's
+  header:** `header` was true, but the run's context had no `columns`.
+- **Can't write a row as CSV: %s:** a field was a reference, a field
+  written `raw` held a character that isn't a byte, or the parser
+  wouldn't combine the fields.
+
 ### Ekorn::Pipeline::Sources
 
 - **Expected an open filehandle:** `from_fh` was given something other
@@ -3133,6 +3253,51 @@ and a code reference given to `new` as an Ekorn::Pipeline::Stage of
 it.
 
 See [stages](#stages).
+
+### Ekorn::Pipeline::CSV
+
+Reads and writes CSV and TSV, as sources, stages or sinks, with
+Text::CSV, which is loaded when either is first called. Nothing is
+exported by default; each is exported upon request, and is in
+Tooling's `:csv`. Each takes the options `file`, `fh`, `csv`, `header`
+and `encoding`, and `from_csv` `munge` too, which the
+[CSV](#csv-ekornpipelinecsv) section describes, and is new in v0.3.10.
+
+#### from_csv
+
+```perl
+my $source = from_csv(file => $path);
+my $source = from_csv(file => $path, header => 1, munge => 'db');
+my $source = from_csv(fh => $fh, header => 'skip', csv => {sep_char => "\t"});
+my $stage  = from_csv();
+```
+
+Given a `file` or an `fh`, returns a source of its rows, read a row at
+a time as values are pulled: array references, or, with `header`
+true, hash references keyed by the header's names, which are the
+run's context's `columns` whenever a header is read. Given neither,
+returns a stage parsing each value, a text of any number of rows,
+into its rows. Exported upon request.
+
+See [CSV: Ekorn::Pipeline::CSV](#csv-ekornpipelinecsv).
+
+#### to_csv
+
+```perl
+my $sink  = to_csv(file => $path);
+my $sink  = to_csv(file => $path, header => [qw(title plays)]);
+my $sink  = to_csv(fh => $fh, header => 1, csv => {eol => "\r\n"});
+my $stage = to_csv();
+```
+
+Given a `file` or an `fh`, returns a sink writing each row, an array
+or a hash reference, as a line, after the header's, and giving how
+many rows it wrote. Given neither, returns a stage passing on each
+row's line, without its end of line, ready for `to_file`, after the
+header's. A header's names are given, or, with `header` true, the run's
+context's `columns`. Exported upon request.
+
+See [CSV: Ekorn::Pipeline::CSV](#csv-ekornpipelinecsv).
 
 ### Ekorn::Pipeline::Element
 
@@ -4247,5 +4412,5 @@ See [Sugar of your own](#sugar-of-your-own).
 Exports what callers use to do work, from one place, by the names of
 the other modules' functions, or by tags that hold them: `:core`,
 `:flow`, `:batch`, `:taps`, `:stages`, `:sources`, `:sinks`, `:json`,
-`:words` and `:all` (see [Importing](#importing-ekornpipelinetooling)).
+`:csv`, `:words` and `:all` (see [Importing](#importing-ekornpipelinetooling)).
 Nothing is exported by default. It has no names of its own.

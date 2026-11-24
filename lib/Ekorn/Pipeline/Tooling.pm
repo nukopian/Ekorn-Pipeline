@@ -16,6 +16,7 @@ use Ekorn::Pipeline::Sources       qw(:all);
 use Ekorn::Pipeline::Sinks         qw(:all);
 use Ekorn::Pipeline::Factories     qw(:all);
 use Ekorn::Pipeline::JSON          qw(:all);
+use Ekorn::Pipeline::CSV           qw(:all);
 
 our %EXPORT_TAGS = (
     core => [qw(Stop gather)],
@@ -31,6 +32,7 @@ our %EXPORT_TAGS = (
         qw(to_fh to_file),
     ],
     json  => [qw(from_json from_jsonl to_json to_jsonl)],
+    csv   => [qw(from_csv  to_csv)],
     words => [
         qw(pipeline stage gather source generator yield),
         qw(sink_one sink_many),
@@ -42,7 +44,7 @@ $EXPORT_TAGS{stages} = [map { @{ $EXPORT_TAGS{$_} } } qw(flow batch taps)];
 our @EXPORT_OK = do {
     my %seen;
     grep { !$seen{$_}++ }
-        map { @{ $EXPORT_TAGS{$_} } } qw(core stages sources sinks json words);
+        map { @{ $EXPORT_TAGS{$_} } } qw(core stages sources sinks json csv words);
 };
 $EXPORT_TAGS{all} = [@EXPORT_OK];
 
@@ -74,7 +76,8 @@ Ekorn::Pipeline::Tooling - Ekorn's stages, sources, sinks and words, from one mo
 What a caller uses to do work with Ekorn::Pipeline is made in several
 modules: stages in Ekorn::Pipeline::Stages::Flow, Batch and Taps,
 sources in Ekorn::Pipeline::Sources, sinks in Ekorn::Pipeline::Sinks,
-JSON's sources, sinks and stages in Ekorn::Pipeline::JSON, the words in
+JSON's sources, sinks and stages in Ekorn::Pipeline::JSON, CSV's in
+Ekorn::Pipeline::CSV, the words in
 Ekorn::Pipeline::Factories, and C<Stop> and C<gather> in
 modules of their own. This module exports all of them, by the tags
 below, so there's one module to import from, and nothing to remember
@@ -140,6 +143,12 @@ Everything L<Ekorn::Pipeline::JSON> exports: C<from_json>,
 C<from_jsonl>, C<to_json> and C<to_jsonl>. L<JSON> exports a
 C<from_json> and a C<to_json> of its own, by default, so a module using
 both imports C<:all> from only one of them.
+
+=item C<:csv>
+
+Everything L<Ekorn::Pipeline::CSV> exports: C<from_csv> and
+C<to_csv>. Text::CSV, which they need, is loaded only when one of them
+is first called, so this tag, and C<:all>, work without it.
 
 =item C<:words>
 

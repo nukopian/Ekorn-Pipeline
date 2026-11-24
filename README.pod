@@ -591,8 +591,8 @@ C<take(-1)>, is also reported at the caller's line.
 
 =item * L<Ekorn::Pipeline::Tooling>: everything below but the
 operators, from one module, by tags: C<:core>, C<:flow>, C<:batch>,
-C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:json>, C<:words> and
-C<:all>.
+C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:json>, C<:csv>,
+C<:words> and C<:all>.
 
 =item * L<Ekorn::Pipeline::Stages::Flow>: C<take>, C<drop>,
 C<take_first>, C<take_last>, C<take_single>, C<take_if>, C<drop_if>,
@@ -615,6 +615,11 @@ read and write one JSON document, and C<from_jsonl> and C<to_jsonl>,
 which read and write JSON Lines: each a source or a sink given a file
 or a filehandle, and a stage given neither. The how-to walks through
 how a module like it is put together.
+
+=item * L<Ekorn::Pipeline::CSV>: C<from_csv> and C<to_csv>, which read
+and write CSV and TSV, in the same way, with L<Text::CSV>, which Ekorn
+recommends: rows as arrays, or as hashes keyed by a header, whose names
+are the run's columns.
 
 =item * L<Ekorn::Pipeline::Sugar>: pipelines named as the program
 compiles, each with a function of its name.

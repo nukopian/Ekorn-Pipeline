@@ -100,6 +100,10 @@ L<JSON: Ekorn::Pipeline::JSON|/"JSON: Ekorn::Pipeline::JSON">
 
 =item *
 
+L<CSV: Ekorn::Pipeline::CSV|/"CSV: Ekorn::Pipeline::CSV">
+
+=item *
+
 L<Operators: Ekorn::Pipeline::Operators|/"Operators: Ekorn::Pipeline::Operators">
 
 =item *
@@ -232,6 +236,12 @@ B<Made in:> L<Sinks|/"Sinks: Ekorn::Pipeline::Sinks">
 B<Holds:> C<from_json>, C<from_jsonl>, C<to_json>, C<to_jsonl>
 
 B<Made in:> L<JSON|/"JSON: Ekorn::Pipeline::JSON">
+
+=item C<:csv>
+
+B<Holds:> C<from_csv>, C<to_csv>
+
+B<Made in:> L<CSV|/"CSV: Ekorn::Pipeline::CSV">
 
 =item C<:words>
 
@@ -2230,6 +2240,87 @@ two at once. JSON.pm exports a C<from_json> and a C<to_json> of its own
 by default: a module using both imports one under another name, or
 calls it by its full name.
 
+=head1 CSV: Ekorn::Pipeline::CSV
+
+Two functions, one for each direction, each making a different part by
+its options, as JSON's do: given a C<file> or an C<fh>, C<from_csv> makes
+a source and C<to_csv> a sink; given neither, each makes a stage. Each
+part is made afresh for each run, so a source read twice reads its
+header twice. Nothing is exported by default. Both are new in v0.3.10.
+
+    use Ekorn::Pipeline::CSV qw(from_csv to_csv);
+    use Ekorn::Pipeline::Tooling qw(:csv);    # the same
+
+Rows are array references of their fields, or, with a C<header>, hash
+references keyed by its names. A header read from a file gives the
+run's context its C<columns>, as DBIx::Squirrel's statements do, and
+C<to_csv>'s C<< header => 1 >> writes them back, in their order:
+
+    my $written = Ekorn::Pipeline->new(
+        to_csv(file => 'tracks.csv', header => [qw(title artist plays)]),
+    )->(@tracks);    # 6
+
+    my @blur = Ekorn::Pipeline->new(sub { $_->{artist} eq 'Blur' ? $_->{title} : () })
+        ->iterator(from_csv(file => 'tracks.csv', header => 1))->all;
+    say join ', ', @blur;    # Girls & Boys, Parklife, Country House
+
+    my($copied) = Ekorn::Pipeline->new(
+        take_if { $_->{plays} > 6000 },
+        to_csv(file => 'hits.csv', header => 1),
+    )->iterator(from_csv(file => 'tracks.csv', header => 1))->all;    # 3, under title,artist,plays
+
+Given no file, C<to_csv>'s stage passes on each row's line, without its
+end of line, and C<from_csv>'s parses each value, a text of any number
+of rows, as a quoted field may hold a newline. Fields are quoted as
+Text::CSV quotes them, those with a space among them:
+
+    my @lines = Ekorn::Pipeline->new(to_csv(header => [qw(title plays)]))->(@tracks[0, 1]);
+    say for @lines;
+    # title,plays
+    # "Dancing Queen",9100
+    # "Knowing Me, Knowing You",4200
+
+The parser is Text::CSV's: Text::CSV_XS where it's installed,
+Text::CSV_PP otherwise. Ekorn only recommends Text::CSV, so the module
+loads without it, and C<from_csv> and C<to_csv> croak when called if it
+isn't installed. A file's text is UTF-8 unless C<encoding> says, so its
+fields are characters; text that won't decode, a character the
+encoding can't hold, and a row that won't parse each croak at its row,
+saying where. A byte order mark that starts the input is dropped.
+
+=over 4
+
+=item C<file>
+
+the path of a file to read or write; opened as the run starts, emptied if it's written, and closed once the run ends, however it ended
+
+=item C<fh>
+
+an open filehandle, read or written with its own layers, and left open
+
+=item C<csv>
+
+a hash reference of options for C<< Text::CSV->new >>, over the defaults C<binary> on and C<auto_diag> off, such as C<< {sep_char => "\t"} >> for TSV; or a parser object of your own, used as it is
+
+=item C<header>
+
+reading: false, every row data, as arrays; true, the first row names each row's fields, as hashes; C<'skip'>, the first row dropped, rows as arrays. Writing: false, no header, rows as arrays; an array reference of names, written first, ordering a hash's fields; true, the names from the run's context's C<columns>
+
+=item C<munge>
+
+reading, with a header: C<none>, the default, C<lc>, C<uc>, or C<db>, which makes C<Track Name> C<track_name>; a hash reference mapping names; or a code reference given each name, as C<$_> too, as Text::CSV's C<munge_column_names>
+
+=item C<encoding>
+
+a file's encoding, as Encode names it, C<UTF-8> by default, or C<raw>, for bytes as they are
+
+=back
+
+A header naming a column twice croaks, when rows are hashes, as one
+field's value would be lost; C<munge> can name columns apart, and runs
+first. A short row's missing fields are C<undef>, and a long row's extra
+fields are dropped.
+
 =head1 Operators: Ekorn::Pipeline::Operators
 
     use Ekorn::Pipeline::Operators;
@@ -3564,6 +3655,125 @@ opened, read, written or closed, or a filehandle read or written.
 
 =back
 
+=head2 Ekorn::Pipeline::CSV
+
+=over 4
+
+=item *
+
+B<Can't find Text::CSV, which %s needs; install it from CPAN:>
+C<from_csv> or C<to_csv> was called without Text::CSV installed.
+
+=item *
+
+B<Can't load Text::CSV, which %s needs: %s:> it's installed, but
+failed to load; the second part says why.
+
+=item *
+
+B<Expected options as name =E<gt> value pairs:> a function was given
+an odd number of arguments.
+
+=item *
+
+B<Expected the options %s, not %s:> an option it doesn't know,
+named after "not"; the first part lists those it does.
+
+=item *
+
+B<Expected file to be a path:> C<file> was undefined.
+
+=item *
+
+B<Expected a file or a filehandle, not both:> it was given both
+C<file> and C<fh>.
+
+=item *
+
+B<Expected an open filehandle:> C<fh> was something else.
+
+=item *
+
+B<Expected encoding only with a file:> C<encoding> was given with a
+filehandle, or for a stage.
+
+=item *
+
+B<Expected an encoding Perl knows, not %s:> C<encoding> wasn't C<raw>
+or an encoding Encode knows.
+
+=item *
+
+B<Expected header to be true, false or 'skip':> C<from_csv>'s
+C<header> was something else.
+
+=item *
+
+B<Expected header to be true, false or an array reference of
+names:> C<to_csv>'s C<header> was something else.
+
+=item *
+
+B<Expected munge only with a header:> C<munge> was given without a
+C<header>.
+
+=item *
+
+B<Expected munge to be lc, uc, db, none, a hash reference or a code
+reference:> C<munge> was something else.
+
+=item *
+
+B<Expected csv to be a hash reference of options, or a parser
+object:> C<csv> was something else.
+
+=item *
+
+B<Expected csv options the parser knows: %s:> C<csv>'s options
+included one Text::CSV doesn't have; the rest is its message.
+
+=item *
+
+B<Expected a header naming each column once, not "%s" twice:>
+C<from_csv>, with C<header> true, read a header naming a column twice,
+after munging.
+
+=item *
+
+B<Can't parse CSV from %s, record %d, field %d: %s:> a row wasn't
+CSV: the file's path, "the filehandle", or "a value", for a stage;
+the record, counting the header as the first; the field; and
+Text::CSV's reason.
+
+=item *
+
+B<Can't read %s: %s> and B<Can't write %s: %s:> a file couldn't be
+opened, read, written or closed, or a filehandle written; or its
+text wouldn't decode, or a character encode, as its encoding says.
+
+=item *
+
+B<Expected a row as an array or a hash reference:> C<to_csv> was
+given something else as a row.
+
+=item *
+
+B<Expected a header naming the columns, to write a hash:> C<to_csv>
+was given a hash without a C<header>.
+
+=item *
+
+B<Expected the run's context to name its columns, for to_csv's
+header:> C<header> was true, but the run's context had no C<columns>.
+
+=item *
+
+B<Can't write a row as CSV: %s:> a field was a reference, a field
+written C<raw> held a character that isn't a byte, or the parser
+wouldn't combine the fields.
+
+=back
+
 =head2 Ekorn::Pipeline::Sources
 
 =over 4
@@ -3911,6 +4121,47 @@ and a code reference given to C<new> as an Ekorn::Pipeline::Stage of
 it.
 
 See L<stages|/"stages">.
+
+=head2 Ekorn::Pipeline::CSV
+
+Reads and writes CSV and TSV, as sources, stages or sinks, with
+Text::CSV, which is loaded when either is first called. Nothing is
+exported by default; each is exported upon request, and is in
+Tooling's C<:csv>. Each takes the options C<file>, C<fh>, C<csv>, C<header>
+and C<encoding>, and C<from_csv> C<munge> too, which the
+L<CSV|/"CSV: Ekorn::Pipeline::CSV"> section describes, and is new in v0.3.10.
+
+=head3 from_csv
+
+    my $source = from_csv(file => $path);
+    my $source = from_csv(file => $path, header => 1, munge => 'db');
+    my $source = from_csv(fh => $fh, header => 'skip', csv => {sep_char => "\t"});
+    my $stage  = from_csv();
+
+Given a C<file> or an C<fh>, returns a source of its rows, read a row at
+a time as values are pulled: array references, or, with C<header>
+true, hash references keyed by the header's names, which are the
+run's context's C<columns> whenever a header is read. Given neither,
+returns a stage parsing each value, a text of any number of rows,
+into its rows. Exported upon request.
+
+See L<CSV: Ekorn::Pipeline::CSV|/"CSV: Ekorn::Pipeline::CSV">.
+
+=head3 to_csv
+
+    my $sink  = to_csv(file => $path);
+    my $sink  = to_csv(file => $path, header => [qw(title plays)]);
+    my $sink  = to_csv(fh => $fh, header => 1, csv => {eol => "\r\n"});
+    my $stage = to_csv();
+
+Given a C<file> or an C<fh>, returns a sink writing each row, an array
+or a hash reference, as a line, after the header's, and giving how
+many rows it wrote. Given neither, returns a stage passing on each
+row's line, without its end of line, ready for C<to_file>, after the
+header's. A header's names are given, or, with C<header> true, the run's
+context's C<columns>. Exported upon request.
+
+See L<CSV: Ekorn::Pipeline::CSV|/"CSV: Ekorn::Pipeline::CSV">.
 
 =head2 Ekorn::Pipeline::Element
 
@@ -4885,7 +5136,7 @@ See L<Sugar of your own|/"Sugar of your own">.
 Exports what callers use to do work, from one place, by the names of
 the other modules' functions, or by tags that hold them: C<:core>,
 C<:flow>, C<:batch>, C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:json>,
-C<:words> and C<:all> (see L<Importing|/"Importing: Ekorn::Pipeline::Tooling">).
+C<:csv>, C<:words> and C<:all> (see L<Importing|/"Importing: Ekorn::Pipeline::Tooling">).
 Nothing is exported by default. It has no names of its own.
 
 =head1 SEE ALSO

@@ -2,6 +2,27 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    Ekorn::Pipeline::CSV reads and writes CSV and TSV files, as JSON's
+    module does JSON: a source or a sink given a file, and a stage
+    given neither, with Text::CSV, which Ekorn recommends rather than
+    requires.
+
+    It ships roadmap 2026-0049. It only adds.
+
+    - Ekorn::Pipeline::CSV: from_csv and to_csv. Rows are arrays, or
+      hashes keyed by a header, whose names, munged if asked, as
+      Text::CSV's munge_column_names does, are the run's columns, as
+      DBIx::Squirrel's are; to_csv writes a header, and hashes in its
+      order. Files are UTF-8 unless encoding says. A row that won't
+      parse, text that won't decode, and a character a file's encoding
+      can't hold each croak at their row, rather than ending the run
+      quietly or writing something else. Text::CSV is loaded when
+      either is first called, and its absence croaks then.
+      (roadmap 2026-0049)
+    - Ekorn::Pipeline::Tooling exports both in :csv, and in :all.
+    - The reference and the how-to describe them, and the how-to's
+      "Tell the stages about the run" points to from_csv.
+
 v0.3.9 2026-11-23
 
     v0.3.8's documentation, on CPAN, as v0.3.8 never reached it: it was

@@ -564,8 +564,8 @@ as a stage that's neither a code reference nor a pipeline, or
 
 - [Ekorn::Pipeline::Tooling](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ATooling): everything below but the
 operators, from one module, by tags: `:core`, `:flow`, `:batch`,
-`:taps`, `:stages`, `:sources`, `:sinks`, `:json`, `:words` and
-`:all`.
+`:taps`, `:stages`, `:sources`, `:sinks`, `:json`, `:csv`,
+`:words` and `:all`.
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
 `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`,
 `take_while` and `drop_while`, which pass values on by their position
@@ -583,6 +583,10 @@ read and write one JSON document, and `from_jsonl` and `to_jsonl`,
 which read and write JSON Lines: each a source or a sink given a file
 or a filehandle, and a stage given neither. The how-to walks through
 how a module like it is put together.
+- [Ekorn::Pipeline::CSV](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ACSV): `from_csv` and `to_csv`, which read
+and write CSV and TSV, in the same way, with [Text::CSV](https://metacpan.org/pod/Text%3A%3ACSV), which Ekorn
+recommends: rows as arrays, or as hashes keyed by a header, whose names
+are the run's columns.
 - [Ekorn::Pipeline::Sugar](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ASugar): pipelines named as the program
 compiles, each with a function of its name.
 - [Ekorn::Pipeline::Factories](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AFactories): the words that make Ekorn's

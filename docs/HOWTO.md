@@ -134,6 +134,7 @@ by tags that follow the modules:
 | `:sources` | `from_array`, `from_file`, `from_fh` and `counter` | Ekorn::Pipeline::Sources |
 | `:sinks` | `count_items`, `keep_all`, `keep_first`, `to_file` and the rest | Ekorn::Pipeline::Sinks |
 | `:json` | `from_json`, `from_jsonl`, `to_json` and `to_jsonl` | Ekorn::Pipeline::JSON |
+| `:csv` | `from_csv` and `to_csv` | Ekorn::Pipeline::CSV |
 | `:words` | `pipeline`, `stage`, `source`, `generator`, `sink_one` and the rest | Ekorn::Pipeline::Factories |
 | `:all` | all of the above | |
 
@@ -1239,6 +1240,44 @@ my @plays = Ekorn::Pipeline->new(
 say "@plays";    # 8000 5800
 ```
 
+### Read CSV, or TSV
+
+`from_csv` reads a CSV file a row at a time, as the rows are pulled,
+with Text::CSV, which Ekorn recommends: install it from CPAN if
+`from_csv` says it isn't there. Each row is an array of its fields.
+With `header => 1`, it's a hash keyed by the first row's names, and
+`munge => 'db'` makes those names fit for code, or for a database's
+placeholders:
+
+```perl
+my $plays = "$dir/plays.csv";
+open my $fh, '>', $plays or die "Can't write $plays: $!\n";
+print {$fh} qq(Track Name,Plays\nWaterloo,8000\n"Knowing Me, Knowing You",4200\n);
+close $fh or die "Can't write $plays: $!\n";
+
+my $next = Ekorn::Pipeline->new(sub { "$_->{track_name}: $_->{plays}" })
+    ->iterator(from_csv(file => $plays, header => 1, munge => 'db'));
+say for $next->all;
+# Waterloo: 8000
+# Knowing Me, Knowing You: 4200
+```
+
+`header => 'skip'` drops the first row and keeps the arrays. Either
+way, the header's names are the run's `columns`, for a stage that
+wants them (see "Tell the stages about the run"). A TSV file is the
+same, with Text::CSV's options in `csv`:
+`csv => {sep_char => "\t"}`. Files are read as UTF-8, unless
+`encoding` names another, and a row that won't parse croaks, saying
+which, rather than ending the run as if the file had.
+
+Given no file, `from_csv` is a stage, parsing each value it's given,
+a text of any number of rows:
+
+```perl
+my @rows = Ekorn::Pipeline->new(from_csv(header => 1))->("title,plays\nWaterloo,8000\nParklife,5800\n");
+say join ', ', map { "$_->{title} ($_->{plays})" } @rows;    # Waterloo (8000), Parklife (5800)
+```
+
 ### Write a source that closes what it opens
 
 The word `source` makes a source of your own. Its block is the
@@ -1326,7 +1365,9 @@ sub column ($name) {
 say join ', ', Ekorn::Pipeline->new(column('artist'))->iterator(rows_of($csv))->all;    # Blur, Abba
 ```
 
-A real CSV reader would handle quoting, of course. The shape is what
+A real CSV reader handles quoting, as `from_csv` does, which gives
+its header's names as the run's `columns` the same way, so `column`
+works on it unchanged (see "Read CSV, or TSV"). The shape is what
 matters: the source knows something about its values, and a stage
 anywhere in the pipeline can ask.
 
@@ -1523,6 +1564,41 @@ say tracks(
     to_json(),
 );
 # ["Abba","Abba","Blur"]
+```
+
+### Write CSV, or TSV
+
+`to_csv` writes each row, an array of its fields, as a line, and gives
+how many it wrote. With `header`, the names in it are written first,
+and a hash's fields are written in their order:
+
+```perl
+my $chart = "$dir/chart.csv";
+my $n     = tracks(
+    take_if { $_->{plays} >= 7000 },
+    to_csv(file => $chart, header => [qw(title plays)]),
+);
+say "$n written";    # 2 written
+
+open my $in, '<', $chart or die "Can't read $chart: $!\n";
+print <$in>;
+# title,plays
+# "Dancing Queen",9100
+# "Sunshine of Your Love",7700
+```
+
+Fields are quoted as Text::CSV quotes them: those with a space among
+them, or a comma, a quote or a newline. `header => 1` takes the names
+from the run's `columns`, so a run reading with `from_csv` and a header
+writes the same columns back, in the same order.
+
+Given no file, `to_csv` is a stage passing on each row's line, without
+its newline, ready for `to_file`:
+
+```perl
+say for tracks(take(2), sub { [$_->{artist}, $_->{plays}] }, to_csv());
+# Abba,9100
+# Abba,4200
 ```
 
 ### Write a sink of your own

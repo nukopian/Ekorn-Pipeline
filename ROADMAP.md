@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0049. Ekorn::Pipeline::CSV: delimited files as sources and sinks
-
-**Size:** M (3).
-
-`from_csv` and `to_csv`, after Ekorn::Pipeline::JSON: a CSV or TSV
-file read or written with Text::CSV, recommended rather than required,
-opened for each run and closed at its end; rows as arrays, or hashes
-keyed by a header, whose names, munged if asked, are the run's
-context; a row that won't parse reported, not taken for the end of
-the file. Started 2026-11-24, and to be proved on a real module of TSV sources:
-[record](docs/changes/2026-0049-csv.md).
+Nothing yet.
 
 ## Next
 

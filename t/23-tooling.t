@@ -20,6 +20,7 @@ my %module = (
     sources => ['Ekorn::Pipeline::Sources'],
     sinks   => ['Ekorn::Pipeline::Sinks'],
     json    => ['Ekorn::Pipeline::JSON'],
+    csv     => ['Ekorn::Pipeline::CSV'],
     words   => ['Ekorn::Pipeline::Factories'],
 );
 
