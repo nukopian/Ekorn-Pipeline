@@ -258,6 +258,12 @@ B<Made in:> Ekorn::Pipeline::Stages::Taps
 
 B<What it gives you:> C<:flow>, C<:batch> and C<:taps>
 
+=item C<:context>
+
+B<What it gives you:> C<result_number> and C<result_original>
+
+B<Made in:> Ekorn::Pipeline::Context
+
 =item C<:sources>
 
 B<What it gives you:> C<from_array>, C<from_file>, C<from_fh> and C<counter>
@@ -1497,10 +1503,7 @@ anywhere in the pipeline can ask.
 Each run counts the results it makes, a result being a value that
 leaves the last stage, or reaches a sink, and keeps the value each is
 made from. A stage asks with C<result_number> and C<result_original>,
-from Ekorn::Pipeline::Context, which Tooling doesn't give you, as
-DBIx::Squirrel's has functions of the same names:
-
-    use Ekorn::Pipeline::Context qw(result_number result_original);
+from Ekorn::Pipeline::Context, which C<:all> gives you:
 
     say for tracks(
         take_if { $_->{plays} > 6000 },

@@ -223,6 +223,12 @@ B<Made in:> L<Stages::Taps|/"Taps: Ekorn::Pipeline::Stages::Taps">
 
 B<Holds:> C<:flow>, C<:batch> and C<:taps>
 
+=item C<:context>
+
+B<Holds:> C<result_number>, C<result_original>
+
+B<Made in:> L<Context|/"Which result: Ekorn::Pipeline::Context">
+
 =item C<:sources>
 
 B<Holds:> C<from_array>, C<from_fh>, C<from_file>, C<counter>
@@ -2608,7 +2614,8 @@ reaches a sink. C<result_number> is the run's results so far, plus one,
 and C<result_original> the value the run's source gave, or that was
 pushed, before any stage changed it:
 
-    use Ekorn::Pipeline::Context qw(result_number result_original);    # not in Tooling
+    use Ekorn::Pipeline::Context qw(result_number result_original);
+    use Ekorn::Pipeline::Tooling qw(:context);    # the same, from v0.3.15
 
     my @hits = Ekorn::Pipeline->new(
         sub { $_->{plays} > 6000 ? $_ : () },
@@ -2701,10 +2708,9 @@ by C<batch>'s flush, has none:
 The run's context is asked with
 L<C<run_context>|/"Stages that ask about their run">, and whether a
 value came from a flush with L<C<ending>|/"ending">. DBIx::Squirrel has
-functions of the same names, built on these, which carry its rows
-through chains. So that a program importing both Toolings gets one of
-each name, Ekorn::Pipeline::Tooling leaves these out in v0.3.x:
-import them from Ekorn::Pipeline::Context.
+the same functions under the same names, from its v3.6.1, its rows
+carried through chains by its source's original, so a program
+importing both Toolings gets one of each.
 
 =head1 Writing stages
 
@@ -4260,9 +4266,8 @@ See L<stages|/"stages">.
 =head2 Ekorn::Pipeline::Context
 
 What a stage can ask about the result it's making. Nothing is exported
-by default; each is exported upon request. Not in Tooling in v0.3.x,
-as DBIx::Squirrel::Tooling exports functions of the same names. New in
-v0.3.11.
+by default; each is exported upon request, and is in Tooling's
+C<:context>, from v0.3.15. New in v0.3.11.
 
 =head3 result_number
 
@@ -5307,8 +5312,8 @@ See L<Sugar of your own|/"Sugar of your own">.
 
 Exports what callers use to do work, from one place, by the names of
 the other modules' functions, or by tags that hold them: C<:core>,
-C<:flow>, C<:batch>, C<:taps>, C<:stages>, C<:sources>, C<:sinks>, C<:json>,
-C<:csv>, C<:words> and C<:all> (see L<Importing|/"Importing: Ekorn::Pipeline::Tooling">).
+C<:flow>, C<:batch>, C<:taps>, C<:stages>, C<:context>, C<:sources>,
+C<:sinks>, C<:json>, C<:csv>, C<:words> and C<:all> (see L<Importing|/"Importing: Ekorn::Pipeline::Tooling">).
 Nothing is exported by default. It has no names of its own.
 
 =head1 SEE ALSO

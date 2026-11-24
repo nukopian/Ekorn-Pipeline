@@ -41,15 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0051. Ekorn::Pipeline::Context's functions in Tooling
-
-**Size:** XS (1).
-
-Add `result_number` and `result_original` to Ekorn::Pipeline::Tooling,
-in a `:context` tag, DBIx::Squirrel::Tooling's name for its own, and in
-`:all`, in a v0.3.x: DBIx-Squirrel's latest release, v3.6.1, exports
-Ekorn's own functions under both names, so the two Toolings agree.
-Started 2026-11-24: [record](docs/changes/2026-0051-context-in-tooling.md).
+Nothing yet.
 
 ## Next
 

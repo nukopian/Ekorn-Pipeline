@@ -1,6 +1,6 @@
 # 2026-0051. Ekorn::Pipeline::Context's functions in Tooling
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: a v0.3.x, not the v0.4.0 first planned. D2
 settled: a `:context` tag, and in `:all`.
@@ -11,6 +11,8 @@ the roadmap 2026-11-24
 **Depends on:** 2026-0052, shipped in v0.3.13
 
 **Started:** 2026-11-24
+
+**Finished:** 2026-11-24
 
 ## Background
 
@@ -72,3 +74,20 @@ floors, and DBIx-Squirrel's message says its suite passes against
 `develop`.
 
 ## What happened
+
+Done as planned, on 2026-11-24.
+
+- Tooling takes Ekorn::Pipeline::Context's `:all`, and its `:context`
+  tag holds both names, as do `:all` and `@EXPORT_OK`;
+  `t/23-tooling.t` checks the tag holds what the module exports.
+- The docs that said the functions were left out, and why, now say
+  where they are: Tooling's and Context's POD, the reference's Tooling
+  table, its "Which result" section and its index entries for Tooling
+  and Context, the how-to's table of tags and its recipe, which no
+  longer imports Context itself, as `:all` gives it, and the README.
+- DBIx-Squirrel v3.6.1's `t/28-tooling.t` and `xt/ekorn-tooling.t`,
+  from its tag, pass against the working copy, run with `prove`.
+- Every check passed on 5.36 to 5.44, with coverage at its floors.
+
+DBIx-Squirrel's test against `develop` is a task sent after this
+commit; the release waits for its answer.

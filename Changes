@@ -2,6 +2,21 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    Ekorn::Pipeline::Tooling exports result_number and result_original,
+    in :context and :all, as DBIx::Squirrel::Tooling does the same
+    functions from its v3.6.1.
+
+    It ships roadmap 2026-0051. It only adds.
+
+    - Ekorn::Pipeline::Tooling: a :context tag, holding result_number
+      and result_original, from Ekorn::Pipeline::Context, and both in
+      :all. They were left out from v0.3.11, as DBIx::Squirrel::Tooling
+      exported different functions by those names, and a program
+      importing both would have got one or the other. From its v3.6.1,
+      both of its are Ekorn's own, so the two Toolings agree on every
+      name. (roadmap 2026-0051)
+    - The reference, the how-to, the README and Context's POD say so.
+
 v0.3.14 2026-11-24
 
     A list sink, such as keep_all, is about a quarter quicker read by

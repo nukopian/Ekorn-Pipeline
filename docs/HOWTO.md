@@ -131,6 +131,7 @@ by tags that follow the modules:
 | `:batch` | `batch` and `collect` | Ekorn::Pipeline::Stages::Batch |
 | `:taps` | `peek`, `count_into`, `dump_to` and `tee` | Ekorn::Pipeline::Stages::Taps |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
+| `:context` | `result_number` and `result_original` | Ekorn::Pipeline::Context |
 | `:sources` | `from_array`, `from_file`, `from_fh` and `counter` | Ekorn::Pipeline::Sources |
 | `:sinks` | `count_items`, `keep_all`, `keep_first`, `to_file` and the rest | Ekorn::Pipeline::Sinks |
 | `:json` | `from_json`, `from_jsonl`, `to_json` and `to_jsonl` | Ekorn::Pipeline::JSON |
@@ -1376,12 +1377,9 @@ anywhere in the pipeline can ask.
 Each run counts the results it makes, a result being a value that
 leaves the last stage, or reaches a sink, and keeps the value each is
 made from. A stage asks with `result_number` and `result_original`,
-from Ekorn::Pipeline::Context, which Tooling doesn't give you, as
-DBIx::Squirrel's has functions of the same names:
+from Ekorn::Pipeline::Context, which `:all` gives you:
 
 ```perl
-use Ekorn::Pipeline::Context qw(result_number result_original);
-
 say for tracks(
     take_if { $_->{plays} > 6000 },
     sub { $_->{title} },

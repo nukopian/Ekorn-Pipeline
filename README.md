@@ -563,9 +563,9 @@ as a stage that's neither a code reference nor a pipeline, or
 ## What comes with it
 
 - [Ekorn::Pipeline::Tooling](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3ATooling): everything below but the
-operators and Context's functions, from one module, by tags:
-`:core`, `:flow`, `:batch`, `:taps`, `:stages`, `:sources`,
-`:sinks`, `:json`, `:csv`, `:words` and `:all`.
+operators, from one module, by tags: `:core`, `:flow`, `:batch`,
+`:taps`, `:stages`, `:context`, `:sources`, `:sinks`, `:json`,
+`:csv`, `:words` and `:all`.
 - [Ekorn::Pipeline::Stages::Flow](https://metacpan.org/pod/Ekorn%3A%3APipeline%3A%3AStages%3A%3AFlow): `take`, `drop`,
 `take_first`, `take_last`, `take_single`, `take_if`, `drop_if`,
 `take_while` and `drop_while`, which pass values on by their position

@@ -117,6 +117,7 @@ place, by tags that follow the modules that make it:
 | `:batch` | `batch`, `collect` | [Stages::Batch](#batching-and-collecting-ekornpipelinestagesbatch) |
 | `:taps` | `peek`, `count_into`, `dump_to`, `tee` | [Stages::Taps](#taps-ekornpipelinestagestaps) |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
+| `:context` | `result_number`, `result_original` | [Context](#which-result-ekornpipelinecontext) |
 | `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
 | `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
 | `:json` | `from_json`, `from_jsonl`, `to_json`, `to_jsonl` | [JSON](#json-ekornpipelinejson) |
@@ -2207,7 +2208,8 @@ and `result_original` the value the run's source gave, or that was
 pushed, before any stage changed it:
 
 ```perl
-use Ekorn::Pipeline::Context qw(result_number result_original);    # not in Tooling
+use Ekorn::Pipeline::Context qw(result_number result_original);
+use Ekorn::Pipeline::Tooling qw(:context);    # the same, from v0.3.15
 
 my @hits = Ekorn::Pipeline->new(
     sub { $_->{plays} > 6000 ? $_ : () },
@@ -2276,10 +2278,9 @@ my @lines = Ekorn::Pipeline->new(
 The run's context is asked with
 [`run_context`](#stages-that-ask-about-their-run), and whether a
 value came from a flush with [`ending`](#ending). DBIx::Squirrel has
-functions of the same names, built on these, which carry its rows
-through chains. So that a program importing both Toolings gets one of
-each name, Ekorn::Pipeline::Tooling leaves these out in v0.3.x:
-import them from Ekorn::Pipeline::Context.
+the same functions under the same names, from its v3.6.1, its rows
+carried through chains by its source's original, so a program
+importing both Toolings gets one of each.
 
 ## Writing stages
 
@@ -3354,9 +3355,8 @@ See [stages](#stages).
 ### Ekorn::Pipeline::Context
 
 What a stage can ask about the result it's making. Nothing is exported
-by default; each is exported upon request. Not in Tooling in v0.3.x,
-as DBIx::Squirrel::Tooling exports functions of the same names. New in
-v0.3.11.
+by default; each is exported upon request, and is in Tooling's
+`:context`, from v0.3.15. New in v0.3.11.
 
 #### result_number
 
@@ -4549,6 +4549,6 @@ See [Sugar of your own](#sugar-of-your-own).
 
 Exports what callers use to do work, from one place, by the names of
 the other modules' functions, or by tags that hold them: `:core`,
-`:flow`, `:batch`, `:taps`, `:stages`, `:sources`, `:sinks`, `:json`,
-`:csv`, `:words` and `:all` (see [Importing](#importing-ekornpipelinetooling)).
+`:flow`, `:batch`, `:taps`, `:stages`, `:context`, `:sources`,
+`:sinks`, `:json`, `:csv`, `:words` and `:all` (see [Importing](#importing-ekornpipelinetooling)).
 Nothing is exported by default. It has no names of its own.
