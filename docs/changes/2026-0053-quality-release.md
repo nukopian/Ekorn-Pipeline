@@ -233,10 +233,16 @@ task to take v0.4.0's `pipe`, waiting on its release.
 
 **What's left:**
 
-1. Release v0.3.16 from `develop`.
-2. Rebase `experiment/2026-0053-pipe` onto it, keeping its `Changes`
-   entry alone under Unreleased, and its note gone; merge it into
-   `develop`.
+1. ~~Release v0.3.16 from `develop`.~~ Done, 2026-11-25.
+2. ~~Rebase `experiment/2026-0053-pipe` onto it.~~ Done, 2026-11-25;
+   merge it into `develop`.
 3. Release v0.4.0, telling DBIx-Squirrel, whose task waits on it, and
    ship this item: out of the roadmap, its status "shipped in v0.3.16
    and v0.4.0".
+
+**After v0.3.16, 2026-11-25:** the branch was rebased onto the
+release, its `Changes` entry left alone under Unreleased and its note
+removed, so it's now f2b74e33f11486613742f73b20f482ef4d343b98, in
+place of f1fd15cb4d65000cd4b45451d25abdc84dac8962 above. Its tests
+pass on 5.36 and 5.44, with the Windows fix to `t/34-versions.t` it
+now has. DBIx-Squirrel was sent the new hash.
