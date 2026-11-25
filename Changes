@@ -2,6 +2,21 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    Ekorn::Pipeline::Pipes' pipe gives what a pipeline gives, in either
+    context. It ships the rest of roadmap 2026-0053, and changes what
+    pipe gives in scalar context, which code may depend on, so it's
+    v0.4.0.
+
+    - pipe gives what a pipeline of its stages, called with the object,
+      gives: in scalar context, how many results came out, or a sink's
+      result, a list sink's as an array reference. It gave the first
+      result, or undef, unlike any other run: one of the first methods
+      written, before a run's scalar context was settled. For one value,
+      read it in list context, my($first) = $object->pipe(...), or end
+      with keep_first. Test2's is takes its first argument in scalar
+      context, so is $object->pipe(...), 42 now compares a count.
+      DBIx::Squirrel's handles inherit pipe. (roadmap 2026-0053)
+
 v0.3.16 2026-11-25
 
     A quality release, of what a review of the code, tests and docs found.

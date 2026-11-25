@@ -263,7 +263,7 @@ subtest 'its stages come from its stages method' => sub {
 subtest 'pipe and tap take a pipeline' => sub {
     my $thing = My::Thing->new(5);
     my $p     = $class->new(sub { $_->{n} }, sub { $_ * 2 });
-    is $thing->pipe($p, sub { $_ + 1 }), 11, 'pipe';
+    is [$thing->pipe($p, sub { $_ + 1 })], [11], 'pipe';
     my $seen;
     ref_is $thing->tap($class->new(sub { $seen = $_->{n} })), $thing, 'tap';
     is $seen, 5, 'which ran it';

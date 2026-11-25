@@ -1463,12 +1463,16 @@ my $list = Playlist->new(@tracks[0, 1])
     ->tap(sub { say 'Starting with ', scalar $_->tracks, ' tracks' })    # Starting with 2 tracks
     ->add($tracks[4]);
 say join ', ', $list->pipe(sub { $_->tracks }, sub { $_->{artist} });    # ABBA, ABBA, Cream
-say scalar $list->pipe(sub { $_->tracks }, take_if { $_->{plays} < 5000 }, sub { $_->{title} });    # Knowing Me, Knowing You
+say scalar $list->pipe(sub { $_->tracks }, take_if { $_->{plays} < 5000 });    # 1
+say $list->pipe(sub { $_->tracks }, take_if { $_->{plays} < 5000 }, sub { $_->{title} }, keep_first);    # Knowing Me, Knowing You
 ```
 
-In scalar context, `pipe` gives the first result, not how many, as a
-pipeline called would, so a pipeline that finds one thing reads
-naturally after it.
+`pipe` gives what a pipeline of its stages, called with the object,
+gives, in either context: in scalar context, how many results came
+out, or a sink's result. So for one value, end with a sink of one,
+such as `keep_first`, or read it in list context, `my($title) =
+$list->pipe(...)`. Until v0.4.0, in scalar context, `pipe` gave the
+first result instead, unlike a pipeline.
 
 ## Canned stages
 
@@ -3956,14 +3960,18 @@ Exports nothing.
 
 ```perl
 my @results = $object->pipe(@stages);
-my $first   = $object->pipe(@stages);
+my $count   = $object->pipe(@stages);
+my $first   = $object->pipe(@stages, keep_first);
 ```
 
 Runs the object through a pipeline of `@stages`, the first given the
-object, and returns what comes out of the last; in scalar context, the
-first result, or `undef` if there's none, not how many. The stages are
-what `new` takes, not names: pass `pipeline('clean')` for a named one.
-With no stages, it returns the object.
+object, and returns what the run gives, as
+`Ekorn::Pipeline->new(@stages)->($object)` would, in either context:
+what comes out of the last stage; in scalar context, how many did, or
+a sink's result. Until v0.4.0, in scalar context, it gave the first
+result. The stages are what `new` takes, not names: pass
+`pipeline('clean')` for a named one. With no stages, it gives the
+object.
 
 See [pipe and tap: Ekorn::Pipeline::Pipes](#pipe-and-tap-ekornpipelinepipes).
 
