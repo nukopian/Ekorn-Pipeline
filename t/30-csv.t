@@ -305,6 +305,16 @@ subtest 'Files are read and written as UTF-8, unless encoding says' => sub {
         'as does a wide character, raw';
 };
 
+# An undefined first field has no byte order mark to drop, and warned
+# from inside Ekorn::Pipeline::CSV (roadmap 2026-0053).
+subtest 'A first field undefined, as blank_is_undef makes it' => sub {
+    my $csv = {blank_is_undef => 1};
+    is read_all(file => path('.csv', ",b\n1,2\n"), csv => $csv),
+        [[undef, 'b'], [1, 2]], 'from a file';
+    is [$class->new(from_csv(csv => $csv))->(",b\n")], [[undef, 'b']],
+        'from a value';
+};
+
 subtest 'A row that won\'t parse croaks, saying where' => sub {
     my $path = path('.csv', qq(a,b\n1,2\n3,"x\n5,6\n));
     like dies { read_all(file => $path) },

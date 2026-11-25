@@ -264,7 +264,8 @@ sub _rows ($csv, $io, $from) {
             croakf q(Can't parse CSV from %s, record %d, field %d: %s), $from,
                 $rows_read + 1, $field, $why;
         }
-        $row->[0] =~ s( \A \x{FEFF} )()x unless $rows_read++;
+        # An undefined first field, as blank_is_undef makes, has no mark.
+        $row->[0] =~ s( \A \x{FEFF} )()x if !$rows_read++ && defined $row->[0];
         return $row;
     };
 }

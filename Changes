@@ -15,6 +15,10 @@ Unreleased
       source, gets the chain's source's original, from result_original,
       and its context, as one reading an iterator of it does. It got
       the chain's own values as their originals. (roadmap 2026-0053)
+    - F2: from_csv no longer warns, from inside Ekorn::Pipeline::CSV,
+      where a first row's first field is undefined, as Text::CSV's
+      blank_is_undef and empty_is_undef make an empty one: dropping a
+      byte order mark from it read it. (roadmap 2026-0053)
     - F3: @{} and a chain into a sink read with the iterator's all,
       which takes a list sink's result at once, rather than a value at
       a time. 100,000 values, on Perl 5.36: @{} from 16.8 to 24.0 reads
