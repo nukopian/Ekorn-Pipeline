@@ -1,4 +1,5 @@
-# betterleaks' rules, with one allowlist (roadmap 2026-0039, D3).
+# betterleaks' rules, with two allowlists (roadmap 2026-0039, D3, and a
+# task from DBIx-Squirrel, 2026-11-25).
 #
 # betterleaks loads this only when told to, so every scan names it:
 #   betterleaks git --config .betterleaks.toml --redact --no-banner .
@@ -17,7 +18,11 @@ description = "Placeholders in the examples of what dump_to redacts"
 regexTarget = "secret"
 regexes = ['''\A(?:\*REDACTED\*|\$password|password)\\*\z''']
 
-# Devel::Cover's coverage database, git-ignored, never committed.
+# Devel::Cover's coverage database, which scripts/coverage writes. It's
+# git-ignored, so betterleaks git and CI never see it, but a scan of the
+# working tree, as before a commit, reports the digests in
+# cover_db/digests as generic API keys. They change with each coverage
+# run, so no fingerprint in .gitleaksignore would hold.
 [[allowlists]]
 description = "Devel::Cover's cover_db, which scripts/coverage writes"
 paths = ['''(?:\A|/)cover_db/''']

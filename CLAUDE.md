@@ -342,12 +342,17 @@ commit that ships it. The rules are in
   commit of docs, tests or a message, here or in another repository's
   `TODO.md`, is scanned before it's pushed, with `betterleaks dir
   --config .betterleaks.toml --redact --exit-code 1` on what it
-  changed, judged by its exit status; a git-ignored `cover_db/` can
-  show a finding that isn't in history. Every scan names
+  changed, judged by its exit status. Every scan names
   `.betterleaks.toml`, which betterleaks doesn't load by itself: it
   allows the placeholders in `dump_to`'s examples, such as
-  `*REDACTED*`; a new placeholder that trips a rule is added to it
-  only as Iain decides, as with a fingerprint below. A full commit hash beside a rule's
+  `*REDACTED*`, and passes over `cover_db/`, which Devel::Cover writes
+  and git ignores; a new placeholder that trips a rule is added to it
+  only as Iain decides, as with a fingerprint below. Claude changes
+  `.betterleaks.toml` and `.gitleaksignore` only with its Edit tool,
+  never from the shell: a rule in Iain's settings makes each such
+  edit ask him, as he set up on 2026-11-25, where auto mode refuses
+  a change to a scanner's allowlist made from the shell, as it did
+  that day. A full commit hash beside a rule's
   name can look like a secret too. If a real finding reaches published
   history anyway, it's listed by its fingerprint in a
   `.gitleaksignore`, which betterleaks reads, with a comment saying
