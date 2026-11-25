@@ -64,9 +64,8 @@ sub chain ($before, $after, $swapped = undef, @) {
     my($source, @stages) = _parts($before);
     my $sink = is_sink($after);
     return _chain($source, @stages, $after) unless $sink;
-    my $next = Ekorn::Pipeline->new(@stages, $after)->iterator($source);
-    my @results;
-    while (my($result) = $next->()) { push @results, $result }
+    # Read with all, which takes a list sink's result at once.
+    my @results = Ekorn::Pipeline->new(@stages, $after)->iterator($source)->all;
     return $sink eq 'many' ? \@results : $results[0];
 }
 
@@ -75,10 +74,7 @@ sub chain ($before, $after, $swapped = undef, @) {
 # class of sources of its own can overload @{} with this.
 sub drain ($source, @) {
     _check_in_force('@{}');
-    my $next = Ekorn::Pipeline->new->iterator($source);
-    my @values;
-    while (my($value) = $next->()) { push @values, $value }
-    return \@values;
+    return scalar Ekorn::Pipeline->new->iterator($source)->all;
 }
 
 
@@ -98,16 +94,13 @@ sub _parts ($source) {
 
 
 # Return a chain: a source of the values from $source through the
-# stages, which keeps them, so that more can be added to it.
+# stages, which keeps them, so that more can be added to it. Each run of
+# it reads an iterator of them as its source, so passes on what an
+# iterator does: its run's context, and its source's original.
 sub _chain ($source, @stages) {
     my $pipeline = Ekorn::Pipeline->new(@stages);
     my $chain    = Ekorn::Pipeline::Operators::Chain->new(sub {
-        my $next = $pipeline->iterator($source);
-        return (
-            sub { $next->() },    # for each value: no signature
-            sub ($how) { $next->finish },
-            $next->{context},
-        );
+        return $pipeline->iterator($source)->EKORN_SOURCE;
     });
     $chain->{parts} = [$source, @stages];
     return $chain;

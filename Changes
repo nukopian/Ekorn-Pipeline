@@ -2,6 +2,25 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A quality release: the fixes, speed-ups and corrections a review of
+    the code, tests and docs found, each listed below by its finding.
+    A | chain passes on its source's original and context, as an
+    iterator does, and reads into a sink faster.
+
+    It ships part of roadmap 2026-0053, whose record numbers the
+    findings, F1 to F16. It only fixes, and changes nothing a stage
+    depends on.
+
+    - F1: a run reading a chain made with |, given to iterator as its
+      source, gets the chain's source's original, from result_original,
+      and its context, as one reading an iterator of it does. It got
+      the chain's own values as their originals. (roadmap 2026-0053)
+    - F3: @{} and a chain into a sink read with the iterator's all,
+      which takes a list sink's result at once, rather than a value at
+      a time. 100,000 values, on Perl 5.36: @{} from 16.8 to 24.0 reads
+      a second, and a chain of one stage into keep_all from 5.1 to
+      10.1. (roadmap 2026-0053)
+
 v0.3.15 2026-11-25
 
     Ekorn::Pipeline::Tooling exports result_number and result_original,
