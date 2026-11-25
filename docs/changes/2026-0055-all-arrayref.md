@@ -1,6 +1,6 @@
 # 2026-0055. An iterator's all_arrayref
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: `all_arrayref`, the name. D2 settled: `all`
 stays as it is.
@@ -8,6 +8,8 @@ stays as it is.
 **Origin:** roadmap, added 2026-11-25
 
 **Started:** 2026-11-25
+
+**Finished:** 2026-11-25
 
 ## Background
 
@@ -84,3 +86,22 @@ word (Background).
 reference and `Changes` say so; `yath test` passes on 5.36 and 5.44,
 coverage stays above its floors, perlcritic and perltidy are clean;
 and DBIx-Squirrel has the message.
+
+## What happened
+
+- **Outcome:** as planned. `all_arrayref` returns `scalar $self->all`,
+  so it keeps `all`'s taking at once of values already waiting; its
+  tests in `t/15-proofs.t` cover list context, a hash constructor, an
+  argument list, a sub's return, none, a spent iterator, a sink of
+  many's result and a stop; `drain` uses it. `yath test` passes on
+  5.36 and 5.44, perlcritic and perltidy are clean, and coverage
+  stays at its floors, 100% of statements, branches, subroutines and
+  POD.
+- **Changes from the plan:** the message for DBIx-Squirrel went before
+  the method was committed, not after (step 6), as Iain asked, so its
+  session could plan alongside: DBIx-Squirrel
+  cc37a778c50a6e93018a1a882ad2bc31d4eee573, on 2026-11-25.
+  Its session took it up the same day. The reference's index needed an
+  entry for the new name too, which `xt/reference-index.t` asks for.
+- **What's left:** nothing here; DBIx::Squirrel::Iterator's own
+  `all_arrayref` is DBIx-Squirrel's.

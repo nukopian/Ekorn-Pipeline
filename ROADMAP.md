@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0055. An iterator's all_arrayref
-
-**Size:** XS (1).
-
-Add `all_arrayref` to Ekorn::Pipeline::Iterator: every value still to
-come, as an array reference, whatever the context it's called in, so
-a hash constructor, an argument list or a sub's return can't flatten
-it, as `all` does outside scalar context. `all` stays as it is. A
-v0.4.x, with a message for DBIx-Squirrel, whose own iterator needs one
-to match. Started 2026-11-25:
-[record](docs/changes/2026-0055-all-arrayref.md).
+Nothing yet.
 
 ## Next
 

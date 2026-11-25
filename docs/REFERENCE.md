@@ -1095,6 +1095,20 @@ say "$opener, then @rest: ", $next->ended;    # Intro, then Parklife Song 2: sto
 `ended` says `stopped`, as `take_while` cut the reading short, with
 `Tender` still to come.
 
+`all` gives an array reference only in scalar context: in a hash, a
+list or an argument, its values are flattened into it. `all_arrayref`
+gives the reference whatever the context:
+
+```perl
+use Ekorn::Pipeline::Sources qw(from_array);
+
+my %gig = (
+    venue => 'Wembley',
+    songs => Ekorn::Pipeline->new->iterator(from_array('Intro', 'Parklife', 'Song 2'))->all_arrayref,
+);
+say "$gig{venue}: @{ $gig{songs} }";    # Wembley: Intro Parklife Song 2
+```
+
 `first` and `single` read a value and end the run, so nothing more is
 read, and a source holding a resource, such as a file or a statement's
 lock, lets it go. `single` reads one more, to warn if there's another:
@@ -3761,6 +3775,18 @@ my $rest = $next->all;
 Reads the run to its end, and returns every value still to come; in
 scalar context, as an array reference. Values already waiting at the
 end of the stages, such as a sink of many's result, it takes at once.
+
+See [Iterators: Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+#### all_arrayref
+
+```perl
+my %report = (rows => $next->all_arrayref);
+```
+
+Returns every value still to come, as `all` does, but always as an
+array reference, whatever the context; an empty one, if there are
+none.
 
 See [Iterators: Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
 

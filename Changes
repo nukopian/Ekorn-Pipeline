@@ -2,6 +2,20 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    An iterator's values as an array reference, whatever the context.
+
+    Ekorn::Pipeline::Iterator has all_arrayref, which gives every value
+    still to come as an array reference, in a hash, an argument list or
+    a sub's return as well as in scalar context, where all would give a
+    list. It ships roadmap 2026-0055, and only adds.
+
+    - Ekorn::Pipeline::Iterator's all_arrayref returns every value
+      still to come as an array reference, whatever the context it's
+      called in, and an empty one if there are none: all's array
+      reference, without its dependence on context, so
+      { rows => $next->all_arrayref } can't be flattened. all is as it
+      was. (roadmap 2026-0055)
+
 v0.4.1 2026-11-25
 
     A documentation release: a new recipe in the how-to, and its advice

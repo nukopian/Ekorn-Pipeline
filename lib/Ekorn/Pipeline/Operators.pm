@@ -73,7 +73,7 @@ sub chain ($before, $after, $swapped = undef, @) {
 # class of sources of its own can overload @{} with this.
 sub drain ($source, @) {
     _check_in_force('@{}');
-    return scalar Ekorn::Pipeline->new->iterator($source)->all;
+    return Ekorn::Pipeline->new->iterator($source)->all_arrayref;
 }
 
 # Return true if the object given offers a source's role method.
