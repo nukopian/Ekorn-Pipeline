@@ -252,7 +252,7 @@ the first line of each.
 
 2. **Set the version,** unless the main module has it already. For
    v0.3.0's first trial it says v0.2.0, so it's set. `minil prepare`
-   writes it into the main module, and regenerates `META.json`,
+   writes it into every module, and regenerates `META.json`,
    `Build.PL` and `README.md`:
 
    ```sh
@@ -378,7 +378,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    If `TODO.md` is there, its tasks come first. Do them, or move them
    where CLAUDE.md says, and delete the file before going on.
 
-2. **Set the version.** `minil prepare` writes it into the main module,
+2. **Set the version.** `minil prepare` writes it into every module,
    and regenerates `META.json`, `Build.PL` and `README.md`. A version
    outside DBIx::Squirrel's range needs a task to it first, as step 2
    of [A trial release](#a-trial-release) says, unless its trial has

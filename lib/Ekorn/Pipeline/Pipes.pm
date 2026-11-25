@@ -4,6 +4,8 @@ package Ekorn::Pipeline::Pipes;
 
 use Ekorn::Pipeline qw();
 
+our $VERSION = 'v0.3.15';
+
 # Run the invocant through a pipeline of stages.
 sub pipe ($self, @stages) {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my $pipeline = Ekorn::Pipeline->new(@stages);

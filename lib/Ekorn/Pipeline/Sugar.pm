@@ -11,6 +11,8 @@ use Ekorn::Pipeline::Errors qw(croakf);
 use namespace::clean;
 
 # Croak at the line that called Ekorn::Pipeline.
+our $VERSION = 'v0.3.15';
+
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Name the pipelines defined after "pipeline", in the package that uses

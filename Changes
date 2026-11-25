@@ -41,6 +41,10 @@ Unreleased
       Sinks' subs, a blank line before each module's closing 1;, and
       Ekorn::Pipeline::Feed cleans its namespace, as the other classes
       do, so croakf isn't one of its methods. (roadmap 2026-0053)
+    - Every module has a $VERSION, the distribution's, so a caller can
+      ask for the version a module's feature came in, as use
+      Ekorn::Pipeline::Tooling v0.3.16 qw(:all). Only Ekorn::Pipeline
+      had one. (roadmap 2026-0053)
     - F17: the 41 patterns in the tests of JSON, CSV and a source's
       original that lacked the x flag, against the house style, have
       it. (roadmap 2026-0053)

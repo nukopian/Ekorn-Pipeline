@@ -10,6 +10,8 @@ use Ekorn::Pipeline::Sink   qw();
 use Ekorn::Pipeline::Stop   qw();
 use namespace::clean -except => 'import';
 
+our $VERSION = 'v0.3.15';
+
 our @EXPORT_OK = qw(
     keep  keep_all count_items keep_first keep_last keep_single
     to_fh to_file);

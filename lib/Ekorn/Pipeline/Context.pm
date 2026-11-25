@@ -8,6 +8,8 @@ use Exporter qw(import);
 # keeps of the run running.
 use Ekorn::Pipeline qw();
 
+our $VERSION = 'v0.3.15';
+
 our @EXPORT_OK   = qw(result_number result_original);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 

@@ -13,6 +13,8 @@ use Ekorn::Pipeline::Stop   qw();
 
 use namespace::clean -except => 'import';
 
+our $VERSION = 'v0.3.15';
+
 our @EXPORT = qw(take drop);    ## no critic (Modules::ProhibitAutomaticExportation)
 
 our @EXPORT_OK = (

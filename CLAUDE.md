@@ -252,6 +252,11 @@ what was Iain's.
   in a message of our own is written `%%`. A new module that croaks
   goes in `@Ekorn::Pipeline::Errors::INTERNAL`, and takes that list as
   its `@CARP_NOT`, so errors are reported at the caller's line.
+- **Every module declares `our $VERSION`,** the distribution's, once,
+  for its own package, as Iain decided on 2026-11-25 (2026-0053's
+  D5): `minil prepare` sets each, and `t/34-versions.t` fails if one
+  is missing, differs, or strays into a package inside a module. A new
+  module copies the line from any other.
 - **Exports:** `@EXPORT_OK` as a rule. A module whose whole purpose is
   its functions, such as Stop, Gather and the canned stages, exports
   them by default, marked `## no critic

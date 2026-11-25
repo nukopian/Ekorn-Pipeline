@@ -13,6 +13,8 @@ use Ekorn::Pipeline::Stage  qw();
 use namespace::clean;
 
 # Croak at the line that called Ekorn::Pipeline.
+our $VERSION = 'v0.3.15';
+
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # The key in %^H marking the scopes where the operators are in force.

@@ -6,6 +6,8 @@ use Ekorn::Pipeline::Errors qw(croakf);
 use namespace::clean;
 
 # Croak at the line that called Ekorn::Pipeline.
+our $VERSION = 'v0.3.15';
+
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 
 # Return a feed of a run, from its parts, each a code reference: push,
