@@ -16,3 +16,8 @@ useDefault = true
 description = "Placeholders in the examples of what dump_to redacts"
 regexTarget = "secret"
 regexes = ['''\A(?:\*REDACTED\*|\$password|password)\\*\z''']
+
+# Devel::Cover's coverage database, git-ignored, never committed.
+[[allowlists]]
+description = "Devel::Cover's cover_db, which scripts/coverage writes"
+paths = ['''(?:\A|/)cover_db/''']
