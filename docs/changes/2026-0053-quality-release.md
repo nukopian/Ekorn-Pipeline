@@ -158,3 +158,58 @@ and D5 settle them, each change in `Changes` under its finding.
 tested, and DBIx-Squirrel has the message and the task.
 
 ## What happened
+
+**v0.3.16's part, 2026-11-25,** on `develop`, each finding fixed in
+the commit named, with its entry in `Changes`:
+
+- **F1 and F3,** in f151931616ad4f653a17cdc25b5e89858c0b6812: a
+  chain's set-up returns its iterator's own `EKORN_SOURCE`, so a chain
+  passes on whatever an iterator does; `@{}` and a chain into a sink
+  read with `all`. Over 100,000 values on 5.36, `@{}` went from 16.8
+  to 24.0 reads a second, and a chain of one stage into `keep_all` from
+  5.1 to 10.1. The new subtests failed first.
+- **F2,** in 19d704a47f43e60dde8f73333b7c7f0ab4867abc, its test failing
+  first with the warning.
+- **F17, found while fixing F2,** in
+  15560a5d85a65afc2c08347e8fa30e9125f4b810: 41 patterns in the tests
+  of JSON, CSV and a source's original lacked the `x` flag, and
+  `scripts/manuals` wrote one with braces. The review's search for
+  regexes had looked for `/.../` and missed them.
+- **F4 and F5,** in 5bc3ca343cf7dc39f4fb5d343b4edf9ad9eec584.
+  Measured alternately against the file before, three times each:
+  2,000 pushed runs of two stages and five values went from 48.6 to
+  50.1 runs a second, and pulled from 24.2 to 25.0; runs of 50,000
+  values, pushed, pulled, read with `all` and fed, were within noise.
+  A first version, whose `_stage_role` called `_stage_roles`, cost
+  short pushed runs 4.5%, as each run asks it of each part; it has a
+  loop of its own. `$all` and `$ended_once`, copied between the two
+  iterators, stay copied: each closes over its own iterator's
+  variables, and a shared builder would take references to five of
+  them, no clearer.
+- **F6 and F7,** in 4208d6be36e7034c7d8bd442a6582fad6426769a. Perl::Tidy
+  makes two blank lines above a sub without a comment even straight
+  after a block opens, and above `sub {` starting a line in a list,
+  which is where CSV's "stray" blank lines inside a `return` had come
+  from, so the review was wrong to call them slop; the script setting
+  the blank lines does as Perl::Tidy does, and CSV names its closure
+  first. The fix of F2 had tripped Perl::Critic, which reads the
+  statement after a `try`'s `catch` as part of it without a `;`; the
+  same commit adds the `;`, as JSON's code does, before anything was
+  pushed.
+- **D5,** in 87e0d4525140b3c59e6fa63ca93312e79695ece4: `minil prepare
+  v0.3.16`, run on a copy, set all 23 modules' versions, and changed
+  `META.json` only in its version.
+- **F8 to F14,** in bdeb7b909024cc27da920897e7f70afe1d97c62a: 25 notes
+  of "new in v0.3.0" removed. F14 needed nothing once F1 was fixed.
+- **F15 and F16,** in 6a828143ec1e0efe169f7efa5a8272086452e076.
+  2026-0025's wash-up said each of the reference's examples ran after
+  the how-to's data; but the reference has a catalogue of its own,
+  spelling ABBA and ordering the tracks differently, and run after
+  that, every one of the 81 that run prints what it says. The
+  agreement test passed a mutation of the push loop's flatMap order
+  until its flatMap gave three different values, not two the same; it
+  fails it now.
+- **Checks, at 6a828143ec1e0efe169f7efa5a8272086452e076:** the tests
+  pass on 5.36, 5.40 and 5.44; Perl::Critic and Perl::Tidy are clean;
+  coverage is 100% of statements, branches, subs and POD, and 98.1% of
+  conditions, up from 97.8%.
