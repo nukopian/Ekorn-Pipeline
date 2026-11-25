@@ -1,6 +1,6 @@
 # 2026-0039. Scanning with betterleaks
 
-**Status:** in progress
+**Status:** shipped
 
 **Decisions:** D1 settled: betterleaks installed with Homebrew. D2
 settled: it replaces gitleaks in CI, not beside it. D3 settled: a
@@ -12,7 +12,9 @@ DBIx-Squirrel's session, 2026-11-25 (DBIx-Squirrel
 387b39980f9c782f82fc927cf7dc31ec12179cbd, its 2026-0029), saying what
 its own switch found
 
-**Started:** 2026-11-25
+**Started:** 2026-11-25, in ab29146f4d73b05ff97ad9db3922aaa959558ea8
+
+**Finished:** 2026-11-25
 
 ## Background
 
@@ -87,3 +89,21 @@ MAINTAINING.md's release and trial steps, Security checks and Tools,
 and CLAUDE.md's rule on secrets, name betterleaks and the config. Done
 when CI's `secrets` job passes with betterleaks, and a scan by hand of
 the history and of the tracked files finds nothing.
+
+## What happened
+
+- **Outcome:** as planned. Locally, `betterleaks git --config
+  .betterleaks.toml --redact --no-banner --exit-code 1 .` over the
+  history, and `betterleaks dir` with the same config over every
+  tracked file, find nothing, exit 0; without the config, the history
+  gives the 9 findings above. A DSN with a made-up password of 16
+  letters and digits, in a scratch directory, is still reported with
+  the config, exit 1, so the allowlist lets through only the
+  placeholders. CI's `secrets` job runs betterleaks on the commit
+  that ships this.
+- **Changes from the plan:** none. No `Changes` line, as nothing a
+  user sees changed: `.betterleaks.toml`, like the other dotfiles, is
+  for the repository.
+- **What's left:** nothing here. DBIx-Squirrel's message, which
+  started this, needed no answer, and its `TODO.md` entry goes in the
+  commit that ships this.

@@ -1,0 +1,18 @@
+# betterleaks' rules, with one allowlist (roadmap 2026-0039, D3).
+#
+# betterleaks loads this only when told to, so every scan names it:
+#   betterleaks git --config .betterleaks.toml --redact --no-banner .
+
+[extend]
+useDefault = true
+
+# dump_to's examples and tests show what it redacts: a DSN such as
+# postgres://app:*REDACTED*@db/app, a password built from pieces as
+# postgres://app:$password\@db/app, and a message once in TODO.md that
+# named postgres://user:password@host/db. betterleaks' generic rules
+# report each, though none is a secret. Only a secret that is exactly
+# one of those placeholders is allowed, with the \ of a \@ after it.
+[[allowlists]]
+description = "Placeholders in the examples of what dump_to redacts"
+regexTarget = "secret"
+regexes = ['''\A(?:\*REDACTED\*|\$password|password)\\*\z''']

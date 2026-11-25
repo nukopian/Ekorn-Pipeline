@@ -41,16 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0039. Scan for secrets with betterleaks
-
-Added 2026-11-15. **Size:** S (2).
-
-Scan with betterleaks, gitleaks' successor, in place of gitleaks: in
-CI's job over the whole history, and in the scans by hand before a
-push and a tag. gitleaks gets no new rules, so its scans will slowly
-miss the newer kinds of secret that only betterleaks finds. A
-`.betterleaks.toml` allows the placeholders in the redaction examples,
-which its rules report. [Its record](docs/changes/2026-0039-betterleaks.md).
+Nothing yet.
 
 ## Next
 

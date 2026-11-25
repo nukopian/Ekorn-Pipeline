@@ -104,7 +104,7 @@ Newest id first.
 - [A run's set-up, halved](2026-0040-plain-runs.md), a TODO task from
   DBIx-Squirrel: shipped in v0.3.3.
 - [Scanning with betterleaks](2026-0039-betterleaks.md), roadmap
-  2026-0039: in progress.
+  2026-0039: shipped.
 - [Secrets redacted by dump_to](2026-0038-dump-to-redacts.md), roadmap
   2026-0038: shipped in v0.3.2.
 - [A module of gitleaks' rules](2026-0037-gitleaks-rules.md), roadmap

@@ -335,15 +335,21 @@ commit that ships it. The rules are in
   the release brings, naming by id the roadmap items it ships, kept
   current as Unreleased grows: CPAN's users don't get the roadmap, and
   the precis is their account of it.
-- gitleaks scans the whole history for secrets in CI on every push, and
-  by hand before a tag. A leak stops the work like a failing test: once
-  history is published, it can't be taken back. So a commit of docs,
-  tests or a message, here or in another repository's `TODO.md`, is
-  scanned before it's pushed, with `gitleaks dir --redact --exit-code 1`
-  on what it changed, judged by its exit status; a git-ignored
-  `cover_db/` can show a finding that isn't in history. A full commit
-  hash beside one of gitleaks' rule names can look like a secret too.
-  If one reaches published history anyway, it's listed by its
-  fingerprint in a `.gitleaksignore`, with a comment saying why, as
-  Text-Redact-Secrets does (its 2026-0001's D14), rather than history
-  rewritten; Iain decides each.
+- betterleaks scans the whole history for secrets in CI on every
+  push, and by hand before a tag, in place of gitleaks, which gets no
+  new rules (roadmap 2026-0039). A leak stops the work like a failing
+  test: once history is published, it can't be taken back. So a
+  commit of docs, tests or a message, here or in another repository's
+  `TODO.md`, is scanned before it's pushed, with `betterleaks dir
+  --config .betterleaks.toml --redact --exit-code 1` on what it
+  changed, judged by its exit status; a git-ignored `cover_db/` can
+  show a finding that isn't in history. Every scan names
+  `.betterleaks.toml`, which betterleaks doesn't load by itself: it
+  allows the placeholders in `dump_to`'s examples, such as
+  `*REDACTED*`; a new placeholder that trips a rule is added to it
+  only as Iain decides, as with a fingerprint below. A full commit hash beside a rule's
+  name can look like a secret too. If a real finding reaches published
+  history anyway, it's listed by its fingerprint in a
+  `.gitleaksignore`, which betterleaks reads, with a comment saying
+  why, as Text-Redact-Secrets does (its 2026-0001's D14), rather than
+  history rewritten; Iain decides each.

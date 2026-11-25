@@ -242,7 +242,7 @@ the first line of each.
    git pull --ff-only
    git status --short
    gh run list --branch develop --limit 1
-   gitleaks git --redact --no-banner .
+   betterleaks git --config .betterleaks.toml --redact --no-banner .
    ```
 
    Unlike a release, a trial doesn't wait for `TODO.md` to go:
@@ -372,7 +372,7 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
    git pull --ff-only
    gh run list --branch develop --limit 1
    if [ -e TODO.md ]; then cat TODO.md; else echo "no TODO.md"; fi
-   gitleaks git --redact --no-banner .
+   betterleaks git --config .betterleaks.toml --redact --no-banner .
    ```
 
    If `TODO.md` is there, its tasks come first. Do them, or move them
@@ -657,10 +657,15 @@ this list.
 
 ## Security checks
 
-- **gitleaks** scans the whole history for secrets on every push, in
-  `test.yml`'s `secrets` job, and by hand before a tag (step 1).
+- **betterleaks** scans the whole history for secrets on every push, in
+  `test.yml`'s `secrets` job, and by hand before a tag (step 1). It
+  replaced gitleaks, which gets no new rules (roadmap 2026-0039).
+  `.betterleaks.toml` keeps its rules and allows the placeholders in
+  `dump_to`'s examples, such as `*REDACTED*`, which its generic rules
+  report; betterleaks reads it only when named, so each scan has
+  `--config .betterleaks.toml`.
 - **Secret scanning and push protection** are on: push protection
-  refuses a push with a recognised secret in it, before gitleaks would
+  refuses a push with a recognised secret in it, before betterleaks would
   see it.
 - **Dependabot alerts** are on. **Dependabot security updates** are off
   on purpose: they open pull requests against `main`, which moves only
@@ -684,7 +689,7 @@ gh api repos/nukopian/Ekorn-Pipeline/secret-scanning/alerts --jq '.[] | select(.
   `cpanfile`, including yath, Perl::Critic, Perl::Tidy,
   CPAN::Uploader, and Pod::Markdown::Github, which `minil.toml` names
   to write `README.md`'s code in ```` ```perl ```` fences.
-- `gh`, `gitleaks` and `jq`.
+- `gh`, `betterleaks` and `jq`.
 - For the PDFs, `pandoc` and Prince. `scripts/readme-pdf.sh` builds a
   PDF of the README, the how-to, the reference and this guide, for
   reading offline. The PDFs are git-ignored.
