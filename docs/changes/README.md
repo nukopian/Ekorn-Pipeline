@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [A quality release](2026-0053-quality-release.md), roadmap 2026-0053:
-  in progress, part shipped in v0.3.16.
+  shipped in v0.3.16 and v0.4.0.
 - [A source's original, carried through
   chains](2026-0052-source-original.md), roadmap 2026-0052: shipped in v0.3.13.
 - [Ekorn::Pipeline::Context's functions in

@@ -2,10 +2,15 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    Ekorn::Pipeline::Pipes' pipe gives what a pipeline gives, in either
-    context. It ships the rest of roadmap 2026-0053, and changes what
-    pipe gives in scalar context, which code may depend on, so it's
-    v0.4.0.
+v0.4.0 2026-11-25
+
+    pipe gives what a pipeline gives, in either context.
+
+    Ekorn::Pipeline::Pipes' pipe, in scalar context, gives how many
+    results came out, or a sink's result, as a pipeline does, not the
+    first result. It ships the rest of roadmap 2026-0053, and changes
+    what pipe gives in scalar context, which code may depend on, so
+    it's v0.4.0.
 
     - pipe gives what a pipeline of its stages, called with the object,
       gives: in scalar context, how many results came out, or a sink's

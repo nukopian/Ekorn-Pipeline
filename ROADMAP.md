@@ -41,16 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0053. A quality release
-
-**Size:** L (5)
-
-Fix and test what a review of the code, tests and docs found on
-2026-11-25: two bugs, slower and repeated code, slips of style, and
-docs that had drifted, in v0.3.16; then `pipe` made to give what a run
-of its stages gives, in either context, in v0.4.0, with a task for
-DBIx-Squirrel. [Its record](docs/changes/2026-0053-quality-release.md)
-has the findings and decisions.
+Nothing yet.
 
 ## Next
 

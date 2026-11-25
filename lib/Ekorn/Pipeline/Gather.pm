@@ -11,7 +11,7 @@ use Ekorn::Pipeline::Errors qw(croakf);
 
 use namespace::clean -except => 'import';
 
-our $VERSION = 'v0.3.16';
+our $VERSION = 'v0.4.0';
 
 our @EXPORT = qw(gather);    ## no critic (Modules::ProhibitAutomaticExportation)
 

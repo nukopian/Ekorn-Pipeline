@@ -13,7 +13,7 @@ use Ekorn::Pipeline::Stage  qw();
 use namespace::clean;
 
 # Croak at the line that called Ekorn::Pipeline.
-our $VERSION = 'v0.3.16';
+our $VERSION = 'v0.4.0';
 
 our @CARP_NOT = @Ekorn::Pipeline::Errors::INTERNAL;
 

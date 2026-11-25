@@ -1,7 +1,6 @@
 # 2026-0053. A quality release
 
-**Status:** in progress: v0.3.16 shipped its fixes, docs, tests and
-module versions; v0.4.0, with `pipe`, is to follow
+**Status:** shipped in v0.3.16 and v0.4.0
 
 **Decisions:** D1 settled: v0.3.16 for the fixes, then v0.4.0 for
 `pipe`. D2 settled: `pipe` gives what a run of its stages gives, in
@@ -16,6 +15,8 @@ and settled, with Iain's prompts, and handed `pipe`'s change.
 asked for, as the next release is a quality release
 
 **Started:** 2026-11-25, in 43a93c6d1982531ffae27416ccc75e81c9b66141
+
+**Finished:** 2026-11-25
 
 ## Background
 
@@ -236,9 +237,8 @@ task to take v0.4.0's `pipe`, waiting on its release.
 1. ~~Release v0.3.16 from `develop`.~~ Done, 2026-11-25.
 2. ~~Rebase `experiment/2026-0053-pipe` onto it.~~ Done, 2026-11-25;
    merge it into `develop`.
-3. Release v0.4.0, telling DBIx-Squirrel, whose task waits on it, and
-   ship this item: out of the roadmap, its status "shipped in v0.3.16
-   and v0.4.0".
+3. ~~Release v0.4.0, telling DBIx-Squirrel, whose task waits on it,
+   and ship this item.~~ Done, 2026-11-25.
 
 **After v0.3.16, 2026-11-25:** the branch was rebased onto the
 release, its `Changes` entry left alone under Unreleased and its note
@@ -246,3 +246,14 @@ removed, so it's now f2b74e33f11486613742f73b20f482ef4d343b98, in
 place of f1fd15cb4d65000cd4b45451d25abdc84dac8962 above. Its tests
 pass on 5.36 and 5.44, with the Windows fix to `t/34-versions.t` it
 now has. DBIx-Squirrel was sent the new hash.
+
+**v0.4.0, 2026-11-25:** the branch's one commit was replayed onto
+`develop`, which had moved on by a record commit, and `develop`
+fast-forwarded to it, keeping its history straight and signed; the
+branch is no longer needed. The item ships with v0.4.0, and leaves the
+roadmap in its release commit.
+
+- **Outcome, against Done when:** v0.3.16 and v0.4.0 are released;
+  each finding, F1 to F17, is fixed, and tested where a test can hold
+  it; DBIx-Squirrel has the message, with Iain's prompts, and the task
+  for `pipe`, which v0.4.0's release frees it to do.
