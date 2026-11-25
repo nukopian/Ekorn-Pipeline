@@ -57,7 +57,6 @@ sub examples ($file) {
     return @examples;
 }
 
-
 # Return what an example's comments say it prints, a line each.
 sub expected ($code) {
     my(@lines, $after, $pending);
@@ -86,7 +85,6 @@ sub expected ($code) {
     }
     return @lines;
 }
-
 
 # Return true if a line printed is what a comment says, where ... stands
 # for any text.

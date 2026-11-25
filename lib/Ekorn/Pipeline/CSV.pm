@@ -60,7 +60,6 @@ sub from_csv (@options) {
     };
 }
 
-
 # A sink writing each row to the file or filehandle, giving how many.
 # Given neither, a stage passing on each row as its line, without its
 # end of line, after the header's, if it has one.
@@ -86,7 +85,6 @@ sub to_csv (@options) {
         );
     };
 }
-
 
 # Return the options given, checked, with "new", a sub returning the
 # parser, and "encoding", a file's, as _encoding gives it. Load
@@ -115,7 +113,6 @@ sub _options ($function, $known, @given) {
     return %option;
 }
 
-
 # Load Text::CSV, croaking for the function given if it can't be.
 sub _load ($function) {
     return if eval { require Text::CSV; 1 };
@@ -126,7 +123,6 @@ sub _load ($function) {
     return croakf q(Can't load Text::CSV, which %s needs: %s), $function,
         $error =~ s( \s* \n .* )()xsr;
 }
-
 
 # Return a file's encoding: 'raw', for bytes, or Encode's object for the
 # one named, UTF-8 if none is. Only a file is opened, so only a file
@@ -142,7 +138,6 @@ sub _encoding ($option) {
     return $found;
 }
 
-
 # Croak unless the header is one the function takes: true, false, or
 # 'skip' to read; true, false, or an array of names to write.
 sub _check_header ($option, $function) {
@@ -157,7 +152,6 @@ sub _check_header ($option, $function) {
         if !is_plain_arrayref($header) || grep { !defined || ref } @$header;
     return;
 }
-
 
 # Return a sub munging a header's name as munge says, or nothing, for a
 # munge of none.
@@ -175,7 +169,6 @@ sub _munger ($option) {
         if ref $munge || !exists $MUNGE{$munge // q()};
     return $MUNGE{$munge};
 }
-
 
 # Return a sub returning the parser: one made from csv's options, over
 # the defaults, or csv's object, as it is. Reading a file raw, the
@@ -198,7 +191,6 @@ sub _parser ($csv, $raw) {
     return sub () { Text::CSV->new({%settings}) };
 }
 
-
 # Return true if the options name a file or a filehandle.
 sub _has_input ($option) {
     return defined $option->{file} || !!$option->{fh};
@@ -215,7 +207,6 @@ my $READ  = qr( , \s+ < \S* > \s+ (?: line | chunk ) \s+ \d+ )x;
 sub _unplaced ($error) {
     return "$error" =~ s( $PLACE $READ? \.? \s* \z )()xr;
 }
-
 
 # Return a sub giving the next row read from $io, by $from, or nothing
 # at its end; and the context, if a header was read, as the header
@@ -243,7 +234,6 @@ sub _table ($csv, $io, $from, $header, $munge) {
     return ($hashes, $context);
 }
 
-
 # Return a sub giving the next row read from $io, by $from, or nothing at
 # its end, croaking at a row that won't parse. A byte order mark that
 # starts the first row is dropped.
@@ -257,7 +247,7 @@ sub _rows ($csv, $io, $from) {
         }
         catch ($e) {
             croakf q(Can't read %s: %s), $from, _unplaced($e);
-        }
+        };    # the ; ends the statement for Perl::Critic, which doesn't know try
         unless ($row) {
             my($code, $why, undef, undef, $field) = $csv->error_diag;
             return if $code == $EOF;
@@ -269,7 +259,6 @@ sub _rows ($csv, $io, $from) {
         return $row;
     };
 }
-
 
 # Return a source of the rows in the file or filehandle.
 sub _reader ($option) {
@@ -294,7 +283,6 @@ sub _reader ($option) {
         };
     };
 }
-
 
 # Return a sub giving a row's line, without its end of line, and, if
 # there's a header, a sub giving its line: the names given, or the run's
@@ -340,17 +328,13 @@ sub _formatter ($csv, $header, $form) {
         return $text->([@{ $row }{@$names}]);
     };
     return ($line) unless $header;
-    return (
-        $line,
-
-
-        sub () {
-            $names = _columns() unless $names;
-            return $text->($names);
-        },
-    );
+    # The header's line: the names given, or the run's columns.
+    my $head = sub () {
+        $names = _columns() unless $names;
+        return $text->($names);
+    };
+    return ($line, $head);
 }
-
 
 # Return the run's context's columns, for a header, croaking if it has
 # none.
@@ -361,7 +345,6 @@ sub _columns () {
         unless is_plain_arrayref($columns);
     return $columns;
 }
-
 
 # Return the form a writer's lines are made in, for _formatter, and a
 # sub encoding each, if it needs one: a filehandle takes characters, for
@@ -383,7 +366,6 @@ sub _encoder ($encoding, $path) {
     };
     return ('chars', $encode);
 }
-
 
 # Return a sink writing each row to the file or filehandle, giving how
 # many: after the header's line, if it has one, written even if no row

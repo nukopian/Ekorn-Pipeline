@@ -40,7 +40,6 @@ sub both ($stages, @values) {
     return @got;
 }
 
-
 # Check both ways give the same, and what's expected.
 sub same ($name, $stages, $values, $expected) {
     my($plain, $full) = both($stages, @$values);

@@ -23,14 +23,12 @@ sub gather : prototype(&) ($block) {
     return __PACKAGE__->new($block);
 }
 
-
 # Return a gather of the block given. Called, it calls the block, as
 # the core does at the start of each run.
 sub new ($class, $block) {
     croakf 'Expected a code reference' unless is_coderef($block);
     return bless {call => sub { $block->() }}, $class;
 }
-
 
 # Return what the block returns for a new run: the step, or a pipeline
 # of steps, and optionally a flush and an end.

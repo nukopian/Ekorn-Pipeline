@@ -25,13 +25,11 @@ sub import ($class, @) {
     return;
 }
 
-
 # Take the operators out of force for the rest of the scope.
 sub unimport ($class, @) {
     delete $^H{$IN_FORCE};
     return;
 }
-
 
 # Croak unless the operators are in force where the line that used one
 # was compiled.
@@ -69,7 +67,6 @@ sub chain ($before, $after, $swapped = undef, @) {
     return $sink eq 'many' ? \@results : $results[0];
 }
 
-
 # Return a reference to an array of every value the source gives. A
 # class of sources of its own can overload @{} with this.
 sub drain ($source, @) {
@@ -77,12 +74,10 @@ sub drain ($source, @) {
     return scalar Ekorn::Pipeline->new->iterator($source)->all;
 }
 
-
 # Return true if the object given offers a source's role method.
 sub _is_source ($object) {
     return !!$object->can('EKORN_SOURCE');
 }
-
 
 # Return what a chain was made of, a source and stages; or, given a
 # source that isn't a chain, the source.
@@ -91,7 +86,6 @@ sub _parts ($source) {
         ? @{ $source->{parts} }
         : $source;
 }
-
 
 # Return a chain: a source of the values from $source through the
 # stages, which keeps them, so that more can be added to it. Each run of

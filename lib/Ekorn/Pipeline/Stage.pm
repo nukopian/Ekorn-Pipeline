@@ -28,12 +28,10 @@ sub new ($class, $code) {
         $class;
 }
 
-
 # Return the code the stage was made of.
 sub code ($self) {
     return $self->{code};
 }
-
 
 # Return the stage's step for a new run: its code, as a code reference.
 sub EKORN_STAGE ($self) {

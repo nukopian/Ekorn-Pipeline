@@ -20,7 +20,6 @@ sub import ($class, @args) {
     return;
 }
 
-
 # Name the pipelines defined after "pipeline" in $package, and give it a
 # function of each name, as import does for its caller: for a module
 # whose own sugar defines pipelines for its caller.
@@ -42,7 +41,6 @@ sub import_into ($class, $package, @args) {
     }
     return;
 }
-
 
 # Check the definitions given, as pairs of a name and an array of
 # stages, then name each pipeline in $package, and give it a function of
@@ -74,7 +72,6 @@ sub _define ($package, @pairs) {
     return;
 }
 
-
 # Return the names in @$names in an order to define them in: each after
 # those it names, from the same definitions, as given otherwise.
 sub _in_order ($package, $names, $stages) {
@@ -100,7 +97,6 @@ sub _in_order ($package, $names, $stages) {
     return @order;
 }
 
-
 # Return the name a stage gives, without its package, if it's a name in
 # $package; or nothing.
 sub _local_name ($package, $stage) {
@@ -110,7 +106,6 @@ sub _local_name ($package, $stage) {
     return        if $stage =~ m( :: )x;
     return $stage;
 }
-
 
 # Install a function of the full name given, running values through the
 # pipeline, and, given a pipeline last, through that after it.

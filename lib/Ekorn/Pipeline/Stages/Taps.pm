@@ -105,7 +105,6 @@ sub tee (@stages) {
     };
 }
 
-
 # Return a stage writing each value, with Data::Dumper, to the filehandle
 # given, or STDERR, and passing it on, with its secrets redacted when
 # Text::Redact::Secrets is installed, unless $DumpSecrets is true.

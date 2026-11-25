@@ -34,6 +34,13 @@ Unreleased
       they were. A short run, two stages and five values, is 2 to 3%
       quicker, pushed or pulled, on Perl 5.36; long runs cost what they
       did. (roadmap 2026-0053)
+    - F6: every sub has one blank line above its comment, or two above
+      it without one, in the modules, tests and scripts, as the style
+      says; 110 had two above a comment. (roadmap 2026-0053)
+    - F7: small slips of style: a section comment stranded between
+      Sinks' subs, a blank line before each module's closing 1;, and
+      Ekorn::Pipeline::Feed cleans its namespace, as the other classes
+      do, so croakf isn't one of its methods. (roadmap 2026-0053)
     - F17: the 41 patterns in the tests of JSON, CSV and a source's
       original that lacked the x flag, against the house style, have
       it. (roadmap 2026-0053)

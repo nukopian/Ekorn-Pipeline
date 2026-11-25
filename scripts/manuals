@@ -64,7 +64,6 @@ sub anchor ($heading) {
     return $text =~ tr( )(-)r;
 }
 
-
 # Return Markdown's text without its inline formatting.
 sub plain ($text) {
     $text =~ s( \[ ([^\]]*) \] \( [^\)]* \) )($1)xg;
@@ -73,7 +72,6 @@ sub plain ($text) {
     $text =~ s( \* (?=\S) ([^*]+?) (?<=\S) \* )($1)xg;
     return $text;
 }
-
 
 # Return each heading's section name, the text a POD link names it by,
 # keyed by its anchor. A second heading with the same anchor has -1
@@ -93,12 +91,10 @@ sub sections ($markdown) {
     return \%section;
 }
 
-
 # Return inline code as POD's C<>, with more brackets if it holds < or >.
 sub code ($text) {
     return $text =~ m( [<>] )x ? "C<< $text >>" : "C<$text>";
 }
-
 
 # Return text, without links, as POD: inline code as C<>, bold as B<>,
 # italics as I<>, and < and > escaped.
@@ -116,7 +112,6 @@ sub formatted ($text) {
     }
     return join '', @parts;
 }
-
 
 # Return a Markdown link as POD's L<>, given its text, its target, the
 # sections of each manual, and the Markdown file it's in.
@@ -139,7 +134,6 @@ sub link_to ($text, $target, $sections, $file) {
     return qq{L<$shown|$module/"$section">};
 }
 
-
 # Return Markdown's inline text as POD.
 sub inline ($text, $sections, $file) {
     my @links;
@@ -152,7 +146,6 @@ sub inline ($text, $sections, $file) {
     $text =~ s( ^ = )(Z<>=)xmg;                # a line starting = would be a command
     return $text;
 }
-
 
 # Split a table's row into its cells, leaving a | in inline code alone,
 # and a | escaped as \|, as GitHub needs one in a table, even in code,
@@ -168,7 +161,6 @@ sub cells ($row) {
     s( \\ \| )(|)xg          for @cells;
     return @cells;
 }
-
 
 # Return a table as a POD list: an item for each row, named by its first
 # cell; the second cell its text, or, with more, each cell after its
@@ -192,7 +184,6 @@ sub table ($rows, $sections, $file) {
     return @pod;
 }
 
-
 # Return a list as a POD list, given its items' lines.
 sub list ($items, $sections, $file) {
     my $numbered = $items->[0][0] =~ m( \A \d )x;
@@ -205,7 +196,6 @@ sub list ($items, $sections, $file) {
     push @pod, "=back\n";
     return @pod;
 }
-
 
 # Return a quote as POD's indented paragraphs, given its lines. It holds
 # paragraphs only: anything else in it is refused.
@@ -226,7 +216,6 @@ sub quote ($lines, $sections, $file) {
         ),
         "=back\n";
 }
-
 
 # Return the POD made from a manual's Markdown, given each manual's
 # sections and the Markdown file's name.
@@ -316,7 +305,6 @@ sub convert ($markdown, $sections, $file) {
         "=head1 NAME\n", "$module - $title\n",
         "=head1 DESCRIPTION\n", @pod, $FOOTER;
 }
-
 
 # Make each manual, or with --check, say whether each is as its Markdown
 # makes it. Run from the repository's top.

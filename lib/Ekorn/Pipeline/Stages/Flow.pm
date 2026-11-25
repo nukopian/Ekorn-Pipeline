@@ -61,7 +61,6 @@ sub take_first : prototype() () {
     return take(1);
 }
 
-
 # Return a stage holding each value, and passing on the last once they
 # run out; nothing if there were none.
 sub take_last : prototype() () {
@@ -74,7 +73,6 @@ sub take_last : prototype() () {
         };
     };
 }
-
 
 # Return a stage passing on the one value, asserting it's the only one:
 # at a second, it warns and stops the pipeline.
@@ -91,7 +89,6 @@ sub take_single : prototype() () {
     };
 }
 
-
 # Return a stage passing on each value the test given is true of, and
 # dropping the rest.
 sub take_if : prototype(&) ($test) {
@@ -100,7 +97,6 @@ sub take_if : prototype(&) ($test) {
         sub ($value) { $test->($value) ? $value : () });
 }
 
-
 # Return a stage dropping each value the test given is true of, and
 # passing on the rest.
 sub drop_if : prototype(&) ($test) {
@@ -108,7 +104,6 @@ sub drop_if : prototype(&) ($test) {
     return Ekorn::Pipeline::Stage->new(
         sub ($value) { $test->($value) ? () : $value });
 }
-
 
 # Return a stage passing on values while the test given is true of them,
 # and stopping the pipeline at the first it's false of.

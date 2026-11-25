@@ -27,8 +27,12 @@ BEGIN {
 
 # A filehandle whose writes fail, as on a failing disk.
 package My::Failing::Handle {
-    sub TIEHANDLE ($class)   { return bless {}, $class }
-    sub PRINT     ($self, @) { $! = 28; return 0 }         # No space left on device
+
+
+    sub TIEHANDLE ($class) { return bless {}, $class }
+
+
+    sub PRINT ($self, @) { $! = 28; return 0 }    # No space left on device
 }
 
 use Text::CSV    qw();
@@ -56,7 +60,6 @@ sub path ($suffix, $content = undef) {
     return $path;
 }
 
-
 # Return what the file at $path holds, as bytes.
 sub slurp ($path) {
     open my $fh, '<:raw', $path or die "Can't read $path: $!";
@@ -64,13 +67,11 @@ sub slurp ($path) {
     return scalar readline $fh;
 }
 
-
 # Return every row read from the source from_csv makes, given the
 # options.
 sub read_all (@options) {
     return [$class->new->iterator(from_csv(@options))->all];
 }
-
 
 # Return the context each value of the source from_csv makes saw, given
 # the options, as the run's stages see it.
@@ -84,7 +85,6 @@ sub contexts (@options) {
         ->all;
     return \@seen;
 }
-
 
 # Return an error's message without the place it was raised.
 sub message ($error) {

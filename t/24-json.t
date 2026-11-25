@@ -25,14 +25,24 @@ BEGIN {
 
 # A filehandle whose reads and writes fail, as on a failing disk.
 package My::Failing::Handle {
-    sub TIEHANDLE ($class)   { return bless {}, $class }
-    sub READ      ($self, @) { $! = 5;  return }      # Input/output error
-    sub PRINT     ($self, @) { $! = 28; return 0 }    # No space left on device
+
+
+    sub TIEHANDLE ($class) { return bless {}, $class }
+
+
+    sub READ ($self, @) { $! = 5; return }    # Input/output error
+
+
+    sub PRINT ($self, @) { $! = 28; return 0 }    # No space left on device
 }
 
 # An encoder of the caller's own, offering only what writing needs.
 package My::Encoder {
-    sub new    ($class)        { return bless {}, $class }
+
+
+    sub new ($class) { return bless {}, $class }
+
+
     sub encode ($self, $value) { return "<$value>" }
 }
 
@@ -59,7 +69,6 @@ sub path ($suffix, $content = undef) {
     return $path;
 }
 
-
 # Return what the file at $path holds.
 sub slurp ($path) {
     open my $fh, '<:raw', $path or die "Can't read $path: $!";
@@ -67,12 +76,10 @@ sub slurp ($path) {
     return scalar readline $fh;
 }
 
-
 # Return every value read from the source $from makes, given the options.
 sub read_all ($from, @options) {
     return [$class->new->iterator($from->(@options))->all];
 }
-
 
 # Return an error's message without the place it was raised.
 sub message ($error) {

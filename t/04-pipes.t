@@ -9,9 +9,14 @@ use Ekorn::Pipeline::Stop;
 package My::Thing {
     our @ISA = 'Ekorn::Pipeline::Pipes';
 
-    sub new    ($class)       { return bless {log => []}, $class }
-    sub answer ($self)        { return 42 }
-    sub note   ($self, $note) { push @{ $self->{log} }, $note; return $self }
+
+    sub new ($class) { return bless {log => []}, $class }
+
+
+    sub answer ($self) { return 42 }
+
+
+    sub note ($self, $note) { push @{ $self->{log} }, $note; return $self }
 }
 
 my $thing = My::Thing->new;

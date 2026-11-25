@@ -23,7 +23,6 @@ sub new ($class, $setup) {
     }, $class;
 }
 
-
 # Return what the set-up returns for a new run: the step, and
 # optionally the end, a context and an original.
 sub EKORN_SOURCE ($self) {

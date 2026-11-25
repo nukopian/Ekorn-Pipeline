@@ -259,7 +259,11 @@ what was Iain's.
 - **Two blank lines between subs, or one above a sub's comment.** A sub
   without a comment above it has two blank lines before it, to make the
   gap between subs plain; one with a comment has one, above the
-  comment, which marks the gap itself. Perl::Tidy keeps either.
+  comment, which marks the gap itself, as Iain confirmed on 2026-11-25
+  (2026-0053's D4), in tests and scripts too. Perl::Tidy keeps one
+  above a comment, but makes two above a sub without one, even at the
+  start of a block, and above `sub {` starting a line in a list: name
+  such a closure in a variable first.
 - **A closure run for each value reads `$_[0]`, without a signature,**
   as Iain decided on 2026-11-16, as DBIx-Squirrel did the same day:
   the steps that our stages, sources and sinks return, which the

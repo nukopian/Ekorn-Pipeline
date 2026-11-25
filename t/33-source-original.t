@@ -59,6 +59,8 @@ subtest "a source's original, as its result_original" => sub {
 subtest "an object's own EKORN_SOURCE" => sub {
 
     package My::Rows {
+
+
         sub new ($class, @rows) { bless {rows => [@rows]}, $class }
 
 

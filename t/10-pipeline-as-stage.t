@@ -28,6 +28,8 @@ package My::Odd {
     our @ISA = 'Ekorn::Pipeline';
 
     our @STAGES;
+
+
     sub stages ($self) { return @STAGES }
 }
 
@@ -35,11 +37,13 @@ package My::Odd {
 package My::Same {
     our @ISA = 'Ekorn::Pipeline';
 
+
     sub stages ($self) { return $self->SUPER::stages }
 }
 
 package My::Thing {
     our @ISA = 'Ekorn::Pipeline::Pipes';
+
 
     sub new ($class, $n) { return bless {n => $n}, $class }
 }

@@ -27,7 +27,6 @@ sub new_sink_many ($class, $setup) {
     );
 }
 
-
 # Return a sink, as new_sink_many does, whose result is one value.
 sub new_sink_one ($class, $setup) {
     return _made(

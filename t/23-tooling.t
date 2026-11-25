@@ -25,7 +25,6 @@ my %module = (
     words   => ['Ekorn::Pipeline::Factories'],
 );
 
-
 # The names a module exports, by default or on request, sorted.
 sub exported_by ($module) {
     no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
@@ -125,6 +124,7 @@ subtest "| isn't in force, though Operators is loaded" => sub {
 
     package Tooling::NoOperators {
         use Ekorn::Pipeline::Tooling qw(:all);
+
 
         sub chained () { return from_array(1, 2) | count_items }
     }

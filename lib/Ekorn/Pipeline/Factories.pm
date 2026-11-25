@@ -34,12 +34,10 @@ sub stage : prototype(&) ($code) {
     return Ekorn::Pipeline::Stage->new($code);
 }
 
-
 # Return a Source made for each run by the set-up given.
 sub source : prototype(&) ($setup) {
     return Ekorn::Pipeline::Source->new($setup);
 }
-
 
 # Return a Source giving what the block yields: each run calls the block
 # once, collecting every value it passes to yield, and gives them all
@@ -57,7 +55,6 @@ sub generator : prototype(&) ($block) {
     });
 }
 
-
 # Add the values given to what the generator whose block is running
 # gives.
 sub yield (@values) {
@@ -66,13 +63,11 @@ sub yield (@values) {
     return;
 }
 
-
 # Return a Sink made for each run by the set-up given, its result one
 # value.
 sub sink_one : prototype(&) ($setup) {
     return Ekorn::Pipeline::Sink->new_sink_one($setup);
 }
-
 
 # Return a Sink made for each run by the set-up given, its result a
 # list.

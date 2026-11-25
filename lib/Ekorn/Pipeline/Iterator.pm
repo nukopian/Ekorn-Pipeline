@@ -32,7 +32,6 @@ sub new (
     }, $class;
 }
 
-
 # Return how the run ended: "done" if its source was read to its end,
 # "stopped" if the reading was cut short, by a stop or from outside, or
 # values still to be handed out were dropped, and "died" if anything in
@@ -41,14 +40,12 @@ sub ended ($self) {
     return $self->{ended}->();
 }
 
-
 # End the run, if it hasn't ended, as from outside: each part is told
 # how from where it stands, and nothing more is handed out.
 sub finish ($self) {
     $self->{end_run}->();
     return;
 }
-
 
 # Return the values still to be handed out, reading the run to its end:
 # as a list, or, asked for one value, an array reference of them. A
@@ -66,7 +63,6 @@ sub all ($self) {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     return wantarray ? @all : \@all;
 }
 
-
 # Return the next value, or undef if there's none, and end the run, so
 # nothing more is read.
 sub first ($self) {
@@ -74,7 +70,6 @@ sub first ($self) {
     $self->finish;
     return $value;
 }
-
 
 # Return the next value, or undef if there's none, asserting it's the
 # only one: if there's another, warn. The run ends either way.
@@ -86,7 +81,6 @@ sub single ($self) {
     $self->finish;
     return $value;
 }
-
 
 # An iterator is a source: of the values its run gives, the run ended
 # from outside when the run reading it ends, passing on its context, and
@@ -108,7 +102,6 @@ sub EKORN_SOURCE ($self) {
         original => $self->{original},
     };
 }
-
 
 # An iterator let go ends its run.
 sub DESTROY ($self) {

@@ -34,7 +34,6 @@ sub is_stage ($thing) {
         || _stage_role($thing));
 }
 
-
 # Return "one" if what's given is a sink giving one value, "many" if
 # it's a sink giving a list, or false otherwise; a pipeline, by the
 # sink it ends in.
@@ -68,12 +67,10 @@ sub _stage_role ($thing) {
     return;
 }
 
-
 # Return true if what's given offers a source's role method.
 sub _is_source ($thing) {
     return !!(blessed($thing) && $thing->can('EKORN_SOURCE'));
 }
-
 
 # Return the stage given as an element: a part offering a role method is
 # kept as it is, and a code reference is made a Stage.
@@ -81,7 +78,6 @@ sub _element ($stage) {
     return $stage if $stage isa 'Ekorn::Pipeline::Element' || _stage_role($stage);
     return Ekorn::Pipeline::Stage->new($stage);
 }
-
 
 # Croak unless what's given, as stage #$n, can go where a stage goes, as
 # one role: a source isn't a stage, and a part offering more than one of
@@ -101,7 +97,6 @@ sub _check_stage ($stage, $n) {
         unless @roles || is_coderef($stage) || $stage isa 'Ekorn::Pipeline';
     return;
 }
-
 
 # Return a pipeline, called with values to run each of them through the
 # stages. A pipeline given as a stage has its stages spliced in, each
@@ -181,7 +176,6 @@ sub _qualified ($name, $package) {
     return $name =~ m( :: )x ? $name : "${package}::$name";
 }
 
-
 # Return the stages given, each name replaced by the pipeline it names,
 # looked up in $package unless it's qualified.
 sub _resolved ($package, @given) {
@@ -204,7 +198,6 @@ sub _resolved ($package, @given) {
     return @stages;
 }
 
-
 # Return a new pipeline of the invocant's class, of the stages given, each
 # a code reference, a pipeline, or the name of one, looked up now in
 # $package unless it's qualified; or, given one name alone, the pipeline
@@ -217,7 +210,6 @@ sub pipeline_in ($class, $package, @stages) {
         if @stages == 1 && !is_stage($stages[0]) && $resolved[0] isa $class;
     return $class->new(@resolved);
 }
-
 
 # Name a pipeline, in the caller's package unless the name is qualified,
 # and return it: on the class, a new one of the stages after the name,
@@ -244,7 +236,6 @@ sub named ($invocant, $name, @stages) {
     return $named{$qualified} = $pipeline;
 }
 
-
 # Return the first name the pipeline was given, qualified by its
 # package, or undef if it has none.
 sub name ($self) {
@@ -270,7 +261,6 @@ sub _composed ($pipeline) {
     return \@stages, [1 .. @stages], [map { [] } @stages];
 }
 
-
 # Return an iterator handing out, one per call, the values from $source
 # run through the stages: $source a code reference, or anything
 # offering a source's role method, an iterator included.
@@ -282,7 +272,6 @@ sub iterator ($self, $source) {
         $source,
     );
 }
-
 
 # Return a feed: one run of the stages, made now, which takes values as
 # they're pushed, giving what comes out of each push, and ends when it's
@@ -314,7 +303,6 @@ sub feed ($self) {
     );
 }
 
-
 # Return a feed of a run made into %$run with a flush, an end or a sink:
 # an iterator of it, whose source has nothing until a push, and is done
 # once the feed is closed; its stages see the context of the code
@@ -344,7 +332,6 @@ sub _full_feed ($pipeline, $run) {
     );
 }
 
-
 # Return the stages, in order, as a list, to splice into another
 # pipeline or give to any function taking stages.
 sub stages ($self) {
@@ -370,14 +357,12 @@ sub ending () {
     return $running{ending};
 }
 
-
 # For code telling its stages about the run: the context the run's
 # source gave, if any, such as a statement's columns. A pushed run has
 # none; an iterator used as a source passes on its run's.
 sub run_context () {
     return $running{context};
 }
-
 
 # Ekorn::Pipeline::Context's functions, defined here, as they read
 # $CURRENT_RESULT, which is this file's to set; that module exports and
@@ -389,7 +374,6 @@ sub Ekorn::Pipeline::Context::result_number : prototype() () {
     return $CURRENT_RESULT ? $CURRENT_RESULT->[0] + 1 : undef;
 }
 
-
 # The original is the source's, if it gave an original part, directly
 # or through an iterator read as a source, called only now (2026-0052);
 # otherwise the run's own. A flush's values have none, either way.
@@ -400,7 +384,6 @@ sub Ekorn::Pipeline::Context::result_original : prototype() () {
         : $part                               ? $part->()
         :                                       $original;
 }
-
 
 # Return the step, the end, the context and the original part of a run
 # of $source: from its EKORN_SOURCE, if it offers one; a code reference
@@ -419,7 +402,6 @@ sub _source_run ($source) {
     return ($step, $end, $context, $original);
 }
 
-
 # Return the parts a role method or a set-up returned as a list, in the
 # order of the keys in @$order: as they are, if they're a list, or, if
 # they're one plain hash reference, its values for those keys. Other
@@ -429,12 +411,10 @@ sub _parts ($order, @returned) {
     return @{ $returned[0] }{@$order};
 }
 
-
 # Return true if each of what's given is a code reference, or undefined.
 sub _code_or_none (@things) {
     return !grep { defined && !is_coderef($_) } @things;
 }
-
 
 # Return how a stage is named in a message: by its place, $name, and, if
 # it's within a named pipeline, the innermost, by its name and its place
@@ -448,7 +428,6 @@ sub _label ($pipeline, $name, $within) {
     }
     return "stage #$name";
 }
-
 
 # Return the results of pushing @values through @$steps, each a plain
 # step, as a run of them would give them, without a run's machinery:
@@ -515,7 +494,6 @@ sub _push_steps ($pipeline, $steps, $labels, $fed, $values) {
     return @results;
 }
 
-
 # Return the text of an end's error: a stop's own text, "Stop used
 # outside a pipeline", would mislead, as the stop was in a run.
 sub _end_error ($error) {
@@ -523,7 +501,6 @@ sub _end_error ($error) {
         if $error isa 'Ekorn::Pipeline::Stop';
     return "$error";
 }
-
 
 # Call each end given, as [$label, $end, $how], in order. While the run
 # is dying, an end that dies is reported as a warning naming it, and the
@@ -555,7 +532,6 @@ sub _end_all ($ends, $dying) {
     return _failed("end of $failed", _end_error($error));
 }
 
-
 # Die with the message of a part of a run that died, a stage, a flush
 # or an end, as a run reports it: naming $what, at the line that called
 # the run, the message it died with below, indented.
@@ -564,7 +540,6 @@ sub _failed ($what, $message) {
     my $indented = $message =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
     die "Pipeline $what failed$at:\n$indented\n";    ## no critic (ErrorHandling::RequireCarping): placed by shortmess, above
 }
-
 
 # Make the parts of a run from @$stages, named by @$names, into the
 # lists in %$run: each part's step, its flush and its end, by its role
@@ -640,7 +615,6 @@ sub _make_run ($stages, $names, $within, $run) {
     return;
 }
 
-
 # Return an iterator handing out, one per call, the values from $source
 # run through the stages in @$stages, named in messages by @$names.
 sub _iterator ($pipeline, $stages, $names, $within, $source) {
@@ -661,7 +635,6 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
     return _full_iterator($pipeline, $run, $pull, $source_end, $context);
 }
 
-
 # Return the results of pushing @$values through @$stages, as a run of
 # them gives them: once the stages are made for the run, by the plain
 # loop if none has a flush or an end, as most haven't, so a stage made
@@ -677,7 +650,6 @@ sub _pushed ($pipeline, $stages, $names, $within, $values) {
     return _full_iterator($pipeline, $run, sub { splice @$values }, undef, undef)
         ->all;
 }
-
 
 # Return a run made from @$stages, named by @$names, as _make_run makes
 # it. If a set-up dies, every end made by then, and $source_end, if
@@ -696,7 +668,6 @@ sub _made_run ($pipeline, $stages, $names, $within, $source_end = undef) {
     return \%run;
 }
 
-
 # Tell each end of a run made by then, the source's first, that the run
 # died, as a set-up died with $error, and throw it on.
 sub _set_up_died ($pipeline, $run, $source_end, $error) {
@@ -714,7 +685,6 @@ sub _set_up_died ($pipeline, $run, $source_end, $error) {
     croak $error if is_ref($error);
     die $error;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
 }
-
 
 # Return an iterator of a run that isn't plain, made by _iterator or
 # _pushed, from its source's step, end and context, and the original
@@ -1042,13 +1012,11 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     );
 }
 
-
 # Return how stage $n of a run made into %$run, of $pipeline, is named in
 # a message, as _label names it.
 sub _run_label ($pipeline, $run, $n) {
     return _label($pipeline, $run->{names}[$n], $run->{within}[$n]);
 }
-
 
 # Return an iterator, as _iterator does, for a run made into %$run with
 # no flush, no end of a stage's, and no sink, so with none of their
@@ -1239,6 +1207,7 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
         $run->{original},
     );
 }
+
 1;
 __END__
 
