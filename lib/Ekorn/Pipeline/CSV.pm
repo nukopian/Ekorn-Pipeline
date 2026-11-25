@@ -714,11 +714,19 @@ order its fields.
 C<to_csv>'s C<header> was true, but the run had no context, or one
 without C<columns>, such as a pushed run's.
 
+=item Can't write a row as CSV: field %d is a reference
+
+A row's field, counting from 1, was a reference, which CSV can't
+hold.
+
+=item Can't write a row as CSV: field %d holds a wide character, and the file is written raw
+
+A row's field, counting from 1, held a character that isn't a byte,
+in a file written with C<encoding> C<raw>.
+
 =item Can't write a row as CSV: %s
 
-A row couldn't be written: a field was a reference, a field written
-C<raw> held a character that isn't a byte, or the parser wouldn't
-combine its fields, saying why.
+The parser wouldn't combine a row's fields, saying why.
 
 =back
 

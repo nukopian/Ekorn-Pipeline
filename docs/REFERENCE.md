@@ -206,9 +206,9 @@ It exports nothing by default, and `is_stage` and `is_sink` on
 request. `is_stage` is new in v0.1.3, so ask for that version on the
 `use` line, as above. Without it, `use Ekorn::Pipeline qw(is_stage)`
 compiles under v0.1.2, which has no `import`, and fails only when
-`is_stage` is called. `pipeline_in`, `named` and `is_sink` are new in
-v0.3.0. The word `pipeline`, which makes a pipeline whose stages can
-be names, is in [Factories](#words-ekornpipelinefactories).
+`is_stage` is called. The word `pipeline`, which makes a pipeline
+whose stages can be names, is in
+[Factories](#words-ekornpipelinefactories).
 
 A subclass inherits its `import`, Exporter's, so `use My::Pipeline;`
 imports nothing, and `use My::Pipeline qw(name)` croaks unless the
@@ -563,7 +563,6 @@ keyword-like function, one line over a class method: syntax, not
 behaviour, so it lives here, not in the class it makes. A package
 built on Ekorn uses them as they are (see [Delivering parts for
 Ekorn](#delivering-parts-for-ekorn)). Nothing is exported by default.
-Each is new in v0.3.0.
 
 | Word | Makes | Its block |
 |---|---|---|
@@ -701,7 +700,7 @@ my $next = pipeline('top')->iterator($source);    # pulled
 it, each a name and an array of stages: a hash, `{...}`, or an array of
 pairs, `[...]`, to read in order. Each pipeline is named in the package
 that uses the module, as `named` names one, so `pipeline('name')` finds
-it, and the package gets a function of each name. New in v0.3.0.
+it, and the package gets a function of each name.
 
 - **The function** runs the values it's given through the pipeline, and
   returns what comes out, in the caller's context, as calling the
@@ -899,6 +898,9 @@ it declared:
   optional;
 - **a context,** for a source only, and optional: anything its stages
   may ask for with [`run_context`](#stages-that-ask-about-their-run).
+- **an original,** for a source only, and optional: called with
+  nothing, it returns the original of the value the source gave last,
+  which [`result_original`](#which-result-ekornpipelinecontext) gives.
 
 ```perl
 use Ekorn::Pipeline::Factories qw(source);
@@ -921,8 +923,8 @@ a run: it's the same code, with the same closure, in every run.
 The set-up returns its parts as a list, in the order above, leaving
 out those it doesn't give from the end, and giving `undef` for one it
 leaves out before one it gives. Or it returns them **by name,** as a
-hash reference whose keys are `step`, `flush`, `end` and `context`,
-giving only those it has, in any order:
+hash reference whose keys are `step`, `flush`, `end`, `context` and
+`original`, giving only those it has, in any order:
 
 ```perl
 use Ekorn::Pipeline::Factories qw(gather);
@@ -945,7 +947,7 @@ say $count;    # 3
 A key Ekorn doesn't read is ignored, and a hash without what its part
 needs, a step, and a sink's flush, croaks, as a list without them
 does. Only a plain hash reference returned alone is taken for parts by
-name. Parts by name are new in v0.3.0.
+name.
 
 ### How a run ends
 
@@ -1742,7 +1744,7 @@ Ready-made sources, needing nothing beyond Perl, for
 [iterator](#iterator): the values you give, numbers counting on
 without end, and the records of a file or a filehandle. Each is made
 afresh for each run, so each run reads from the start. Nothing is
-exported by default. Each is new in v0.3.0.
+exported by default.
 
 ```perl
 use Ekorn::Pipeline::Sources qw(from_array from_fh from_file counter);
@@ -1792,8 +1794,7 @@ to step by".
 
 Ready-made sinks, usually given last in a pipeline, so that a sink's
 result is what the run gives (see [Sinks](#sinks-ekornpipelinesink)).
-Each is made afresh for each run. Nothing is exported by default. Each
-is new in v0.3.0.
+Each is made afresh for each run. Nothing is exported by default.
 
 ```perl
 use Ekorn::Pipeline::Sinks qw(keep_all count_items keep_first);
@@ -1866,7 +1867,7 @@ Four functions, one for each direction and format, each making a
 different part by its options: given a `file` or an `fh`, a `from_`
 function makes a source and a `to_` function a sink; given neither,
 each makes a stage. Each part is made afresh for each run. Nothing is
-exported by default. All four are new in v0.3.0.
+exported by default.
 
 ```perl
 use Ekorn::Pipeline::JSON qw(from_json from_jsonl to_json to_jsonl);
@@ -2002,11 +2003,11 @@ It puts `|`, `|=` and `@{}` in force for Ekorn's sources, stages,
 gathers and chains, for the rest of the scope it's used in;
 `no Ekorn::Pipeline::Operators` takes them out again. Written where
 they're not in force, they croak: "Expected use
-Ekorn::Pipeline::Operators in scope". They're new in v0.3.0, and a
-shorthand for the commonest shapes, not the whole of Ekorn: a pipeline
-made with `new` can have stages after a sink, give a list as a list,
-and, pulled with `iterator`, be a source that gives a sink's result,
-none of which a chain can.
+Ekorn::Pipeline::Operators in scope". They're a shorthand for the
+commonest shapes, not the whole of Ekorn: a pipeline made with `new`
+can have stages after a sink, give a list as a list, and, pulled with
+`iterator`, be a source that gives a sink's result, none of which a
+chain can.
 
 | Written | Gives |
 |---|---|
@@ -2495,8 +2496,9 @@ the start of a run, and returns closures sharing that run's state:
 | `EKORN_SINK_ONE`, `EKORN_SINK_MANY` | a sink, giving one value or a list | its step, called with each value, its return ignored; its flush, giving the result; and optionally its end |
 
 Each returns its parts as a list, in the order the table gives, or by
-name, as a hash reference with the keys `step`, `flush`, `end` and
-`context`, as a set-up does (see [Made for a run](#made-for-a-run)).
+name, as a hash reference with the keys `step`, `flush`, `end`,
+`context` and `original`, as a set-up does (see
+[Made for a run](#made-for-a-run)).
 
 The methods are named for Ekorn, so an object of yours with a method
 of its own such as `as_list` is never taken for a part. One object can
@@ -3068,9 +3070,14 @@ pipeline named %s is already defined".
   was given a hash without a `header`.
 - **Expected the run's context to name its columns, for to_csv's
   header:** `header` was true, but the run's context had no `columns`.
-- **Can't write a row as CSV: %s:** a field was a reference, a field
-  written `raw` held a character that isn't a byte, or the parser
-  wouldn't combine the fields.
+- **Can't write a row as CSV: field %d is a reference:** a row's
+  field, counting from 1, was a reference, which CSV can't hold.
+- **Can't write a row as CSV: field %d holds a wide character, and the
+  file is written raw:** a row's field, counting from 1, held a
+  character that isn't a byte, in a file written with `encoding`
+  `raw`.
+- **Can't write a row as CSV: %s:** the parser wouldn't combine a
+  row's fields, saying why.
 
 ### Ekorn::Pipeline::Sources
 
@@ -3204,7 +3211,7 @@ Returns `one` if `$thing` is a sink of one, giving one value, and
 `many` if it's a sink of many, giving a list; for a pipeline, the kind
 of sink it ends in, if any. Both are true. It's false for anything
 else. A sink is anything offering `EKORN_SINK_ONE` or
-`EKORN_SINK_MANY`. New in v0.3.0. Exported upon request.
+`EKORN_SINK_MANY`. Exported upon request.
 
 See [Writing functions that take
 stages](#writing-functions-that-take-stages).
@@ -3259,7 +3266,7 @@ my $name = $p->name;
 
 Returns the first name the pipeline was given with `named`, qualified
 by its package, as `main::clean`, or `undef` if it has none. Errors in
-its stages name it. New in v0.3.0.
+its stages name it.
 
 See [Named pipelines](#named-pipelines).
 
@@ -3281,7 +3288,7 @@ A name is identifiers, as Perl's, joined by `::`, such as `clean` or
 `My::Module::clean`; anything else croaks "Expected a name, made of
 words joined by ::". A name can't be defined twice, or removed:
 defining it again croaks "A pipeline named main::clean is already
-defined". New in v0.3.0.
+defined".
 
 See [Named pipelines](#named-pipelines).
 
@@ -3319,7 +3326,7 @@ code reference, a pipeline, or the name of one, looked up in
 `$package` unless it's qualified. Given one name alone, it returns the
 pipeline named, itself, if it's of the invocant's class or a subclass.
 It's the only method that reads names, and what the word `pipeline`
-calls, with its caller's package. New in v0.3.0.
+calls, with its caller's package.
 
 See [pipeline_in](#pipeline_in).
 
@@ -3331,7 +3338,7 @@ my $context = Ekorn::Pipeline::run_context();
 
 Returns the context the run's source gave, if any: its `context`, or
 the third part its `EKORN_SOURCE` returned as a list, such as a
-statement's column names. A stage calls it as it runs. New in v0.3.0.
+statement's column names. A stage calls it as it runs.
 Not exported: call it by its full name.
 
 See [Stages that ask about their
@@ -3476,7 +3483,7 @@ See [croakf](#croakf).
 
 The words that make Ekorn's types from what you write. Nothing is
 exported by default; each is exported upon request, and is in
-Tooling's `:words`. Each is new in v0.3.0.
+Tooling's `:words`.
 
 #### gather
 
@@ -3808,8 +3815,7 @@ See [Iterators: Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
 Reads and writes JSON and JSON Lines, as sources, stages or sinks.
 Nothing is exported by default; each is exported upon request, and is
 in Tooling's `:json`. Each takes the options `file`, `fh` and `json`,
-which the [JSON](#json-ekornpipelinejson) section describes, and is
-new in v0.3.0.
+which the [JSON](#json-ekornpipelinejson) section describes.
 
 #### from_json
 
@@ -4018,7 +4024,7 @@ See [Sinks: Ekorn::Pipeline::Sink](#sinks-ekornpipelinesink).
 ### Ekorn::Pipeline::Sinks
 
 Ready-made sinks. Nothing is exported by default; each is exported
-upon request, and is in Tooling's `:sinks`. Each is new in v0.3.0.
+upon request, and is in Tooling's `:sinks`.
 
 #### count_items
 
@@ -4157,7 +4163,7 @@ See [Sources: Ekorn::Pipeline::Source](#sources-ekornpipelinesource).
 
 Ready-made sources, needing nothing beyond Perl. Nothing is exported
 by default; each is exported upon request, and is in Tooling's
-`:sources`. Each is new in v0.3.0.
+`:sources`.
 
 #### counter
 
@@ -4321,7 +4327,7 @@ drop_if(\&code)
 Drops each value the block is true of, and passes on the rest, testing
 every one: `take_if`'s opposite. The block gets each value in `$_` and
 as its argument. It croaks "Expected a code reference" if it isn't
-given a block or code reference. New in v0.3.0. Exported upon request.
+given a block or code reference. Exported upon request.
 
 See [Taking and dropping:
 Ekorn::Pipeline::Stages::Flow](#taking-and-dropping-ekornpipelinestagesflow).
@@ -4380,8 +4386,8 @@ take_if(\&code)
 Passes on each value the block is true of, and drops the rest,
 testing every one, as `grep` does; it never stops the run. The block
 gets each value in `$_` and as its argument. It croaks "Expected a
-code reference" if it isn't given a block or code reference. New in
-v0.3.0. Exported upon request.
+code reference" if it isn't given a block or code reference.
+Exported upon request.
 
 See [Taking and dropping:
 Ekorn::Pipeline::Stages::Flow](#taking-and-dropping-ekornpipelinestagesflow).

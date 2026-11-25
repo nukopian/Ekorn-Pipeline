@@ -41,6 +41,26 @@ Unreleased
       Sinks' subs, a blank line before each module's closing 1;, and
       Ekorn::Pipeline::Feed cleans its namespace, as the other classes
       do, so croakf isn't one of its methods. (roadmap 2026-0053)
+    - F8: the notes that a name was "new in v0.3.0", 25 of them in the
+      POD and the reference, are gone: v0.3.0 was only a trial, and
+      they said the same thing over and over. Later notes stay.
+      (roadmap 2026-0053)
+    - F9: "Made for a run", in Ekorn::Pipeline's POD and the reference,
+      lists a source's original, and the keys a set-up or role method
+      can return its parts by include original, as they have since
+      v0.3.13. (roadmap 2026-0053)
+    - F10: Ekorn::Pipeline::Pipes links to Factories' pipeline, where
+      it linked to a section of Ekorn::Pipeline's that doesn't exist.
+      (roadmap 2026-0053)
+    - F11: Ekorn::Pipeline's SEE ALSO names CSV, Context and Errors.
+      (roadmap 2026-0053)
+    - F12: the README no longer says, twice, that nothing is held
+      between stages, as batch, collect and the like hold values; nor
+      that Tooling has everything but the operators, as Sugar isn't in
+      it either. (roadmap 2026-0053)
+    - F13: CSV's DIAGNOSTICS, and the reference, give its messages for
+      a field that's a reference, and for a wide character written
+      raw, each word for word. (roadmap 2026-0053)
     - Every module has a $VERSION, the distribution's, so a caller can
       ask for the version a module's feature came in, as use
       Ekorn::Pipeline::Tooling v0.3.16 qw(:all). Only Ekorn::Pipeline

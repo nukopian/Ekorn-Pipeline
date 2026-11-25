@@ -1406,7 +1406,7 @@ names that one, and croaks if given stages after the name.
 
 The name is kept in the caller's package, unless it's qualified, as
 L</Named pipelines> explains. A name is identifiers, as Perl's, joined
-by C<::>, such as C<clean> or C<My::Module::clean>. It's new in v0.3.0.
+by C<::>, such as C<clean> or C<My::Module::clean>.
 
 A name can't be defined twice for another pipeline, which croaks,
 whatever class C<named> was called on. Naming the same pipeline again,
@@ -1450,8 +1450,7 @@ string.
 
 Returns the first name the pipeline was given with L</named>,
 qualified by its package, as C<main::clean>, or C<undef> if it has
-none. Errors in its stages name it (see L</DIAGNOSTICS>). It's new in
-v0.3.0.
+none. Errors in its stages name it (see L</DIAGNOSTICS>).
 
 =head2 pipeline_in
 
@@ -1512,8 +1511,6 @@ stages, which a caller makes with C<pipeline>:
         sub { $_ * 10 },
         take(2),
     ));
-
-It's new in v0.3.0, as is the word C<pipeline>.
 
 =head2 iterator
 
@@ -1640,6 +1637,10 @@ optional;
 =item * a I<context>, for a source only, and optional: anything its
 stages may ask for with L</run_context>.
 
+=item * an I<original>, for a source only, and optional: called with
+nothing, it returns the original of the value the source gave last,
+which L<Ekorn::Pipeline::Context/result_original> gives.
+
 =back
 
 Two iterators of the same pipeline each get their own, from their own
@@ -1649,8 +1650,8 @@ it's the same code, with the same closure, in every run.
 The set-up returns its parts as a list, in the order above, leaving
 out those it doesn't give from the end, and giving C<undef> for one it
 leaves out before one it gives. Or it returns them I<by name>, as a
-hash reference whose keys are C<step>, C<flush>, C<end> and
-C<context>, giving only those it has, in any order:
+hash reference whose keys are C<step>, C<flush>, C<end>, C<context>
+and C<original>, giving only those it has, in any order:
 
     gather {
         my $n = 0;    # this run's
@@ -1663,7 +1664,7 @@ C<context>, giving only those it has, in any order:
 A key Ekorn doesn't read is ignored, and a hash without what its part
 needs, a step, and a sink's flush, croaks, as a list without them
 does. Only a plain hash reference returned alone is taken for parts by
-name. Parts by name are new in v0.3.0.
+name.
 
 Any object can take part, by offering a role method that does what a
 set-up does, returning the same parts, as a list or by name:
@@ -1940,10 +1941,12 @@ L<Ekorn::Pipeline::Sink>, L<Ekorn::Pipeline::Iterator> and
 L<Ekorn::Pipeline::Feed>, the types;
 L<Ekorn::Pipeline::Stages::Flow>, L<Ekorn::Pipeline::Stages::Batch>,
 L<Ekorn::Pipeline::Stages::Taps>, L<Ekorn::Pipeline::Sources>,
-L<Ekorn::Pipeline::Sinks> and L<Ekorn::Pipeline::JSON>, the
-ready-made parts; L<Ekorn::Pipeline::Operators>, for C<|>;
-L<Ekorn::Pipeline::Pipes>; and L<DBIx::Squirrel>, where the pipeline
-began
+L<Ekorn::Pipeline::Sinks>, L<Ekorn::Pipeline::JSON> and
+L<Ekorn::Pipeline::CSV>, the ready-made parts;
+L<Ekorn::Pipeline::Context>, what a stage can ask about the result
+it's making; L<Ekorn::Pipeline::Operators>, for C<|>;
+L<Ekorn::Pipeline::Pipes>; L<Ekorn::Pipeline::Errors>, for modules of
+stages of your own; and L<DBIx::Squirrel>, where the pipeline began.
 
 L<Ekorn::Pipeline::Manual::HowTo>, the user guide, tours the package
 from the bottom up, with recipes, and

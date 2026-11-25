@@ -107,9 +107,7 @@ reads as a list of steps.
 
 =item * B<The work stops when the caller has enough.> A stage that
 stops ends the function's work too. A caller who wants ten results
-reads ten lines, or fetches one page, not all of them. Nothing is held
-between stages, so a function over a million values needs no more
-memory than one over ten.
+reads ten lines, or fetches one page, not all of them.
 
 =item * B<The author keeps an interface that doesn't grow.> One list of
 stages replaces every option a caller might ask for next. The
@@ -220,8 +218,10 @@ stages instead: C<users($active_names-E<gt>stages, take(10))>.
 
 Each value goes through every stage before the next one starts, as it
 would in a C<for> loop. The values come out in order, and each stage
-sees them in order. Nothing is held between stages, so a pipeline over
-a million values needs no more memory than one over ten.
+sees them in order. Nothing is held between stages, but by a stage
+that holds values itself, such as C<batch> or C<collect>; without
+one, a pipeline over a million values needs no more memory than one
+over ten.
 
 A pipeline runs three ways:
 
@@ -589,7 +589,8 @@ C<take(-1)>, is also reported at the caller's line.
 
 =over
 
-=item * L<Ekorn::Pipeline::Tooling>: everything below but the
+=item * L<Ekorn::Pipeline::Tooling>: the functions of every module
+below but Sugar, which names pipelines as it's loaded, and the
 operators, from one module, by tags: C<:core>, C<:flow>, C<:batch>,
 C<:taps>, C<:stages>, C<:context>, C<:sources>, C<:sinks>, C<:json>,
 C<:csv>, C<:words> and C<:all>.

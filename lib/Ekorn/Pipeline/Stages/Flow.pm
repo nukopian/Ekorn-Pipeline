@@ -252,7 +252,7 @@ goes on: for when one value was meant, and its limit forgotten.
 
 Passes on each value the block returns true for, and drops the rest:
 a filter, as C<grep> is, testing every value. The block gets each
-value in C<$_> and as its argument. It's new in v0.3.0.
+value in C<$_> and as its argument.
 
     take_if { $_->{plays} >= 6000 }    # every hit
 
@@ -266,7 +266,7 @@ passes on the value.
 
 Drops each value the block returns true for, and passes on the rest:
 C<take_if>'s opposite. The block gets each value in C<$_> and as its
-argument. It's new in v0.3.0.
+argument.
 
 =head2 take_while
 
