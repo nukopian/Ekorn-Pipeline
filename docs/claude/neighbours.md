@@ -60,7 +60,7 @@ both:
   requires `>= v0.4.0, < v0.5.0`, as it moved the range on 2026-11-25,
   in its 2026-0048, taking v0.4.0's `pipe` (Ekorn's 2026-0053), its
   floor v0.4.0, as Iain chose, so every user gets the `pipe` its docs
-  describe. The range began at `>= v0.1.1, < v0.2.0`, as Iain decided
+  describe; released in its v4.0.0, the same day. The range began at `>= v0.1.1, < v0.2.0`, as Iain decided
   on 2026-11-07, and DBIx-Squirrel raised it on 2026-11-08, to
   `>= v0.2.0, < v0.3.0` on 2026-11-10, and to `>= v0.3.0, < v0.4.0`
   on 2026-11-14, for its v3.0.0, the first built on Ekorn as it is. So
