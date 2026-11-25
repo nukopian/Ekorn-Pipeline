@@ -2909,7 +2909,7 @@ hundred lines of code.
 - **Require the versions of Ekorn::Pipeline you tested with,** up to
   the next change of the middle number, which is when the way stages
   behave can change. In a `cpanfile`:
-  `requires 'Ekorn::Pipeline', '>= v0.3.0, < v0.4.0';`
+  `requires 'Ekorn::Pipeline', '>= v0.4.0, < v0.5.0';`
 
 ## 11. When things go wrong
 
@@ -3256,7 +3256,7 @@ Perl 5.36 or later. Its version is 0.x, so its interface may still
 change before 1.0, but the version number says when: a release that
 only fixes or adds moves the last number, and one that changes how
 stages behave, or renames something, moves the middle one. Require
-`>= v0.3.0, < v0.4.0`, and you get fixes without surprises.
+`>= v0.4.0, < v0.5.0`, and you get fixes without surprises.
 
 ### Where does it shine, and where does it fall short?
 

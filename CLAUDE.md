@@ -56,9 +56,9 @@ It isn't tied to the DBI, or to any source of values.
 DBIx-Squirrel will depend on Ekorn-Pipeline, and already uses it as any
 package would, so Ekorn's protocols, messages, the order stages run in,
 and what Stop and Gather do are its behaviour too. What's new grows
-here; a fix to code both have goes to DBIx-Squirrel as a task. A v0.3.x
+here; a fix to code both have goes to DBIx-Squirrel as a task. A v0.4.x
 only fixes or adds; a change to behaviour users' stages depend on, or a
-public name dropped or renamed, is a v0.4.0, with a task for
+public name dropped or renamed, is a v0.5.0, with a task for
 DBIx-Squirrel. The rules, and why, are in
 [docs/claude/neighbours.md](docs/claude/neighbours.md).
 

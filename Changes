@@ -2,6 +2,14 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    The how-to advises requiring the v0.4 series.
+
+    It ships no roadmap item, and changes only the docs.
+
+    - The how-to's advice on which versions of Ekorn::Pipeline to
+      require gives >= v0.4.0, < v0.5.0, the current series, where it
+      gave v0.3's.
+
 v0.4.0 2026-11-25
 
     pipe gives what a pipeline gives, in either context.
