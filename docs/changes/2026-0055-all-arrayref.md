@@ -1,6 +1,6 @@
 # 2026-0055. An iterator's all_arrayref
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.4.2
 
 **Decisions:** D1 settled: `all_arrayref`, the name. D2 settled: `all`
 stays as it is.

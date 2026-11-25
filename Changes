@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.4.2 2026-11-25
+
     An iterator's values as an array reference, whatever the context.
 
     Ekorn::Pipeline::Iterator has all_arrayref, which gives every value
