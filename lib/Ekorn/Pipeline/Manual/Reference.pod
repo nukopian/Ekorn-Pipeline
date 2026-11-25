@@ -509,7 +509,10 @@ stage that stops, such as C<take>, saves the work of making the rest.
         take_if { $_ % 2 },
         take(3),
     )->iterator(sub { ++$n });
-    while (my($square) = $next->()) { say $square }    # 1, 9, 25
+    while (my($square) = $next->()) { say $square }
+    # 1
+    # 9
+    # 25
     say "$n numbers read";    # 5 numbers read
 
 The source here counts without end, and is read five times: once for
@@ -952,9 +955,9 @@ never taken for a count.
         top    => ['titles', take(3)],
     };
 
-    my @top  = top(@tracks);                         # the first three titles
-    my @loud = top(@tracks, pipeline(sub { uc }));    # and more stages
-    my $next = pipeline('top')->iterator($source);    # pulled
+    my @top  = top(@tracks);                                     # the first three titles
+    my @loud = top(@tracks, pipeline(sub { uc }));                # and more stages
+    my $next = pipeline('top')->iterator(from_array(@tracks));    # pulled
 
 C<use Ekorn::Pipeline::Sugar> takes C<pipeline> and the definitions after
 it, each a name and an array of stages: a hash, C<{...}>, or an array of
@@ -1437,6 +1440,7 @@ read, and a source holding a resource, such as a file or a statement's
 lock, lets it go. C<single> reads one more, to warn if there's another:
 for when one value is meant, and a mistake could give more.
 
+    my @setlist  = ('Intro', 'Parklife', 'Song 2', 'encore', 'Tender');
     my $numbered = Ekorn::Pipeline->new(take_if { m( \d )x });
     say $numbered->iterator(from_array(@setlist))->single;    # Song 2
 
@@ -1448,6 +1452,9 @@ stop, rather than when the iterator goes, so a file is closed then:
         last if $song eq 'encore';
         say $song;
     }
+    # Intro
+    # Parklife
+    # Song 2
     $next->finish;    # the file is closed now
 
 An iterator that's dropped before its values run out ends its run when

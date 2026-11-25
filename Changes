@@ -61,6 +61,14 @@ Unreleased
     - F13: CSV's DIAGNOSTICS, and the reference, give its messages for
       a field that's a reference, and for a wide character written
       raw, each word for word. (roadmap 2026-0053)
+    - F15: xt/examples.t runs each of the reference's examples, and
+      checks it prints what its comments say, as xt/howto.t does the
+      how-to's, and compiles each of the README's. Four examples were
+      made to run on their own; 11 that can't are marked, and checked
+      by hand. All 81 that run print what they say. (roadmap 2026-0053)
+    - F16: xt/agreement.t runs 3,000 random pipelines, from a fixed
+      seed, pushed, pulled, read with all and fed, and fails if any way
+      gives other values. (roadmap 2026-0053)
     - Every module has a $VERSION, the distribution's, so a caller can
       ask for the version a module's feature came in, as use
       Ekorn::Pipeline::Tooling v0.3.16 qw(:all). Only Ekorn::Pipeline

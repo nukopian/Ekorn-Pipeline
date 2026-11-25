@@ -317,7 +317,10 @@ my $next = Ekorn::Pipeline->new(
     take_if { $_ % 2 },
     take(3),
 )->iterator(sub { ++$n });
-while (my($square) = $next->()) { say $square }    # 1, 9, 25
+while (my($square) = $next->()) { say $square }
+# 1
+# 9
+# 25
 say "$n numbers read";    # 5 numbers read
 ```
 
@@ -691,9 +694,9 @@ use Ekorn::Pipeline::Sugar pipeline => {
     top    => ['titles', take(3)],
 };
 
-my @top  = top(@tracks);                         # the first three titles
-my @loud = top(@tracks, pipeline(sub { uc }));    # and more stages
-my $next = pipeline('top')->iterator($source);    # pulled
+my @top  = top(@tracks);                                     # the first three titles
+my @loud = top(@tracks, pipeline(sub { uc }));                # and more stages
+my $next = pipeline('top')->iterator(from_array(@tracks));    # pulled
 ```
 
 `use Ekorn::Pipeline::Sugar` takes `pipeline` and the definitions after
@@ -968,6 +971,7 @@ the commonest runs:
 A stop ends the stream early for what's before it, and normally for
 what's after it. So in
 
+<!-- not run -->
 ```perl
 use Ekorn::Pipeline::Sinks qw(count_items);
 
@@ -1097,6 +1101,7 @@ lock, lets it go. `single` reads one more, to warn if there's another:
 for when one value is meant, and a mistake could give more.
 
 ```perl
+my @setlist  = ('Intro', 'Parklife', 'Song 2', 'encore', 'Tender');
 my $numbered = Ekorn::Pipeline->new(take_if { m( \d )x });
 say $numbered->iterator(from_array(@setlist))->single;    # Song 2
 ```
@@ -1110,6 +1115,9 @@ while (my($song) = $next->()) {
     last if $song eq 'encore';
     say $song;
 }
+# Intro
+# Parklife
+# Song 2
 $next->finish;    # the file is closed now
 ```
 
@@ -1130,6 +1138,7 @@ Each `$next->()` goes through Perl's overloading of `&{}` to find the
 iterator's code. A loop pulling many values can take the code
 reference once, and call it directly:
 
+<!-- not run -->
 ```perl
 my $pull = \&$next;    # the iterator's code, found once
 while (my($value) = $pull->()) { ... }
@@ -1517,6 +1526,7 @@ and are the stages of the sinks `keep_first`, `keep_last` and
 every value to find the last. `take_single` is for when one value is
 meant: at a second, it warns and stops, so a forgotten limit is found.
 
+<!-- not run -->
 ```perl
 my $last_quiet = Ekorn::Pipeline->new(
     take_if { $_->{plays} < 5000 },
@@ -1617,6 +1627,7 @@ is installed, a v1.x, each secret it finds in what's written, such as
 a password, a token or the password in a DSN, is written as
 `*REDACTED*`:
 
+<!-- not run -->
 ```perl
 my $dsn = join '', 'postgres://app:', 'Zq8vR2mX', 'kP4wL9nT', '@db/app';
 Ekorn::Pipeline->new(dump_to)->({dsn => $dsn});
@@ -1643,6 +1654,7 @@ To write secrets as they are, set
 `$Ekorn::Pipeline::Stages::Taps::DumpSecrets` true, with `local`, for
 as long as you need it:
 
+<!-- not run -->
 ```perl
 {
     local $Ekorn::Pipeline::Stages::Taps::DumpSecrets = 1;
@@ -1772,6 +1784,7 @@ wants one, such as a chain (see
 `readline` does, so a caller can read a file's paragraphs, or records
 of their own, by setting it while they pull:
 
+<!-- not run -->
 ```perl
 local $/ = '';    # paragraph mode
 my $next = Ekorn::Pipeline->new(take(3))->iterator(from_file('lyrics.txt'));
@@ -2039,6 +2052,7 @@ of a sink of many, such as `keep_all`, as an array reference. Nothing
 can be chained after a sink: a chain ending in one has already run,
 and gives its result.
 
+<!-- not run -->
 ```perl
 my $n      = $source | count_items;          # a number
 my $titles = $source | keep_all;             # an array reference
@@ -2088,6 +2102,7 @@ What to write, by what's wanted:
 | every value, added to your array | `push @mine, @{ $source \| keep_all }` | |
 | each, as it comes | `my $next = Ekorn::Pipeline->new->iterator($source)`, then `while (my ($value) = $next->()) {...}` | `for (@$source) {...}`, reading them all first |
 
+<!-- not run -->
 ```perl
 my @all   = @{$source};               # every value
 my $first = $source | keep_first;     # the first, reading only one
@@ -2152,6 +2167,7 @@ from a function that makes a stage, it reports a mistake at the line
 that called the function, where the mistake was made, with nothing
 more to set up:
 
+<!-- not run -->
 ```perl
 package My::Stages::Text {
     use Ekorn::Pipeline::Errors qw(croakf);
@@ -2529,6 +2545,7 @@ names of the columns its rows have, asks `run_context` for the
 context its run's source gave, here `My::Rows`'s, above. So a stage
 can take a column by its name, wherever it is in the row:
 
+<!-- not run -->
 ```perl
 sub pluck ($name) {
     return sub ($row) {
@@ -2843,6 +2860,7 @@ To let your users start a chain with your source, overload `|` and
 import list, so that it doesn't put the operators in force in your
 package:
 
+<!-- not run -->
 ```perl
 package My::Chained::Shelf {
     our @ISA = ('My::Shelf');

@@ -135,6 +135,8 @@ whoever wrote it. The ready-made stages here work with all of them.
 Every run of a pipeline has the same shape. Values come from
 somewhere, go through stages one at a time, and end up somewhere:
 
+=for not-run
+
     source  -->  stage  -->  stage  -->  stage  -->  sink
    (where       (change, drop, multiply,          (where they
   they come      or stop: one value at a time)      end up)
@@ -170,6 +172,8 @@ stages by itself: a I<flatMap>.
 
 One shape covers all three. A pipeline is just a list of stages, and a
 stage needs no wrapper to say which kind it is:
+
+=for not-run
 
     sub { $_ % 2 ? $_ : () }                # filter: the odd numbers
     sub { $_ * 10 }                         # map: ten times each
@@ -484,6 +488,8 @@ named pipeline is reported with its name. L<Ekorn::Pipeline::Sugar>
 names pipelines as the program compiles, and gives your package a
 function of each name:
 
+=for not-run
+
     use Ekorn::Pipeline::Sugar pipeline => {
         active_names => [only_active, value_of('name')],
     };
@@ -572,6 +578,8 @@ example of each.
 A stage that dies is named by its position in the pipeline, and
 reported at the line of the caller's code that ran it, with its
 message below:
+
+=for not-run
 
     Pipeline stage #2 failed at app.pl line 12:
         No name for user 7 at app.pl line 9.
@@ -737,9 +745,13 @@ authority where they differ.
 
 From CPAN:
 
+=for not-run
+
     cpanm Ekorn::Pipeline
 
 Or the latest from GitHub:
+
+=for not-run
 
     cpanm https://github.com/nukopian/Ekorn-Pipeline.git
 

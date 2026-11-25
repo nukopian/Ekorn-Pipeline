@@ -44,9 +44,21 @@ as only some tasks need them: building and releasing the distribution, the manua
   `<!-- not run -->` on the line before it, and checked by hand. The
   test is DBIx-Squirrel's, as it is but for its notes, so a change to
   it that would suit DBIx-Squirrel's goes to it as a message.
-- **The examples in the README and the reference are checked by hand**
-  for now: run each one, and see that it prints what its comments say,
-  before committing a change to them.
+- **The reference's and the README's examples are checked by
+  `xt/examples.t`,** from 2026-11-25 (roadmap 2026-0053's F15). Each
+  of the reference's, before its index, runs on its own after the
+  reference's catalogue of tracks, in a folder with the files its
+  examples read, and must print what its comments say, as the how-to's
+  do; so write its comments the same way. One that can't run so, such
+  as one that croaks on purpose or uses a stand-in, is marked
+  `<!-- not run -->`, and checked by hand. The README's use stand-ins,
+  such as `users()`, so each is only compiled; a block that isn't Perl
+  is marked `=for not-run`. The helpers both tests use, and
+  `xt/howto.t`, are in `xt/lib/Examples.pm`.
+- **`xt/agreement.t` runs random pipelines** pushed, pulled, read with
+  `all` and fed, from a fixed seed, and fails if any way gives other
+  values. `EKORN_AGREEMENT_SEED` and `EKORN_AGREEMENT_CASES` run it
+  with another seed, or more cases.
 - Users installing from CPAN run the tests with whatever harness their
   installer uses, so they must pass under `prove` too. yath is the
   maintainers' choice, not a requirement.
