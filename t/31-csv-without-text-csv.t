@@ -34,7 +34,7 @@ subtest 'The module and Tooling load without it' => sub {
 subtest 'Missing, each function croaks when called' => sub {
     for my $function (qw(from_csv to_csv)) {
         like dies { __PACKAGE__->can($function)->(file => 'x.csv') },
-            qr(\ACan't find Text::CSV, which $function needs; install it from CPAN at \Q$here\E line),
+            qr( \ACan't\ find\ Text::CSV,\ which\ $function\ needs;\ install\ it\ from\ CPAN\ at\ \Q$here\E\ line )x,
             $function;
     }
 };
@@ -43,7 +43,7 @@ subtest 'There, but failing to load, each croaks with why' => sub {
     $source = "package Text::CSV; die qq(It's broken\\n);";
     for my $function (qw(from_csv to_csv)) {
         like dies { __PACKAGE__->can($function)->() },
-            qr(\ACan't load Text::CSV, which $function needs: \S.* at \Q$here\E line),
+            qr( \ACan't\ load\ Text::CSV,\ which\ $function\ needs:\ \S.*\ at\ \Q$here\E\ line )x,
             $function;
     }
 };

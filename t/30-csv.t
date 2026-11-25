@@ -256,12 +256,12 @@ subtest 'munge changes the header\'s names' => sub {
 
 subtest 'A header naming a column twice croaks, when rows are hashes' => sub {
     like dies { read_all(file => path('.csv', "a,b,a\n1,2,3\n"), header => 1) },
-        qr(\AExpected a header naming each column once, not "a" twice at \Q$file\E line),
+        qr( \AExpected\ a\ header\ naming\ each\ column\ once,\ not\ "a"\ twice\ at\ \Q$file\E\ line )x,
         'named twice';
     like dies {
         read_all(file => path('.csv', "A,a\n1,2\n"), header => 1, munge => 'lc')
     },
-        qr(\AExpected a header naming each column once, not "a" twice),
+        qr( \AExpected\ a\ header\ naming\ each\ column\ once,\ not\ "a"\ twice )x,
         'once munged';
     is read_all(file => path('.csv', "a,b,a\n1,2,3\n"), header => 'skip'),
         [[1, 2, 3]],
@@ -283,7 +283,7 @@ subtest 'Files are read and written as UTF-8, unless encoding says' => sub {
     is read_all(file => path('.csv', "caf\xe9\n"), encoding => 'latin1'),
         [["caf\x{e9}"]], 'latin1';
     like dies { read_all(file => path('.csv', "caf\xe9\n")) },
-        qr(\ACan't read \S+: UTF-8 "\\xE9" does not map to Unicode at \Q$file\E line),
+        qr( \ACan't\ read\ \S+:\ UTF-8\ "\\xE9"\ does\ not\ map\ to\ Unicode\ at\ \Q$file\E\ line )x,
         'text that isn\'t UTF-8 croaks';
 
     my $path = path('.csv');
@@ -296,12 +296,12 @@ subtest 'Files are read and written as UTF-8, unless encoding says' => sub {
     like dies {
         $class->new(to_csv(file => $path, encoding => 'latin1'))->(["\x{263a}"])
     },
-        qr(\n\s+Can't write \Q$path\E: "\\x\{263a\}" does not map to iso-8859-1 at \Q$file\E line),
+        qr( \n\s+Can't\ write\ \Q$path\E:\ "\\x\{263a\}"\ does\ not\ map\ to\ iso-8859-1\ at\ \Q$file\E\ line )x,
         'a character the encoding can\'t hold croaks';
     like dies {
         $class->new(to_csv(file => $path, encoding => 'raw'))->(["\x{263a}"])
     },
-        qr(\n\s+Can't write a row as CSV: field 1 holds a wide character, and the file is written raw at \Q$file\E line),
+        qr( \n\s+Can't\ write\ a\ row\ as\ CSV:\ field\ 1\ holds\ a\ wide\ character,\ and\ the\ file\ is\ written\ raw\ at\ \Q$file\E\ line )x,
         'as does a wide character, raw';
 };
 
@@ -318,17 +318,18 @@ subtest 'A first field undefined, as blank_is_undef makes it' => sub {
 subtest 'A row that won\'t parse croaks, saying where' => sub {
     my $path = path('.csv', qq(a,b\n1,2\n3,"x\n5,6\n));
     like dies { read_all(file => $path) },
-        qr(\ACan't parse CSV from \Q$path\E, record 3, field 2: EIQ - .* at \Q$file\E line),
+        qr( \ACan't\ parse\ CSV\ from\ \Q$path\E,\ record\ 3,\ field\ 2:\ EIQ\ -\ .*\ at\ \Q$file\E\ line )x,
         'a file';
     like dies { read_all(file => $path, header => 1) },
-        qr(\ACan't parse CSV from \Q$path\E, record 3, field 2: ),
+        qr( \ACan't\ parse\ CSV\ from\ \Q$path\E,\ record\ 3,\ field\ 2:\  )x,
         'the header counted';
     open my $fh, '<', $path or die $!;
     like dies { read_all(fh => $fh) },
-        qr(\ACan't parse CSV from the filehandle, record 3, field 2: ),
+        qr( \ACan't\ parse\ CSV\ from\ the\ filehandle,\ record\ 3,\ field\ 2:\  )x,
         'a filehandle';
     like dies { $class->new(from_csv)->("1,2", qq(1,"x)) },
-        qr(\n\s+Can't parse CSV from a value, record 1, field 2: ), 'a value';
+        qr( \n\s+Can't\ parse\ CSV\ from\ a\ value,\ record\ 1,\ field\ 2:\  )x,
+        'a value';
 };
 
 subtest 'Each run reads the file afresh, and closes it as it ends' => sub {
@@ -359,24 +360,24 @@ subtest 'A filehandle is read and written as it is, and left open' => sub {
 
 subtest 'Rows to_csv can\'t write' => sub {
     like dies { $class->new(to_csv)->('a,b') },
-        qr(\n\s+Expected a row as an array or a hash reference at \Q$file\E line),
+        qr( \n\s+Expected\ a\ row\ as\ an\ array\ or\ a\ hash\ reference\ at\ \Q$file\E\ line )x,
         'not a reference';
     like dies { $class->new(to_csv)->({a => 1}) },
-        qr(\n\s+Expected a header naming the columns, to write a hash at \Q$file\E line),
+        qr( \n\s+Expected\ a\ header\ naming\ the\ columns,\ to\ write\ a\ hash\ at\ \Q$file\E\ line )x,
         'a hash with no header';
     like dies { $class->new(to_csv(header => 1))->([1]) },
-        qr(\n\s+Expected the run's context to name its columns, for to_csv's header at \Q$file\E line),
+        qr( \n\s+Expected\ the\ run's\ context\ to\ name\ its\ columns,\ for\ to_csv's\ header\ at\ \Q$file\E\ line )x,
         'header true, with no context';
     my $other
         = source { {step => sub { return }, context => {statement => 'x'}} };
     like dies { $class->new(to_csv(header => 1))->iterator($other)->all },
-        qr(\n\s+Expected the run's context to name its columns),
+        qr( \n\s+Expected\ the\ run's\ context\ to\ name\ its\ columns )x,
         'or one without columns';
     like dies { $class->new(to_csv)->([1, [2]]) },
-        qr(\n\s+Can't write a row as CSV: field 2 is a reference at \Q$file\E line),
+        qr( \n\s+Can't\ write\ a\ row\ as\ CSV:\ field\ 2\ is\ a\ reference\ at\ \Q$file\E\ line )x,
         'a field that is a reference';
     like dies { $class->new(to_csv(csv => {binary => 0}))->(["a\nb"]) },
-        qr(\n\s+Can't write a row as CSV: \S.* at \Q$file\E line),
+        qr( \n\s+Can't\ write\ a\ row\ as\ CSV:\ \S.*\ at\ \Q$file\E\ line )x,
         'one the parser won\'t write';
 };
 
@@ -402,9 +403,10 @@ subtest 'Mistakes are reported at the caller\'s line' => sub {
         is message(dies { $function->(fh => \*STDIN, encoding => 'latin1') }),
             'Expected encoding only with a file', 'encoding, with a filehandle';
         like message(dies { $function->(file => 'x', encoding => []) }),
-            qr(\AExpected an encoding Perl knows, not ARRAY), 'encoding, a reference';
+            qr( \AExpected\ an\ encoding\ Perl\ knows,\ not\ ARRAY )x,
+            'encoding, a reference';
         like dies { $function->(csv => {nonsense => 1}) },
-            qr(\AExpected csv options the parser knows: \S.* at \Q$file\E line \d+\.\n\z),
+            qr( \AExpected\ csv\ options\ the\ parser\ knows:\ \S.*\ at\ \Q$file\E\ line\ \d+\.\n\z )x,
             'an option the parser does not know';
     }
     is message(dies { from_csv(flie => 1, a => 2) }),
@@ -435,20 +437,20 @@ subtest 'Mistakes are reported at the caller\'s line' => sub {
 subtest 'Files that cannot be read or written' => sub {
     my $missing = "$dir/missing/x.csv";
     like dies { read_all(file => $missing) },
-        qr(\ACan't read \Q$missing\E: \S.* at \Q$file\E line), 'read';
+        qr( \ACan't\ read\ \Q$missing\E:\ \S.*\ at\ \Q$file\E\ line )x, 'read';
     like dies { $class->new(to_csv(file => $missing))->([1]) },
-        qr(\ACan't write \Q$missing\E: \S.* at \Q$file\E line), 'write';
+        qr( \ACan't\ write\ \Q$missing\E:\ \S.*\ at\ \Q$file\E\ line )x, 'write';
 };
 
 subtest 'Writes and closes that fail' => sub {
     tie *FAILING, 'My::Failing::Handle';
     like dies { $class->new(to_csv(fh => \*FAILING))->([1]) },
-        qr(Pipeline stage #1 failed .*\n\s+Can't write the filehandle: \S.* at \Q$file\E line),
+        qr( Pipeline\ stage\ \#1\ failed\ .*\n\s+Can't\ write\ the\ filehandle:\ \S.*\ at\ \Q$file\E\ line )x,
         'a write';
     my $path = path('.csv');
     local $FAIL_CLOSE = 1;
     like dies { $class->new(to_csv(file => $path))->([1]) },
-        qr(Pipeline end of stage #1 failed .*\n\s+Can't write \Q$path\E: \S.* at \Q$file\E line),
+        qr( Pipeline\ end\ of\ stage\ \#1\ failed\ .*\n\s+Can't\ write\ \Q$path\E:\ \S.*\ at\ \Q$file\E\ line )x,
         'a close';
 };
 

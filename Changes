@@ -24,6 +24,9 @@ Unreleased
       a time. 100,000 values, on Perl 5.36: @{} from 16.8 to 24.0 reads
       a second, and a chain of one stage into keep_all from 5.1 to
       10.1. (roadmap 2026-0053)
+    - F17: the 41 patterns in the tests of JSON, CSV and a source's
+      original that lacked the x flag, against the house style, have
+      it. (roadmap 2026-0053)
 
 v0.3.15 2026-11-25
 

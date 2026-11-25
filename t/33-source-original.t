@@ -159,7 +159,7 @@ subtest 'a part that is not a code reference croaks' => sub {
     like dies {
         $class->new->iterator(source { {step => sub () { () }, original => 'row'} })
     },
-        qr(\AExpected the source's original to be a code reference at \Q$here\E line),
+        qr( \AExpected\ the\ source's\ original\ to\ be\ a\ code\ reference\ at\ \Q$here\E\ line )x,
         'at the caller';
 };
 

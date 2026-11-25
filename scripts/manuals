@@ -143,10 +143,10 @@ sub link_to ($text, $target, $sections, $file) {
 # Return Markdown's inline text as POD.
 sub inline ($text, $sections, $file) {
     my @links;
-    $text =~ s{ \[ ((?: [^\[\]`] | `[^`]*` )+) \] \( ([^()\s]+) \) }{
+    $text =~ s( \[ ((?: [^\[\]`] | `[^`]*` )+) \] \( ([^\(\)\s]+) \) )(
         push @links, link_to($1, $2, $sections, $file);
         "\0" . $#links . "\0";
-    }xge;
+    )xge;
     $text = formatted($text);
     $text =~ s( \0 (\d+) \0 )($links[$1])xg;
     $text =~ s( ^ = )(Z<>=)xmg;                # a line starting = would be a command

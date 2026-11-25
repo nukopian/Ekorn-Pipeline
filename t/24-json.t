@@ -117,7 +117,7 @@ for my $encoder (@encoders) {
         is read_all($from_json, file => path('.json', " \n\t\n")), [],
             'only whitespace: none';
         like dies { read_all($from_json, file => path('.json', qq(1\n2\n))) },
-            qr(\ACan't decode JSON from \S+: it holds more than one document; read JSON Lines with from_jsonl at \Q$file\E line),
+            qr( \ACan't\ decode\ JSON\ from\ \S+:\ it\ holds\ more\ than\ one\ document;\ read\ JSON\ Lines\ with\ from_jsonl\ at\ \Q$file\E\ line )x,
             'more than one croaks, pointing to from_jsonl';
     };
 
@@ -192,9 +192,11 @@ for my $encoder (@encoders) {
         my $stage = $class->new($from_json->());
         is [$stage->(q({"a":1}), '[5,6]', '[]', '7')], [{a => 1}, 5, 6, 7],
             'an array gives its elements';
-        like dies { $stage->('[1] [2]') }, qr(Can't decode JSON from a value: \S),
+        like dies { $stage->('[1] [2]') },
+            qr( Can't\ decode\ JSON\ from\ a\ value:\ \S )x,
             'more than one croaks';
-        like dies { $stage->('{"a":') }, qr(Can't decode JSON from a value: \S),
+        like dies { $stage->('{"a":') },
+            qr( Can't\ decode\ JSON\ from\ a\ value:\ \S )x,
             'incomplete';
         is [$stage->('[7]')], [7], 'and goes on';
     };
@@ -203,10 +205,12 @@ for my $encoder (@encoders) {
         my $stage = $class->new($from_jsonl->());
         is [$stage->(q({"a":1}), "1\n2\n", '[5,6]', '')], [{a => 1}, 1, 2, [5, 6]],
             'one, or each of several; an array as it is; none from none';
-        like dies { $stage->('{"a":1}}') }, qr(Can't decode JSON from a value: \S),
+        like dies { $stage->('{"a":1}}') },
+            qr( Can't\ decode\ JSON\ from\ a\ value:\ \S )x,
             'malformed';
         like dies { $stage->('{"a":') },
-            qr(Can't decode JSON from a value: it ends inside a document), 'incomplete';
+            qr( Can't\ decode\ JSON\ from\ a\ value:\ it\ ends\ inside\ a\ document )x,
+            'incomplete';
         is [$stage->('[7]')], [[7]], 'and the next run is afresh';
     };
 
@@ -229,7 +233,8 @@ for my $encoder (@encoders) {
         like dies {
             $class->new($to{to_jsonl}->())->(sub { })
         },
-            qr(Can't encode a value as JSON: \S), 'a value that cannot be encoded';
+            qr( Can't\ encode\ a\ value\ as\ JSON:\ \S )x,
+            'a value that cannot be encoded';
     };
 
     subtest "$name: sinks write a file, and give how many" => sub {
@@ -323,45 +328,46 @@ subtest 'Mistakes are reported at the caller\'s line' => sub {
                 $expected;
         }
         like dies { $function->(json => {nonsense => 1}) },
-            qr(\AExpected json options the encoder knows: \S.* at \Q$file\E line \d+\.\n\z),
+            qr( \AExpected\ json\ options\ the\ encoder\ knows:\ \S.*\ at\ \Q$file\E\ line\ \d+\.\n\z )x,
             'an option the encoder does not know';
     }
     like dies { to_jsonl(file => path('.jsonl'), json => {pretty => 1}) },
-        qr(\AExpected an encoder that doesn't indent, to write JSON Lines at \Q$file\E line),
+        qr( \AExpected\ an\ encoder\ that\ doesn't\ indent,\ to\ write\ JSON\ Lines\ at\ \Q$file\E\ line )x,
         'JSON Lines, indented, as a sink';
     like dies { to_jsonl(json => {pretty => 1}) },
-        qr(\AExpected an encoder that doesn't indent), 'or as a stage';
+        qr( \AExpected\ an\ encoder\ that\ doesn't\ indent )x, 'or as a stage';
     ok lives { to_json(json => {pretty => 1}) }, 'but not one document';
 };
 
 subtest 'Files that cannot be read or written' => sub {
     my $missing = "$dir/missing/x.json";
     like dies { read_all(\&from_json, file => $missing) },
-        qr(\ACan't read \Q$missing\E: \S.* at \Q$file\E line), 'read';
+        qr( \ACan't\ read\ \Q$missing\E:\ \S.*\ at\ \Q$file\E\ line )x, 'read';
     like dies { $class->new(to_json(file => $missing))->(1) },
-        qr(\ACan't write \Q$missing\E: \S.* at \Q$file\E line), 'write';
+        qr( \ACan't\ write\ \Q$missing\E:\ \S.*\ at\ \Q$file\E\ line )x, 'write';
     like dies { read_all(\&from_jsonl, file => path('.jsonl', '{"a":1}}')) },
-        qr(\ACan't decode JSON from \S+: \S.* at \Q$file\E line), 'malformed';
+        qr( \ACan't\ decode\ JSON\ from\ \S+:\ \S.*\ at\ \Q$file\E\ line )x,
+        'malformed';
     like dies { read_all(\&from_json, file => path('.json', '[1,')) },
-        qr(\ACan't decode JSON from \S+: it ends inside a document at \Q$file\E line),
+        qr( \ACan't\ decode\ JSON\ from\ \S+:\ it\ ends\ inside\ a\ document\ at\ \Q$file\E\ line )x,
         'incomplete';
     open my $fh, '<:raw', path('.json', '{') or die $!;
     like dies { read_all(\&from_jsonl, fh => $fh) },
-        qr(\ACan't decode JSON from the filehandle: it ends inside a document),
+        qr( \ACan't\ decode\ JSON\ from\ the\ filehandle:\ it\ ends\ inside\ a\ document )x,
         'a filehandle';
 };
 
 subtest 'Reads, writes and closes that fail' => sub {
     tie *FAILING, 'My::Failing::Handle';
     like dies { read_all(\&from_jsonl, fh => \*FAILING) },
-        qr(\ACan't read the filehandle: \S.* at \Q$file\E line), 'a read';
+        qr( \ACan't\ read\ the\ filehandle:\ \S.*\ at\ \Q$file\E\ line )x, 'a read';
     like dies { $class->new(to_jsonl(fh => \*FAILING))->(1) },
-        qr(Pipeline stage #1 failed .*\n\s+Can't write the filehandle: \S.* at \Q$file\E line),
+        qr( Pipeline\ stage\ \#1\ failed\ .*\n\s+Can't\ write\ the\ filehandle:\ \S.*\ at\ \Q$file\E\ line )x,
         'a write';
     my $path = path('.json');
     local $FAIL_CLOSE = 1;
     like dies { $class->new(to_json(file => $path))->(1) },
-        qr(Pipeline end of stage #1 failed .*\n\s+Can't write \Q$path\E: \S.* at \Q$file\E line),
+        qr( Pipeline\ end\ of\ stage\ \#1\ failed\ .*\n\s+Can't\ write\ \Q$path\E:\ \S.*\ at\ \Q$file\E\ line )x,
         'a close';
 };
 
