@@ -10,12 +10,15 @@ use Test2::Plugin::NoWarnings;
 # package does (roadmap 2026-0053, D5).
 
 use File::Find qw(find);
+use File::Spec qw();
 use Ekorn::Pipeline;
 
 my $want = Ekorn::Pipeline->VERSION;
 
-# The modules, by their files under lib/, as installed or as here.
-my($lib) = grep { -e "$_/Ekorn/Pipeline.pm" } @INC;
+# The modules, by their files under the folder Ekorn::Pipeline was
+# loaded from, as installed or as here.
+my $lib
+    = $INC{'Ekorn/Pipeline.pm'} =~ s( [\/\\] Ekorn [\/\\] Pipeline\.pm \z )()xr;
 my @files;
 find(sub { push @files, $File::Find::name if m( \.pm \z )x }, "$lib/Ekorn");
 
@@ -28,9 +31,13 @@ sub code_of ($path) {
     return $text =~ s( ^ __END__ $ .* )()xmsr;
 }
 
-# The module each file holds, by its package.
+# Each file's path as require takes it, relative to the folder, with
+# / between its parts, on any platform; and the module it holds.
+my %relative_of = map {
+    $_ => join '/', File::Spec->splitdir(File::Spec->abs2rel($_, $lib))
+} @files;
 my %module_of
-    = map { $_ => s( \A \Q$lib\E / )()xr =~ s( \.pm \z )()xr =~ s( / )(::)xgr }
+    = map { $_ => $relative_of{$_} =~ s( \.pm \z )()xr =~ s( / )(::)xgr }
     @files;
 my %is_module = map { $_ => 1 } values %module_of;
 
@@ -39,7 +46,7 @@ for my $path (sort @files) {
     my $code     = code_of($path);
     my @versions = $code =~ m( ^ \s* our \s+ \$VERSION \b )xmg;
     is scalar @versions, 1, "$module declares one \$VERSION";
-    require $path =~ s( \A \Q$lib\E / )()xr;
+    require $relative_of{$path};
     is $module->VERSION, $want, "$module is at the distribution's version";
     # The packages it defines inside, which a $VERSION would stray to;
     # Operators reopens other modules' packages, which have their own.
