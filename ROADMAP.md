@@ -41,24 +41,21 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0055. An iterator's all_arrayref
 
 **Size:** XS (1).
 
 Add `all_arrayref` to Ekorn::Pipeline::Iterator: every value still to
-come, as an array reference, whatever the context it's called in. `all`
-gives a reference only in scalar context, so a caller writing
-`{ rows => $next->all }`, passing `$next->all` as an argument, or
-returning it from a sub whose caller's context it can't know, gets a
-list it didn't want, without a word. A v0.4.x, as it only adds, with a
-message for DBIx-Squirrel, whose own iterator wraps a run rather than
-inheriting from Ekorn's. Done when the method, its tests, the POD, the
-reference and `Changes` say so. One question open:
+come, as an array reference, whatever the context it's called in, so
+a hash constructor, an argument list or a sub's return can't flatten
+it, as `all` does outside scalar context. `all` stays as it is. A
+v0.4.x, with a message for DBIx-Squirrel, whose own iterator needs one
+to match. Started 2026-11-25:
 [record](docs/changes/2026-0055-all-arrayref.md).
+
+## Next
+
+Nothing yet.
 
 ## Later
 
