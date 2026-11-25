@@ -213,3 +213,29 @@ the commit named, with its entry in `Changes`:
   pass on 5.36, 5.40 and 5.44; Perl::Critic and Perl::Tidy are clean;
   coverage is 100% of statements, branches, subs and POD, and 98.1% of
   conditions, up from 97.8%.
+
+**v0.4.0's part, 2026-11-25,** on the branch
+`experiment/2026-0053-pipe`, in
+f1fd15cb4d65000cd4b45451d25abdc84dac8962, kept off `develop` so that
+`main` can reach v0.3.16 without it: `pipe` is
+`Ekorn::Pipeline->new(@stages)->($object)`, in either context. Its new
+tests failed against the old code. Two of Ekorn's own tests read
+`pipe` through Test2's `is`, which takes its first argument in scalar
+context, as `is $thing->pipe(...), 42`, and so compared a count once
+the change was made; DBIx-Squirrel's `t/03-pipe.t` does the same.
+Its entry in `Changes` sits at the top of Unreleased, above
+v0.3.16's, with a note to say so.
+
+**DBIx-Squirrel, 2026-11-25:** a message with what was found and
+settled, and Iain's prompts, word for word, as he asked (D6), and a
+task to take v0.4.0's `pipe`, waiting on its release.
+
+**What's left:**
+
+1. Release v0.3.16 from `develop`.
+2. Rebase `experiment/2026-0053-pipe` onto it, keeping its `Changes`
+   entry alone under Unreleased, and its note gone; merge it into
+   `develop`.
+3. Release v0.4.0, telling DBIx-Squirrel, whose task waits on it, and
+   ship this item: out of the roadmap, its status "shipped in v0.3.16
+   and v0.4.0".
