@@ -10,7 +10,7 @@ use Ekorn::Pipeline::Gather qw(gather);
 
 use namespace::clean -except => 'import';
 
-our $VERSION = 'v0.3.15';
+our $VERSION = 'v0.3.16';
 
 our @EXPORT = qw(batch collect);    ## no critic (Modules::ProhibitAutomaticExportation)
 

@@ -2,14 +2,19 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    A quality release: the fixes, speed-ups and corrections a review of
-    the code, tests and docs found, each listed below by its finding.
+v0.3.16 2026-11-25
+
+    A quality release, of what a review of the code, tests and docs found.
+
     A | chain passes on its source's original and context, as an
-    iterator does, and reads into a sink faster.
+    iterator does, and reads into a sink faster; from_csv no longer
+    warns at an undefined first field; every module has a $VERSION; and
+    the reference's examples, and runs pushed, pulled and fed, are
+    tested. Each change below is listed by its finding.
 
     It ships part of roadmap 2026-0053, whose record numbers the
-    findings, F1 to F16. It only fixes, and changes nothing a stage
-    depends on.
+    findings, F1 to F17; v0.4.0 brings the rest. It fixes and adds, and
+    changes nothing a stage depends on.
 
     - F1: a run reading a chain made with |, given to iterator as its
       source, gets the chain's source's original, from result_original,

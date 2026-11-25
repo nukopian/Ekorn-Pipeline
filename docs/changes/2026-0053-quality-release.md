@@ -1,6 +1,7 @@
 # 2026-0053. A quality release
 
-**Status:** in progress
+**Status:** in progress: v0.3.16 shipped its fixes, docs, tests and
+module versions; v0.4.0, with `pipe`, is to follow
 
 **Decisions:** D1 settled: v0.3.16 for the fixes, then v0.4.0 for
 `pipe`. D2 settled: `pipe` gives what a run of its stages gives, in

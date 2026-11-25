@@ -8,7 +8,7 @@ use namespace::clean -except => 'import';
 
 use overload '""' => sub { "Stop used outside a pipeline\n" }, fallback => 1;
 
-our $VERSION = 'v0.3.15';
+our $VERSION = 'v0.3.16';
 
 our @EXPORT = qw(Stop);    ## no critic (Modules::ProhibitAutomaticExportation)
 
