@@ -47,13 +47,25 @@ sub is_sink ($thing) {
 }
 
 
-# Return the role method that what's given offers for a stage's place,
-# EKORN_STAGE, EKORN_SINK_ONE or EKORN_SINK_MANY, or nothing if it offers none.
+# The role methods a part can offer for a stage's place, in the order
+# they're looked for.
+my @STAGE_ROLES = qw(EKORN_STAGE EKORN_SINK_ONE EKORN_SINK_MANY);
+
+# Return the role methods that what's given offers for a stage's place.
+sub _stage_roles ($thing) {
+    return unless blessed($thing);
+    return grep { $thing->can($_) } @STAGE_ROLES;
+}
+
+# Return the first role method that what's given offers for a stage's
+# place, or nothing if it offers none. Each run asks it of each part, so
+# it looks no further than the first.
 sub _stage_role ($thing) {
     return unless blessed($thing);
-    my @roles
-        = grep { $thing->can($_) } qw(EKORN_STAGE EKORN_SINK_ONE EKORN_SINK_MANY);
-    return $roles[0];
+    for my $role (@STAGE_ROLES) {
+        return $role if $thing->can($role);
+    }
+    return;
 }
 
 
@@ -75,10 +87,7 @@ sub _element ($stage) {
 # one role: a source isn't a stage, and a part offering more than one of
 # a stage's and a sink's role methods couldn't say which it is.
 sub _check_stage ($stage, $n) {
-    my @roles
-        = blessed($stage)
-        ? grep { $stage->can($_) } qw(EKORN_STAGE EKORN_SINK_ONE EKORN_SINK_MANY)
-        : ();
+    my @roles = _stage_roles($stage);
     croakf
         'Expected stage #%d to offer one of EKORN_STAGE, EKORN_SINK_ONE and EKORN_SINK_MANY, not %s',
         $n,
@@ -89,7 +98,7 @@ sub _check_stage ($stage, $n) {
     croakf
         q(Expected stage #%d to be a stage: a code reference, a pipeline, or an object offering a stage's role method),
         $n
-        unless is_stage($stage);
+        unless @roles || is_coderef($stage) || $stage isa 'Ekorn::Pipeline';
     return;
 }
 
@@ -285,19 +294,10 @@ sub feed ($self) {
     my($steps, $labels) = @$self{qw(steps labels)};
     # Stages that aren't all plain steps are made for the run.
     unless (@$steps) {
-        my %run = (
-            stages => [], names => [], within => [], flushes => [], ends => [],
-            sinks  => [],
-        );
-        try {
-            _make_run(@$self{qw(stages names within)}, \%run);
-        }
-        catch ($e) {
-            _set_up_died($self, \%run, undef, $e);
-        }
-        return _full_feed($self, \%run)
-            if grep { defined } @{ $run{flushes} }, @{ $run{ends} };
-        ($steps, $labels) = ($run{stages}, [@run{qw(names within)}]);
+        my $run = _made_run($self, @$self{qw(stages names within)});
+        return _full_feed($self, $run)
+            if grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
+        ($steps, $labels) = ($run->{stages}, [@$run{qw(names within)}]);
     }
     # How the feed's run ended, undef while it's open, and how many
     # results its pushes have made.
@@ -507,11 +507,8 @@ sub _push_steps ($pipeline, $steps, $labels, $fed, $values) {
             }
             $fed->[0] = 'died' if $fed;
             croak $e           if is_ref($e);
-            my $where   = Carp::shortmess() =~ s( \.? \n \z )()xr;
-            my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
             my($names, $within) = @$labels;
-            my $stage = _label($pipeline, $names->[$n], $within->[$n]);
-            die "Pipeline $stage failed$where:\n$message\n";
+            _failed(_label($pipeline, $names->[$n], $within->[$n]), $e);
         }
     }
     $fed->[1] = $result[0] if $fed;
@@ -555,9 +552,17 @@ sub _end_all ($ends, $dying) {
     return unless defined $error;
     # A stop from an end is an error like any other: the run has ended.
     croak $error if is_ref($error) && !($error isa 'Ekorn::Pipeline::Stop');
-    my $at      = Carp::shortmess()  =~ s( \.? \n \z )()xr;
-    my $message = _end_error($error) =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
-    die "Pipeline end of $failed failed$at:\n$message\n";
+    return _failed("end of $failed", _end_error($error));
+}
+
+
+# Die with the message of a part of a run that died, a stage, a flush
+# or an end, as a run reports it: naming $what, at the line that called
+# the run, the message it died with below, indented.
+sub _failed ($what, $message) {
+    my $at       = Carp::shortmess() =~ s( \.? \n \z )()xr;
+    my $indented = $message =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
+    die "Pipeline $what failed$at:\n$indented\n";    ## no critic (ErrorHandling::RequireCarping): placed by shortmess, above
 }
 
 
@@ -639,24 +644,21 @@ sub _make_run ($stages, $names, $within, $run) {
 # Return an iterator handing out, one per call, the values from $source
 # run through the stages in @$stages, named in messages by @$names.
 sub _iterator ($pipeline, $stages, $names, $within, $source) {
-    my %run = (
-        stages => [], names => [], within => [], flushes => [], ends => [],
-        sinks  => [],
-    );
-    my($pull, $source_end, $context);
+    my($pull, $source_end, $context, $original);
     try {
-        # The source's original part, if any, kept in the run.
-        ($pull, $source_end, $context, $run{original}) = _source_run($source);
-        _make_run($stages, $names, $within, \%run) if @$stages;
+        ($pull, $source_end, $context, $original) = _source_run($source);
     }
     catch ($e) {
-        _set_up_died($pipeline, \%run, $source_end, $e);
+        _set_up_died($pipeline, {ends => []}, undef, $e);
     }
+    my $run = _made_run($pipeline, $stages, $names, $within, $source_end);
+    # The source's original part, if any, kept in the run.
+    $run->{original} = $original;
     # A run with no flush, no end of a stage's, and no sink, as most are,
     # takes the shorter way.
-    return _plain_iterator($pipeline, \%run, $pull, $source_end, $context)
-        unless grep { defined } @{ $run{flushes} }, @{ $run{ends} };
-    return _full_iterator($pipeline, \%run, $pull, $source_end, $context);
+    return _plain_iterator($pipeline, $run, $pull, $source_end, $context)
+        unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
+    return _full_iterator($pipeline, $run, $pull, $source_end, $context);
 }
 
 
@@ -667,6 +669,20 @@ sub _iterator ($pipeline, $stages, $names, $within, $source) {
 # iterator of the run. Its set-up is _iterator's, with no source to set
 # up.
 sub _pushed ($pipeline, $stages, $names, $within, $values) {
+    my $run = _made_run($pipeline, $stages, $names, $within);
+    return _push_steps(
+        $pipeline, $run->{stages}, [@$run{qw(names within)}], undef,
+        $values,
+    ) unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
+    return _full_iterator($pipeline, $run, sub { splice @$values }, undef, undef)
+        ->all;
+}
+
+
+# Return a run made from @$stages, named by @$names, as _make_run makes
+# it. If a set-up dies, every end made by then, and $source_end, if
+# given, is told the run died, and the error is thrown on.
+sub _made_run ($pipeline, $stages, $names, $within, $source_end = undef) {
     my %run = (
         stages => [], names => [], within => [], flushes => [], ends => [],
         sinks  => [],
@@ -675,14 +691,9 @@ sub _pushed ($pipeline, $stages, $names, $within, $values) {
         _make_run($stages, $names, $within, \%run);
     }
     catch ($e) {
-        _set_up_died($pipeline, \%run, undef, $e);
-    }
-    return _push_steps(
-        $pipeline, $run{stages}, [@run{qw(names within)}], undef,
-        $values,
-    ) unless grep { defined } @{ $run{flushes} }, @{ $run{ends} };
-    return _full_iterator($pipeline, \%run, sub { splice @$values }, undef, undef)
-        ->all;
+        _set_up_died($pipeline, \%run, $source_end, $e);
+    };    # the ; ends the statement for Perl::Critic, which doesn't know try
+    return \%run;
 }
 
 
@@ -795,10 +806,11 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
         }
         return;
     };
-    # The index of the next flush to call, if any.
+    # The index of the next flush to call, if any: none from $next_flush
+    # on has been called.
     my $flush_at = sub () {
         for my $n (@flush_at) {
-            return $n if $n >= $next_flush && !$flushed{$n};
+            return $n if $n >= $next_flush;
         }
         return;
     };
@@ -813,7 +825,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
     my $input_ran_out_at_stop = sub ($n) {
         for my $stage ($next_flush .. $n) {
             last if $waiting_upto->($stage);
-            last if grep { $flushes[$_] && !$flushed{$_} } $next_flush .. $stage - 1;
+            last if grep { $flushes[$_] } $next_flush .. $stage - 1;
             $input_done[$stage] = 1;
         }
         return;
@@ -972,10 +984,7 @@ sub _full_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     = (1, scalar @stages);
                 $finish->(1);
                 croak $e if is_ref($e);
-                my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
-                my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
-                my $stage   = _run_label($pipeline, $run, $n);
-                die "Pipeline $stage failed$at:\n$message\n";
+                _failed(_run_label($pipeline, $run, $n), $e);
             }
             return if $outside;
             if ($kept) {
@@ -1176,10 +1185,7 @@ sub _plain_iterator ($pipeline, $run, $pull, $source_end, $context) {
                     ($done, @todo, @from_source) = (1);
                     $finish->(1);
                     croak $e if is_ref($e);
-                    my $at      = Carp::shortmess() =~ s( \.? \n \z )()xr;
-                    my $message = $e =~ s( \n \z )()xr =~ s( ^ )(    )xmgr;
-                    my $stage   = _run_label($pipeline, $run, $n);
-                    die "Pipeline $stage failed$at:\n$message\n";
+                    _failed(_run_label($pipeline, $run, $n), $e);
                 }
                 return if $outside;
                 next   unless $kept;

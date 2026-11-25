@@ -24,6 +24,16 @@ Unreleased
       a time. 100,000 values, on Perl 5.36: @{} from 16.8 to 24.0 reads
       a second, and a chain of one stage into keep_all from 5.1 to
       10.1. (roadmap 2026-0053)
+    - F4: a run with a flush no longer checks, at each value, whether
+      a flush it hasn't reached yet has been called. (roadmap
+      2026-0053)
+    - F5: Ekorn::Pipeline makes a run's parts, and words a failed
+      stage's or end's message, in one place each, where each was
+      written out three times; and a run looks for each part's role
+      method only as far as the first it offers. The messages are as
+      they were. A short run, two stages and five values, is 2 to 3%
+      quicker, pushed or pulled, on Perl 5.36; long runs cost what they
+      did. (roadmap 2026-0053)
     - F17: the 41 patterns in the tests of JSON, CSV and a source's
       original that lacked the x flag, against the house style, have
       it. (roadmap 2026-0053)
