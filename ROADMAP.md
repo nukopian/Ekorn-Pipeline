@@ -66,14 +66,3 @@ it's settled: in CI's job over the whole history, and in the scans by
 hand before a push and a tag that CLAUDE.md and docs/MAINTAINING.md
 give. gitleaks gets no new rules, so its scans will slowly miss the
 newer kinds of secret that only betterleaks finds.
-
-### 2026-0054. A stream, a collection and an index, in the how-to
-
-Added 2026-11-25. **Size:** XS (1).
-
-A recipe in the how-to's chapter 9: a function over a dataset can
-give it as a stream, a fresh run through the caller's stages; as a
-collection, read once and kept; or as an index, built once by a sink.
-An experiment building an API over a published dataset from the docs
-alone found the distinction the most useful idea it met, and the docs
-don't draw it.

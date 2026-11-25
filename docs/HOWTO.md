@@ -1,6 +1,6 @@
 # Ekorn::Pipeline user guide
 
-<!-- stopwords: backtrace flatMap Ekorn ekorn bitwise discoverability -->
+<!-- stopwords: backtrace flatMap Ekorn ekorn bitwise dataset discoverability -->
 
 Ekorn::Pipeline lets a function hand its values, one at a time,
 through a list of small steps chosen by whoever called it. The steps
@@ -2216,6 +2216,69 @@ say $first_error->all;    # disk full
 The caller got one error, the function read two lines, and the file
 was closed as `take(1)` stopped the run. The function didn't need to
 know any of that was going to happen.
+
+### Offer a stream, a collection and an index
+
+A module over a dataset can give it three ways, each for a different
+caller:
+
+- a **stream**, a fresh run each time it's called, through the
+  caller's stages, read only as it's wanted: for one pass, or a
+  dataset too big to hold;
+- a **collection**, every value, read once and kept: for a small
+  dataset read again and again;
+- an **index**, built once by a sink and kept: for looking values up
+  by a key.
+
+Here the tracks come from memory; from a file or a database, only the
+source changes:
+
+```perl
+# A stream: a fresh run of the tracks, through the caller's stages.
+sub track_stream (@stages) {
+    return Ekorn::Pipeline->new(@stages)->iterator(from_array(@tracks));
+}
+
+# A collection: every track, read once and kept, given as a list.
+sub all_tracks () {
+    state $all = track_stream()->all;    # an array reference, asked for one value
+    return @$all;
+}
+
+# An index: each artist's titles, built once by a sink and kept.
+sub tracks_by_artist () {
+    state $index = track_stream(sink_one {
+        my %titles;    # this run's
+        return (
+            sub ($track) { push @{ $titles{ $track->{artist} } }, $track->{title} },
+            sub ()       { \%titles },
+        );
+    })->();
+    return $index;
+}
+
+say join ', ', track_stream(take_if { $_->{plays} > 6000 }, sub { $_->{title} })->all;
+# Dancing Queen, Girls & Boys, Sunshine of Your Love
+my @all = all_tracks();
+say scalar @all;    # 6
+say join ', ', @{ tracks_by_artist()->{Blur} };    # Girls & Boys, Parklife, Country House
+```
+
+Name each for what it gives, not for how it gets it: `track_stream`
+and `all_tracks`, not `read_tracks` and `load_tracks`. The stream is
+the one that takes stages, as it's the one that runs each time; a
+caller who wants the collection's values changed runs the stream
+instead.
+
+The collection and the index are kept with `state`, read once, the
+first time they're asked for, and shared by every caller, so give out
+a copy, as `all_tracks` gives a list, or say callers mustn't change
+them. A dataset that changes while the program runs needs them made
+again, or a stream instead.
+
+The index is a sink's result, the run's own, rather than a hash a
+stage fills on the side: its hash is made afresh for the run, and the
+run gives it back, so nothing outside the run holds it half-built.
 
 ### Take stages for a library that calls you back
 
