@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0054.
+Last id: 2026-0055.
 
 Items come in four groups:
 
@@ -45,7 +45,20 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0055. An iterator's all_arrayref
+
+**Size:** XS (1).
+
+Add `all_arrayref` to Ekorn::Pipeline::Iterator: every value still to
+come, as an array reference, whatever the context it's called in. `all`
+gives a reference only in scalar context, so a caller writing
+`{ rows => $next->all }`, passing `$next->all` as an argument, or
+returning it from a sub whose caller's context it can't know, gets a
+list it didn't want, without a word. A v0.4.x, as it only adds, with a
+message for DBIx-Squirrel, whose own iterator wraps a run rather than
+inheriting from Ekorn's. Done when the method, its tests, the POD, the
+reference and `Changes` say so. One question open:
+[record](docs/changes/2026-0055-all-arrayref.md).
 
 ## Later
 

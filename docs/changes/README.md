@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [An iterator's all_arrayref](2026-0055-all-arrayref.md), roadmap
+  2026-0055: open.
 - [A quality release](2026-0053-quality-release.md), roadmap 2026-0053:
   shipped in v0.3.16 and v0.4.0.
 - [A source's original, carried through
