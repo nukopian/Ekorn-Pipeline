@@ -1,6 +1,6 @@
 # 2026-0056. An iterator's next
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: add `next`. D2 settled: it's called as the
 iterator is, in every context.
@@ -8,6 +8,8 @@ iterator is, in every context.
 **Origin:** a message from DBIx-Squirrel's session, 2026-11-26
 (DBIx-Squirrel bfe99ae7d999121c933b1902df007b88752d51b9), added
 2026-11-26
+
+**Started:** 2026-11-26
 
 ## Background
 
@@ -49,3 +51,39 @@ called only as a method, so it doesn't clash with the keyword.
   `undef` at the end, as DBIx::Squirrel's `next` does. Yes, the same
   in every way, as Iain decided on 2026-11-26, as recommended, so the
   docs can say "`$next->next` is `$next->()`" and nothing more.
+
+## The plan
+
+**What:** a method, `next`, on Ekorn::Pipeline::Iterator, doing what
+calling the iterator does, in every context (D1, D2).
+
+**Why:** DBIx-Squirrel's readers loop with `while (my($row) =
+$it->next)`, and its guide has to tell them to call Ekorn's iterator
+instead; with `next`, one loop reads either (Background).
+
+**Steps:**
+
+1. `lib/Ekorn/Pipeline/Iterator.pm`: `sub next ($self) { return
+   $self->{call}->() }`, with `## no critic
+   (Subroutines::ProhibitBuiltinHomonyms)`, before `all`; in the POD,
+   a `=head2 next` before `all`, and a line in the SYNOPSIS.
+2. Tests in `t/15-proofs.t`, beside `all`'s: in a `while` loop, the
+   same values as calling the iterator; mixed with calls; an `undef`
+   value handed out, not taken for the end; in scalar context, the
+   next value, then `undef`; an empty list once the values run out,
+   and after `finish`.
+3. `docs/REFERENCE.md`: under Iterators, a sentence saying `next` is
+   `$next->()`, and an entry for it in the index; `scripts/manuals`
+   run, and `xt/manuals.t` passing.
+4. `Changes`, under Unreleased: a precis naming roadmap 2026-0056, and
+   the entry; the item leaves `ROADMAP.md` in the same commit.
+5. A message for DBIx-Squirrel, in its `TODO.md`, once it's committed:
+   the method, and that its guide can drop the advice to call Ekorn's
+   iterator once it requires the release.
+
+**Done when:** the method, its tests and its POD are in; the reference
+and `Changes` say so; `yath test` passes on 5.36 and 5.44, coverage
+stays above its floors, perlcritic and perltidy are clean; and
+DBIx-Squirrel has the message.
+
+## What happened

@@ -83,7 +83,7 @@ Newest id first.
 - [A way in for DBIx::Squirrel's readers](2026-0057-way-in-from-dbix-squirrel.md),
   roadmap 2026-0057: open.
 - [An iterator's next](2026-0056-iterator-next.md), roadmap 2026-0056:
-  open.
+  in progress.
 - [An iterator's all_arrayref](2026-0055-all-arrayref.md), roadmap
   2026-0055: shipped in v0.4.2.
 - [A quality release](2026-0053-quality-release.md), roadmap 2026-0053:
