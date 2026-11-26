@@ -19,7 +19,7 @@ use Ekorn::Pipeline::Factories     qw(:all);
 use Ekorn::Pipeline::JSON          qw(:all);
 use Ekorn::Pipeline::CSV           qw(:all);
 
-our $VERSION = 'v0.4.3';
+our $VERSION = 'v0.4.4';
 
 our %EXPORT_TAGS = (
     core => [qw(Stop gather)],
