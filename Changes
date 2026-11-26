@@ -2,6 +2,15 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A fix to the tests: they pass without Text::CSV.
+
+    Since v0.3.10, the tests failed wherever Text::CSV, which
+    Ekorn::Pipeline::CSV only recommends, wasn't installed, as on many
+    of CPAN Testers' smokers. It changes only the tests.
+
+    - t/30-csv.t is skipped when Text::CSV isn't installed, as
+      t/31-csv-without-text-csv.t already tests that case.
+
 v0.4.4 2026-11-26
 
     A documentation release: the how-to's "Coming from DBIx::Squirrel"
