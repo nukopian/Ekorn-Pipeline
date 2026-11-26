@@ -2,8 +2,8 @@
 
 **Status:** open
 
-**Decisions:** D1 open: add `next`, or point to `call`. D2 open: is it
-called as the iterator is, in every context.
+**Decisions:** D1 settled: add `next`. D2 settled: it's called as the
+iterator is, in every context.
 
 **Origin:** a message from DBIx-Squirrel's session, 2026-11-26
 (DBIx-Squirrel bfe99ae7d999121c933b1902df007b88752d51b9), added
@@ -38,14 +38,14 @@ called only as a method, so it doesn't clash with the keyword.
 
 ## Decisions
 
-- [ ] **D1.** Add `next`, or point to `call`? `call` already does what
+- [x] **D1.** Add `next`, or point to `call`? `call` already does what
   `next` would, but its name says nothing about iterating, and a loop
   written for DBIx::Squirrel's iterator wouldn't read Ekorn's. `next`
   is the name DBIx-Squirrel's readers know, and the one Perl's
-  iterators commonly use. Recommendation: add `next`, an XS item,
-  only adding, so a v0.4.x.
-- [ ] **D2.** Is `next` called as the iterator is, in every context?
+  iterators commonly use. Add `next`, as Iain decided on 2026-11-26,
+  as recommended: an XS item, only adding, so a v0.4.x.
+- [x] **D2.** Is `next` called as the iterator is, in every context?
   Calling the iterator in scalar context gives the next value, or
-  `undef` at the end, as DBIx::Squirrel's `next` does. Recommendation:
-  yes, the same in every way, so the docs can say "`$next->next` is
-  `$next->()`" and nothing more.
+  `undef` at the end, as DBIx::Squirrel's `next` does. Yes, the same
+  in every way, as Iain decided on 2026-11-26, as recommended, so the
+  docs can say "`$next->next` is `$next->()`" and nothing more.

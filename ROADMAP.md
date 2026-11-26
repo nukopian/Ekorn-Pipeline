@@ -54,18 +54,20 @@ iterator does, so a loop written as `while (my($value) = $it->next)`
 reads Ekorn's iterator and DBIx::Squirrel's alike. DBIx-Squirrel's
 readers use its `next` most, and its guide now has to tell them to call
 Ekorn's instead. A v0.4.x, as it only adds. Done when the method, its
-tests, the POD, the reference and `Changes` say so. Two questions open:
-[record](docs/changes/2026-0056-iterator-next.md).
+tests, the POD, the reference and `Changes` say so. Its questions are
+settled: [record](docs/changes/2026-0056-iterator-next.md).
 
 ### 2026-0057. A way in for DBIx::Squirrel's readers
 
 **Size:** S (2).
 
+**Depends on:** 2026-0056.
+
 A short section for readers who come to Ekorn's documents from
 DBIx-Squirrel's, whose Part 2 now sends them here: what they know
 already, under which of Ekorn's names, what's new to them, and where to
 start. Done when the section is written, linked, and its examples
-checked. Two questions open:
+checked. Its questions are settled:
 [record](docs/changes/2026-0057-way-in-from-dbix-squirrel.md).
 
 ## Later
