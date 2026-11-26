@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.4.5 2026-11-26
+
     A fix to the tests: they pass without Text::CSV.
 
     Since v0.3.10, the tests failed wherever Text::CSV, which
