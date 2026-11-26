@@ -562,7 +562,7 @@ A new Perl or a new runner means changing the required checks to
 match. Otherwise `main` waits for a check that never reports, and
 can't move. After the new jobs have passed once on `develop`, change
 the list below to the jobs' names, and run it. It replaces the whole
-list, so keep `secrets`, `style` and `coverage` in it. It's a GitHub
+list, so keep `secrets`, `minimal`, `style` and `coverage` in it. It's a GitHub
 setting, so Iain runs it, or says Claude may:
 
 ```sh
@@ -578,6 +578,7 @@ gh api --method PATCH repos/nukopian/Ekorn-Pipeline/branches/main/protection/req
     {"context": "perl 5.44 (ubuntu-24.04)", "app_id": 15368},
     {"context": "perl 5.36 (windows-2025)", "app_id": 15368},
     {"context": "perl 5.42 (windows-2025)", "app_id": 15368},
+    {"context": "minimal", "app_id": 15368},
     {"context": "style", "app_id": 15368},
     {"context": "coverage", "app_id": 15368}
   ]

@@ -22,7 +22,7 @@ jobs:
   # versions it was made with: to install the newest, delete the caches,
   # as docs/MAINTAINING.md says. --with-recommends brings
   # Text::Redact::Secrets, so that dump_to's tests run with it, in each
-  # job that runs the tests.
+  # job that runs the tests but the minimal one.
 
   # The tests on Perl 5.36, the floor, to the newest on Linux. macOS
   # was dropped on 2026-11-23, its runners being unreliable, as
@@ -80,6 +80,33 @@ jobs:
           distribution: strawberry
           install-modules-with: cpanm
           install-modules-args: --with-recommends
+      - name: prove
+        run: prove -l t
+
+  # The tests with only what's required, without what's recommended, as
+  # many of CPAN Testers' smokers run them: from v0.3.10 to v0.4.4,
+  # t/30-csv.t failed on every one of those without Text::CSV, which
+  # the jobs above all install. prove runs t/, as an installer would. A
+  # recommended module pulled in by another dependency fails the job,
+  # as it would no longer test the case it's here for.
+  minimal:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shogo82148/actions-setup-perl@eebc5c886de14ebbfcd2493d49a12007d2c30477 # v1.44.5
+        with:
+          perl-version: "5.36"
+          install-modules-with: cpanm
+      - name: nothing recommended
+        run: |
+          status=0
+          for m in Text::CSV Text::Redact::Secrets; do
+            if perl -M"$m" -e 1 2>/dev/null; then
+              echo "::error::$m is installed, so this job doesn't test without it"
+              status=1
+            fi
+          done
+          exit $status
       - name: prove
         run: prove -l t
 
