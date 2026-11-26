@@ -171,16 +171,17 @@ DBIx::Squirrel, a statement's rows; here, any source.
 | In DBIx::Squirrel | Here | Chapter |
 |---|---|---|
 | `$dbh->iterate(...)`: a statement as a source of rows | `Ekorn::Pipeline->new(@stages)->iterator($source)`, for any source | 2, 5 |
-| an iterator's `next`, `all`, `first`, `single`, `finish` and `ended` | the same methods, but no `reset`: an iterator here is one run, so make another with `iterator` | 2 |
+| an iterator's `next`, `all`, `all_arrayref`, `first`, `single` and `ended` | the same methods, and `finish`, to end a run early, but no `reset`: an iterator here is one run, so make another with `iterator` | 2 |
 | stages, `Stop`, `gather`, and the canned stages, such as `take`, `batch` and `peek` | the same subs: DBIx::Squirrel imports them from here | 1, 3, 4 |
 | `result_number` and `result_original` | the same, from Ekorn::Pipeline::Context; the original is the value as the source gave it | 5 |
-| DBIx::Squirrel::Tooling | Ekorn::Pipeline::Tooling, with the same tags, but `:rows` | above |
+| DBIx::Squirrel::Tooling | Ekorn::Pipeline::Tooling, whose tags have the same names, without `:rows`; each holds its own list, as the table above shows | above |
+| `$DBIx::Squirrel::Stages::Taps::DumpSecrets` | `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, tied to it, so `local` on either sets both | 11 |
 | Part 2's sinks, sources, feeds, `tee`, `\|` and names | the same, made here | 2, 5 to 8 |
 
 `pluck` and `as_hash` need a statement's column names, so they're
-DBIx::Squirrel's alone. The loop you'd write over a statement's rows
-reads the tracks the same way (`next` from v0.4.3; before it, call the
-iterator, `$next->()`):
+DBIx::Squirrel's alone, as is `is_stop`. The loop you'd write over a
+statement's rows reads the tracks the same way (`next` from v0.4.3;
+before it, call the iterator, `$next->()`):
 
 ```perl
 my $next = Ekorn::Pipeline->new(take_if { $_->{artist} eq 'Blur' })

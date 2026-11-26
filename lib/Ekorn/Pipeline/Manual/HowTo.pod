@@ -338,9 +338,9 @@ B<Here:> C<< Ekorn::Pipeline->new(@stages)->iterator($source) >>, for any source
 
 B<Chapter:> 2, 5
 
-=item an iterator's C<next>, C<all>, C<first>, C<single>, C<finish> and C<ended>
+=item an iterator's C<next>, C<all>, C<all_arrayref>, C<first>, C<single> and C<ended>
 
-B<Here:> the same methods, but no C<reset>: an iterator here is one run, so make another with C<iterator>
+B<Here:> the same methods, and C<finish>, to end a run early, but no C<reset>: an iterator here is one run, so make another with C<iterator>
 
 B<Chapter:> 2
 
@@ -358,9 +358,15 @@ B<Chapter:> 5
 
 =item DBIx::Squirrel::Tooling
 
-B<Here:> Ekorn::Pipeline::Tooling, with the same tags, but C<:rows>
+B<Here:> Ekorn::Pipeline::Tooling, whose tags have the same names, without C<:rows>; each holds its own list, as the table above shows
 
 B<Chapter:> above
+
+=item C<$DBIx::Squirrel::Stages::Taps::DumpSecrets>
+
+B<Here:> C<$Ekorn::Pipeline::Stages::Taps::DumpSecrets>, tied to it, so C<local> on either sets both
+
+B<Chapter:> 11
 
 =item Part 2's sinks, sources, feeds, C<tee>, C<|> and names
 
@@ -371,9 +377,9 @@ B<Chapter:> 2, 5 to 8
 =back
 
 C<pluck> and C<as_hash> need a statement's column names, so they're
-DBIx::Squirrel's alone. The loop you'd write over a statement's rows
-reads the tracks the same way (C<next> from v0.4.3; before it, call the
-iterator, C<< $next->() >>):
+DBIx::Squirrel's alone, as is C<is_stop>. The loop you'd write over a
+statement's rows reads the tracks the same way (C<next> from v0.4.3;
+before it, call the iterator, C<< $next->() >>):
 
     my $next = Ekorn::Pipeline->new(take_if { $_->{artist} eq 'Blur' })
         ->iterator(from_array(@tracks));

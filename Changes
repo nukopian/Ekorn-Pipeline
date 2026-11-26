@@ -2,6 +2,18 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+    A documentation release: the how-to's "Coming from DBIx::Squirrel"
+    corrected.
+
+    Two rows of the section described DBIx::Squirrel wrongly, as its
+    session pointed out. It changes only the docs.
+
+    - The how-to's "Coming from DBIx::Squirrel" no longer gives
+      DBIx::Squirrel's iterators finish, which is Ekorn's alone, says
+      its Tooling's tags hold their own lists, names is_stop as
+      DBIx::Squirrel's alone, and adds $DumpSecrets, tied between the
+      two.
+
 v0.4.3 2026-11-26
 
     An iterator's next, and a way into the how-to for DBIx::Squirrel's
