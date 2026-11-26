@@ -1,6 +1,6 @@
 # 2026-0056. An iterator's next
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: add `next`. D2 settled: it's called as the
 iterator is, in every context.
@@ -10,6 +10,8 @@ iterator is, in every context.
 2026-11-26
 
 **Started:** 2026-11-26
+
+**Finished:** 2026-11-26
 
 ## Background
 
@@ -87,3 +89,13 @@ stays above its floors, perlcritic and perltidy are clean; and
 DBIx-Squirrel has the message.
 
 ## What happened
+
+- **Outcome:** as planned. `next` returns `$self->{call}->()`, so it
+  is a call to the iterator in every context; its tests in
+  `t/15-proofs.t` cover a `while` loop, mixing with calls and `all`,
+  `undef`, 0 and the empty string handed out, scalar context, a sink
+  of many's result, and `finish`. `yath test` passes on 5.36 and 5.44,
+  perlcritic and perltidy are clean, and coverage stays at its floors,
+  100% of statements, branches, subroutines and POD.
+- **What's left:** the message for DBIx-Squirrel (step 5), sent after
+  this commit.

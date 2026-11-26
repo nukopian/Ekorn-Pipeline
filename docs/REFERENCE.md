@@ -1095,6 +1095,9 @@ say "$opener, then @rest: ", $next->ended;    # Intro, then Parklife Song 2: sto
 `ended` says `stopped`, as `take_while` cut the reading short, with
 `Tender` still to come.
 
+`next` does what a call does, so a loop can be written either way:
+`while (my($song) = $next->next) { ... }`.
+
 `all` gives an array reference only in scalar context: in a hash, a
 list or an argument, its values are flattened into it. `all_arrayref`
 gives the reference whatever the context:
@@ -3843,6 +3846,17 @@ my $value = $next->first;
 
 Returns the next value, or `undef` if there's none, and ends the run,
 as `finish` does, so nothing more is read.
+
+See [Iterators: Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
+
+#### next
+
+```perl
+while (my($value) = $next->next) { ... }
+```
+
+Returns the next value, as `$next->()` does, in any context: one
+value, or an empty list once the values run out.
 
 See [Iterators: Ekorn::Pipeline::Iterator](#iterators-ekornpipelineiterator).
 

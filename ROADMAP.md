@@ -41,16 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0056. An iterator's next
-
-**Size:** XS (1).
-
-Add `next` to Ekorn::Pipeline::Iterator, doing what calling the
-iterator does, in every context, so a loop written as `while
-(my($value) = $it->next)` reads Ekorn's iterator and DBIx::Squirrel's
-alike. A v0.4.x, as it only adds, with a message for DBIx-Squirrel,
-whose guide now tells its readers to call Ekorn's iterator instead.
-Started 2026-11-26: [record](docs/changes/2026-0056-iterator-next.md).
+Nothing yet.
 
 ## Next
 

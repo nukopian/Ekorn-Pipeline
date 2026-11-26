@@ -49,6 +49,14 @@ sub finish ($self) {
     return;
 }
 
+# Return the next value, as calling the iterator does, in any context:
+# one value, or an empty list once the values run out (roadmap
+# 2026-0056). A method, only ever called as $iterator->next, so it
+# can't be mistaken for Perl's next.
+sub next ($self) {    ## no critic (Subroutines::ProhibitBuiltinHomonyms)
+    return $self->{call}->();
+}
+
 # Return the values still to be handed out, reading the run to its end:
 # as a list, or, asked for one value, an array reference of them. A
 # method, only ever called as $iterator->all, so it can't be mistaken
@@ -134,6 +142,7 @@ Ekorn::Pipeline::Iterator - one run, handing out its values as they're pulled
     my $next = Ekorn::Pipeline->new(@stages)->iterator($source);
 
     while (my($value) = $next->()) { ... }    # one value per call
+    while (my($value) = $next->next) { ... }  # the same
 
     my @rest  = $next->all;       # every value still to come
     my $rest  = $next->all_arrayref;    # the same, as an array reference
@@ -205,6 +214,15 @@ before it has handed out everything it will.
 
 Iterators are made by L<Ekorn::Pipeline/iterator>, not by calling
 C<new>.
+
+=head2 next
+
+    while (my($value) = $next->next) { ... }
+
+Returns the next value, as calling the iterator, C<< $next->() >>,
+does, in any context: one value, or an empty list once the values run
+out. Read it in list context, as above, so that an C<undef> value
+isn't taken for the end.
 
 =head2 all
 
