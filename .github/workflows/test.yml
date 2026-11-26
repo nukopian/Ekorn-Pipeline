@@ -18,9 +18,13 @@ jobs:
   # Each job's modules are installed by actions-setup-perl, into local/,
   # which it caches, keyed on the Perl, cpanm's arguments, the cpanfile
   # and the modules it's given by name; so a job installs nothing until
-  # one of those changes (roadmap 2026-0047). The cache keeps the
-  # versions it was made with: to install the newest, delete the caches,
-  # as docs/MAINTAINING.md says. --with-recommends brings
+  # one of those changes (roadmap 2026-0047). A job with no cache of its
+  # own key restores the newest with the same Perl, cpanm arguments and
+  # cpanfile, or failing that the same Perl alone, and installs what it
+  # lacks on top, so after a cpanfile change, or on its first run, a job
+  # may start with another job's modules. The cache keeps the versions
+  # it was made with: to install the newest, delete the caches, as
+  # docs/MAINTAINING.md says. --with-recommends brings
   # Text::Redact::Secrets, so that dump_to's tests run with it, in each
   # job that runs the tests but the minimal one.
 
@@ -89,8 +93,9 @@ jobs:
   # the jobs above all install. prove runs t/, as an installer would. A
   # recommended module pulled in by another dependency fails the job,
   # as it would no longer test the case it's here for. It has no cache:
-  # its key matched the coverage job's, and the job restored that
-  # job's modules, the recommended ones with them, on its first run.
+  # on its first run, with no cache of its own key, it fell back to the
+  # coverage job's, on the same Perl, and so had the recommended
+  # modules too.
   minimal:
     runs-on: ubuntu-24.04
     steps:
