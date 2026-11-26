@@ -1,6 +1,6 @@
 # 2026-0057. A way in for DBIx::Squirrel's readers
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: a section of the how-to, with a line in the
 README. D2 settled: names they know, what's new, where to start.
@@ -13,6 +13,8 @@ README. D2 settled: names they know, what's new, where to start.
 (D2)
 
 **Started:** 2026-11-26
+
+**Finished:** 2026-11-26
 
 ## Background
 
@@ -92,3 +94,16 @@ are in; its example runs as its comments say; `yath test` passes;
 `Changes` says so; and DBIx-Squirrel has the message.
 
 ## What happened
+
+- **Outcome:** as planned. The section is in `docs/HOWTO.md`, after
+  "Import everything from one place", with its Contents line: a table
+  of six things a DBIx::Squirrel reader knows, each with Ekorn's name
+  and chapter; what has no counterpart; one example, a `while` loop
+  with `next`, which `xt/howto.t` runs, and which fails when its
+  output is changed; then what's new and where to start. The README's
+  Documentation points to it. `yath test` passes.
+- **Changes from the plan:** the example says `next` is from v0.4.3,
+  the next release, and how to call the iterator before it, as readers
+  of the how-to on GitHub may have v0.4.2.
+- **What's left:** the message for DBIx-Squirrel (step 6), sent after
+  this commit.

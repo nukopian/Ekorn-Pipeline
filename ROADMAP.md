@@ -41,17 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0057. A way in for DBIx::Squirrel's readers
-
-**Size:** S (2).
-
-**Depends on:** 2026-0056, shipped, unreleased.
-
-A section of the how-to, "Coming from DBIx::Squirrel", for readers
-whose Part 2 in DBIx-Squirrel's guide sends them here: what they know
-already, under which of Ekorn's names, what's new to them, and where
-to start, with a line pointing to it from the README. Started
-2026-11-26: [record](docs/changes/2026-0057-way-in-from-dbix-squirrel.md).
+Nothing yet.
 
 ## Next
 

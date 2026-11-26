@@ -29,6 +29,7 @@ full. This guide is the tour; the reference is the map.
 - [The layers, at a glance](#the-layers-at-a-glance)
 - [The examples' data](#the-examples-data)
 - [Import everything from one place](#import-everything-from-one-place)
+- [Coming from DBIx::Squirrel](#coming-from-dbixsquirrel)
 - [1. Stages: one value at a time](#1-stages-one-value-at-a-time)
 - [2. Pipelines: pushing values, pulling values](#2-pipelines-pushing-values-pulling-values)
 - [3. Stopping early](#3-stopping-early)
@@ -158,6 +159,46 @@ what's for extending Ekorn rather than using it, such as `is_stage`
 and `croakf`, which you import from their own modules when chapters 9
 and 10 need them; and `|`, which only `use Ekorn::Pipeline::Operators`
 puts in force, in its own scope, as chapter 8 explains.
+
+## Coming from DBIx::Squirrel
+
+This is for readers who know DBIx::Squirrel, whose user guide sends
+them here; anyone else can skip to chapter 1. DBIx::Squirrel uses
+Ekorn::Pipeline as any package can, so much of what you know is here,
+under the same names. What differs is where the values come from: in
+DBIx::Squirrel, a statement's rows; here, any source.
+
+| In DBIx::Squirrel | Here | Chapter |
+|---|---|---|
+| `$dbh->iterate(...)`: a statement as a source of rows | `Ekorn::Pipeline->new(@stages)->iterator($source)`, for any source | 2, 5 |
+| an iterator's `next`, `all`, `first`, `single`, `finish` and `ended` | the same methods, but no `reset`: an iterator here is one run, so make another with `iterator` | 2 |
+| stages, `Stop`, `gather`, and the canned stages, such as `take`, `batch` and `peek` | the same subs: DBIx::Squirrel imports them from here | 1, 3, 4 |
+| `result_number` and `result_original` | the same, from Ekorn::Pipeline::Context; the original is the value as the source gave it | 5 |
+| DBIx::Squirrel::Tooling | Ekorn::Pipeline::Tooling, with the same tags, but `:rows` | above |
+| Part 2's sinks, sources, feeds, `tee`, `\|` and names | the same, made here | 2, 5 to 8 |
+
+`pluck` and `as_hash` need a statement's column names, so they're
+DBIx::Squirrel's alone. The loop you'd write over a statement's rows
+reads the tracks the same way (`next` from v0.4.3; before it, call the
+iterator, `$next->()`):
+
+```perl
+my $next = Ekorn::Pipeline->new(take_if { $_->{artist} eq 'Blur' })
+    ->iterator(from_array(@tracks));
+while (my($track) = $next->next) {
+    say $track->{title};
+}
+# Girls & Boys
+# Parklife
+# Country House
+```
+
+What's new is everything without a database in it: sources of your
+own, made with `source` and `generator` (chapter 5), functions of
+your own that take stages for any values (chapter 9), and parts made
+for others to use (chapter 10). Start with chapter 2, where a pipeline
+is made and run with no statement behind it, then chapter 9, which is
+why the package exists.
 
 ## 1. Stages: one value at a time
 

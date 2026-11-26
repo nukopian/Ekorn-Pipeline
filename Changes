@@ -2,16 +2,23 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    An iterator's next.
+    An iterator's next, and a way into the how-to for DBIx::Squirrel's
+    users.
 
     Ekorn::Pipeline::Iterator has next, which does what calling the
     iterator does, so a loop written for DBIx::Squirrel's iterators
-    reads Ekorn's too. It ships roadmap 2026-0056, and only adds.
+    reads Ekorn's too, and the how-to has a section for readers who
+    come to it from DBIx::Squirrel. It ships roadmap 2026-0056 and
+    2026-0057, and only adds.
 
     - Ekorn::Pipeline::Iterator's next returns the next value, as
       $next->() does, in any context: one value, or an empty list once
       the values run out, so while (my($value) = $next->next) { ... }
       reads every value. (roadmap 2026-0056)
+    - The how-to's "Coming from DBIx::Squirrel" gives Ekorn's names
+      for what DBIx::Squirrel's users know, says what's new to them
+      and where to start, and the README points to it.
+      (roadmap 2026-0057)
 
 v0.4.2 2026-11-25
 
