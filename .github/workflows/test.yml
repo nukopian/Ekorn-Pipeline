@@ -88,7 +88,9 @@ jobs:
   # t/30-csv.t failed on every one of those without Text::CSV, which
   # the jobs above all install. prove runs t/, as an installer would. A
   # recommended module pulled in by another dependency fails the job,
-  # as it would no longer test the case it's here for.
+  # as it would no longer test the case it's here for. It has no cache:
+  # its key matched the coverage job's, and the job restored that
+  # job's modules, the recommended ones with them, on its first run.
   minimal:
     runs-on: ubuntu-24.04
     steps:
@@ -97,6 +99,7 @@ jobs:
         with:
           perl-version: "5.36"
           install-modules-with: cpanm
+          enable-modules-cache: false
       - name: nothing recommended
         run: |
           status=0
