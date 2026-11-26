@@ -93,6 +93,19 @@ both:
   either goes to Iain before it's made. Its v3.1.0, on CPAN, still
   checks every name in `t/`, and fails with any name added to Ekorn's
   Tooling: so a release that adds one waits until v3.1.1 is on CPAN.
+- **DBIx-Squirrel's reference links to sections of ours,** from its
+  v4.1.1, on 2026-11-26 (its 2026-0051): thirteen of the names its
+  Tooling imports from Ekorn link to `docs/REFERENCE.md` on GitHub's
+  `main`, each to the section our index links that name to. The
+  sections are "Sources: Ekorn::Pipeline::Sources", "CSV:
+  Ekorn::Pipeline::CSV", "JSON: Ekorn::Pipeline::JSON", "generator and
+  yield", "sink_one and sink_many", "source" and "stage". Its
+  `xt/reference-index.t` reads our installed
+  Ekorn::Pipeline::Manual::Reference, and fails if a link of its no
+  longer goes where our index sends the name. So renaming one of those
+  headings, or pointing one of those names in our index at another
+  section, turns its CI red once released: send it a message with the
+  change, before the release.
 
 ## Ekorn-Pipeline and Text-Redact-Secrets
 
