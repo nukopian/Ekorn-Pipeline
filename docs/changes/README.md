@@ -80,6 +80,8 @@ Steps, Done when.
 
 Newest id first.
 
+- [A check on the sections DBIx-Squirrel links to](2026-0058-sections-dbix-squirrel-links-to.md),
+  roadmap 2026-0058: open.
 - [A way in for DBIx::Squirrel's readers](2026-0057-way-in-from-dbix-squirrel.md),
   roadmap 2026-0057: shipped in v0.4.3.
 - [An iterator's next](2026-0056-iterator-next.md), roadmap 2026-0056:
