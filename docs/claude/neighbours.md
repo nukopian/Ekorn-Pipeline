@@ -57,10 +57,11 @@ both:
   change to them is a change DBIx-Squirrel will take on when it
   switches, so say so in the commit message and in `Changes`.
 - **The version says what DBIx-Squirrel can take.** DBIx::Squirrel
-  requires `>= v0.4.0, < v0.5.0`, as it moved the range on 2026-11-25,
-  in its 2026-0048, taking v0.4.0's `pipe` (Ekorn's 2026-0053), its
-  floor v0.4.0, as Iain chose, so every user gets the `pipe` its docs
-  describe; released in its v4.0.0, the same day. The range began at `>= v0.1.1, < v0.2.0`, as Iain decided
+  requires `>= v0.4.3, < v0.5.0`, from its v4.2.0, on 2026-11-26 (its
+  2026-0063), taking v0.4.3's `next` on a pipeline's iterator, which
+  its guide's loops use. It had moved the range to `>= v0.4.0, <
+  v0.5.0` on 2026-11-25, in its 2026-0048, taking v0.4.0's `pipe`
+  (Ekorn's 2026-0053), released in its v4.0.0. The range began at `>= v0.1.1, < v0.2.0`, as Iain decided
   on 2026-11-07, and DBIx-Squirrel raised it on 2026-11-08, to
   `>= v0.2.0, < v0.3.0` on 2026-11-10, and to `>= v0.3.0, < v0.4.0`
   on 2026-11-14, for its v3.0.0, the first built on Ekorn as it is. So
@@ -70,29 +71,38 @@ both:
   what a stop does, the order end functions run in, where errors are
   reported, the messages), or drops or renames a public name, is
   v0.5.0, and comes with a task handed to DBIx-Squirrel, which tests it
-  and moves the range. DBIx::Squirrel imports some of Ekorn's modules
-  by name and some whole. By name: `Stop` and `gather`; Flow's `take`,
-  `drop`, `take_first`, `take_last`, `take_single`, `take_while`,
-  `drop_while`, `take_if` and `drop_if`; Batch's `batch` and
-  `collect`; Taps' `peek`, `count_into` and `dump_to`; and Factories'
+  and moves the range. DBIx::Squirrel imports every name of Ekorn's
+  by name, from its v4.2.0 (its 2026-0059): `Stop` and `gather`;
+  Ekorn::Pipeline's `is_stage`; Flow's `take`, `drop`, `take_first`,
+  `take_last`, `take_single`, `take_while`, `drop_while`, `take_if`
+  and `drop_if`; Batch's `batch` and `collect`; Taps' `peek`,
+  `count_into`, `dump_to` and `tee`; Sources' `from_array`,
+  `from_fh`, `from_file` and `counter`; Sinks' `count_items`, `keep`,
+  `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh` and
+  `to_file`; JSON's `from_json`, `from_jsonl`, `to_json` and
+  `to_jsonl`; CSV's `from_csv` and `to_csv`; and Factories'
   `pipeline`, `stage`, `source`, `generator`, `yield`, `sink_one` and
-  `sink_many`. Whole, by `:all`, in its Tooling: Sources, Sinks and
-  JSON, so a name added to one of those three reaches its users at
-  once, and must suit them. A name added anywhere else doesn't appear
-  there until it's added to its list.
-- **A name added to Ekorn's Tooling costs DBIx-Squirrel's CI, not its
-  users,** as it settled on 2026-11-17, from v3.1.1 (Ekorn 2026-0048's
-  wash-up). Its `xt/ekorn-tooling.t` checks, tag by tag, that its
-  Tooling holds every name Ekorn's does, so a new one turns its CI red
-  until it lists the name, which it means to: send it a message with
-  each name added. Its `t/`, which installs run, checks only that each
-  name both export is one sub, and that importing both `:all`s into
-  one package warns of nothing. So a name both export must stay the
-  same sub, and a name Ekorn's Tooling adds mustn't clash with one of
-  DBIx::Squirrel's; either would fail its installed releases, so
-  either goes to Iain before it's made. Its v3.1.0, on CPAN, still
-  checks every name in `t/`, and fails with any name added to Ekorn's
-  Tooling: so a release that adds one waits until v3.1.1 is on CPAN.
+  `sink_many`. So a name Ekorn adds reaches its users only in a
+  release of DBIx::Squirrel that lists it, and one Ekorn drops fails
+  as its modules load, which a v0.5.0 would make anyway. Before
+  v4.2.0 its Tooling took Sources, Sinks and JSON whole, by `:all`.
+- **A name added to Ekorn's Tooling costs DBIx-Squirrel nothing,**
+  from its v4.2.0, which dropped `xt/ekorn-tooling.t`, the test that
+  turned its CI red until it listed each new name (its 2026-0059):
+  send it a message with each name added anyway, so it can choose
+  whether to list it. Its `t/`, which installs run, still checks that
+  each name both Toolings export is one sub, and that importing both
+  `:all`s into one package warns of nothing. So a name both export
+  must stay the same sub, and a name Ekorn's Tooling adds mustn't
+  clash with one of DBIx::Squirrel's; either would fail its installed
+  releases, so either goes to Iain before it's made.
+- **DBIx::Squirrel ties a variable to `dump_to`'s setting,** from its
+  v4.2.0 (its 2026-0062): `$DBIx::Squirrel::Stages::Taps::DumpSecrets`
+  is tied to `$Ekorn::Pipeline::Stages::Taps::DumpSecrets`, so every
+  read and write, `local`'s included, goes to ours. So that variable
+  is a public name: renaming or dropping it, or having `dump_to` stop
+  reading it as each value is dumped, is a v0.5.0, with a task for
+  DBIx-Squirrel.
 - **DBIx-Squirrel's reference links to sections of ours,** from its
   v4.1.1, on 2026-11-26 (its 2026-0051): thirteen of the names its
   Tooling imports from Ekorn link to `docs/REFERENCE.md` on GitHub's
