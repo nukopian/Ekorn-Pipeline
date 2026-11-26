@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [A way in for DBIx::Squirrel's readers](2026-0057-way-in-from-dbix-squirrel.md),
-  roadmap 2026-0057: open.
+  roadmap 2026-0057: in progress.
 - [An iterator's next](2026-0056-iterator-next.md), roadmap 2026-0056:
   shipped, unreleased.
 - [An iterator's all_arrayref](2026-0055-all-arrayref.md), roadmap
