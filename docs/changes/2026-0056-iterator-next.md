@@ -1,6 +1,6 @@
 # 2026-0056. An iterator's next
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.4.3
 
 **Decisions:** D1 settled: add `next`. D2 settled: it's called as the
 iterator is, in every context.

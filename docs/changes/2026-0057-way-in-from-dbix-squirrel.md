@@ -1,6 +1,6 @@
 # 2026-0057. A way in for DBIx::Squirrel's readers
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.4.3
 
 **Decisions:** D1 settled: a section of the how-to, with a line in the
 README. D2 settled: names they know, what's new, where to start.

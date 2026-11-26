@@ -2,6 +2,8 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
+v0.4.3 2026-11-26
+
     An iterator's next, and a way into the how-to for DBIx::Squirrel's
     users.
 
