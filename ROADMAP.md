@@ -45,23 +45,7 @@ Nothing yet.
 
 ## Next
 
-### 2026-0058. A check on the sections DBIx-Squirrel links to
-
-**Size:** S (2)
-
-DBIx-Squirrel's documents link to sixteen sections of our reference
-and how-to on GitHub. Its CI checks seven of them, and only after we
-release; the rest break without a word if we rename a heading. An
-author test here would catch either before a release: that each
-heading it links to is still there, and that our index still links the
-names its index uses where it expects.
-
-Done when an author test fails if one of those headings goes or one of
-those index links moves, and
-[neighbours.md](docs/claude/neighbours.md) says the test is there.
-
-Its questions are open: see its
-[change record](docs/changes/2026-0058-sections-dbix-squirrel-links-to.md).
+Nothing yet.
 
 ## Later
 

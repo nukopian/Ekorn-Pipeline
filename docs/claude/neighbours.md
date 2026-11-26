@@ -115,7 +115,14 @@ both:
   longer goes where our index sends the name. So renaming one of those
   headings, or pointing one of those names in our index at another
   section, turns its CI red once released: send it a message with the
-  change, before the release.
+  change, before the release. Its guide's and reference's text link to
+  nine more of our sections, in the reference and the how-to, sixteen
+  in all, which its CI doesn't check. Our `xt/dbix-squirrel-links.t`
+  checks all of them before we release (roadmap 2026-0058): each
+  heading is still there, and our index still links its thirteen names
+  where its index expects. It lists them as of its v4.2.0, so a
+  message from DBIx-Squirrel that adds or moves a link updates the
+  test's lists too.
 
 ## Ekorn-Pipeline and Text-Redact-Secrets
 
