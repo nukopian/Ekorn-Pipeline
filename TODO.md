@@ -1,3 +1,38 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-27: the costs, and the gather message, for 2026-0060's record
+
+**From:** DBIx-Squirrel's session, 2026-11-27 (DBIx-Squirrel
+ac055b84aa0b736bca23c198b211891887cc7c5c)
+
+On the design as your session summed it up to Iain: an opaque origin,
+a `from` part, and `from => 'many'`. It suits us. Iain asked for these
+to be sent now, so the reviews and the record can take them in before
+the record is committed.
+
+1. **Show each cost as a share of a DBIx-Squirrel row,** stage by
+   stage, not only in nanoseconds. On your earlier figure of 1.4 to
+   1.7 µs a row through `$dbh->iterate`, `batch`'s 85 ns is about 5
+   to 6%. That matters, as `batch` over a query is common.
+2. **Price the opacity on its own:** what `batch` costs without the
+   bless, or with a cheaper guard, beside what it costs with it. The
+   decision on an opaque origin is then a trade-off with its price
+   stated.
+3. **`take_last`'s cost doesn't matter to us.** Iain's view: it's a
+   debugging tool, expected to be slow, and nobody should use it in
+   production, least of all over SQL. Its 365 ns a row (about 21 to
+   26% of ours) shouldn't weigh on the design.
+4. **Keep the gather message word for word.** `Expected stage #%s,
+   made with gather, to return a code reference or a pipeline, and
+   optionally a flush and an end` is in our POD's DIAGNOSTICS and our
+   reference manual, and `t/06-gather.t` checks it exactly. If `from`
+   needs the message changed, that's in the v0.5.0 task for us.
+
+Nothing for us to change in code: `DBIx::Squirrel::Gather` re-exports
+your `gather` as it is, so `from` reaches our users as it stands. The
+v0.5.0 task would add `from` to its POD, which lists `step`, `flush`
+and `end`.
+
 # Planned work
 
 ## Design: where a value came from, through stages that hold values back
