@@ -155,6 +155,35 @@ It took three rounds. Carrying the part on every value cost 70 to
 run, the figures above. What's left is three checks of that flag a
 value.
 
+### Measured: on DBIx-Squirrel's queries
+
+DBIx-Squirrel's session asked, on 2026-11-27, for the cost on its own
+queries, and which of Ekorn's loops they take. `dbix-bench.pl` runs a
+200,000-row SQLite query through `$dbh->iterate`, with DBIx-Squirrel's
+`lib` (ac055b84aa0b736bca23c198b211891887cc7c5c), and counts the loop
+each run takes. Perl 5.36, three runs a core, each the median of
+seven:
+
+| The query's stages | Loop | The core as it was (ns a row) | With the patch (ns a row) |
+|---|---|---|---|
+| a map | `_plain_iterator` | 1,427 / 1,423 / 1,424 | 1,421 / 1,418 / 1,418 |
+| a map, `take` | `_plain_iterator` | 1,698 / 1,682 / 1,679 | 1,686 / 1,682 / 1,676 |
+| a map, `batch(100)` | `_full_iterator` | 1,546 / 1,539 / 1,535 | 1,549 / 1,544 / 1,545 |
+| a map, `count_items` | `_full_iterator` | 1,429 / 1,431 / 1,429 | 1,450 / 1,446 / 1,440 |
+
+The loop is chosen by the stages' flushes and ends, and a sink, not
+by the statement source's end, so a query whose stages are maps takes
+the plain loop, which the patch doesn't touch. One with a stage that
+has a flush or an end, or a sink, pays 3 to 21 ns a row, under about
+1.5%. Its statement source's part, `sub { $context->{row} }`, answers
+for the row fetched last, so limit 1 below applies to it too; the
+patch neither calls it once a row nor keeps each row.
+
+```sh
+# from this directory, with the patched core in /tmp/ekorn-stage-original
+perlbrew exec --with perl-5.36.3@dbix-squirrel-2 perl -I/tmp/ekorn-stage-original/lib -I$HOME/Git/github.com/nukopian/DBIx-Squirrel/lib stage-original/dbix-bench.pl
+```
+
 ### Measured: the flush tail
 
 The part has a source's contract: one answer for everything one call
