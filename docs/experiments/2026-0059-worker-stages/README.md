@@ -283,3 +283,75 @@ These are for the task in `TODO.md`, and then Iain; none is decided.
 - Is 1 to 2% on runs taking the full loop acceptable for this?
 - Would a way for a stage to act between inputs (finding 5) drain
   `once_per`'s backlog, and serve stages by time too?
+
+## where-values-came-from/: the design for roadmap 2026-0060
+
+The design the task in `TODO.md` asked for, prototyped. Its record,
+`docs/changes/2026-0060-where-a-value-came-from.md` on `develop`, has
+the background, the decisions and the measurements; this keeps the
+code and the scripts that measured it. The record's "What the
+prototypes found" above is still the brief it answers.
+
+A stage that holds values back says so, `holds => 1`, by name among its
+parts. In its step, as it keeps a value, it calls `kept_origin` (from
+`Ekorn::Pipeline::Context`), an opaque object holding what
+`result_original` answers for the value then; when it gives what it
+made from that value, from its step, its flush or carried by its stop,
+it gives it marked, `$origin->gives(@values)`. A value it gives
+unmarked was made from many, so has none. The run loop unmarks what
+such a stage gives, with no wrapper; `kept_origin` croaks in a run
+with no such stage, a run nested in one's step included. `take_last`
+keeps an origin and gives its value marked; `batch` gives its batches
+unmarked.
+
+`holds.patch` applies to `develop` at
+413b7472adc7c9e032564ae5eadd3b8ed3081295 and changes
+`lib/Ekorn/Pipeline.pm`, Context, Tooling, `take_last` and `batch`, and
+`t/32-context.t` and `t/33-source-original.t` (their batch subtests,
+and Context's exports), and adds `t/35-where-values-came-from.t`.
+`workers/` is 2026-0059's worker stages, keeping an origin for each
+value and giving each result marked. The scripts:
+
+- `bench.pl`: Ekorn's runs with a flush, against the core as it was;
+- `dbix-bench.pl`: DBIx-Squirrel's queries, with the loop each takes;
+- `micro.pl`: what the pieces of a capture cost on their own;
+- `tail.pl` and `sourceless.pl`: originals after the worker stages,
+  over 1,000 values, and pushed and fed;
+- `ways.pl`: `all`, `next`, pushed and fed agreeing, over eleven
+  pipelines of holding stages.
+
+```sh
+git -C ../../.. worktree add --detach /tmp/ekorn-holds HEAD
+git -C /tmp/ekorn-holds apply "$PWD/where-values-came-from/holds.patch"
+(cd /tmp/ekorn-holds && perlbrew exec --with perl-5.36.3@ekorn-pipeline prove -l -j8 t)
+perlbrew exec --with perl-5.36.3@ekorn-pipeline prove -I/tmp/ekorn-holds/lib -Iwhere-values-came-from/workers/lib where-values-came-from/workers/t
+perlbrew exec --with perl-5.36.3@dbix-squirrel-2 perl -I/tmp/ekorn-holds/lib -I$HOME/Git/github.com/nukopian/DBIx-Squirrel/lib where-values-came-from/dbix-bench.pl
+git -C ../../.. worktree remove --force /tmp/ekorn-holds
+```
+
+How it got here, so the dead ends needn't be walked again:
+
+1. **A stage's `original` part** (`stage-original/`, above): a stage
+   could make up an original, and one answer a call left a flush tail
+   with none.
+2. **A `from` part:** the origin handed to every step as a second
+   argument, and a separate `from` call after it returned. The first
+   cold reviews found it caused three of its four bugs (an error
+   escaping a stop, stale state from an earlier call, origins out of
+   step with values) and needed `from => 'many'`, a second way of
+   saying "made from many", only to skip a capture `batch` didn't
+   need, which still cost it 85 ns a row through a wrapper.
+3. **One return, through a wrapper:** Iain chose it on 2026-11-27. The
+   second cold reviews found its guard, set and cleared round the
+   step, left set by a stop, so the stages after it could call
+   `kept_origin`; and the wrapper's call cost `batch` about 9% of a
+   DBIx-Squirrel row.
+4. **One return, in the loop, with the guard set before every stage
+   call:** a stop can't leave it set, but the statements on every stage
+   call cost `batch` more than the wrapper had, about 170 ns a row, and
+   every run taking the full loop about 40: the cost was never the
+   wrapper's call, but the statements a holding run runs for each row.
+5. **One return, in the loop, the guard per run:** this. `kept_origin`
+   croaks in a run with no stage that holds values back, which a run
+   nested in one's step is, but not in another stage of a run that has
+   one; `batch` costs about 69 ns a row in memory, half the wrapper's.

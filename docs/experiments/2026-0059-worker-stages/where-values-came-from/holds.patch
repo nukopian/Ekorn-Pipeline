@@ -1,0 +1,692 @@
+--- a/lib/Ekorn/Pipeline.pm
++++ b/lib/Ekorn/Pipeline.pm
+@@ -285,7 +285,7 @@
+     unless (@$steps) {
+         my $run = _made_run($self, @$self{qw(stages names within)});
+         return _full_feed($self, $run)
+-            if grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
++            if grep { defined } @{ $run->{flushes} }, @{ $run->{ends} }, @{ $run->{holds} };
+         ($steps, $labels) = ($run->{stages}, [@$run{qw(names within)}]);
+     }
+     # How the feed's run ended, undef while it's open, and how many
+@@ -377,14 +377,74 @@
+ # The original is the source's, if it gave an original part, directly
+ # or through an iterator read as a source, called only now (2026-0052);
+ # otherwise the run's own. A flush's values have none, either way.
++#
++# A value a stage that holds values back gave has its original known,
++# as the stage said where it came from: that's its answer, in a flush
++# too, and undef for a value made from many.
+ sub Ekorn::Pipeline::Context::result_original : prototype() () {
+-    my($count, $original, $part) = $CURRENT_RESULT ? @$CURRENT_RESULT : ();
++    my($count, $original, $part, $known) = $CURRENT_RESULT ? @$CURRENT_RESULT : ();
+     return
+-          !defined $count || $running{ending} ? undef
+-        : $part                               ? $part->()
+-        :                                       $original;
++          !defined $count  ? undef
++        : $known           ? $original
++        : $running{ending} ? undef
++        : $part            ? $part->()
++        :                    $original;
++}
++
++# The originals of the values after the first a stage that holds values
++# back has just given, or of all its stop carried: set by the stage's
++# wrapper, made by _holding, or by the run loop for a stop, and taken
++# at once by the run's queue. Local to each call of a run's next.
++our $GIVEN;    ## no critic (Variables::ProhibitPackageVars)
++
++# For a stage that holds values back, as a value arrives: an origin, an
++# opaque object holding what result_original answers for the value now,
++# as later its source may answer for another. The stage keeps it with
++# the value, and gives what it made from it marked by the origin's
++# gives. Defined here, as it reads $CURRENT_RESULT, which is this file's
++# to set; Ekorn::Pipeline::Context exports and documents it.
++sub Ekorn::Pipeline::Context::kept_origin : prototype() () {
++    croakf 'Expected kept_origin in the step of a stage that holds values back'
++        unless $CURRENT_RESULT && $CURRENT_RESULT->[4];
++    # As result_original answers, inline, as it's called a value kept.
++    my(undef, $original, $part, $known) = @$CURRENT_RESULT;
++    $original
++        = $known           ? $original
++        : $running{ending} ? undef
++        : $part            ? $part->()
++        :                    $original;
++    return bless \$original, 'Ekorn::Pipeline::Origin';
++}
++
++# Return the original of each of @$values a stage that holds values back
++# gave, unmarking those an origin's gives marked, in place: the
++# origin's, or undef for a value made from many.
++sub _unwrap ($values) {
++    my @originals;
++    for my $value (@$values) {
++        if (ref $value eq 'Ekorn::Pipeline::Origin::Given') {
++            push @originals, $value->[1];
++            $value = $value->[0];
++        }
++        else {
++            push @originals, undef;
++        }
++    }
++    return @originals;
+ }
+ 
++
++package Ekorn::Pipeline::Origin {
++
++    # Return each of @values marked as made from the value this origin
++    # was kept for.
++    sub gives ($self, @values) {
++        return map { bless [$_, $$self], 'Ekorn::Pipeline::Origin::Given' } @values;
++    }
++}
++
++package Ekorn::Pipeline;
++
+ # Return the step, the end, the context and the original part of a run
+ # of $source: from its EKORN_SOURCE, if it offers one; a code reference
+ # is its own step, with no end, context or original.
+@@ -551,9 +611,14 @@
+     for my $i (0 .. $#$stages) {
+         my($stage, $name) = ($stages->[$i], $names->[$i]);
+         my $role = _stage_role($stage) // '';
+-        my($step, $flush, $end);
++        my($step, $flush, $end, $holds);
+         if ($stage isa 'Ekorn::Pipeline::Gather') {
+-            my @made = _parts([qw(step flush end)], $stage->EKORN_STAGE);
++            # A holds part, by name only, for a stage that holds values
++            # back: a list keeps its three parts, and its messages.
++            my @returned = $stage->EKORN_STAGE;
++            my @made     = _parts([qw(step flush end)], @returned);
++            $holds = $returned[0]{holds}
++                if @returned == 1 && is_plain_hashref($returned[0]);
+             my($inner, $inner_names, $inner_within)
+                 = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
+             croakf
+@@ -575,6 +640,8 @@
+                     ],
+                     $run,
+                 );
++                croakf 'Expected stage #%s, made with gather, to hold values back in its step, not in a pipeline', $name
++                    if $holds;
+                 next unless $flush || $end;
+                 $step = sub { $_[0] };    # for each value: no signature
+             }
+@@ -595,7 +662,10 @@
+                 if $role eq 'EKORN_SINK_ONE';
+         }
+         elsif ($role eq 'EKORN_STAGE') {
+-            ($step, $flush, $end) = _parts([qw(step flush end)], $stage->EKORN_STAGE);
++            my @returned = $stage->EKORN_STAGE;
++            ($step, $flush, $end) = _parts([qw(step flush end)], @returned);
++            $holds = $returned[0]{holds}
++                if @returned == 1 && is_plain_hashref($returned[0]);
+             croakf
+                 'Expected stage #%s to return a code reference, and optionally a flush and an end',
+                 $name
+@@ -609,6 +679,7 @@
+         push @{ $run->{within} },  $within->[$i];
+         push @{ $run->{flushes} }, $flush;
+         push @{ $run->{ends} },    $end;
++        push @{ $run->{holds} },   $holds ? 1 : undef;
+         push @{ $run->{sinks} },
+             $role eq 'EKORN_SINK_ONE' || $role eq 'EKORN_SINK_MANY';
+     }
+@@ -631,7 +702,7 @@
+     # A run with no flush, no end of a stage's, and no sink, as most are,
+     # takes the shorter way.
+     return _plain_iterator($pipeline, $run, $pull, $source_end, $context)
+-        unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
++        unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} }, @{ $run->{holds} };
+     return _full_iterator($pipeline, $run, $pull, $source_end, $context);
+ }
+ 
+@@ -646,7 +717,7 @@
+     return _push_steps(
+         $pipeline, $run->{stages}, [@$run{qw(names within)}], undef,
+         $values,
+-    ) unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
++    ) unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} }, @{ $run->{holds} };
+     return _full_iterator($pipeline, $run, sub { splice @$values }, undef, undef)
+         ->all;
+ }
+@@ -657,7 +728,7 @@
+ sub _made_run ($pipeline, $stages, $names, $within, $source_end = undef) {
+     my %run = (
+         stages => [], names => [], within => [], flushes => [], ends => [],
+-        sinks  => [],
++        sinks  => [], holds => [],
+     );
+     try {
+         _make_run($stages, $names, $within, \%run);
+@@ -729,16 +800,45 @@
+     # Ekorn::Pipeline::Context, the current result while $next runs; a
+     # value waiting on @todo carries its original, and a flush's values
+     # have none.
+-    my @result = (0, undef, $run->{original});
++    #
++    # In a run with a stage that holds values back, a value it gave has
++    # its original known, the fourth, as it said where the value came
++    # from, and that goes with the value, as its original does.
++    my $holding = grep { defined } @{ $run->{holds} };
++    # The fifth: whether the run has such a stage, for kept_origin, which
++    # works only in a run that has, so not in a run nested in one's step.
++    my @result = (0, undef, $run->{original}, 0, $holding);
++    my @holds   = @{ $run->{holds} };
++    # In such a run, the original of the value handed out last, and
++    # whether it's known, for an iterator of the run read as a source.
++    my($last_original, $last_known);
+     # Values a source's step gave, still to go through the stages from the
+     # first, held as they came: @todo's values go first, being further on.
+     my @from_source;
+-    # Put @values on @todo, to go on from stage $n, the first on top.
+-    my $wait = sub ($n, $from_flush, @values) {
++    # Put @values on @todo, to go on from stage $n, the first on top; in
++    # a run with a stage that holds values back, with whether their
++    # original is known.
++    my $wait = $holding
++        ? sub ($n, $from_flush, @values) {
++        # The values after the first a stage that holds values back gave,
++        # or all its stop carried, with the originals it said: its
++        # wrapper, made by _holding, leaves them in $GIVEN.
++        if (my $originals = $GIVEN) {
++            $GIVEN = undef;
++            push @todo, map { [$n, $values[$_], $from_flush, $originals->[$_], 1] }
++                reverse 0 .. $#values;
++        }
++        else {
++            push @todo, map { [$n, $_, $from_flush, @result[1, 3]] } reverse @values;
++        }
++        $waiting_at[$n] += @values;
++        return;
++        }
++        : sub ($n, $from_flush, @values) {
+         push @todo, map { [$n, $_, $from_flush, $result[1]] } reverse @values;
+         $waiting_at[$n] += @values;
+         return;
+-    };
++        };
+     # Whether any value waits at a stage up to $upto. The run has a stage,
+     # so values from the source wait at the first.
+     my $waiting_upto = sub ($upto) {
+@@ -820,8 +920,18 @@
+     # done to them. Only while all collects, as $next gives one at a
+     # time.
+     my @straight;
++    # Unmark what stage $n, which holds values back, has just given, in
++    # @$values: the first value's original goes into @result, as it goes on
++    # at once; the rest's are left in $GIVEN, for the queue.
++    my $unmark = sub ($values) {
++        my @known = _unwrap($values);
++        @result[1, 3] = (shift @known, 1);
++        $GIVEN = @known ? \@known : undef;
++        return;
++    };
+     my $next = sub () {
+         return if $outside;
++        local $GIVEN = undef if $holding;
+         local $CURRENT_RESULT = \@result;
+         while (1) {
+             if ($into) {
+@@ -839,12 +949,14 @@
+             }
+             my($n, $value, $from_flush, $flush);
+             if (@todo) {
+-                ($n, $value, $from_flush, $result[1]) = @{ pop @todo };
++                if ($holding) { ($n, $value, $from_flush, @result[1, 3]) = @{ pop @todo } }
++                else           { ($n, $value, $from_flush, $result[1])     = @{ pop @todo } }
+                 $waiting_at[$n]--;
+             }
+             elsif (@from_source) {
+                 $n = 0;
+                 $result[1] = $value = shift @from_source;
++                $result[3] = 0 if $holding;
+             }
+             elsif (!$done) {
+                 # Straight onto @from_source, which is empty here.
+@@ -874,6 +986,7 @@
+                 }
+                 $n = 0;
+                 $result[1] = $value = shift @from_source;
++                $result[3] = 0 if $holding;
+             }
+             else {
+                 $n = $flush_at->();
+@@ -885,11 +998,13 @@
+                 $flushed{$n} = 1;
+                 ($next_flush, $flush, $from_flush) = ($n + 1, $flushes[$n], 1);
+                 $result[1] = undef;
++                $result[3] = 0 if $holding;
+             }
+             if ($n == @stages) {
+                 # Only while values are handed out one at a time: all takes
+                 # them from the top of the loop. Nothing can end while the
+                 # source is still being read.
++                ($last_original, $last_known) = @result[1, 3] if $holding;
+                 $result[0]++;
+                 $end_if_ended->() if $done;
+                 return $value;
+@@ -907,6 +1022,7 @@
+                 if ($flush) {
+                     local $_ = undef;
+                     my @values = $flush->();
++                    $unmark->(\@values) if $holding && $holds[$n] && @values;
+                     $n++;
+                     $kept  = @values;
+                     $value = shift @values;
+@@ -921,6 +1037,7 @@
+                         = $sinks[$n]
+                         ? do { $stages[$n]->($value); $result[0]++; () }
+                         : $stages[$n]->($value);
++                    $unmark->(\@values) if $holding && $holds[$n] && @values;
+                     last if $outside;
+                     $n++;
+                     unless (@values) {
+@@ -940,6 +1057,9 @@
+                     # carries nothing. A sink that stops the run still
+                     # gives its result.
+                     my(undef, @values) = is_arrayref($e) ? @$e : ();
++                    # What a stage that holds values back carried: where each came
++                    # from, as it marked it.
++                    $GIVEN = [_unwrap(\@values)] if $holding && $holds[$n] && @values;
+                     $input_ran_out_at_stop->($n) if $done;
+                     $done = 1;
+                     my $from = $sinks[$n] && !$flushed{$n} ? $n : $n + 1;
+@@ -958,6 +1078,10 @@
+             }
+             return if $outside;
+             if ($kept) {
++                if ($holding) {
++                    ($last_original, $last_known) = @result[1, 3];
++                    $GIVEN = undef;
++                }
+                 $result[0]++;
+                 $end_if_ended->() if $done;
+                 return $value     unless $into;
+@@ -1008,7 +1132,12 @@
+     };
+     return Ekorn::Pipeline::Iterator->new(
+         $next, $end_run, $context, $ended_once, $ended_once, $all,
+-        $run->{original},
++        # An iterator read as a source passes on its source's part, as
++        # before; in a run with a stage that holds values back, answering
++        # for the value it handed out last, whose original may be known.
++        $holding && $run->{original}
++        ? sub () { $last_known ? $last_original : $run->{original}->() }
++        : $run->{original},
+     );
+ }
+ 
+--- a/lib/Ekorn/Pipeline/Context.pm
++++ b/lib/Ekorn/Pipeline/Context.pm
+@@ -10,7 +10,7 @@
+ 
+ our $VERSION = 'v0.4.5';
+ 
+-our @EXPORT_OK   = qw(result_number result_original);
++our @EXPORT_OK   = qw(result_number result_original kept_origin);
+ our %EXPORT_TAGS = (all => \@EXPORT_OK);
+ 
+ 1;
+--- a/lib/Ekorn/Pipeline/Tooling.pm
++++ b/lib/Ekorn/Pipeline/Tooling.pm
+@@ -29,7 +29,7 @@
+     ],
+     batch   => [qw(batch         collect)],
+     taps    => [qw(peek          count_into dump_to tee)],
+-    context => [qw(result_number result_original)],
++    context => [qw(result_number result_original kept_origin)],
+     sources => [qw(from_array    from_fh from_file counter)],
+     sinks   => [
+         qw(count_items keep keep_all keep_first keep_last keep_single),
+--- a/lib/Ekorn/Pipeline/Stages/Flow.pm
++++ b/lib/Ekorn/Pipeline/Stages/Flow.pm
+@@ -8,6 +8,7 @@
+ 
+ use Ekorn::Pipeline::Errors qw(croakf);
+ use Ekorn::Pipeline::Gather qw(gather);
++use Ekorn::Pipeline::Context qw(kept_origin);
+ use Ekorn::Pipeline::Stage  qw();
+ use Ekorn::Pipeline::Stop   qw();
+ 
+@@ -67,11 +68,16 @@
+ # run out; nothing if there were none.
+ sub take_last : prototype() () {
+     return gather {
+-        my @kept;
++        my @kept;    # the last value, and its origin
+         return {
+             # Without a signature, as it's called for each value.
+-            step  => sub { @kept = ($_[0]); return },
+-            flush => sub () { splice @kept },
++            step  => sub { @kept = ($_[0], kept_origin); return },
++            flush => sub () {
++                my($value, $origin) = splice @kept or return;
++                return $origin->gives($value);
++            },
++            # It holds values back: the one it gives came from the last.
++            holds => 1,
+         };
+     };
+ }
+--- a/lib/Ekorn/Pipeline/Stages/Batch.pm
++++ b/lib/Ekorn/Pipeline/Stages/Batch.pm
+@@ -34,6 +34,8 @@
+                 return @batch < $size ? () : [splice @batch];
+             },
+             flush => sub () { @batch ? [splice @batch] : () },
++            # It holds values back: a batch, made from many, has no original.
++            holds => 1,
+         };
+     };
+ }
+--- a/t/32-context.t
++++ b/t/32-context.t
+@@ -76,9 +76,11 @@
+         use Ekorn::Pipeline::Context;
+     }
+     ok !Context::Nothing->can($_), "$_ not by default"
+-        for qw(result_number result_original);
++        for qw(result_number result_original kept_origin);
++    # Proposed (roadmap 2026-0060): kept_origin, for stages that hold
++    # values back.
+     is [sort @Ekorn::Pipeline::Context::EXPORT_OK],
+-        [qw(result_number result_original)], 'both on request';
++        [qw(kept_origin result_number result_original)], 'all on request';
+ };
+ 
+ subtest 'a bare call is a term, as each has an empty prototype' => sub {
+@@ -167,8 +169,10 @@
+     my @log;
+     my $p = $class->new(batch(2), sub { "@{$_[0]}" }, log_into(\@log));
+     is [$p->(1 .. 3)], ['1 2', '3'], 'a batch';
+-    is \@log, ['1 2:1:2', '3:2:-'],
+-        "a batch filled by a value has its original; one from the flush has none";
++    # Proposed (roadmap 2026-0060): a batch is made from many values, so
++    # has no original, wherever it's given; it had the last's.
++    is \@log, ['1 2:1:-', '3:2:-'],
++        "a batch, made from many, has no original";
+ };
+ 
+ subtest 'a value reaching a sink is a result' => sub {
+--- a/t/33-source-original.t
++++ b/t/33-source-original.t
+@@ -113,8 +113,10 @@
+     $class->new(batch(2), sub { join ',', @{ $_[0] } }, log_into(\@log))
+         ->iterator(rows_of(\@rows))
+         ->all;
+-    is \@log, ['n1,n2:2', 'n3:-'],
+-        "a batch filled by a value has its row; the flush's, none";
++    # Proposed (roadmap 2026-0060): a batch is made from many rows, so has
++    # no original, wherever it's given; it had the row that filled it.
++    is \@log, ['n1,n2:-', 'n3:-'],
++        "a batch, made from many rows, has none";
+ };
+ 
+ subtest 'feeds and tees, unchanged' => sub {
+--- /dev/null
++++ b/t/35-where-values-came-from.t
+@@ -0,0 +1,261 @@
++use v5.36;
++use Test2::V0;
++use Test2::Plugin::NoWarnings;
++
++# A prototype (roadmap 2026-0060): a stage that holds values back says
++# so, with a holds part; it keeps an origin, kept_origin, for each value
++# it keeps, and gives what it made from that value marked by the
++# origin's gives; what it gives unmarked was made from many. So the
++# stages after it see each value's own original, in a flush too.
++
++use Ekorn::Pipeline;
++use Ekorn::Pipeline::Tooling qw(:core :flow :batch :sources :sinks :context source tee);
++use Ekorn::Pipeline::Context qw(kept_origin);
++
++my $class = 'Ekorn::Pipeline';
++
++# Rows from a source with an original part, counting how often it's
++# asked: each value is a row's name, and its original the row.
++sub rows ($n, $asked = undef) {
++    return source {
++        my $i = 0;
++        return {
++            step     => sub { $i < $n ? 'v' . ++$i : () },
++            original => sub { $$asked++ if $asked; "row $i" },
++        };
++    };
++}
++
++
++# What a stage sees: its value, and the original it's given.
++my $seen = sub { "$_ <- " . (result_original() // '-') };
++
++# A stage holding each value back by one, giving the one before; its
++# flush gives the last.
++sub one_behind () {
++    return gather {
++        my @held;    # [value, origin]
++        my $give = sub ($held) { $held->[1]->gives($held->[0]) };
++        return {
++            step => sub {
++                push @held, [$_[0], kept_origin];
++                return @held > 1 ? $give->(shift @held) : ();
++            },
++            flush => sub () { map { $give->($_) } splice @held },
++            holds => 1,
++        };
++    };
++}
++
++
++# A stage holding values until it has $n, then giving them all at once,
++# in reverse: several values from one call, each from its own.
++sub reversed_in ($n) {
++    return gather {
++        my @held;
++        my $give = sub () { map { $_->[1]->gives($_->[0]) } reverse splice @held };
++        return {
++            step  => sub { push @held, [$_[0], kept_origin]; @held >= $n ? $give->() : () },
++            flush => $give,
++            holds => 1,
++        };
++    };
++}
++
++subtest 'the stages after it get each value\'s own original, the flush\'s too' => sub {
++    is [$class->new(one_behind(), $seen)->iterator(rows(3))->all],
++        ['v1 <- row 1', 'v2 <- row 2', 'v3 <- row 3'], 'one behind';
++    is [$class->new(reversed_in(2), $seen)->iterator(rows(5))->all],
++        ['v2 <- row 2', 'v1 <- row 1', 'v4 <- row 4', 'v3 <- row 3', 'v5 <- row 5'],
++        'several at once, each its own';
++};
++
++subtest 'the stage itself, and those before it, see as now' => sub {
++    my(@before, @inside);
++    my $before = sub { push @before, result_original(); $_ };
++    my $inside = gather {
++        { step => sub { push @inside, result_original(); kept_origin->gives($_[0]) }, holds => 1 }
++    };
++    $class->new($before, $inside)->iterator(rows(2))->all;
++    is \@before, ['row 1', 'row 2'], 'before it';
++    is \@inside, ['row 1', 'row 2'], 'in it';
++};
++
++subtest 'through stages after it: maps, splits, and a stage that flushes' => sub {
++    my $split = sub { ("$_.a", "$_.b") };
++    is [$class->new(one_behind(), $split, $seen)->iterator(rows(2))->all],
++        ['v1.a <- row 1', 'v1.b <- row 1', 'v2.a <- row 2', 'v2.b <- row 2'], 'split';
++    my $total = gather { my $n = 0; (sub { $n++; $_[0] }, sub () {"total $n"}) };
++    is [$class->new(one_behind(), $total, $seen)->iterator(rows(2))->all],
++        ['v1 <- row 1', 'v2 <- row 2', 'total 2 <- -'],
++        'a flush of a stage that doesn\'t hold values back: none, as now';
++};
++
++subtest 'the source\'s part is asked only when a value is kept, as it\'s kept' => sub {
++    my $asked = 0;
++    $class->new(sub {$_}, sub {$_})->iterator(rows(5, \$asked))->all;
++    is $asked, 0, 'never, through maps';
++    $asked = 0;
++    $class->new(sub {$_}, one_behind(), sub {$_})->iterator(rows(5, \$asked))->all;
++    is $asked, 5, 'once a value it keeps';
++    $asked = 0;
++    $class->new(one_behind(), $seen, $seen)->iterator(rows(5, \$asked))->all;
++    is $asked, 5, 'and not again when the stages after it ask';
++    $asked = 0;
++    $class->new(batch(2), $seen)->iterator(rows(5, \$asked))->all;
++    is $asked, 0, 'never, by a stage that keeps no origin: batch';
++};
++
++subtest 'with no source, the value passed in' => sub {
++    is [$class->new(sub { $_ * 10 }, one_behind(), $seen)->(1 .. 3)],
++        ['10 <- 1', '20 <- 2', '30 <- 3'], 'pushed';
++    my $feed = $class->new(one_behind(), $seen)->feed;
++    my @got  = map { $feed->push($_) } qw(a b c);
++    push @got, $feed->close;
++    is \@got, ['a <- a', 'b <- b', 'c <- c'], 'fed';
++};
++
++subtest 'what its stop carries, marked, keeps where it came from' => sub {
++    my $stops = gather {
++        {
++            step => sub {
++                my $origin = kept_origin;
++                $_[0] eq 'v2' ? Stop($origin->gives("$_[0]!")) : $origin->gives($_[0]);
++            },
++            holds => 1,
++        }
++    };
++    is [$class->new($stops, $seen)->iterator(rows(4))->all], ['v1 <- row 1', 'v2! <- row 2'],
++        'the stop\'s value, from the value that stopped';
++    my $held_stop = gather {
++        my @held;
++        {
++            step => sub {
++                push @held, [$_[0], kept_origin];
++                return if @held < 3;
++                Stop(map { $_->[1]->gives($_->[0]) } splice @held);
++            },
++            holds => 1,
++        }
++    };
++    is [$class->new($held_stop, $seen)->iterator(rows(5))->all],
++        ['v1 <- row 1', 'v2 <- row 2', 'v3 <- row 3'], 'a stop carrying values it held';
++};
++
++subtest 'a value given unmarked was made from many: none' => sub {
++    my $pairs = gather {
++        my @held;
++        { step => sub { push @held, $_[0]; @held == 2 ? [splice @held] : () }, holds => 1 }
++    };
++    is [$class->new($pairs, sub { join ',', @{ $_[0] } }, $seen)->iterator(rows(4))->all],
++        ['v1,v2 <- -', 'v3,v4 <- -'], 'undef';
++};
++
++subtest 'Ekorn\'s own: take_last, batch, collect' => sub {
++    is [$class->new(take_last, $seen)->iterator(rows(3))->all], ['v3 <- row 3'],
++        'take_last: the last value\'s (it had none)';
++    is [$class->new(batch(2), sub { join ',', @{ $_[0] } }, $seen)->iterator(rows(3))->all],
++        ['v1,v2 <- -', 'v3 <- -'], 'batch: none (a batch filled by a value had its)';
++    is [$class->new(collect, sub { join ',', @{ $_[0] } }, $seen)->iterator(rows(3))->all],
++        ['v1,v2,v3 <- -'], 'collect: none, as now';
++    is [$class->new(take_last)->(undef)], [undef], 'take_last of undef';
++};
++
++subtest 'an iterator read as a source passes on the original of the value it handed out' => sub {
++    my $inner = $class->new(one_behind());
++    is [$class->new($seen)->iterator($inner->iterator(rows(3)))->all],
++        ['v1 <- row 1', 'v2 <- row 2', 'v3 <- row 3'], 'through one';
++    my $plain = $class->new(sub {$_});
++    is [$class->new($seen)->iterator($plain->iterator(rows(2)))->all], ['v1 <- row 1', 'v2 <- row 2'],
++        'with no stage that holds values back, as now';
++};
++
++subtest 'kept_origin only in a stage that holds values back' => sub {
++    like dies { $class->new(sub { kept_origin; $_ })->(1) },
++        qr( Expected\ kept_origin\ in\ the\ step\ of\ a\ stage\ that\ holds\ values\ back )x,
++        'a map';
++    like dies { kept_origin() }, qr( Expected\ kept_origin )x, 'outside a run';
++    my $nests = gather {
++        { step => sub { $class->new(sub { kept_origin; $_ })->($_[0]) }, holds => 1 }
++    };
++    like dies { $class->new($nests)->(1) }, qr( Expected\ kept_origin )x,
++        'a map in a run inside its step';
++};
++
++subtest 'by name only; a list keeps its three parts; not beside a pipeline' => sub {
++    my $listed = gather { (sub { $_[0] }, undef, undef) };
++    is [$class->new($listed, $seen)->(1)], ['1 <- 1'], 'a list: a map, as now';
++    my $object = bless {}, 'Local::Holds';
++    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
++    *{'Local::Holds::EKORN_STAGE'} = sub ($self) {
++        { step => sub { kept_origin->gives($_[0]) }, holds => 1 };
++    };
++    is [$class->new($object, $seen)->(7)], ['7 <- 7'], 'from a class\'s EKORN_STAGE';
++    like dies { $class->new(gather { {step => $class->new(sub {$_}), holds => 1} })->(1) },
++        qr( \AExpected\ stage\ \#1,\ made\ with\ gather,\ to\ hold\ values\ back\ in\ its\ step,\ not\ in\ a\ pipeline )x,
++        'beside a pipeline, it croaks';
++    like dies { $class->new(gather { (sub {$_}, undef, undef, undef) })->(1) },
++        qr( \AExpected\ stage\ \#1,\ made\ with\ gather,\ to\ return\ a\ code\ reference\ or\ a\ pipeline,\ and\ optionally\ a\ flush\ and\ an\ end )x,
++        'the gather message, word for word';
++};
++
++subtest 'a run ended from outside, mid-step, leaves nothing for another' => sub {
++    my $inner_it;
++    my $ends_inner = gather {
++        {
++            step => sub {
++                $inner_it->finish;
++                my $origin = kept_origin;
++                ($origin->gives("$_[0]-a"), $origin->gives("$_[0]-b"));
++            },
++            holds => 1,
++        }
++    };
++    my $s = sub ($x) {
++        $inner_it = $class->new($ends_inner)->iterator(from_array('in'));
++        $inner_it->next;
++        ("$x.a", "$x.b");
++    };
++    is [$class->new(take_last, $s, $seen)->iterator(rows(2))->all], ['v2.a <- row 2', 'v2.b <- row 2'],
++        'the outer run\'s values keep their own';
++};
++
++subtest 'nested in itself, inside its own step' => sub {
++    my $nesting = gather {
++        {
++            step => sub {
++                my $origin = kept_origin;
++                my @inner  = $class->new(one_behind(), $seen)->iterator(rows(2))->all;
++                $origin->gives([@inner, $seen->()]);
++            },
++            holds => 1,
++        }
++    };
++    is [$class->new($nesting, $seen)->iterator(rows(2))->all],
++        [
++            match(qr( \AARRAY )x), match(qr( \AARRAY )x),
++        ],
++        'runs';
++    my @got = $class->new($nesting)->iterator(rows(2))->all;
++    is \@got,
++        [['v1 <- row 1', 'v2 <- row 2', 'v1 <- row 1'], ['v1 <- row 1', 'v2 <- row 2', 'v2 <- row 2']],
++        'a run inside its step answers for itself, and leaves its own run\'s';
++};
++
++subtest 'the guard is the run\'s: a run with no stage that holds values back croaks, after a stop too' => sub {
++    my $stops = gather { { step => sub { Stop(kept_origin->gives("$_[0]!")) }, holds => 1 } };
++    my $tries = sub {
++        my $inner = $class->new(sub { kept_origin; $_ });
++        (eval { $inner->($_); 1 } ? 'kept' : 'croaked') . " $_";
++    };
++    is [$class->new($stops, $tries)->(1, 2)], ['croaked 1!'], 'a run nested in a stage after it';
++};
++
++subtest 'in a flush, an origin of nothing, as a flush has no value' => sub {
++    my $in_flush = gather {
++        { step => sub {return}, flush => sub () { kept_origin->gives('x') }, holds => 1 }
++    };
++    is [$class->new($in_flush, $seen)->(1)], ['x <- -'], 'marked, with none';
++};
++
++done_testing;
