@@ -158,3 +158,7 @@ it.
   after the other ways giving the stale value again. On `lib` it
   passes on Perl 5.36 and 5.44, and with seeds 1 to 5 at 5,000 cases,
   in about three seconds at its 3,000.
+- **Step 4:** the rule is in `docs/changes/README.md`'s How a record
+  is kept, in D3's words, and the check in step 1 of Making a release,
+  opening with D5's sentence, with a loop running `xt/agreement.t`
+  with seeds 1 to 3.

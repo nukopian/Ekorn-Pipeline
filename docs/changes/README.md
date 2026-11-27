@@ -25,6 +25,13 @@ Small fixes don't need one.
   says. A **Decisions:** line under the status sums them up, each
   settled or open in a few words, so the record's state shows at a
   glance; it changes in the commit that settles one.
+- **A promise is tested against what it doesn't mention.** A
+  decision that promises something of every value or every run
+  names, when it's settled, the test that tries to break it with
+  stages the decision doesn't mention: one that holds values back,
+  splits, stops, dies or runs nested. The item doesn't ship until
+  that test passes. (Roadmap 2026-0062, in DBIx-Squirrel's records
+  in the same words.)
 - **The plan is written when work starts, and isn't edited after.**
   What changed goes under What happened, so the record shows how the
   plan held up.

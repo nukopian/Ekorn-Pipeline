@@ -405,7 +405,8 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
 `minil dist` builds the tarball, and we do the git steps.
 
 1. **Check `develop`:** CI is green on its last commit, there's no
-   `TODO.md`, and the history has no secrets.
+   `TODO.md`, the history has no secrets, and each promise has a test
+   that tries it.
 
    ```sh
    cd ~/Git/github.com/nukopian/Ekorn-Pipeline
@@ -418,6 +419,21 @@ unsigned tag, and pushes both. `minil prepare` sets the version,
 
    If `TODO.md` is there, its tasks come first. Do them, or move them
    where CLAUDE.md says, and delete the file before going on.
+
+   Each promise made of every value or every run is tried against
+   stages it doesn't mention (roadmap 2026-0062's D5, in
+   DBIx-Squirrel's release steps in the same words). A decision
+   settled since the last release that promises so names its test,
+   as [the records' rule](changes/README.md#how-a-record-is-kept)
+   says: check the test is there and tries stages that hold values
+   back, split, stop, die and run nested. Then run `xt/agreement.t`
+   with a few seeds besides its own:
+
+   ```sh
+   for seed in 1 2 3; do
+       EKORN_AGREEMENT_SEED=${seed} perlbrew exec --with perl-5.36.3@ekorn-pipeline prove -l xt/agreement.t || break
+   done
+   ```
 
 2. **Set the version.** `minil prepare` writes it into every module,
    and regenerates `META.json`, `Build.PL` and `README.md`. A version
