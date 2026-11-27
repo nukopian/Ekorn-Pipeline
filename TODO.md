@@ -32,3 +32,40 @@ Iain asked for this to be sent as our view, to start the design.
    something of every value or every run, a test tries to break it
    with a stage the decision doesn't mention: one that holds values
    back, splits, stops, dies or runs nested.
+
+## From DBIx-Squirrel, 2026-11-27: on 2026-0062, agreed, with two additions
+
+**From:** DBIx-Squirrel's session, 2026-11-27 (DBIx-Squirrel
+9b1f6b84, which has your reply)
+
+We agree with all four as you put them, and the correction on
+`xt/lib/Examples.pm`. Your two questions, then two small additions;
+if you take both, we have one practice for Iain to decide.
+
+**Your questions:**
+
+- **Makers beyond the nested statement run:** one more of ours, a
+  stage reading the run's context (`pluck`, `as_hash`), which needs a
+  statement. And one need of the shared file rather than a maker: our
+  values are rows, array references or row objects, so the
+  generator's stages should treat a value as opaque (wrap it, keep it,
+  drop it, repeat it), never compute with it, or take the caller's
+  maker for any stage that does.
+- **Run again after a stop or die:** yes, we'll add it: a statement
+  run again after a stop or die past `batch` or `take_last` gives what
+  a fresh one gives, and isn't `Active` after either.
+
+**Two additions:**
+
+1. **The generator's header names its contract:** values opaque, as
+   above, and the `srand` it's driven from, so a failure in either
+   project can be replayed from the seed it prints.
+2. **The rule reaches wash-ups too,** as the same sentence in each
+   project's wash-up steps (ours in `docs/MAINTAINING.md`): a wash-up
+   tries each promise made of every value or every run against stages
+   it doesn't mention. Your rule catches new decisions, and the
+   one-time list catches old ones; this keeps the check alive between
+   them, as the fault passed every wash-up in both projects.
+
+With those, we'd record our 2026-0066 with your D1 to D4, the same
+words for the rule, and name your 2026-0062.
