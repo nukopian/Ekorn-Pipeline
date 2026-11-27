@@ -45,7 +45,26 @@ Nothing yet.
 
 ## Next
 
-Nothing yet.
+### 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
+
+Added 2026-11-27. **Size:** M (3). Its questions are settled: see its
+[record](docs/changes/2026-0062-tests-that-try-each-promise.md).
+
+2026-0060's fault hid in the gap between a promise and an assumption:
+a promise made of every value, tested only with maps. `xt/agreement.t`
+grows to compare originals as well as values, with stages that die
+and runs nested inside stages that hold values back, and runs each
+pipeline again after a stop or die. Its random pipelines come from
+`xt/lib/RandomPipelines.pm`, which DBIx-Squirrel copies for its own
+test (its 2026-0066, waiting on it). A rule, in the same words in
+both projects, has each new promise of that kind tested against the
+stages it doesn't mention, and each release checks them; the
+promises already made are listed once and tried.
+
+Done when the generator is in `xt/lib` and DBIx-Squirrel has it as a
+task, `xt/agreement.t` does as D1 says and passes, the rule is in
+`docs/changes/README.md` and step 1 of Making a release, and each
+promise on D4's list has a test that tries it.
 
 ## Later
 
@@ -89,26 +108,3 @@ inputs, and again as its input runs out, before its flush. Out of
 2026-0060's D18, with DBIx-Squirrel's two conditions: something a
 stage declares, so a feed's push of nothing still runs nothing for
 other stages, and the error's message kept.
-
-### 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
-
-Added 2026-11-27. **Size:** M (3).
-
-2026-0060's fault hid in the gap between a promise and an assumption:
-2026-0046's D3 promised each result its value's original, but the code
-assumed every stage maps, and every test used maps, so no review tested
-the promise against a stage that holds values back. Two things would
-catch such a fault sooner: `xt/agreement.t`'s random pipelines taking
-in stages that hold values back, split, stop and nest, and comparing
-each result's original as well as its value; and, for each settled
-decision that promises something of every value or every run, a test
-that tries to break it with the stages it doesn't mention.
-
-DBIx-Squirrel's process has the same weakness, and its promises, such
-as its rows through its Context, rest on Ekorn's, so it's in the
-discussion from the start: a message to it before anything is
-designed, asking for its view, and which of its own promises it would
-test so. The design is settled by messages both ways. It's concluded
-only when both sessions agree one practice, each records it as its own
-roadmap item and decisions, and Iain has decided both, so the two
-projects review the same way.
