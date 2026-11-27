@@ -76,8 +76,13 @@ be otherwise; that's for the docs, not this design.
 4. Prototype the recommended design on the experiment branch, against
    a copy of the core, as `stage-original/` was: the existing suite
    unchanged, new tests (the feature nested in itself among them), and
-   `bench.pl` against the core as it was. A cost on the plain loops
-   (`_push_steps`, `_plain_iterator`) needs a strong reason.
+   `bench.pl` against the core as it was. Measure a DBIx-Squirrel
+   query too, with the branch's `stage-original/dbix-bench.pl` (added
+   in b1bc5cfab1317886ae0947e91e1003462e549f7e; its README has the
+   figures for the prototype and the command): its queries with only
+   maps take `_plain_iterator`, and those with a flush, an end or a
+   sink `_full_iterator`. A cost on the plain loops (`_push_steps`,
+   `_plain_iterator`) needs a strong reason.
 5. Ask for cold reviews of the design, then bring it to Iain.
 
 **Constraints:** DBIx::Squirrel's `result_original` and `result_number`
@@ -88,6 +93,15 @@ thing must not change; `t/33-source-original.t` and
 DBIx::Squirrel depends on: keep them. A change to a protocol is a
 v0.5.0 with a task for DBIx-Squirrel; one that only adds, a v0.4.x
 with a message.
+
+DBIx-Squirrel's session asked two things of the design, on
+2026-11-27, passed on by Iain. Its statement source's part,
+`sub { $context->{row} }`, answers for the row fetched last, so the
+first limit applies to its queries too; but the core must never call
+a source's part, or keep an original, for every value: only when a
+value goes into a stage that holds values back, so pipelines of maps
+over rows cost nothing. And every cost is measured on a DBIx-Squirrel
+query as well as on `bench.pl`, as step 4 says.
 
 **Done when:** a roadmap item for the design is in `ROADMAP.md`, its
 change record has every decision written out with a recommendation,
