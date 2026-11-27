@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0059.
+Last id: 2026-0061.
 
 Items come in four groups:
 
@@ -60,7 +60,7 @@ with its id, or dropped, as Iain decides.
 ### 2026-0059. Stages that run each value in worker processes
 
 Added 2026-11-27. **Size:** L (5), and likely to be split once
-designed.
+designed. **Depends on:** 2026-0060.
 
 Stages that run a caller's block for each value in a pool of forked
 workers, so that a caller can make a function's slow work concurrent,
@@ -74,5 +74,34 @@ were meant to be. Prototyped, with tests and measurements, on the
 branch `experiment/2026-0059-worker-stages`, whose
 `docs/experiments/2026-0059-worker-stages/README.md` says what was
 found. Stages after them see the wrong `result_original` until the
-core can say where a value a stage held back came from: the task in
-`TODO.md` on where a value came from.
+core can say where a value a stage held back came from: 2026-0060.
+
+### 2026-0060. Where a value came from, through stages that hold values back
+
+Added 2026-11-27. **Size:** L (5). Its questions are open: see its
+[record](docs/changes/2026-0060-where-a-value-came-from.md).
+
+`result_original` promises the original of the value a result was made
+from, but the core keeps one original for where the run has got to,
+so after a stage that holds values back, such as `batch`, `take_last`
+or 2026-0059's worker stages, the stages after it see the latest
+value's. A stage that holds values back would say so, keep an origin
+for each value it keeps, and give what it made from it marked, so each
+value keeps its own original, in a flush too; nothing changes for
+stages written today. Designed, prototyped and reviewed cold on the
+branch `experiment/2026-0059-worker-stages`. A v0.5.0, with a task for
+DBIx-Squirrel.
+
+### 2026-0061. A stage given the chance to act between its inputs
+
+Added 2026-11-27. **Size:** M (3).
+
+A stage that holds values back gives them only when it's given a value
+or flushed, so it can't give what's ready between inputs, such as
+results back from workers or a batch by time, and a flush that has
+given values can't then die without losing them. One answer would
+serve both: a stage that says so is asked for what's ready between
+inputs, and again as its input runs out, before its flush. Out of
+2026-0060's D18, with DBIx-Squirrel's two conditions: something a
+stage declares, so a feed's push of nothing still runs nothing for
+other stages, and the error's message kept.
