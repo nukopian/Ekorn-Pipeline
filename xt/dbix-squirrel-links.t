@@ -7,7 +7,7 @@ use Test2::Plugin::NoWarnings;
 # This keeps each heading it links to, and keeps our index linking the
 # names its index uses to the sections it expects, which its own
 # xt/reference-index.t checks, but only after we release (roadmap
-# 2026-0058). The links are listed here, as of DBIx-Squirrel v4.2.0
+# 2026-0058). The links are listed here, as of DBIx-Squirrel v4.3.0
 # (2026-0058's D2): a release of its that adds or moves one sends us a
 # message, and the lists change with it. An author test, as the docs
 # aren't in the distribution.
@@ -28,6 +28,7 @@ my %DOCS = (
             source
             sources-ekornpipelinesources
             stage
+            stages-that-hold-values-back
             the-stop-object
         ),
     ],
