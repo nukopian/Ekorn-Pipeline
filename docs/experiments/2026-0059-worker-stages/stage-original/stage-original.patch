@@ -1,0 +1,237 @@
+--- a/lib/Ekorn/Pipeline.pm
++++ b/lib/Ekorn/Pipeline.pm
+@@ -261,6 +261,32 @@
+     return \@stages, [1 .. @stages], [map { [] } @stages];
+ }
+ 
++# Return $step and $flush of a stage with an original part, each made to
++# set the part answering for the values it gives, as it returns them or
++# a stop carries them, in the run's @result. So the run loop needn't ask,
++# for each value, whether a stage has a part: only a stage that has one
++# pays, a call a value.
++sub _answering ($original, $step, $flush) {
++    my $answer = sub ($code) {
++        return undef unless $code;    ## no critic (Subroutines::ProhibitExplicitReturnUndef)
++        # For each value: no signature.
++        return sub {
++            my @values;
++            try {
++                @values = $code->(@_);
++            }
++            catch ($e) {
++                $Ekorn::Pipeline::CURRENT_RESULT->[2] = $original if $e isa 'Ekorn::Pipeline::Stop';
++                die $e;    ## no critic (ErrorHandling::RequireCarping): thrown again, as it was
++            }
++            $Ekorn::Pipeline::CURRENT_RESULT->[2] = $original;
++            return @values;
++        };
++    };
++    return ($answer->($step), $answer->($flush));
++}
++
++
+ # Return an iterator handing out, one per call, the values from $source
+ # run through the stages: $source a code reference, or anything
+ # offering a source's role method, an iterator included.
+@@ -285,7 +311,7 @@
+     unless (@$steps) {
+         my $run = _made_run($self, @$self{qw(stages names within)});
+         return _full_feed($self, $run)
+-            if grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
++            if grep { defined } @{ $run->{flushes} }, @{ $run->{ends} }, @{ $run->{originals} };
+         ($steps, $labels) = ($run->{stages}, [@$run{qw(names within)}]);
+     }
+     # How the feed's run ended, undef while it's open, and how many
+@@ -551,9 +577,15 @@
+     for my $i (0 .. $#$stages) {
+         my($stage, $name) = ($stages->[$i], $names->[$i]);
+         my $role = _stage_role($stage) // '';
+-        my($step, $flush, $end);
++        my($step, $flush, $end, $original);
+         if ($stage isa 'Ekorn::Pipeline::Gather') {
+-            my @made = _parts([qw(step flush end)], $stage->EKORN_STAGE);
++            # An original part, by name only, as a source may give one: the
++            # original of the value the stage gave last, for the stages
++            # after it. A list keeps its three parts, and its messages.
++            my @returned = $stage->EKORN_STAGE;
++            my @made     = _parts([qw(step flush end)], @returned);
++            $original = $returned[0]{original}
++                if @returned == 1 && is_plain_hashref($returned[0]);
+             my($inner, $inner_names, $inner_within)
+                 = @made && $made[0] isa 'Ekorn::Pipeline' ? _composed($made[0]) : ();
+             croakf
+@@ -575,7 +607,7 @@
+                     ],
+                     $run,
+                 );
+-                next unless $flush || $end;
++                next unless $flush || $end || $original;
+                 $step = sub { $_[0] };    # for each value: no signature
+             }
+         }
+@@ -595,7 +627,10 @@
+                 if $role eq 'EKORN_SINK_ONE';
+         }
+         elsif ($role eq 'EKORN_STAGE') {
+-            ($step, $flush, $end) = _parts([qw(step flush end)], $stage->EKORN_STAGE);
++            my @returned = $stage->EKORN_STAGE;
++            ($step, $flush, $end) = _parts([qw(step flush end)], @returned);
++            $original = $returned[0]{original}
++                if @returned == 1 && is_plain_hashref($returned[0]);
+             croakf
+                 'Expected stage #%s to return a code reference, and optionally a flush and an end',
+                 $name
+@@ -604,11 +639,15 @@
+         else {
+             $step = $stage;
+         }
++        croakf "Expected stage #%s's original to be a code reference", $name
++            unless _code_or_none($original);
++        ($step, $flush) = _answering($original, $step, $flush) if $original;
+         push @{ $run->{stages} },  $step;
+         push @{ $run->{names} },   $name;
+         push @{ $run->{within} },  $within->[$i];
+         push @{ $run->{flushes} }, $flush;
+         push @{ $run->{ends} },    $end;
++        push @{ $run->{originals} }, $original;
+         push @{ $run->{sinks} },
+             $role eq 'EKORN_SINK_ONE' || $role eq 'EKORN_SINK_MANY';
+     }
+@@ -631,7 +670,7 @@
+     # A run with no flush, no end of a stage's, and no sink, as most are,
+     # takes the shorter way.
+     return _plain_iterator($pipeline, $run, $pull, $source_end, $context)
+-        unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
++        unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} }, @{ $run->{originals} };
+     return _full_iterator($pipeline, $run, $pull, $source_end, $context);
+ }
+ 
+@@ -646,7 +685,7 @@
+     return _push_steps(
+         $pipeline, $run->{stages}, [@$run{qw(names within)}], undef,
+         $values,
+-    ) unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} };
++    ) unless grep { defined } @{ $run->{flushes} }, @{ $run->{ends} }, @{ $run->{originals} };
+     return _full_iterator($pipeline, $run, sub { splice @$values }, undef, undef)
+         ->all;
+ }
+@@ -657,7 +696,7 @@
+ sub _made_run ($pipeline, $stages, $names, $within, $source_end = undef) {
+     my %run = (
+         stages => [], names => [], within => [], flushes => [], ends => [],
+-        sinks  => [],
++        sinks  => [], originals => [],
+     );
+     try {
+         _make_run($stages, $names, $within, \%run);
+@@ -729,16 +768,37 @@
+     # Ekorn::Pipeline::Context, the current result while $next runs; a
+     # value waiting on @todo carries its original, and a flush's values
+     # have none.
+-    my @result = (0, undef, $run->{original});
++    #
++    # The part answering for a value goes with it, as its original does:
++    # the source's, for a value from the source, until a stage with an
++    # original part of its own gives it on, and that stage's from there.
++    # So a stage that holds values back says where those it gives came
++    # from, as a source does.
++    my $source_part = $run->{original};
++    my @originals   = @{ $run->{originals} };
++    # Whether any stage has a part: if none has, the part is the source's
++    # for every value, as before, and nothing below need keep it.
++    my $stage_parts = grep { defined } @originals;
++    my @result      = (0, undef, $source_part);
++    # The part, and the value, of the value handed out last, for an
++    # iterator of this run read as a source.
++    my($last_part, $last_value);
+     # Values a source's step gave, still to go through the stages from the
+     # first, held as they came: @todo's values go first, being further on.
+     my @from_source;
+     # Put @values on @todo, to go on from stage $n, the first on top.
+-    my $wait = sub ($n, $from_flush, @values) {
++    # With a stage's part in the run, each carries its part too.
++    my $wait = $stage_parts
++        ? sub ($n, $from_flush, @values) {
++        push @todo, map { [$n, $_, $from_flush, @result[1, 2]] } reverse @values;
++        $waiting_at[$n] += @values;
++        return;
++        }
++        : sub ($n, $from_flush, @values) {
+         push @todo, map { [$n, $_, $from_flush, $result[1]] } reverse @values;
+         $waiting_at[$n] += @values;
+         return;
+-    };
++        };
+     # Whether any value waits at a stage up to $upto. The run has a stage,
+     # so values from the source wait at the first.
+     my $waiting_upto = sub ($upto) {
+@@ -830,7 +890,9 @@
+                 # way, so this one has a stage.
+                 if (@todo && $todo[-1][0] == @stages) {
+                     while (@todo && $todo[-1][0] == @stages) {
+-                        push @$into, (pop @todo)->[1];
++                        my $waiting = pop @todo;
++                        push @$into, $waiting->[1];
++                        ($last_value, $last_part) = @$waiting[1, 4] if $stage_parts;
+                         $waiting_at[@stages]--;
+                         $result[0]++;
+                     }
+@@ -839,12 +901,14 @@
+             }
+             my($n, $value, $from_flush, $flush);
+             if (@todo) {
+-                ($n, $value, $from_flush, $result[1]) = @{ pop @todo };
++                if ($stage_parts) { ($n, $value, $from_flush, @result[1, 2]) = @{ pop @todo } }
++                else              { ($n, $value, $from_flush, $result[1])     = @{ pop @todo } }
+                 $waiting_at[$n]--;
+             }
+             elsif (@from_source) {
+                 $n = 0;
+                 $result[1] = $value = shift @from_source;
++                $result[2] = $source_part if $stage_parts;
+             }
+             elsif (!$done) {
+                 # Straight onto @from_source, which is empty here.
+@@ -874,6 +938,7 @@
+                 }
+                 $n = 0;
+                 $result[1] = $value = shift @from_source;
++                $result[2] = $source_part if $stage_parts;
+             }
+             else {
+                 $n = $flush_at->();
+@@ -890,6 +955,7 @@
+                 # Only while values are handed out one at a time: all takes
+                 # them from the top of the loop. Nothing can end while the
+                 # source is still being read.
++                ($last_value, $last_part) = ($value, $result[2]) if $stage_parts;
+                 $result[0]++;
+                 $end_if_ended->() if $done;
+                 return $value;
+@@ -958,6 +1024,7 @@
+             }
+             return if $outside;
+             if ($kept) {
++                ($last_value, $last_part) = ($value, $result[2]) if $stage_parts;
+                 $result[0]++;
+                 $end_if_ended->() if $done;
+                 return $value     unless $into;
+@@ -1006,9 +1073,17 @@
+         return $ended if $spent || $outside || ($ended // '') eq 'died';
+         return;
+     };
++    # An iterator read as a source passes on the part that answered for
++    # the value it handed out last: its source's, as before, unless a
++    # stage of this run has a part of its own. Then, for a value no part
++    # answered for, the value itself, as a run reading an iterator with
++    # no part gets.
++    my $passed_on = $stage_parts
++        ? sub () { $last_part ? $last_part->() : $last_value }
++        : $source_part;
+     return Ekorn::Pipeline::Iterator->new(
+         $next, $end_run, $context, $ended_once, $ended_once, $all,
+-        $run->{original},
++        $passed_on,
+     );
+ }
+ 
