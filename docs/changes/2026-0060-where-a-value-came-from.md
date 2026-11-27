@@ -2,19 +2,21 @@
 
 **Status:** open
 
-**Decisions:** D1 open: a value's original is that of the value it was
-made from, through stages that hold values back. D2 settled: such a
-stage keeps an origin for each value it keeps, and gives what it made
-from it marked, in one return. D3 open: origins opaque. D4 open:
-captured as the stage keeps the value. D5 open: a marked flush value
-has its original. D6 open: `batch` has none, its values unmarked in
-the loop. D7 open: `take_last`'s value has its own. D8 open: through
-an iterator read as a source. D9 open: the cost. D10 open: the names.
-D11 open: by name only. D12 open: stages that hold values back without
-saying so, as now. D13 open: an unmarked value from the step has none.
-D14 open: the guard, per run. D15 open: only what's given is unmarked.
-D16 open: the docs. D17 open: a v0.5.0. D18 open: limits 4 and 5 left
-to 2026-0061. D19 open: limit 6 left to 2026-0059.
+**Decisions:** D1 settled: a value's original is that of the value it
+was made from, through stages that hold values back. D2 settled: such
+a stage keeps an origin for each value it keeps, and gives what it
+made from it marked, in one return. D3 settled: origins opaque. D4
+settled: captured as the stage keeps the value. D5 settled: a marked
+flush value has its original. D6 settled: `batch` has none, its values
+unmarked in the loop. D7 settled: `take_last`'s value has its own. D8
+settled: through an iterator read as a source, as proposed. D9
+settled: the cost is acceptable. D10 settled: the names as proposed.
+D11 settled: by name only. D12 settled: stages that hold values back
+without saying so, as now. D13 settled: an unmarked value from the step
+has none. D14 settled: the guard, per run. D15 settled: only what's
+given is unmarked. D16 settled: the docs, all in the change. D17
+settled: a v0.5.0. D18 settled: limits 4 and 5 left to 2026-0061. D19
+settled: limit 6 left to 2026-0059.
 
 **Origin:** a task in `TODO.md` from Ekorn-Pipeline's session,
 2026-11-27, out of prototyping 2026-0059 (the branch
@@ -181,8 +183,9 @@ third's did, which `count_items` shows.
 
 `batch`'s is the statements a run with a holding stage runs for every
 row, about 60 to 90 ns: the check for what each stage gave, and the
-resetting of whether a value from the source has a known original. It keeps no origin,
-so pays nothing for the capture or for opacity. `take_last` keeps
+resetting of whether a value from the source has a known original. It
+keeps no origin, so pays nothing for the capture or for opacity.
+`take_last` keeps
 every row, so captures an origin for each; DBIx-Squirrel's message
 gives Iain's view that it's a debugging tool, not for production and
 least of all over SQL, so its cost doesn't weigh on the design.
@@ -196,12 +199,14 @@ its wrapper, cost such a run +3 to 40 ns, but `batch` twice as much.
 
 ## Decisions
 
-Open unless checked; each with a recommendation.
+All settled, as recommended, on 2026-11-27, D2 after the first cold
+reviews; each kept with the options weighed and why.
 
-- [ ] **D1.** What is a value's original, through a stage that holds
+- [x] **D1.** What is a value's original, through a stage that holds
   values back? (a) The original of the value it was made from, as
   2026-0046's D3 promises. (b) As now: the original of the value the
-  run got to last. Recommended: (a), Iain's reading of 2026-11-27.
+  run got to last. Recommended: (a), Iain's reading of 2026-11-27. Iain
+  decided on 2026-11-27, as recommended.
 - [x] **D2.** How does such a stage say where its values came from?
   It keeps an origin, `kept_origin`, for each value it keeps, and gives
   what it made from it marked by the origin, `$origin->gives(...)`, in
@@ -210,18 +215,20 @@ Open unless checked; each with a recommendation.
   separate `from` call and `from => 'many'`: a value and its origin
   can't come apart, a stage that keeps nothing captures nothing, and
   there's one way of saying each thing.
-- [ ] **D3.** Is the origin opaque, a blessed object a stage can only
+- [x] **D3.** Is the origin opaque, a blessed object a stage can only
   hand back, or the original itself, with a rule in the docs? Opaque
   costs about 27 ns a value kept (`bless`), and nothing for a stage
   that keeps none, such as `batch`; marking a value needs an object
   either way. An origin kept in one run could mark a value in another,
-  which the core doesn't check, harmlessly. Recommended: opaque.
-- [ ] **D4.** When is a value's original captured? As the stage keeps
+  which the core doesn't check, harmlessly. Recommended: opaque. Iain
+  decided on 2026-11-27, as recommended.
+- [x] **D4.** When is a value's original captured? As the stage keeps
   it, in the step it was given it in: `kept_origin` captures what
   `result_original` answers now, so can't be asked for a value later.
   DBIx-Squirrel's rule (its message of 2026-11-27), as its source's
-  part answers for the row fetched last. Recommended: yes.
-- [ ] **D5.** Does a flush's value have an original? 2026-0046's D3
+  part answers for the row fetched last. Recommended: yes. Iain decided
+  on 2026-11-27, as recommended.
+- [x] **D5.** Does a flush's value have an original? 2026-0046's D3
   says none, taking a flush's values to come from many. Under D1, a
   value given marked has its original, in a flush too; one given
   unmarked, or by a flush of a stage that doesn't hold values back,
@@ -233,34 +240,37 @@ Open unless checked; each with a recommendation.
   have none (its Context and Gather POD, `t/06-gather.t`, "what a flush
   can ask", and `t/26-context-in-pipelines.t`, `collect`'s flush), and
   would accept the change as a v0.5.0 with a task. Recommended: yes.
-- [ ] **D6.** What is a batch's original, and how is it found? (a)
+  Iain decided on 2026-11-27, as recommended.
+- [x] **D6.** What is a batch's original, and how is it found? (a)
   None: `batch` holds values back and gives its batches unmarked,
   made from many, as `collect`'s are; the loop unmarks what a holding
   stage gives, with no wrapper, as DBIx-Squirrel asked (its message of
   2026-11-27, choosing what was then D6(c)): 62 to 87 ns a DBIx-Squirrel
-  row, 4 to 6%, where the third design's wrapper cost 9%. (b) As now, the original of the value that filled it, by staying
+  row, 4 to 6%, where the third design's wrapper cost 9%. (b) As now,
+  the original of the value that filled it, by staying
   a map to the core: no cost, and the fault kept for batches. Iain
   allowed `t/33`'s subtest to change on 2026-11-27, as behaviour that
   came from the first limit, as a v0.5.0 with a task for
   DBIx-Squirrel, whose own tests don't pin a batch filled by a value.
-  Recommended: (a).
-- [ ] **D7.** Does `take_last`'s value have its original? (a) Yes, its
+  Recommended: (a). Iain decided on 2026-11-27, as recommended.
+- [x] **D7.** Does `take_last`'s value have its original? (a) Yes, its
   own, marked. (b) No, as now. Its cost doesn't weigh (as above).
-  Recommended: (a).
-- [ ] **D8.** What does an iterator read as a source pass on? The
+  Recommended: (a). Iain decided on 2026-11-27, as recommended.
+- [x] **D8.** What does an iterator read as a source pass on? The
   original of the value it handed out, known or its source's part's
   answer, as now. With no source part, nothing, as now, so a run
   reading it gets the value handed out (2026-0046's D3). A value from
   a flush of a stage that doesn't hold values back still reaches the
   reading run with the inner source's latest original, as on
-  `develop`. Recommended: as proposed, and that last left as it is.
-- [ ] **D9.** Is the cost acceptable? Nothing on the plain loops,
+  `develop`. Recommended: as proposed, and that last left as it is. Iain
+  decided on 2026-11-27, as recommended.
+- [x] **D9.** Is the cost acceptable? Nothing on the plain loops,
   which DBIx-Squirrel's queries of maps and `take` take; 3 to 5% on a
   full-loop run with no holding stage (1 to 2% on DBIx-Squirrel's query
   with `count_items`), as 2026-0046's D4 accepted
   for counting; and what a holding stage costs itself (D6, D7).
-  Recommended: yes.
-- [ ] **D10.** The names: the part `holds`, the first part that's a
+  Recommended: yes. Iain decided on 2026-11-27, as recommended.
+- [x] **D10.** The names: the part `holds`, the first part that's a
   flag, not code; `kept_origin`, in `Ekorn::Pipeline::Context` and
   Tooling's `:context`, which goes to DBIx-Squirrel as a message, and
   clashes with none of its names; the method `gives`; the classes
@@ -270,16 +280,17 @@ Open unless checked; each with a recommendation.
   hold values back in its step, not in a pipeline". A review found
   `kept_origin` reads as already kept, though it captures now, and
   `gives` as the origin giving; `marks` or `of` were offered.
-  Recommended: as proposed, or Iain's choice.
-- [ ] **D11.** By name only? A source's parts may be a list, its
+  Recommended: as proposed, or Iain's choice. Settled as proposed: Iain
+  decided on 2026-11-27, as recommended.
+- [x] **D11.** By name only? A source's parts may be a list, its
   `original` fourth; a stage's list keeps its three, so `holds` is
   only by name: a list of four would change `gather`'s message, which
   DBIx::Squirrel checks. A misspelt key, such as `hold`, is ignored,
   as any key Ekorn doesn't read is ("Made for a run"), so the stage is
   taken for a map. Sinks give nothing to stages after them, so a
   sink's `holds` is ignored. Recommended: by name only, and the docs
-  say so.
-- [ ] **D12.** A stage that holds values back without saying so, as
+  say so. Iain decided on 2026-11-27, as recommended.
+- [x] **D12.** A stage that holds values back without saying so, as
   every one written today does, DBIx::Squirrel's `batches_of`, in its
   Gather's synopsis, among them: taken for a map, as now, so the
   stages after it see the latest value's original. DBIx-Squirrel asked
@@ -287,15 +298,16 @@ Open unless checked; each with a recommendation.
   stage anyway: a gather with a flush is often a map with a total, as
   the reference's `ending` example is. The docs say a stage that holds
   values back says so, and the how-to shows how. Recommended: as
-  proposed.
-- [ ] **D13.** What is the original of a value a holding stage gives
+  proposed. Iain decided on 2026-11-27, as recommended.
+- [x] **D13.** What is the original of a value a holding stage gives
   unmarked, from its step? (a) None, as from its flush: one way of
   saying "came from no one value", but a stage that passes some values
   straight through must keep an origin and mark each. (b) The value's
   just given, as a map's, and none only in a flush: a value from the
   step made from many would then need a mark of its own, a second way
-  of saying it. Recommended: (a), with D2.
-- [ ] **D14.** Where does `kept_origin` croak? (a) In a run with no
+  of saying it. Recommended: (a), with D2. Iain decided on 2026-11-27,
+  as recommended.
+- [x] **D14.** Where does `kept_origin` croak? (a) In a run with no
   stage that holds values back, which a run nested in such a stage's
   step is: free, as the run's state says so once a run. It doesn't
   croak in another stage of a run that has one, or in a holding
@@ -305,43 +317,47 @@ Open unless checked; each with a recommendation.
   `batch` (the fourth design). (c) As (b), by a wrapper round the step:
   about 60 ns a row more than (a), and a stop must be caught to reset
   it (the third design). Recommended: (a), and the docs say where it
-  belongs.
-- [ ] **D15.** Only what a holding stage gives, top level, is
+  belongs. Iain decided on 2026-11-27, as recommended.
+- [x] **D15.** Only what a holding stage gives, top level, is
   unmarked: a marked value inside a structure it gives, or one marked
   by a stage that doesn't hold values back with an origin kept
   elsewhere, goes on as an `Ekorn::Pipeline::Origin::Given` object.
-  Recommended: so, and the docs say so.
-- [ ] **D16.** The docs: the reference's parts ("Made for a run"),
+  Recommended: so, and the docs say so. Iain decided on 2026-11-27, as
+  recommended.
+- [x] **D16.** The docs: the reference's parts ("Made for a run"),
   `result_original`, `ending` (D5), the example that says a batch
   filled by a value has its original (the "last Parklife", tested by
   `xt/`), a new `kept_origin` and `gives`, and the diagnostics for the
   two new messages; the how-to's recipe for a stage that holds values
   back; `Ekorn::Pipeline::Context`'s, `Gather`'s and the stages' POD;
   and that nothing changes for feeds, tees, sinks and `result_number`.
-  Recommended: all, in the change.
-- [ ] **D17.** Which version? A v0.5.0: what `batch`, `take_last` and a
+  Recommended: all, in the change. Iain decided on 2026-11-27, as
+  recommended.
+- [x] **D17.** Which version? A v0.5.0: what `batch`, `take_last` and a
   marked flush value give changes, with a task for DBIx-Squirrel (its
   range is `< v0.5.0`). Its work, as its messages say: its POD's parts
   gain `holds`, its Context and Gather POD and two subtests change
   (D5), a paragraph of its `docs/REFERENCE.md`, and `kept_origin`
   reaches it as a message; none of its documented examples reads
   `result_original` after `batch`, `collect` or `take_last`.
-  Recommended: v0.5.0.
-- [ ] **D18.** The task's limits 4 and 5, a flush that passes values on
+  Recommended: v0.5.0. Iain decided on 2026-11-27, as recommended.
+- [x] **D18.** The task's limits 4 and 5, a flush that passes values on
   and then dies, and a stage acting between its inputs: this design
   doesn't need them, as the worker stages give each result as it's
   ready, with its original. They share an answer, a stage asked for
   what's ready between inputs and as its input runs out, so are idea
   2026-0061, with DBIx-Squirrel's two conditions: the error's message
   kept, and something a stage declares. Recommended: leave them to it.
-- [ ] **D19.** The task's limit 6, a run's state in another process:
+  Iain decided on 2026-11-27, as recommended.
+- [x] **D19.** The task's limit 6, a run's state in another process:
   nothing in this design needs a run's state to cross. The worker
   distribution (2026-0059) replays a run's context in its workers;
   its `_where` asks `result_original` for every value and sets
   `$Ekorn::Pipeline::CURRENT_RESULT` by hand, which it should do only
   for the values it keeps, and by something Ekorn offers; its workers
   leave by `POSIX::_exit`, so can't close a parent's database handle.
-  Recommended: leave it to 2026-0059, with those as its rules.
+  Recommended: leave it to 2026-0059, with those as its rules. Iain
+  decided on 2026-11-27, as recommended.
 
 ## The plan
 
