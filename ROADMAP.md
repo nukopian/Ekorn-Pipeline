@@ -41,29 +41,19 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
+### 2026-0060. Where a value came from, through stages that hold values back
+
+Started 2026-11-27. **Size:** L (5). A stage that holds values back
+says so, keeps an origin for each value it keeps, and gives what it
+made from it marked, so each value keeps its own original, as
+`result_original` promises; stages written today don't change. A
+v0.5.0, with a task for DBIx-Squirrel. Its
+[record](docs/changes/2026-0060-where-a-value-came-from.md) has the
+decisions and the plan.
 
 ## Next
 
-### 2026-0060. Where a value came from, through stages that hold values back
-
-Added 2026-11-27. **Size:** L (5). Its questions are settled: see its
-[record](docs/changes/2026-0060-where-a-value-came-from.md).
-
-`result_original` promises the original of the value a result was made
-from, but the core keeps one original for where the run has got to,
-so after a stage that holds values back, such as `batch`, `take_last`
-or 2026-0059's worker stages, the stages after it see the latest
-value's. A stage that holds values back would say so, keep an origin
-for each value it keeps, and give what it made from it marked, so each
-value keeps its own original, in a flush too; nothing changes for
-stages written today. Designed, prototyped and reviewed cold on the
-branch `experiment/2026-0059-worker-stages`. A v0.5.0, with a task for
-DBIx-Squirrel.
-
-Done when `holds`, `kept_origin` and `gives` are in the core, `batch`
-and `take_last` use them, the docs and tests its record's D16 lists
-are changed, and DBIx-Squirrel has its task.
+Nothing yet.
 
 ## Later
 

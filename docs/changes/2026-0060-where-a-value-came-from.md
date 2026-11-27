@@ -1,6 +1,6 @@
 # 2026-0060. Where a value came from, through stages that hold values back
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: a value's original is that of the value it
 was made from, through stages that hold values back. D2 settled: such
@@ -24,6 +24,8 @@ settled: limit 6 left to 2026-0059.
 f3316bb3fc43185b956e27c37d43940f6db27305), with three messages from
 DBIx-Squirrel's session the same day (DBIx-Squirrel
 ac055b84aa0b736bca23c198b211891887cc7c5c)
+
+**Started:** 2026-11-27
 
 ## Background
 
@@ -361,5 +363,49 @@ reviews; each kept with the options weighed and why.
 
 ## The plan
 
-Not written yet: it's written when work starts, once every decision is
-settled.
+**What:** D1 to D19, from the fifth design on the branch
+`experiment/2026-0059-worker-stages`, at
+761ffdd0d7e14bc45794944c866fd25df60caf9a
+(`docs/experiments/2026-0059-worker-stages/where-values-came-from/holds.patch`).
+`_make_run` reads `holds` from a gather's or an `EKORN_STAGE`'s parts
+by name, and croaks beside a pipeline; a run with such a stage takes
+`_full_iterator`, which carries a known original with each waiting
+value, unmarks what a holding stage gives after its step, its flush or
+its stop, and says in the run's state that it has such a stage, for
+`kept_origin`. `result_original` gives a known original first.
+`kept_origin`, defined in `lib/Ekorn/Pipeline.pm` beside
+`result_original` and exported by `Ekorn::Pipeline::Context` and
+Tooling's `:context`, returns an `Ekorn::Pipeline::Origin`, whose
+`gives` marks values as `Ekorn::Pipeline::Origin::Given`, both packages
+in `lib/Ekorn/Pipeline.pm`, as `t/34-versions.t` allows one `$VERSION`
+a file. `take_last` keeps an origin and gives its value marked;
+`batch` says `holds` and gives its batches unmarked. The plain loops
+don't change.
+
+**Why:** the background: `result_original` keeps its promise through
+stages that hold values back, the worker stages of 2026-0059 among
+them, with nothing changed for stages written today.
+
+**Steps:**
+
+1. The core, Context and Tooling, `take_last` and `batch`, from the
+   prototype, tidied and documented in the code as the rest is.
+2. Tests: `t/35-where-values-came-from.t` from the prototype, and
+   `t/32-context.t` and `t/33-source-original.t`'s batch subtests and
+   Context's exports, as D6 and D10 settled; the feature nested in
+   itself among them. Coverage at or above its floors.
+3. The docs, as D16: the reference's parts, `result_original`,
+   `ending`, the "last Parklife" example, `kept_origin` and `gives`, and
+   the diagnostics; a how-to recipe for a stage that holds values back;
+   the POD of `Ekorn::Pipeline`, Context, Gather, Flow and Batch. Then
+   `scripts/manuals`, and the docs' example tests.
+4. `Changes`, under Unreleased, as a v0.5.0 (D17).
+5. Every commit's checks: yath on every Perl CI covers, perlcritic
+   and perltidy on 5.44, coverage, `xt/`, `xt/dbix-squirrel-links.t`.
+   `bench.pl` and `dbix-bench.pl` against v0.4.5, as the record's
+   figures were taken.
+6. A task for DBIx-Squirrel, to test against `develop` and plan its
+   v0.5.0 work (D17), with `kept_origin` for its Tooling as a message.
+
+**Done when:** each step is done, its checks pass, and DBIx-Squirrel
+has its task.
