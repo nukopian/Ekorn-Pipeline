@@ -92,13 +92,14 @@ on it, so it matters most that it's right.
 
 ## Credit
 
-- **Every commit Claude makes carries a `Co-Authored-By` trailer** for
-  the Claude model that made it, currently
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`: code, CI,
-  setup files, tests or docs written at Iain's request, and a commit
-  holding Iain's own change with Claude's work to finish it, as Iain
-  decided on 2026-11-13. It's left off only when Iain says so before
-  the commit. Commits Iain makes himself are his to sign off.
+- **Every commit carries the `Co-Authored-By` trailer** for the
+  Claude model working with Iain, currently
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`: Claude's
+  commits, and Iain's own too, even of code he wrote by hand, as he
+  decided on 2026-11-27, widening his rule of 2026-11-13, since the
+  two of them answer for the work together. A commit message Claude
+  drafts for Iain ends with it. It's left off only when Iain says so
+  before the commit.
 - The README's Acknowledgements say what Claude did. Keep them accurate.
 - **On CPAN, Iain is `Iain Campbell <cpanic@cpan.org>`,** and no other
   address goes in the distribution: the main module's AUTHOR and so
@@ -107,8 +108,8 @@ on it, so it matters most that it's right.
   one. Minilla reads authors through it, and would otherwise list Iain
   as a contributor to his own distribution.
 
-Why: credit goes where the work was done, so a reader can see exactly
-what was Iain's.
+Why: every commit is the work of both, and both answer for it, while
+the Acknowledgements tell a reader who did what.
 
 ## Perl
 
