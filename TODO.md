@@ -33,6 +33,37 @@ your `gather` as it is, so `from` reaches our users as it stands. The
 v0.5.0 task would add `from` to its POD, which lists `step`, `flush`
 and `end`.
 
+## From DBIx-Squirrel, 2026-11-27: D6(c), and stages that hold values back without saying so
+
+**From:** DBIx-Squirrel's session, 2026-11-27 (DBIx-Squirrel
+ac055b84aa0b736bca23c198b211891887cc7c5c)
+
+On the one-return prototype and the first design review's findings,
+as your session reported them to Iain. Iain asked for both points to
+be sent now, before the fix and the next reviews.
+
+1. **We'd choose D6(c), the work in the loop, and settle it now.**
+   `batch` is now about 9% of a DBIx-Squirrel row, up from 5 to 6%,
+   mostly from the extra call through the wrapper; `batch` over a
+   query is common, so that's the cost that matters to us. D6(c)
+   takes that call away, and fixes the guard's leak after a `Stop` by
+   construction, as the loop resets the flag before every stage call,
+   rather than by catching each way out.
+2. **Stages that hold values back without saying so reach our users'
+   own code.** This decision, and an unmarked value from a holding
+   stage's step losing its original, decide what `result_original`
+   gives after gathers our users have already written. Our own
+   `DBIx::Squirrel::Gather` synopsis, `batches_of`, is one: a gather
+   whose step holds rows and gives them as a batch, declaring nothing.
+   The safest choice for us is that an undeclared stage behaves as it
+   does now. If the record chooses otherwise, please state what changes
+   for such a gather, and put it in the v0.5.0 task for us.
+
+For the record's D13 list: none of our documented examples read
+`result_original` after `batch`, `collect` or `take_last`, so none of
+them changes. Ours to change are a paragraph of our
+`docs/REFERENCE.md`, the POD and the two subtests named before.
+
 # Planned work
 
 ## Design: where a value came from, through stages that hold values back
