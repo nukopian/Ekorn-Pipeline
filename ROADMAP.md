@@ -41,26 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
-
-Added 2026-11-27. **Size:** M (3). Started 2026-11-27: see its
-[record](docs/changes/2026-0062-tests-that-try-each-promise.md).
-
-2026-0060's fault hid in the gap between a promise and an assumption:
-a promise made of every value, tested only with maps. `xt/agreement.t`
-grows to compare originals as well as values, with stages that die
-and runs nested inside stages that hold values back, and runs each
-pipeline again after a stop or die. Its random pipelines come from
-`xt/lib/RandomPipelines.pm`, which DBIx-Squirrel copies for its own
-test (its 2026-0066, waiting on it). A rule, in the same words in
-both projects, has each new promise of that kind tested against the
-stages it doesn't mention, and each release checks them; the
-promises already made are listed once and tried.
-
-Done when the generator is in `xt/lib` and DBIx-Squirrel has it as a
-task, `xt/agreement.t` does as D1 says and passes, the rule is in
-`docs/changes/README.md` and step 1 of Making a release, and each
-promise on D4's list has a test that tries it.
+Nothing yet.
 
 ## Next
 

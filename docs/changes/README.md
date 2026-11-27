@@ -88,7 +88,7 @@ Steps, Done when.
 Newest id first.
 
 - [Tests that try to break each promise](2026-0062-tests-that-try-each-promise.md),
-  roadmap 2026-0062: in progress.
+  roadmap 2026-0062: shipped.
 - [Where a value came from, through stages that hold values
   back](2026-0060-where-a-value-came-from.md), roadmap 2026-0060: shipped in v0.5.0.
 - [A check on the sections DBIx-Squirrel links to](2026-0058-sections-dbix-squirrel-links-to.md),

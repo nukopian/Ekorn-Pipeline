@@ -1,6 +1,6 @@
 # 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
 
-**Status:** in progress
+**Status:** shipped
 
 **Decisions:** D1 settled: originals, dies, nesting and runs again,
 compared every way. D2 settled: one generator, kept here, values
@@ -13,6 +13,8 @@ DBIx-Squirrel's session by messages, as its 2026-0066 (DBIx-Squirrel
 a2e32047f6f45cc2882346405f94ed4f0209a132)
 
 **Started:** 2026-11-27
+
+**Finished:** 2026-11-27
 
 ## Background
 
@@ -136,6 +138,17 @@ Making a release; and each promise on D4's list has a test that tries
 it.
 
 ## What happened
+
+- **Outcome:** met. The generator is in `xt/lib`, and DBIx-Squirrel
+  has it as a task (DBIx-Squirrel
+  b570f4dd0f89511dc4813110bf825e5dbe19a2ee). `xt/agreement.t` does as
+  D1 says, passes on Perl 5.36 and 5.44 and with other seeds, and
+  failed on each of four breaks. The rule is in
+  `docs/changes/README.md` and step 1 of Making a release, and each
+  promise on D4's list below has what tries it, or says why it's left
+  to the hand-written tests.
+- **No line in `Changes`,** as the tests and records aren't in the
+  distribution and change nothing for users, as 2026-0058 shipped.
 
 - **Steps 1 to 3:** `xt/lib/RandomPipelines.pm` makes the stages, and
   `xt/agreement.t` drives it. Three things the plan didn't foresee:
