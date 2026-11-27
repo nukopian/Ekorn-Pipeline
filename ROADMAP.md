@@ -41,13 +41,9 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-Nothing yet.
-
-## Next
-
 ### 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
 
-Added 2026-11-27. **Size:** M (3). Its questions are settled: see its
+Added 2026-11-27. **Size:** M (3). Started 2026-11-27: see its
 [record](docs/changes/2026-0062-tests-that-try-each-promise.md).
 
 2026-0060's fault hid in the gap between a promise and an assumption:
@@ -65,6 +61,10 @@ Done when the generator is in `xt/lib` and DBIx-Squirrel has it as a
 task, `xt/agreement.t` does as D1 says and passes, the rule is in
 `docs/changes/README.md` and step 1 of Making a release, and each
 promise on D4's list has a test that tries it.
+
+## Next
+
+Nothing yet.
 
 ## Later
 

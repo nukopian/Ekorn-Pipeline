@@ -1,6 +1,6 @@
 # 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
 
-**Status:** open
+**Status:** in progress
 
 **Decisions:** D1 settled: originals, dies, nesting and runs again,
 compared every way. D2 settled: one generator, kept here, values
@@ -11,6 +11,8 @@ tried. D5 settled: the rule as a check before each release.
 **Origin:** roadmap, added 2026-11-27, after 2026-0060; agreed with
 DBIx-Squirrel's session by messages, as its 2026-0066 (DBIx-Squirrel
 a2e32047f6f45cc2882346405f94ed4f0209a132)
+
+**Started:** 2026-11-27
 
 ## Background
 
@@ -86,3 +88,51 @@ work waits on D2's generator, so that comes first here.
   Settled on 2026-11-27, as recommended, as the fault passed every
   review between items too, and Making a release is our nearest to a
   wash-up.
+
+## The plan
+
+**What:** a generator of random pipelines in `xt/lib`, shared with
+DBIx-Squirrel; `xt/agreement.t` driving it to compare values and
+originals every way, through stages that die and runs nested in stages
+that hold values back, and running each pipeline again; the rule for
+promises in `docs/changes/README.md` and in step 1 of Making a
+release; and the promises already made, listed here, each with a test
+that tries it.
+
+**Why:** 2026-0060's fault was a promise made of every value but
+tested only with maps, and nothing in either project's process would
+have tried it otherwise.
+
+**Steps:**
+
+1. Write `xt/lib/RandomPipelines.pm` (D2): random stages and their
+   names, from the caller's `srand`, values opaque but for the
+   caller's `number`, extra makers from the caller. Its makers are
+   `xt/agreement.t`'s, made opaque, and new ones: a stage that dies at
+   a value, a run nested in a step, and a stage that holds values back
+   (with `holds` and `kept_origin`) whose step and flush give through a
+   nested run.
+2. Rewrite `xt/agreement.t` over it (D1): each case made from a seed
+   of its own, so it can be made again fresh and replayed; a source
+   with an `original` part; the last stage before any sink recording
+   each value with its `result_original`; every way giving the same
+   record, or dying with the same error; and each way's pipeline, run
+   again after the other ways, giving what a fresh one gives.
+3. Break the core in a scratch copy, as 2026-0060's fault did (the
+   latest value's original after `take_last`), and see the test fail.
+4. Put the rule (D3) in `docs/changes/README.md`, and the check (D5)
+   in step 1 of Making a release in `docs/MAINTAINING.md`, with what
+   it runs.
+5. List the settled decisions, in every record, that promise
+   something of every value or every run (D4), here, each with the
+   test that tries it against the stages it doesn't mention, writing
+   the tests missing.
+6. Send DBIx-Squirrel the generator, as a task for its 2026-0066.
+
+**Done when:** the generator is in `xt/lib` and DBIx-Squirrel has it
+as a task; `xt/agreement.t` does as D1 says, passes, and fails on the
+broken copy; the rule is in `docs/changes/README.md` and step 1 of
+Making a release; and each promise on D4's list has a test that tries
+it.
+
+## What happened
