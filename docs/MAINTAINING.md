@@ -34,7 +34,7 @@ lists the libraries.
   item with an id such as 2026-0001. [docs/changes/](changes/README.md)
   keeps a record of each planned change. Both are public, on `main`,
   but not in the CPAN tarball
-  ([CLAUDE.md](../CLAUDE.md#the-roadmap) has the rules).
+  ([CLAUDE.md](../CLAUDE.md#the-roadmap-and-change-records) has the rules).
 - A branch for a roadmap item, when there is one, is named for its id,
   as `experiment/2026-0004-pipeline-as-a-stage`. The exception was
   `pipeline-experimental`, shared with DBIx-Squirrel, which has a
@@ -180,6 +180,39 @@ a word in a manual that's right, add it to the Markdown as
 cd ~/Git/github.com/nukopian/Ekorn-Pipeline
 perlbrew exec --with perl-5.36.3@ekorn-pipeline scripts/manuals
 git status --short
+```
+
+The docs' examples are tested, so a change to one runs its test:
+
+- **`xt/howto.t`** runs the how-to's examples as one program, the first
+  setting up their data and each after it in a block of its own, and
+  checks each prints what its comments say: a comment at the end of a
+  line that prints, or comment lines straight after it, or after the
+  end of a block that prints, with `...` for any text. So write a
+  comment as exactly what the example prints. The test is
+  DBIx-Squirrel's, as it is but for its notes, so a change to it that
+  would suit DBIx-Squirrel's goes to it as a message.
+- **`xt/examples.t`** runs each of the reference's examples before its
+  index on its own, after the reference's catalogue of tracks, in a
+  folder with the files its examples read, and checks it prints what
+  its comments say, as the how-to's do. The README's use stand-ins,
+  such as `users()`, so each is only compiled; a block that isn't Perl
+  is marked `=for not-run`. The helpers both tests use are in
+  `xt/lib/Examples.pm`.
+- An example in the how-to or the reference that can't run so, such as
+  one printing a test's output, croaking on purpose or using a
+  stand-in, is marked `<!-- not run -->` on the line before it, and
+  checked by hand.
+- **`xt/agreement.t`** runs random pipelines pushed, pulled, read with
+  `all` and fed, from a fixed seed, and fails if any way gives other
+  values. `EKORN_AGREEMENT_SEED` and `EKORN_AGREEMENT_CASES` run it
+  with another seed, or more cases.
+
+To run them, after `scripts/manuals`:
+
+```sh
+cd ~/Git/github.com/nukopian/Ekorn-Pipeline
+perlbrew exec --with perl-5.36.3@ekorn-pipeline yath test xt/howto.t xt/examples.t xt/manuals.t
 ```
 
 Commits are signed, and use conventional prefixes (`feat:`, `fix:`,
@@ -352,9 +385,9 @@ with a GitHub release for it. Versions are dotted, as in `v0.1.0`, in
 the main module's `$VERSION`, the tag and the tarball's name alike.
 Claude asks before tagging.
 
-DBIx::Squirrel requires a range of Ekorn's versions, `>= v0.4.0,
-< v0.5.0` since 2026-11-25; `docs/claude/neighbours.md` has the range
-it requires now, and how it has moved. So choose the version by what
+DBIx::Squirrel requires a range of Ekorn's versions, in its
+`cpanfile`; [CLAUDE.md](../CLAUDE.md#dbix-squirrel-and-text-redact-secrets)
+has the range and what it ties Ekorn to. So choose the version by what
 changed since the last release (CLAUDE.md has the rule). A fix or an
 addition moves the last number, as in v0.4.3. A change of behaviour,
 or a public name dropped or renamed, moves the middle number, as in
