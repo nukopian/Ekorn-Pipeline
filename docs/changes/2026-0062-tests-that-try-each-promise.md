@@ -162,3 +162,41 @@ it.
   is kept, in D3's words, and the check in step 1 of Making a release,
   opening with D5's sentence, with a loop running `xt/agreement.t`
   with seeds 1 to 3.
+- **Step 5, the promises already made (D4).** Each settled decision
+  promising something of every value or every run, and what tries it
+  now with stages it doesn't mention. "Agreement" is `xt/agreement.t`,
+  whose random pipelines hold values back, split, stop, die, nest, run
+  a pipeline as a stage, and have ends.
+
+  | Promise | Tried by |
+  |---|---|
+  | 2026-0002's D1: an iterator that has ended gives nothing more | Agreement: each pulled run is called again after it ends; `t/02` |
+  | 2026-0003's D1, 2026-0022's D17: a pipeline pushed in scalar context gives how many results | Agreement, without a sink: counted against the list; `t/02`, `t/15` and `t/22` with a sink |
+  | 2026-0004's D1 and D3, 2026-0007's D1: a pipeline given as a stage runs as its stages would | Agreement: "as a stage", every way; `t/10` |
+  | 2026-0022's D11, D16, D20, D34, D45 and D48: ends run in order, each told how the run ended, and `ended` says the same | Agreement: an end of the driver's logs what it's told, and `ended` is compared, every way; `t/15` and `t/28` for what each should be |
+  | 2026-0022's D27: an end dying while the run dies warns, keeping the first error | `t/15` only: the random ends don't die |
+  | 2026-0032's D2, 2026-0040's D1, 2026-0041's D3: the shorter way a plain run takes gives what the full path does | Agreement: each way again on the full path, by a stage with an end; `t/22` and `t/27` for the order parts are called in |
+  | 2026-0044's D2 to D5: a feed gives what a pulled run does, and takes no push once its run has ended | Agreement: fed every way, and pushed again once ended; `t/28` for `finish` and a feed let go |
+  | 2026-0044's D6: a feed's stages see the pusher's context | `t/28`: not a promise of each value |
+  | 2026-0046's D2: `result_number` counts each run's results from 1 | Agreement: each result's number, every way, nested runs counting their own; `t/32` |
+  | 2026-0046's D3, 2026-0052's D2 to D4, 2026-0060's D1 and D5 to D8: each result has the original of the value it was made from, through sources' original parts, iterators, holding stages and flushes | Agreement: compared every way, and checked against the truth: a number is its own original, and a value holding numbers holds its original; `t/32`, `t/33` and `t/35` |
+  | 2026-0048's D4 to D6, 2026-0050's D1: a stop in a tee's branch ends only the branch; a death in it kills the run; its flushes and ends run with the tee's | Agreement: tees of random stages, every way; `t/29` |
+
+  Left to the hand-written tests, as random pipelines can't tell what
+  an end should be told, only that every way tells it the same: what
+  each verdict should be (`t/15`), an end that dies (`t/15`), the
+  order every part is called in (`t/22`, `t/27`), and `finish`
+  (`t/28`). 2026-0050's D1 says a dead main run tells a branch's ends
+  `died`; its own What happened corrects that to `stopped`, which
+  `t/29` pins.
+- **Agreement grew for D4:** each result's number in the log; a
+  number's original must be itself, so a value given unmarked by
+  `take_last` fails; how each iterator and feed says it ended,
+  compared; an iterator called and a feed pushed after the end; a
+  pipeline as a stage, a maker in the generator; an end, the
+  driver's own maker, showing the hook DBIx-Squirrel's will use; each
+  way on the full path; and the count in scalar context. Broken in
+  scratch copies, as a `take_last` giving its value unmarked and as a
+  plain iterator saying `done` for a stopped run, it failed on both,
+  as on the two breaks before. It takes about six seconds at 3,000
+  cases, twice what it did, as each case runs twelve ways.

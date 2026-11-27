@@ -204,10 +204,12 @@ The docs' examples are tested, so a change to one runs its test:
   stand-in, is marked `<!-- not run -->` on the line before it, and
   checked by hand.
 - **`xt/agreement.t`** runs random pipelines pushed, pulled, read with
-  `all` and fed, each by a pipeline made fresh and again by one that
-  has run, from a fixed seed. It fails if any way gives other values,
-  other originals or another error, or if a value's original isn't
-  one it was made from. The pipelines come from
+  `all` and fed, each by a pipeline made fresh, again by one that has
+  run, and on the full path, from a fixed seed. It fails if any way
+  gives other values, numbers, originals, ends' verdicts, `ended` or
+  error, if a value's original isn't one it was made from, or if a run
+  gives or takes anything once it has ended. Roadmap 2026-0062's
+  record lists the promises it tries. The pipelines come from
   `xt/lib/RandomPipelines.pm`, which DBIx-Squirrel copies for its own
   test: a change to it that would suit DBIx-Squirrel's copy goes to it
   as a message. `EKORN_AGREEMENT_SEED` and `EKORN_AGREEMENT_CASES` run

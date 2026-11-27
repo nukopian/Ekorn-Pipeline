@@ -126,6 +126,13 @@ my @MAKERS = (
         nests => 1,
         make  => sub ($s) {
             my($inner, $name) = _inner($s);
+            ($inner, "($name) as a stage");
+        },
+    },
+    {
+        nests => 1,
+        make  => sub ($s) {
+            my($inner, $name) = _inner($s);
             my $one_behind = gather {
                 my @held;    # [value, origin]
                 my $give = sub ($held) { $held->[1]->gives($inner->($held->[0])) };
