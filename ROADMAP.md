@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0058.
+Last id: 2026-0059.
 
 Items come in four groups:
 
@@ -57,4 +57,22 @@ An idea is a numbered heading, the date it was added, its size, and a
 line or two on what and why. Each is kept, promoted to Later or Next
 with its id, or dropped, as Iain decides.
 
-Nothing yet.
+### 2026-0059. Stages that run each value in worker processes
+
+Added 2026-11-27. **Size:** L (5), and likely to be split once
+designed.
+
+Stages that run a caller's block for each value in a pool of forked
+workers, so that a caller can make a function's slow work concurrent,
+beside the call, with nothing of the function's changed:
+`in_workers($n, sub { ... })`, giving results in the order the values
+came; `in_workers_any`, giving them as they finish; and
+`once_per($key, $n, sub { ... })`, running the block once per key and
+joining each value with its key's results. Core Perl only, so its own
+distribution, built on Ekorn's protocols, as 2026-0043 and 2026-0045
+were meant to be. Prototyped, with tests and measurements, on the
+branch `experiment/2026-0059-worker-stages`, whose
+`docs/experiments/2026-0059-worker-stages/README.md` says what was
+found. Stages after them see the wrong `result_original` until the
+core can say where a value a stage held back came from: the task in
+`TODO.md` on where a value came from.
