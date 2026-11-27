@@ -3,7 +3,7 @@
 What Ekorn-Pipeline means to do, and why. [Changes](Changes) says what
 each release did, and the [README](README.md) what it is now.
 
-Last id: 2026-0061.
+Last id: 2026-0062.
 
 Items come in four groups:
 
@@ -89,3 +89,26 @@ inputs, and again as its input runs out, before its flush. Out of
 2026-0060's D18, with DBIx-Squirrel's two conditions: something a
 stage declares, so a feed's push of nothing still runs nothing for
 other stages, and the error's message kept.
+
+### 2026-0062. Tests that try to break each promise, here and in DBIx-Squirrel
+
+Added 2026-11-27. **Size:** M (3).
+
+2026-0060's fault hid in the gap between a promise and an assumption:
+2026-0046's D3 promised each result its value's original, but the code
+assumed every stage maps, and every test used maps, so no review tested
+the promise against a stage that holds values back. Two things would
+catch such a fault sooner: `xt/agreement.t`'s random pipelines taking
+in stages that hold values back, split, stop and nest, and comparing
+each result's original as well as its value; and, for each settled
+decision that promises something of every value or every run, a test
+that tries to break it with the stages it doesn't mention.
+
+DBIx-Squirrel's process has the same weakness, and its promises, such
+as its rows through its Context, rest on Ekorn's, so it's in the
+discussion from the start: a message to it before anything is
+designed, asking for its view, and which of its own promises it would
+test so. The design is settled by messages both ways. It's concluded
+only when both sessions agree one practice, each records it as its own
+roadmap item and decisions, and Iain has decided both, so the two
+projects review the same way.
