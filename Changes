@@ -2,10 +2,13 @@ Revision history for Ekorn-Pipeline
 
 Unreleased
 
-    Stages that hold values back say where each came from, so the
-    stages after them get each value's own original (roadmap
-    2026-0060). A v0.5.0: what take_last and batch give
-    result_original changes.
+v0.5.0 2026-11-27
+
+    Stages that hold values back say where what they give came from.
+
+    So the stages after them get each value's own original (roadmap
+    2026-0060). What take_last and batch give result_original
+    changes, so it's a v0.5.0.
 
     result_original promises the original of the value a result is
     made from, but after a stage that holds values back, such as

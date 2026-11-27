@@ -1,6 +1,6 @@
 # 2026-0060. Where a value came from, through stages that hold values back
 
-**Status:** shipped, unreleased
+**Status:** shipped in v0.5.0
 
 **Decisions:** D1 settled: a value's original is that of the value it
 was made from, through stages that hold values back. D2 settled: such
