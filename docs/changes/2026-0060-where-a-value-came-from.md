@@ -1,6 +1,6 @@
 # 2026-0060. Where a value came from, through stages that hold values back
 
-**Status:** in progress
+**Status:** shipped, unreleased
 
 **Decisions:** D1 settled: a value's original is that of the value it
 was made from, through stages that hold values back. D2 settled: such
@@ -26,6 +26,8 @@ DBIx-Squirrel's session the same day (DBIx-Squirrel
 ac055b84aa0b736bca23c198b211891887cc7c5c)
 
 **Started:** 2026-11-27
+
+**Finished:** 2026-11-27
 
 ## Background
 
@@ -409,3 +411,57 @@ them, with nothing changed for stages written today.
 
 **Done when:** each step is done, its checks pass, and DBIx-Squirrel
 has its task.
+
+## What happened
+
+- **Outcome:** each step done, and Done when met but for the task for
+  DBIx-Squirrel, sent with the commit that ships it. The tests pass on
+  every Perl CI covers, 5.36 to 5.44, `xt/` with them; perlcritic and
+  perltidy are clean on 5.44; coverage is at its floors, branches at
+  100%.
+- **Changes from the plan:**
+  - The run's list of the originals a holding stage gave after the
+    first is a lexical of each run, not the prototype's package
+    variable: the loop does all the unmarking, so nothing outside it
+    reads the list, and a run nested in another can't see it.
+  - Choosing the plain loop is one helper, `_is_plain`, and reading
+    `holds` another, `_holds_part`, where the prototype repeated each.
+  - `t/35-where-values-came-from.t` was rewritten in the house style,
+    with a subtest more than the prototype's: a value from the flush of
+    a later stage that doesn't hold values back, read through an
+    iterator, gets the source's latest original, as before (D8), the
+    branch coverage found untested.
+  - The reference's "last Parklife" example, which printed nothing so
+    was never checked, is two examples that print, `batch`'s and
+    `take_last`'s, so `xt/examples.t` checks them. The reference has a
+    new section, "Stages that hold values back"; the how-to a recipe,
+    "Say where held values came from".
+- **Tried and reverted:** to keep perltidy from aligning three lines,
+  the pulls reset the known flag in the same assignment as the
+  original, `@result[1, 3] = ($value = shift @from_source, 0)`, for
+  every run; it cost full-loop runs with no holding stage 56 to 184 ns a
+  value, against the prototype's 35 to 90. The reset is back to a
+  plain assignment and a block run only in a run with a holding stage.
+- **Measurements,** against v0.4.5, Perl 5.36, medians of seven,
+  interleaved:
+
+  | `bench.pl` | Cost a value |
+  |---|---|
+  | a stage with a flush | +30 to 35 ns |
+  | asking `result_original` for every value | about +50 ns |
+  | values waiting on the queue | +70 to 85 ns |
+  | a pushed run with a flush | about +35 ns |
+
+  Within a few nanoseconds of the prototype's fifth design, 3 to 4%.
+  On DBIx-Squirrel's queries, 200,000 rows through `$dbh->iterate`:
+
+  | The query's stages | v0.4.5 (ns a row) | v0.5.0 (ns a row) | Cost a row |
+  |---|---|---|---|
+  | a map | 1,399 to 1,435 | 1,399 to 1,426 | none |
+  | a map, `take` | 1,654 to 1,695 | 1,658 to 1,689 | none |
+  | a map, `count_items` | 1,416 to 1,439 | 1,436 to 1,452 | 13 to 20 ns, about 1% |
+  | a map, `batch(100)` | 1,506 to 1,540 | 1,585 to 1,607 | 67 to 83 ns, 4 to 5% |
+  | a map, `take_last` | 1,463 to 1,488 | 1,855 to 1,872 | about 390 ns, 26% |
+- **What's left:** DBIx-Squirrel's task, its v0.5.0 work; 2026-0059,
+  the worker stages, which can now say where their results came from;
+  and 2026-0061.

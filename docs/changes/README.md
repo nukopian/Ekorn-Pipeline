@@ -81,7 +81,7 @@ Steps, Done when.
 Newest id first.
 
 - [Where a value came from, through stages that hold values
-  back](2026-0060-where-a-value-came-from.md), roadmap 2026-0060: in progress.
+  back](2026-0060-where-a-value-came-from.md), roadmap 2026-0060: shipped, unreleased.
 - [A check on the sections DBIx-Squirrel links to](2026-0058-sections-dbix-squirrel-links-to.md),
   roadmap 2026-0058: shipped.
 - [A way in for DBIx::Squirrel's readers](2026-0057-way-in-from-dbix-squirrel.md),

@@ -132,7 +132,7 @@ by tags that follow the modules:
 | `:batch` | `batch` and `collect` | Ekorn::Pipeline::Stages::Batch |
 | `:taps` | `peek`, `count_into`, `dump_to` and `tee` | Ekorn::Pipeline::Stages::Taps |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
-| `:context` | `result_number` and `result_original` | Ekorn::Pipeline::Context |
+| `:context` | `result_number`, `result_original` and `kept_origin` | Ekorn::Pipeline::Context |
 | `:sources` | `from_array`, `from_file`, `from_fh` and `counter` | Ekorn::Pipeline::Sources |
 | `:sinks` | `count_items`, `keep_all`, `keep_first`, `to_file` and the rest | Ekorn::Pipeline::Sinks |
 | `:json` | `from_json`, `from_jsonl`, `to_json` and `to_jsonl` | Ekorn::Pipeline::JSON |
@@ -1437,9 +1437,10 @@ The number counts results, not values: it stays the same while
 is a result of its own. The original is the value as it came in,
 before `sub { $_->{title} }` made it a title, so a later stage can
 still reach the whole track. A flush's values have none: in a flush,
-and the stages after it, `result_original` is undef. Each run counts
-its own, so a pipeline run inside a stage starts again from 1, and
-leaves its caller's count alone.
+and the stages after it, `result_original` is undef, unless a stage
+that holds values back says where they came from (below). Each run
+counts its own, so a pipeline run inside a stage starts again from 1,
+and leaves its caller's count alone.
 
 A source can give the original itself, when what it hands out is made
 from something a stage may want, such as a record. Its set-up returns
@@ -1468,6 +1469,58 @@ say for $hits->iterator($upper)->all;
 
 Every run counts, whether its stages ask or not, at 15 to 75
 nanoseconds a value, so there's nothing to turn on.
+
+### Say where held values came from
+
+A stage that holds values back, to give them later, gives values the
+run has gone past, so the stages after it would see the original of
+the value the run got to last, not of the one theirs was made from.
+It says so with `holds => 1`, keeps an origin, with `kept_origin`, for
+each value it keeps, and gives what it made from it marked by the
+origin's `gives`. A value it gives unmarked, made from many values,
+has none. `kept_origin` is in Ekorn::Pipeline::Context, and `:all`
+gives it you:
+
+```perl
+# The last track of each artist's run, given once the artist changes.
+sub last_of_each_run () {
+    return gather {
+        my($held, $origin, $artist);
+        return {
+            step => sub ($title) {
+                my $track = result_original;
+                my @give
+                    = defined $artist && $track->{artist} ne $artist
+                    ? $origin->gives($held)
+                    : ();
+                ($held, $origin, $artist) = ($title, kept_origin, $track->{artist});
+                return @give;
+            },
+            flush => sub () { defined $held ? $origin->gives($held) : () },
+            holds => 1,
+        };
+    };
+}
+
+say for tracks(
+    sub { $_->{title} },
+    last_of_each_run(),
+    sub { "$_, by " . result_original->{artist} },
+);
+# Knowing Me, Knowing You, by Abba
+# Country House, by Blur
+# Sunshine of Your Love, by Cream
+```
+
+Without `holds`, the last stage would see the track the run had got
+to: Knowing Me, Knowing You, by Blur, as it's given when Girls & Boys
+comes. The origin is captured as the value is kept, in the step it
+came to, as a source answers for the value it gave last, and is
+opaque, so a stage can only hand back one it was given. `take_last`
+does this from v0.5.0, so its value has its own original; `batch` and
+`collect` give values made from many, which have none. A stage that
+holds values back but doesn't say so is taken for one that maps, as
+every stage was before.
 
 ### Write a producer as a loop with `generator`
 

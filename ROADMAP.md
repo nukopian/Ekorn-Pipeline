@@ -41,15 +41,7 @@ dropped is deleted, and the commit that drops it names its id.
 
 ## Now
 
-### 2026-0060. Where a value came from, through stages that hold values back
-
-Started 2026-11-27. **Size:** L (5). A stage that holds values back
-says so, keeps an origin for each value it keeps, and gives what it
-made from it marked, so each value keeps its own original, as
-`result_original` promises; stages written today don't change. A
-v0.5.0, with a task for DBIx-Squirrel. Its
-[record](docs/changes/2026-0060-where-a-value-came-from.md) has the
-decisions and the plan.
+Nothing yet.
 
 ## Next
 
@@ -68,7 +60,7 @@ with its id, or dropped, as Iain decides.
 ### 2026-0059. Stages that run each value in worker processes
 
 Added 2026-11-27. **Size:** L (5), and likely to be split once
-designed. **Depends on:** 2026-0060.
+designed.
 
 Stages that run a caller's block for each value in a pool of forked
 workers, so that a caller can make a function's slow work concurrent,
@@ -81,8 +73,8 @@ distribution, built on Ekorn's protocols, as 2026-0043 and 2026-0045
 were meant to be. Prototyped, with tests and measurements, on the
 branch `experiment/2026-0059-worker-stages`, whose
 `docs/experiments/2026-0059-worker-stages/README.md` says what was
-found. Stages after them see the wrong `result_original` until the
-core can say where a value a stage held back came from: 2026-0060.
+found. With 2026-0060, in v0.5.0, they say where each result came
+from, so the stages after them see the right `result_original`.
 
 ### 2026-0061. A stage given the chance to act between its inputs
 

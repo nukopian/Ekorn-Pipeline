@@ -117,7 +117,7 @@ place, by tags that follow the modules that make it:
 | `:batch` | `batch`, `collect` | [Stages::Batch](#batching-and-collecting-ekornpipelinestagesbatch) |
 | `:taps` | `peek`, `count_into`, `dump_to`, `tee` | [Stages::Taps](#taps-ekornpipelinestagestaps) |
 | `:stages` | `:flow`, `:batch` and `:taps` | |
-| `:context` | `result_number`, `result_original` | [Context](#which-result-ekornpipelinecontext) |
+| `:context` | `result_number`, `result_original`, `kept_origin` | [Context](#which-result-ekornpipelinecontext) |
 | `:sources` | `from_array`, `from_fh`, `from_file`, `counter` | [Sources](#sources-ekornpipelinesources) |
 | `:sinks` | `count_items`, `keep`, `keep_all`, `keep_first`, `keep_last`, `keep_single`, `to_fh`, `to_file` | [Sinks](#sinks-ekornpipelinesinks) |
 | `:json` | `from_json`, `from_jsonl`, `to_json`, `to_jsonl` | [JSON](#json-ekornpipelinejson) |
@@ -527,10 +527,14 @@ These rules say which pipeline a name means:
 `ending` is for a stage that treats what a flush gives apart from the
 values that went into it, as a total or a last batch isn't one of
 them, and for code that tells its stages more about each value, such
-as where it came from: a value from a flush has no such origin.
-DBIx::Squirrel, for instance, tells its stages which row a value was
-made from, and has no row to give while `ending` is true. Here the
-last stage sets out the titles and their total differently:
+as where it came from: a value a flush makes from many values, as a
+total is, has no such origin. DBIx::Squirrel, for instance, tells its
+stages which row a value was made from, and has no row to give for
+one. A value that a stage that holds values back gives from its flush,
+as `take_last` does, came from one value, and has its original while
+`ending` is true (see [Stages that hold values
+back](#stages-that-hold-values-back)). Here the last stage sets out the
+titles and their total differently:
 
 ```perl
 my @lines = Ekorn::Pipeline->new(
@@ -904,6 +908,11 @@ it declared:
 - **an original,** for a source only, and optional: called with
   nothing, it returns the original of the value the source gave last,
   which [`result_original`](#which-result-ekornpipelinecontext) gives.
+- **holds,** for a gather or a stage's own `EKORN_STAGE`, by name only,
+  and optional: true for a stage that holds values back, which then
+  says where each value it gives came from (see [Stages that hold
+  values back](#stages-that-hold-values-back)). Not code, but a flag.
+  New in v0.5.0.
 
 ```perl
 use Ekorn::Pipeline::Factories qw(source);
@@ -926,8 +935,10 @@ a run: it's the same code, with the same closure, in every run.
 The set-up returns its parts as a list, in the order above, leaving
 out those it doesn't give from the end, and giving `undef` for one it
 leaves out before one it gives. Or it returns them **by name,** as a
-hash reference whose keys are `step`, `flush`, `end`, `context` and
-`original`, giving only those it has, in any order:
+hash reference whose keys are `step`, `flush`, `end`, `context`,
+`original` and `holds`, giving only those it has, in any order. `holds`
+is given only by name, so a list keeps its three parts, and the
+messages that say so:
 
 ```perl
 use Ekorn::Pipeline::Factories qw(gather);
@@ -950,7 +961,10 @@ say $count;    # 3
 A key Ekorn doesn't read is ignored, and a hash without what its part
 needs, a step, and a sink's flush, croaks, as a list without them
 does. Only a plain hash reference returned alone is taken for parts by
-name.
+name. So a misspelt key, such as `hold`, is ignored without a word: a
+stage that means to hold values back, but misspells it, is taken for
+one that doesn't. A sink gives nothing to stages after it, so its
+`holds` is ignored too.
 
 ### How a run ends
 
@@ -1383,7 +1397,11 @@ end (see [Made for a run](#made-for-a-run)), or a pipeline in place of
 the step (see [A pipeline as the stage](#a-pipeline-as-the-stage)). A
 block that returns anything else is reported as the run starts:
 "Expected stage #%s, made with gather, to return a code reference or a
-pipeline, and optionally a flush and an end".
+pipeline, and optionally a flush and an end". By name, it can say the
+stage holds values back, with `holds` (see [Stages that hold values
+back](#stages-that-hold-values-back)), but not beside a pipeline:
+"Expected stage #%s, made with gather, to hold values back in its step,
+not in a pipeline".
 
 ### The flush
 
@@ -1544,8 +1562,11 @@ say scalar @three, " tracks, $read read";    # 3 tracks, 3 read
 `take_first`, `take_last` and `take_single` each pass on one value,
 and are the stages of the sinks `keep_first`, `keep_last` and
 `keep_single`, so a pipeline can go on after them. `take_last` reads
-every value to find the last. `take_single` is for when one value is
-meant: at a second, it warns and stops, so a forgotten limit is found.
+every value to find the last, and holds it back, saying where it came
+from, so the stages after it get its original (see [Stages that hold
+values back](#stages-that-hold-values-back)). `take_single` is for when
+one value is meant: at a second, it warns and stops, so a forgotten
+limit is found.
 
 <!-- not run -->
 ```perl
@@ -1611,7 +1632,9 @@ say join ', ', $most_played->(@tracks);    # Dancing Queen, Sunshine of Your Lov
 ```
 
 `collect` holds every value until the end, so the whole result is in
-memory at once; `batch` holds no more than one batch.
+memory at once; `batch` holds no more than one batch. What either gives
+is made from many values, so has no original (see [Stages that hold
+values back](#stages-that-hold-values-back)).
 
 ### Taps: Ekorn::Pipeline::Stages::Taps
 
@@ -2270,10 +2293,11 @@ my @titles = Ekorn::Pipeline->new(
 - **Each value a stage returns in place of one is a result of its
   own,** numbered one after another, each with the original of the
   value it was made from. So is each value a stop carries.
-- **A flush's values have no original.** In a flush, `result_number`
-  is the number of the first value it returns, and `result_original`
-  is undef there and in the stages after it, for the values it gives,
-  as below.
+- **A flush's values have no original,** unless its stage holds values
+  back and says where each came from, as below. In a flush,
+  `result_number` is the number of the first value it returns, and
+  `result_original` is undef there and in the stages after it, for the
+  values it gives.
 - **Each run counts its own,** from 1: a pipeline run inside a stage, a
   tee's branch, and an iterator read as a source each count theirs,
   and leave the count of the run around them as it was. For a run
@@ -2284,12 +2308,14 @@ my @titles = Ekorn::Pipeline->new(
   such as the row a statement fetched. `result_original` then gives
   what that says, calling it only when asked, and a run reading an
   iterator of that source's run gets it too, so it reaches every
-  pipeline in a chain. A flush's values have none, whatever it says.
+  pipeline in a chain. A flush's values have none, whatever it says,
+  unless a stage that holds values back says where they came from.
   The part answers for the value the source gave last, which is the
   one the stages are working from, as values a stage returns several
   of go through the stages before the next is pulled; but a source
   whose step returns several values at once has it answer for the
-  last of them. New in v0.3.13.
+  last of them. A stage that holds values back asks it as each value
+  arrives, as below. New in v0.3.13.
 - **They're for stages,** their flushes and sinks. Outside a run, and
   in an end, both give undef. In a source's step, they give where the
   run reading it has got to, which isn't promised.
@@ -2300,18 +2326,27 @@ my @titles = Ekorn::Pipeline->new(
   a call. Less through stages that do work. Roadmap 2026-0046's record
   has the measurements.
 
-A batch filled by a value has that value's original; the last, given
-by `batch`'s flush, has none:
+A batch is made from many values, so has no original, whether its step
+or its flush gives it; `take_last`'s value is the last it was given,
+and has that value's:
 
 ```perl
-my @lines = Ekorn::Pipeline->new(
+say join '; ', Ekorn::Pipeline->new(
     batch(4),
-    sub {
-        my $last = result_original ? result_original->{title} : 'from the flush';
-        result_number . ': ' . @$_ . " tracks, the last $last";
-    },
-)->(@tracks);    # 1: 4 tracks, the last Parklife; 2: 2 tracks, the last from the flush
+    sub { result_number . ': ' . @$_ . ' tracks, ' . (result_original // 'from many') },
+)->(@tracks);
+# 1: 4 tracks, from many; 2: 2 tracks, from many
+
+say Ekorn::Pipeline->new(
+    sub { $_->{title} },
+    take_last,
+    sub { "$_, by " . result_original->{artist} },
+)->(@tracks);
+# Country House, by Blur
 ```
+
+Until v0.5.0, a batch filled by a value had that value's original, and
+`take_last`'s value had none, as a flush's.
 
 The run's context is asked with
 [`run_context`](#stages-that-ask-about-their-run), and whether a
@@ -2319,6 +2354,78 @@ value came from a flush with [`ending`](#ending). DBIx::Squirrel has
 the same functions under the same names, from its v3.6.1, its rows
 carried through chains by its source's original, so a program
 importing both Toolings gets one of each.
+
+### Stages that hold values back
+
+A stage that maps gives what it made from the value it was just given,
+so the run knows where each value came from. A stage that holds values
+back, to give them later, as `take_last`, `batch` and a stage running
+values in other processes do, gives values the run has gone past, so
+only it knows which value each came from. It says so, and says which:
+
+- **`holds => 1`** among its parts, by name (see [Made for a
+  run](#made-for-a-run)), says it holds values back.
+- **`kept_origin`,** called in its step as it keeps a value, returns the
+  value's *origin*: an opaque object holding what `result_original`
+  answers for the value then, as later its source may answer for
+  another. The stage keeps the origin with the value.
+- **`$origin->gives(@values)`** marks what it made from that value, as
+  it gives it, from its step, its flush or carried by its stop. The
+  stages after it get each value unmarked, with its own original.
+- **A value it gives unmarked has none,** as made from many values, as
+  a batch is.
+
+```perl
+use Ekorn::Pipeline::Context qw(kept_origin result_original);
+
+# Each value, given only once the next has come: one behind.
+sub one_behind () {
+    return gather {
+        my @held;    # [value, origin]
+        my $give = sub ($held) { $held->[1]->gives($held->[0]) };
+        return {
+            step => sub ($track) {
+                push @held, [$track, kept_origin];
+                return @held > 1 ? $give->(shift @held) : ();
+            },
+            flush => sub () { map { $give->($_) } splice @held },
+            holds => 1,
+        };
+    };
+}
+
+say join ', ', Ekorn::Pipeline->new(
+    sub { $_->{title} },
+    one_behind(),
+    sub { "$_ (" . result_original->{artist} . ')' },
+)->(@tracks[0 .. 2]);
+# Dancing Queen (ABBA), Knowing Me, Knowing You (ABBA), Girls & Boys (Blur)
+```
+
+- **A value and where it came from go together,** in the one return,
+  so the two can't come apart, and a stage that keeps no origin, as
+  `batch` doesn't, captures nothing.
+- **The origin is captured as the value arrives,** in the step it was
+  given it in, so a source's original part, which answers for the
+  value it gave last, is asked for it then, and only by a stage that
+  holds values back: a pipeline of maps asks nothing.
+- **Only what it gives is unmarked,** not a marked value inside a
+  structure it gives, which goes on as an
+  `Ekorn::Pipeline::Origin::Given` object.
+- **`kept_origin` works only in a run with a stage that holds values
+  back,** and croaks elsewhere, a run nested inside such a stage's
+  step included: "Expected kept_origin in the step of a stage that
+  holds values back". It doesn't tell one stage of the run from
+  another, so a stage that doesn't hold values back mustn't call it;
+  and in a flush, which has no value, it gives an origin of nothing.
+- **A stage that holds values back but doesn't say so** is taken for
+  one that maps, as every stage was before v0.5.0: the stages after it
+  see the original of the value the run got to last, not of the value
+  theirs was made from.
+- **It costs a run with such a stage** a check for what each stage
+  gave, and the capture of each value kept. Roadmap 2026-0060's record
+  has the measurements. A run without one takes the shorter way, or
+  pays a few checks a value. New in v0.5.0.
 
 ## Writing stages
 
@@ -2343,6 +2450,11 @@ works alongside them.
   run and two runs at once don't share it.
 - **Give up held values in a flush.** It's called even when there were
   no values, with no arguments and `$_` undefined.
+- **Say where held values came from.** A stage that holds values back
+  says `holds => 1`, keeps an origin for each value it keeps, and
+  gives what it made from it marked, so the stages after it get the
+  right original (see [Stages that hold values
+  back](#stages-that-hold-values-back)).
 - **Close what you open in an end,** which is told how the run ended,
   however it ended, rather than in a flush, which isn't called when
   the run stops before the stage, or dies.
@@ -2962,6 +3074,14 @@ the line of the caller's code that caused it.
   or a pipeline, and optionally a flush and an end:** the block given
   to `gather` for that stage returned something else. Reported when the
   run starts.
+- **Expected stage #%s, made with gather, to hold values back in its
+  step, not in a pipeline:** the block given to `gather` for that stage
+  returned a pipeline in place of its step, and `holds`. Reported when
+  the run starts. New in v0.5.0.
+- **Expected kept_origin in the step of a stage that holds values
+  back:** `kept_origin` was called in a run with no stage that holds
+  values back, a run nested in one's step included, or outside a run.
+  New in v0.5.0.
 - **Pipeline stage #%s failed at %s line %d:** a stage, or its flush,
   died with a message, which follows, indented. An exception object is
   thrown again unchanged.
@@ -3400,9 +3520,29 @@ See [stages](#stages).
 
 ### Ekorn::Pipeline::Context
 
-What a stage can ask about the result it's making. Nothing is exported
+What a stage can ask about the result it's making, and, for a stage
+that holds values back, where a value came from. Nothing is exported
 by default; each is exported upon request, and is in Tooling's
 `:context`, from v0.3.15. New in v0.3.11.
+
+#### kept_origin
+
+```perl
+my $origin = kept_origin;
+my @marked = $origin->gives(@values);
+```
+
+For a stage that holds values back (`holds => 1`), in its step, as it
+keeps a value: returns the value's origin, an opaque
+`Ekorn::Pipeline::Origin` holding what `result_original` answers for
+the value then. Its method `gives` returns each of the values given
+marked as made from that value; the stage gives them so, and the
+stages after it get them unmarked, each with that value's original.
+Croaks "Expected kept_origin in the step of a stage that holds values
+back" in a run with no such stage, or outside a run. Exported upon
+request. New in v0.5.0.
+
+See [Stages that hold values back](#stages-that-hold-values-back).
 
 #### result_number
 
@@ -3429,7 +3569,9 @@ gave it, or as it was pushed, before any stage changed it: the value
 itself, not a copy. Undef in a flush and the stages after it, for the
 values it gives, outside a run, and in an end. If the run's source
 gave an `original` part, directly or through an iterator read as a
-source, what that returns instead, called only now. Exported upon
+source, what that returns instead, called only now. After a stage that
+holds values back, the original of the value it said each came from,
+in a flush too, and undef for one it made from many. Exported upon
 request.
 
 See [Which result](#which-result-ekornpipelinecontext).
@@ -4339,8 +4481,10 @@ batch($size)
 Passes values on in batches of `$size`, each a new array reference,
 holding no more than one batch at a time. Once the values run out, the
 last batch goes on, which may be shorter; with no values, there's no
-batch at all. It croaks "Expected a batch size of 1 or more" if
-`$size` isn't a whole number above 0. Exported by default.
+batch at all. A batch, made from many values, has no original; until
+v0.5.0, one filled by a value had that value's. It croaks "Expected a
+batch size of 1 or more" if `$size` isn't a whole number above 0.
+Exported by default.
 
 See [Batching and collecting:
 Ekorn::Pipeline::Stages::Batch](#batching-and-collecting-ekornpipelinestagesbatch).
@@ -4466,7 +4610,9 @@ take_last
 
 Passes on the last value, once there are no more, reading every one to
 find it; nothing if there were none. If a stage before it stops the
-run, it passes on the last value to reach it. Exported upon request.
+run, it passes on the last value to reach it. Its value has its own
+original, from v0.5.0; it had none, as a flush's values have. Exported
+upon request.
 
 See [Taking and dropping:
 Ekorn::Pipeline::Stages::Flow](#taking-and-dropping-ekornpipelinestagesflow).
