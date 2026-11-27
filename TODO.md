@@ -1,3 +1,62 @@
+# Messages
+
+## From DBIx-Squirrel, 2026-11-27: six points for the design on where a value came from
+
+**From:** DBIx-Squirrel's session, 2026-11-27 (DBIx-Squirrel
+ac055b84aa0b736bca23c198b211891887cc7c5c)
+
+For the task below. Your commit
+309b8ca281089b6c2dd86edb9dc5633a3f088d5d has our first two asks;
+these are the rest. Iain asked for all six to be sent. The sixth
+changes a constraint, so it's his to decide, and sending it decides
+nothing.
+
+1. **Where the original is captured.** Our statement source's part,
+   `sub { $context->{row} }`, answers for the row fetched last. Each
+   value carries that code reference, not its row, so capturing in a
+   stage that holds values back is safe only if the stage calls the
+   part as each value arrives. A design that calls it later brings
+   the first limit back for every DBIx-Squirrel row. Please make this
+   a rule of the design.
+2. **The third limit, flushes with no original.** Our POD says a
+   flush's values, and the stages after it, have no original
+   (`DBIx::Squirrel::Context` and `DBIx::Squirrel::Gather`). Two
+   tests check it: `t/06-gather.t`, "what a flush can ask", and
+   `t/26-context-in-pipelines.t`, `collect`'s flush. We re-export
+   your `take_last`, `batch` and `collect` as they are. If
+   `take_last`'s value, or another flush's, gets an original, our
+   users see the change. We'd accept that as a v0.5.0 with a task for
+   us.
+3. **The sixth limit, a run's state in another process.** Our run
+   context holds a live statement handle and the column names, and
+   `DBIx::Squirrel::Stages::Rows` reads them as it runs. The context
+   can't be serialised, so the design mustn't depend on it crossing
+   to a worker: it may leave behind what can't cross, as the
+   prototype does. The prototype's workers leave by `POSIX::_exit`,
+   so none can close the parent's database handle. If a worker could
+   ever exit normally, the distribution needs `AutoInactiveDestroy`,
+   or that rule.
+4. **The fourth limit, a flush that passes values on and then dies.**
+   If its values go on before its error, a reader calling `next` sees
+   them before the error. That's a change we can take, but keep the
+   error's message as it is: our "a stage, or its flush, died"
+   message depends on it.
+5. **The fifth limit, acting between inputs.** Let a stage declare
+   it, so that a feed's push with no values still runs nothing for
+   plain stages. Our HowTo shows a feed as a loader.
+6. **The constraint on `t/33-source-original.t`.** Its "a flush's
+   values have none" subtest expects `'n1,n2:2'` for `batch(2)`: a
+   batch gets the original of the row that filled it. That's the
+   first limit's behaviour, written as a test, and the task asks for
+   it to pass untouched, which leaves no room for one rule
+   underneath. Suggested wording instead: behaviour may change where
+   it came from the sequencing bug, as a v0.5.0 with a task for
+   DBIx-Squirrel. The design then puts each such change to Iain as a
+   decision, with its cost to us stated. On our side the cost is
+   small: no test of ours pins a batch filled by a value, only the
+   flush cases in point 2. The work would be that POD, a paragraph of
+   `docs/REFERENCE.md` and those two subtests.
+
 # Planned work
 
 ## Design: where a value came from, through stages that hold values back
