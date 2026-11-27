@@ -136,3 +136,25 @@ Making a release; and each promise on D4's list has a test that tries
 it.
 
 ## What happened
+
+- **Steps 1 to 3:** `xt/lib/RandomPipelines.pm` makes the stages, and
+  `xt/agreement.t` drives it. Three things the plan didn't foresee:
+  - **Agreement can't see 2026-0060's fault,** which every way had
+    alike. So the test also checks each result's original against the
+    truth: a case's values are all different, so a value holding any
+    of them was made from its original only if the original is one.
+    A value holding none, such as a nested `collect` of nothing, has
+    nothing to tell, and isn't checked.
+  - **A death's message names the line that ran the way,** which
+    differs by way, so that's taken out before comparing.
+  - **`collect` gathers into an array reference** rather than
+    counting, and "as a number" is gone, so no stage makes a value
+    the caller's `number` wasn't given.
+- **Broken on purpose,** in scratch copies of `lib`: with
+  `result_original`'s known branch taken out, 2026-0060's fault, the
+  test failed on the first five cases it met, "one behind" and
+  `batch(1)` among them, with "not made from its original"; with
+  `take_last`'s held value shared by every run, it failed on a fed run
+  after the other ways giving the stale value again. On `lib` it
+  passes on Perl 5.36 and 5.44, and with seeds 1 to 5 at 5,000 cases,
+  in about three seconds at its 3,000.

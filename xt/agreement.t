@@ -4,41 +4,28 @@ use Test2::Plugin::NoWarnings;
 
 # A run gives the same values however it's run: pushed, pulled a value
 # at a time, read with all, or fed a value at a time and closed, as the
-# reference promises. Random pipelines of the canned stages, gathers,
-# stops carrying values, flatMaps and filters, ending in a sink or not,
-# are run each way, from a fixed seed, so a failure can be run again
-# (roadmap 2026-0053's F16).
+# reference promises; and each result the same original, the one it was
+# made from, or each way dies with the same error. Random pipelines from
+# xt/lib/RandomPipelines.pm (roadmap 2026-0062), ending in a sink or
+# not, are run each way, from a source with an original part, by a
+# pipeline made fresh, and again by the one pipeline after the ways
+# before it, as a stop or a death mustn't leave anything behind for the
+# next run (2026-0053's F16 and 2026-0062's D1). Each case is made from a seed of its own, printed
+# with a failure: EKORN_AGREEMENT_CASE set to it runs that case alone.
+
+use FindBin qw($Bin);
+use lib "$Bin/lib";
 
 use Ekorn::Pipeline;
-use Ekorn::Pipeline::Tooling qw(:all);
+use Ekorn::Pipeline::Factories qw(source);
+use Ekorn::Pipeline::Tooling   qw(:all);
+use RandomPipelines            qw(random_stages);
 
 my $CASES = $ENV{EKORN_AGREEMENT_CASES} // 3000;
-my $SEED  = $ENV{EKORN_AGREEMENT_SEED}  // 20260053;
+my $SEED  = $ENV{EKORN_AGREEMENT_SEED}  // 20260062;
+my $ONE   = $ENV{EKORN_AGREEMENT_CASE};
 srand $SEED;
 
-# Each makes a stage, and says what it is, for a failure's message.
-my @makers = (
-    sub { my $n = int rand 6;     (take($n),  "take($n)") },
-    sub { my $n = int rand 4;     (drop($n),  "drop($n)") },
-    sub { my $n = 1 + int rand 3; (batch($n), "batch($n)") },
-    sub { (collect { scalar @_ }, 'collect { scalar @_ }') },
-    sub { (sub { ($_, _number($_) + 100, _number($_) + 200) }, 'three of it') },
-    sub { (sub { _number($_) % 2 ? $_ : () },                  'the odd') },
-    sub {
-        my $at = int rand 8;
-        (sub { _number($_) == $at ? Stop($_, -1) : $_ }, "a stop at $at");
-    },
-    sub { (take_last, 'take_last') },
-    sub {
-        my $n      = int rand 4;
-        my $gather = gather {
-            Ekorn::Pipeline->new(take($n), sub { $_ })
-        };
-        ($gather, "a gather of take($n)");
-    },
-    sub { (tee(take(2), batch(2)), 'a tee') },
-    sub { (sub { _number($_) },    'as a number') },
-);
 my @sinks = (
     sub { (keep_all,    'keep_all') },
     sub { (count_items, 'count_items') },
@@ -46,10 +33,23 @@ my @sinks = (
     sub { (keep(2),     'keep(2)') },
 );
 
-# A value as a number: a batch's or a collection's size.
+# What each value reaching the end was, and its original, in the order
+# they came; and each whose original it wasn't made from: the way being
+# run sets both.
+my(@log, @wrong);
+
+
+# A value as a number: a batch's size, or the number itself.
 sub _number ($value) {
     return ref $value ? scalar @$value : $value;
 }
+
+
+# Return the numbers in a value, however deep in array references.
+sub _leaves ($value) {
+    return ref $value ? map { _leaves($_) } @$value : $value;
+}
+
 
 # A value, or a list of them, as text to compare.
 sub _shown (@values) {
@@ -57,46 +57,112 @@ sub _shown (@values) {
         map { ref $_ ? '[' . _shown(@$_) . ']' : $_ // 'undef' } @values;
 }
 
-my $failed = 0;
-for my $case (1 .. $CASES) {
-    my(@stages, @named);
-    for (1 .. 1 + int rand 4) {
-        my($stage, $name) = $makers[rand @makers]->();
-        push @stages, $stage;
-        push @named,  $name;
-    }
+
+# Return a case made from a seed: its pipeline, the values it's run
+# over, and what it is, for a failure's message. The same seed makes
+# the same case, fresh.
+sub make_case ($seed) {
+    srand $seed;
+    my($stages, $names) = random_stages(number => \&_number);
+    # A case's values are all different, so a value with an original,
+    # holding any of them, was made from it only if the original is one:
+    # a stage that holds values back mustn't give the latest value's
+    # (2026-0060). One holding none, as a nested collect of nothing, has
+    # nothing to tell.
+    my $note = sub ($value) {
+        my $original = result_original;
+        my @leaves   = _leaves($value);
+        my $shown    = _shown($value) . ':' . _shown($original);
+        push @log, $shown;
+        push @wrong, $shown
+            if defined $original && @leaves && !grep { $_ == $original } @leaves;
+        return $value;
+    };
+    my @stages = (@$stages, $note);
+    my @named  = @$names;
     if (rand > 0.4) {
         my($sink, $name) = $sinks[rand @sinks]->();
         push @stages, $sink;
         push @named,  $name;
     }
-    my @values   = map { int rand 10 } 1 .. int rand 8;
-    my $pipeline = Ekorn::Pipeline->new(@stages);
-    my $source   = sub (@from) {
-        sub { @from ? shift @from : () }
+    my @all    = 0 .. 9;
+    my @values = map { splice @all, rand @all, 1 } 1 .. int rand 8;
+    return (Ekorn::Pipeline->new(@stages), \@values, join ', ', @named);
+}
+
+
+# A source of the values, whose original part gives the value it gave
+# last, as a pushed value is its own original.
+sub from_values (@values) {
+    return source {
+        my $given;
+        return {
+            step     => sub () { return unless @values; $given = shift @values; $given },
+            original => sub () { $given },
+        };
     };
+}
 
-    my %got = (pushed => _shown($pipeline->(@values)));
-    $got{all} = _shown($pipeline->iterator($source->(@values))->all);
-    my $next = $pipeline->iterator($source->(@values));
-    my @pulled;
-    while (my($value) = $next->()) { push @pulled, $value }
-    $got{pulled} = _shown(@pulled);
-    my $feed = $pipeline->feed;
-    my @fed;
-    for my $value (@values) {
-        push @fed, $feed->push($value);
-        last if defined $feed->ended;
+my %ways = (
+    pushed => sub ($pipeline, @values) { $pipeline->(@values) },
+    all    => sub ($pipeline, @values) {
+        $pipeline->iterator(from_values(@values))->all;
+    },
+    pulled => sub ($pipeline, @values) {
+        my $next = $pipeline->iterator(from_values(@values));
+        my @pulled;
+        while (my($value) = $next->()) { push @pulled, $value }
+        return @pulled;
+    },
+    fed => sub ($pipeline, @values) {
+        my $feed = $pipeline->feed;
+        my @fed;
+        for my $value (@values) {
+            push @fed, $feed->push($value);
+            last if defined $feed->ended;
+        }
+        push @fed, $feed->close unless defined $feed->ended;
+        return @fed;
+    },
+);
+my @ways = sort keys %ways;
+
+
+# Run a pipeline one way, returning what it gave and the log, or the
+# error it died with and the log so far, and any value whose original
+# it wasn't made from.
+sub run_way ($way, $pipeline, $values) {
+    @log = @wrong = ();
+    my @got;
+    my $died = !eval { @got = $ways{$way}->($pipeline, @$values); 1 };
+    # A death's message names the line that ran the way, so not that.
+    my $what
+        = $died
+        ? 'died: ' . ($@ =~ s( \ at\ \S+\ line\ \d+ )()xgr =~ s( \n )( )xgr)
+        : _shown(@got);
+    my $wrong = @wrong ? " | not made from its original: @wrong" : '';
+    return "$what | @log$wrong";
+}
+
+# Each case's seed, drawn first, so a case is made the same whatever
+# the cases before it did with rand.
+my @seeds = defined $ONE ? ($ONE) : map { int rand 2**31 } 1 .. $CASES;
+
+my $failed = 0;
+for my $seed (@seeds) {
+    my($pipeline, $values, $named) = make_case($seed);
+    my %got;
+    for my $way (@ways) {
+        $got{"$way, fresh"} = run_way($way, (make_case($seed))[0], $values);
+        $got{"$way, again"} = run_way($way, $pipeline, $values);
     }
-    push @fed, $feed->close unless defined $feed->ended;
-    $got{fed} = _shown(@fed);
-
-    next unless grep { $got{$_} ne $got{pushed} } keys %got;
+    my @differ = grep { $got{$_} ne $got{'pushed, fresh'} } keys %got;
+    next if !@differ && $got{'pushed, fresh'} !~ m( not\ made\ from )x;
     $failed++;
-    fail "case $case: (@values) through " . join ', ', @named;
+    fail "seed $seed: (@$values) through $named";
     diag "    $_: $got{$_}" for sort keys %got;
     last if $failed >= 5;
 }
-ok !$failed, "$CASES pipelines give the same values every way, from seed $SEED";
+ok !$failed, scalar(@seeds) . " pipelines agree every way, from seed $SEED";
 
 done_testing;

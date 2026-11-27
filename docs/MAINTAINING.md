@@ -204,9 +204,15 @@ The docs' examples are tested, so a change to one runs its test:
   stand-in, is marked `<!-- not run -->` on the line before it, and
   checked by hand.
 - **`xt/agreement.t`** runs random pipelines pushed, pulled, read with
-  `all` and fed, from a fixed seed, and fails if any way gives other
-  values. `EKORN_AGREEMENT_SEED` and `EKORN_AGREEMENT_CASES` run it
-  with another seed, or more cases.
+  `all` and fed, each by a pipeline made fresh and again by one that
+  has run, from a fixed seed. It fails if any way gives other values,
+  other originals or another error, or if a value's original isn't
+  one it was made from. The pipelines come from
+  `xt/lib/RandomPipelines.pm`, which DBIx-Squirrel copies for its own
+  test: a change to it that would suit DBIx-Squirrel's copy goes to it
+  as a message. `EKORN_AGREEMENT_SEED` and `EKORN_AGREEMENT_CASES` run
+  it with another seed, or more cases, and `EKORN_AGREEMENT_CASE` the
+  one case whose seed a failure printed.
 
 To run them, after `scripts/manuals`:
 
