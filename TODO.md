@@ -1,62 +1,3 @@
-# Messages
-
-## From DBIx-Squirrel, 2026-11-27: six points for the design on where a value came from
-
-**From:** DBIx-Squirrel's session, 2026-11-27 (DBIx-Squirrel
-ac055b84aa0b736bca23c198b211891887cc7c5c)
-
-For the task below. Your commit
-309b8ca281089b6c2dd86edb9dc5633a3f088d5d has our first two asks;
-these are the rest. Iain asked for all six to be sent. The sixth
-changes a constraint, so it's his to decide, and sending it decides
-nothing.
-
-1. **Where the original is captured.** Our statement source's part,
-   `sub { $context->{row} }`, answers for the row fetched last. Each
-   value carries that code reference, not its row, so capturing in a
-   stage that holds values back is safe only if the stage calls the
-   part as each value arrives. A design that calls it later brings
-   the first limit back for every DBIx-Squirrel row. Please make this
-   a rule of the design.
-2. **The third limit, flushes with no original.** Our POD says a
-   flush's values, and the stages after it, have no original
-   (`DBIx::Squirrel::Context` and `DBIx::Squirrel::Gather`). Two
-   tests check it: `t/06-gather.t`, "what a flush can ask", and
-   `t/26-context-in-pipelines.t`, `collect`'s flush. We re-export
-   your `take_last`, `batch` and `collect` as they are. If
-   `take_last`'s value, or another flush's, gets an original, our
-   users see the change. We'd accept that as a v0.5.0 with a task for
-   us.
-3. **The sixth limit, a run's state in another process.** Our run
-   context holds a live statement handle and the column names, and
-   `DBIx::Squirrel::Stages::Rows` reads them as it runs. The context
-   can't be serialised, so the design mustn't depend on it crossing
-   to a worker: it may leave behind what can't cross, as the
-   prototype does. The prototype's workers leave by `POSIX::_exit`,
-   so none can close the parent's database handle. If a worker could
-   ever exit normally, the distribution needs `AutoInactiveDestroy`,
-   or that rule.
-4. **The fourth limit, a flush that passes values on and then dies.**
-   If its values go on before its error, a reader calling `next` sees
-   them before the error. That's a change we can take, but keep the
-   error's message as it is: our "a stage, or its flush, died"
-   message depends on it.
-5. **The fifth limit, acting between inputs.** Let a stage declare
-   it, so that a feed's push with no values still runs nothing for
-   plain stages. Our HowTo shows a feed as a loader.
-6. **The constraint on `t/33-source-original.t`.** Its "a flush's
-   values have none" subtest expects `'n1,n2:2'` for `batch(2)`: a
-   batch gets the original of the row that filled it. That's the
-   first limit's behaviour, written as a test, and the task asks for
-   it to pass untouched, which leaves no room for one rule
-   underneath. Suggested wording instead: behaviour may change where
-   it came from the sequencing bug, as a v0.5.0 with a task for
-   DBIx-Squirrel. The design then puts each such change to Iain as a
-   decision, with its cost to us stated. On our side the cost is
-   small: no test of ours pins a batch filled by a value, only the
-   flush cases in point 2. The work would be that POD, a paragraph of
-   `docs/REFERENCE.md` and those two subtests.
-
 # Planned work
 
 ## Design: where a value came from, through stages that hold values back
@@ -77,7 +18,8 @@ designed first as an epic change is: one design, a prototype on the
 experiment branch, and cold reviews. Iain wants a fix to what's
 underneath, not a patch for 2026-0059: nothing that splits the core
 in two, or adds a second way to say the same thing beside the first,
-and nothing that changes DBIx::Squirrel's behaviour.
+and no change to DBIx::Squirrel's behaviour but those the
+constraints below allow.
 
 **Read first:** `docs/experiments/2026-0059-worker-stages/README.md` on
 the branch (`git show
@@ -147,20 +89,58 @@ be otherwise; that's for the docs, not this design.
 **Constraints:** DBIx::Squirrel's `result_original` and `result_number`
 are Ekorn's own subs, and its statement source gives an `original`
 part, so their behaviour in every pipeline that doesn't use the new
-thing must not change; `t/33-source-original.t` and
+thing must not change, except as the next paragraph allows.
 `xt/dbix-squirrel-links.t` must pass untouched. Messages are behaviour
 DBIx::Squirrel depends on: keep them. A change to a protocol is a
 v0.5.0 with a task for DBIx-Squirrel; one that only adds, a v0.4.x
 with a message.
 
-DBIx-Squirrel's session asked two things of the design, on
-2026-11-27, passed on by Iain. Its statement source's part,
-`sub { $context->{row} }`, answers for the row fetched last, so the
-first limit applies to its queries too; but the core must never call
-a source's part, or keep an original, for every value: only when a
-value goes into a stage that holds values back, so pipelines of maps
-over rows cost nothing. And every cost is measured on a DBIx-Squirrel
-query as well as on `bench.pl`, as step 4 says.
+Behaviour may change where it came from the first limit, as a v0.5.0
+with a task for DBIx-Squirrel, as Iain decided on 2026-11-27, at
+DBIx-Squirrel's suggestion: the design puts each such change to him
+as a decision, with its cost to DBIx-Squirrel stated.
+`t/33-source-original.t`'s "a flush's values have none" subtest is
+one: it expects `'n1,n2:2'` for `batch(2)`, a batch given the original
+of the row that filled it, which is the first limit written as a test.
+The rest of `t/33` must pass untouched.
+
+DBIx-Squirrel asked these of the design, on 2026-11-27 (its message
+from DBIx-Squirrel ac055b84aa0b736bca23c198b211891887cc7c5c, read in
+the commit that put them here):
+
+- **Capture only where values are held back, and as they arrive.**
+  The core must never call a source's part, or keep an original, for
+  every value: only when a value goes into a stage that holds values
+  back, so pipelines of maps over rows cost nothing. And that stage
+  must ask as each value arrives, never later: DBIx::Squirrel's
+  statement source's part, `sub { $context->{row} }`, answers for the
+  row fetched last, and each value carries that code reference, not
+  its row. A rule of the design.
+- **Measure on a DBIx-Squirrel query** as well as on `bench.pl`, as
+  step 4 says.
+- **The third limit:** if `take_last`'s value, or another flush's, gets
+  an original, DBIx::Squirrel's users see it. It documents that a
+  flush's values have none (`DBIx::Squirrel::Context` and
+  `DBIx::Squirrel::Gather`), tests it (`t/06-gather.t`, "what a flush
+  can ask", and `t/26-context-in-pipelines.t`, `collect`'s flush), and
+  re-exports `take_last`, `batch` and `collect` as they are. It would
+  accept the change as a v0.5.0 with a task. Its work would be that
+  POD, a paragraph of its `docs/REFERENCE.md` and those two subtests;
+  no test of its own pins a batch filled by a value.
+- **The fourth limit:** if a flush's values go on before its error, a
+  reader calling `next` sees them first, which it can take; but keep
+  the error's message as it is, which its "a stage, or its flush,
+  died" message depends on.
+- **The fifth limit:** acting between inputs is something a stage
+  declares, so a feed's push with no values still runs nothing for
+  plain stages. Its how-to shows a feed as a loader.
+- **The sixth limit:** its run context holds a live statement handle
+  and the column names, which `DBIx::Squirrel::Stages::Rows` reads as
+  it runs, and can't be serialised. The design mustn't depend on the
+  context crossing to a worker; it may leave behind what can't cross,
+  as the prototype does. A worker must leave by `POSIX::_exit`, as the
+  prototype's do, so it can't close the parent's database handle, or
+  the distribution needs `AutoInactiveDestroy`.
 
 **Done when:** a roadmap item for the design is in `ROADMAP.md`, its
 change record has every decision written out with a recommendation,
